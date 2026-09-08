@@ -86,20 +86,47 @@ def main():
         })
     )
 
-    print("\n🌐 Tarayıcıda yetkilendirme sayfası açılıyor...")
-    print(f"🔗 Otomatik açılmazsa şu linke tıklayın:\n{auth_url}\n")
+    code = None
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        arg = sys.argv[1].strip()
+        if "code=" in arg:
+            parsed = urllib.parse.urlparse(arg)
+            params = urllib.parse.parse_qs(parsed.query)
+            code = params.get("code", [None])[0]
+        else:
+            code = arg
 
-    try:
-        webbrowser.open(auth_url)
-    except Exception:
-        pass
+    if not code:
+        print("\n🌐 Tarayıcıda yetkilendirme sayfası açılıyor...")
+        print(f"🔗 Otomatik açılmazsa şu linke tıklayın:\n{auth_url}\n")
 
-    print(f"⏳ Port {REDIRECT_PORT} üzerinde yanıt bekleniyor (Onay verildikten sonra otomatik kapanır)...")
-    with socketserver.TCPServer(("localhost", REDIRECT_PORT), OAuthCallbackHandler) as httpd:
-        while not OAuthCallbackHandler.auth_code:
-            httpd.handle_request()
+        try:
+            webbrowser.open(auth_url)
+        except Exception:
+            pass
 
-    code = OAuthCallbackHandler.auth_code
+        try:
+            socketserver.TCPServer.allow_reuse_address = True
+            with socketserver.TCPServer(("localhost", REDIRECT_PORT), OAuthCallbackHandler) as httpd:
+                print(f"⏳ Port {REDIRECT_PORT} üzerinde yanıt bekleniyor (Onay verildikten sonra otomatik kapanır)...")
+                while not OAuthCallbackHandler.auth_code:
+                    httpd.handle_request()
+                code = OAuthCallbackHandler.auth_code
+        except Exception as e:
+            print(f"\n⚠️  Otomatik yerel dinleyici başlatılamadı ({e}).")
+            print("👉 Giriş yaptıktan sonra tarayıcınızın adres çubuğundaki linki (http://localhost:8989/callback?code=...) veya sadece code= değerini yapıştırın:")
+            raw = input("URL veya Kod: ").strip()
+            if "code=" in raw:
+                parsed = urllib.parse.urlparse(raw)
+                params = urllib.parse.parse_qs(parsed.query)
+                code = params.get("code", [None])[0]
+            else:
+                code = raw
+
+    if not code:
+        print("❌ Yetki kodu bulunamadı.")
+        return
+
     print("✅ Yetki kodu alındı, kalıcı Refresh Token alınıyor...")
 
     token_url = "https://oauth2.googleapis.com/token"
@@ -112,7 +139,11 @@ def main():
     }
 
     res = requests.post(token_url, data=data, timeout=15)
-    veri = res.json()
+    try:
+        veri = res.json()
+    except Exception:
+        print(f"\n❌ Google API yanıtı çözümlenemedi (HTTP {res.status_code}): {res.text[:200]}")
+        return
 
     refresh_token = veri.get("refresh_token")
     if not refresh_token:
