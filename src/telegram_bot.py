@@ -221,11 +221,12 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     # 1. Metin üret
     metinler = generate_text.ilan_metinleri_uret(ilan)
 
-    # 2. Slayt görsellerini üret
+    # 2. Slayt görsellerini üret (3'lü Prestij Carousel)
     k1 = make_image.ilan_kapak_slayti_ciz(ilan)
-    k2 = make_image.ilan_kapanis_slayti_ciz(ilan)
+    k2 = make_image.ilan_detay_slayti_ciz(ilan)
+    k3 = make_image.ilan_kapanis_slayti_ciz(ilan)
 
-    slayt_yollari = [str(k1), str(k2)]
+    slayt_yollari = [str(k1), str(k2), str(k3)]
 
     caption = (metinler.get("ig_caption") if metinler else "") or (
         f"{ilan.get('baslik')}\n\n"

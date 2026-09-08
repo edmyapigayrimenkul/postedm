@@ -63,11 +63,18 @@ def main() -> None:
         baslik = ilan.get("baslik")
         caption = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0536 343 41 97 · edmyapigayrimenkul.com"
         
-        # Slaytları bul veya üret
+        # Slaytları bul veya üret (3'lü Prestij Carousel)
         k1 = KOK / f"data/output/ilan_kapak_{ref_id}.jpg"
-        k2 = KOK / f"data/output/ilan_kapanis_{ref_id}.jpg"
-        if k1.exists() and k2.exists():
-            slayt_yollari = [str(k1), str(k2)]
+        k2 = KOK / f"data/output/ilan_detay_{ref_id}.jpg"
+        k3 = KOK / f"data/output/ilan_kapanis_{ref_id}.jpg"
+        
+        if not (k1.exists() and k2.exists() and k3.exists()):
+            from src import make_image
+            k1 = make_image.ilan_kapak_slayti_ciz(ilan)
+            k2 = make_image.ilan_detay_slayti_ciz(ilan)
+            k3 = make_image.ilan_kapanis_slayti_ciz(ilan)
+
+        slayt_yollari = [str(k1), str(k2), str(k3)]
 
     if not slayt_yollari:
         log.error("Paylaşılacak slayt görseli bulunamadı.")
