@@ -16,7 +16,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, instagram, telegram_bot, threads, tiktok, upload_image, video, youtube
+from src import db, facebook, instagram, telegram_bot, threads, tiktok, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -108,6 +108,16 @@ def main() -> None:
             rapor_satirlari.append("🧵 <b>Threads:</b> Paylaşıldı ✓")
         else:
             rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
+
+    # 4. Facebook Yayını
+    fb_id = None
+    if hedef in ("hepsi", "fb", "facebook"):
+        log.info("Facebook sayfasında paylaşılıyor...")
+        fb_id = facebook.paylas(caption, public_urller)
+        if fb_id:
+            rapor_satirlari.append("📘 <b>Facebook:</b> Paylaşıldı ✓")
+        else:
+            rapor_satirlari.append("📘 <b>Facebook:</b> Hata oluştu ✗")
 
     # 4. Video (YouTube Shorts & TikTok)
     if hedef in ("hepsi", "video"):

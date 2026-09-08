@@ -140,20 +140,22 @@ def haber_onayina_sun(haber_id: int) -> bool:
             return False
         haber = db.haber_getir(haber_id)
 
-    # 2. Slayt görsellerini üret
+    # 2. Slayt görsellerini üret (3'lü Prestij Pafta)
     k1 = make_image.haber_slayti_1_ciz(
         manset=haber["manset"],
-        spot=haber.get("detay_metni", "")[:120],
+        spot=haber.get("slayt_1_spot") or haber.get("detay_metni", "")[:120],
         kaynak=haber.get("kaynak", "EDM"),
         tarih=haber.get("yayin_tarihi", ""),
         foto_url=haber.get("gorsel_url"),
     )
+    maddeler = [haber.get("slayt_2_detay", "")] if haber.get("slayt_2_detay") else [haber.get("detay_metni", "")]
     k2 = make_image.haber_slayti_2_ciz(
         manset=haber["manset"],
-        detay_metni=haber.get("detay_metni", ""),
+        maddeler=maddeler,
     )
+    k3 = make_image.haber_kapanis_slayti_ciz()
 
-    slayt_yollari = [str(k1), str(k2)]
+    slayt_yollari = [str(k1), str(k2), str(k3)]
     db.haber_guncelle(haber_id, slayt_yollari=json.dumps(slayt_yollari), durum="onay_bekliyor")
 
     # 3. Medya albümü gönder
@@ -161,23 +163,25 @@ def haber_onayina_sun(haber_id: int) -> bool:
         f"🗞 <b>YENİ SEKTÖR HABERİ ONAY BEKLİYOR</b>\n\n"
         f"<b>Manşet:</b> {haber['manset']}\n"
         f"<b>Kaynak:</b> {haber['kaynak']}\n"
-        f"<b>Önem Puanı:</b> {haber['onem_puani']}/10\n\n"
-        f"<b>Instagram Caption:</b>\n{haber['ig_caption'][:300]}..."
+        f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n\n"
+        f"<b>Açıklama:</b>\n{haber['ig_caption'][:300]}..."
     )
+
     medya_grubu_gonder(slayt_yollari, caption=onizleme_metni)
 
-    # 4. Onay butonlarını gönder
+    # 4. Onay Butonları
     butonlar = {
         "inline_keyboard": [
             [
-                {"text": "✅ Tümüne Yayınla (IG + Threads)", "callback_data": f"onayla:haber:hepsi:{haber_id}"},
+                {"text": "✅ Yayına Al (IG + FB + Threads)", "callback_data": f"onayla:haber:hepsi:{haber_id}"},
             ],
             [
                 {"text": "📸 Sadece Instagram", "callback_data": f"onayla:haber:ig:{haber_id}"},
+                {"text": "📘 Sadece Facebook", "callback_data": f"onayla:haber:fb:{haber_id}"},
                 {"text": "🧵 Sadece Threads", "callback_data": f"onayla:haber:threads:{haber_id}"},
             ],
             [
-                {"text": "❌ Pas Geç / Reddet", "callback_data": f"reddet:haber:{haber_id}"},
+                {"text": "❌ Reddet", "callback_data": f"reddet:haber:{haber_id}"},
             ],
         ]
     }
@@ -248,10 +252,11 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     butonlar = {
         "inline_keyboard": [
             [
-                {"text": "✅ İlanı Yayınla (IG + Threads)", "callback_data": f"onayla:ilan:hepsi:{ilan_id}"},
+                {"text": "✅ İlanı Yayınla (IG + FB + Threads)", "callback_data": f"onayla:ilan:hepsi:{ilan_id}"},
             ],
             [
                 {"text": "📸 Sadece Instagram", "callback_data": f"onayla:ilan:ig:{ilan_id}"},
+                {"text": "📘 Sadece Facebook", "callback_data": f"onayla:ilan:fb:{ilan_id}"},
                 {"text": "🧵 Sadece Threads", "callback_data": f"onayla:ilan:threads:{ilan_id}"},
             ],
             [
