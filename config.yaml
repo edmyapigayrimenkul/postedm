@@ -1,0 +1,131 @@
+# =========================================================
+# EDM Yapı & Gayrimenkul — Sosyal Medya Botu Ayarları
+# API anahtarları .env dosyasında saklanır.
+# =========================================================
+
+kurum:
+  ad: "EDM Yapı & Gayrimenkul"
+  unvan: "Yatırım Ortağınız"
+  telefon: "0536 343 41 97"
+  telefon_uluslararasi: "+905363434197"
+  eposta: "info@edmyapigayrimenkul.com"
+  web_sitesi: "https://edmyapigayrimenkul.com"
+  adres: "Alibey Mah. Albay Yunus Dirik Cad. Kılıç Apt. No: 58/A, Silivri / İstanbul"
+  hizmet_bolgeleri:
+    - "Silivri"
+    - "İstanbul"
+    - "Edirne"
+    - "Tekirdağ"
+    - "Trakya Geneli"
+
+genel:
+  zaman_dilimi: "Europe/Istanbul"
+  kayit_saklama_gun: 30
+  varsayilan_platformlar:
+    - "instagram"
+    - "threads"
+
+haberler:
+  aktif: true
+  gunluk_azami_oneri: 5
+  onem_puani_esigi: 7
+  haber_yasi_saat: 36
+  anahtar_kelimeler:
+    - "emlak"
+    - "gayrimenkul"
+    - "konut"
+    - "arsa"
+    - "tarla"
+    - "tapu"
+    - "imar"
+    - "kentsel dönüşüm"
+    - "konut kredisi"
+    - "faiz"
+    - "tcmb"
+    - "konut fiyat"
+    - "kira"
+    - "silivri"
+    - "trakya"
+    - "çorlu"
+    - "çerkezköy"
+    - "edirne"
+    - "tekirdağ"
+  kaynaklar:
+    - ad: "Anadolu Ajansı Ekonomi"
+      url: "https://www.aa.com.tr/tr/rss/default?cat=ekonomi"
+      agirlik: 10
+      kategori: "ekonomi"
+    - ad: "Bloomberg HT Emlak"
+      url: "https://www.bloomberght.com/rss"
+      agirlik: 9
+      kategori: "ekonomi"
+    - ad: "Ekonomim"
+      url: "https://www.ekonomim.com/rss"
+      agirlik: 8
+      kategori: "ekonomi"
+    - ad: "Hürriyet Emlak Haberleri"
+      url: "https://www.hurriyet.com.tr/rss/ekonomi"
+      agirlik: 7
+      kategori: "gundem"
+
+ilanlar:
+  otomatik_yayin: false # Başlangıçta kapalı; Telegram'dan tek tıkla talep edilince üretilir
+  kaynak_dosya: "../site/data/listings.json"
+  emlakjet_url: "https://www.emlakjet.com/emlak-ofisleri/edm-yapi-gayrimenkul-1015383"
+  slayt_sayisi: 5 # Kapak + 3 Detay/Görsel + Kapanış/Danışman
+
+tasarim:
+  en: 1080
+  boy: 1350 # 4:5 dikey oranı (Instagram Carousel standardı)
+  video_en: 1080
+  video_boy: 1920 # 9:16 dikey oranı (Reels / Shorts / TikTok standardı)
+  guvenli_pay_dikey: 140
+  guvenli_pay_yatay: 60
+  renkler:
+    kirmizi: "#f0000d"
+    kirmizi_derin: "#c4030f"
+    kirmizi_vurgu: "#ff2233"
+    murekkep: "#121316"
+    kagit: "#f4f4f3"
+    kirec: "#e4e4e1"
+    kursun: "#8a8b8f"
+    cizgi: "#d6d6d3"
+    beyaz: "#ffffff"
+  fontlar:
+    baslik: "assets/fonts/Fraunces-Variable.ttf"
+    metin: "assets/fonts/IBMPlexSans-Variable.ttf"
+    kod_veri: "assets/fonts/IBMPlexMono-Regular.ttf"
+  logolar:
+    amblem: "assets/logos/amblem.png"
+    yatay_logo: "assets/logos/logo-yatay.png"
+    yatay_logo_acik: "assets/logos/logo-yatay-acik.png"
+    slogan: "assets/logos/slogan.png"
+    ev_sembol: "assets/logos/ev-sembol.png"
+    pin_sembol: "assets/logos/pin-sembol.png"
+
+sosyal:
+  sabit_hashtagler:
+    instagram:
+      - "#EDMYapıGayrimenkul"
+      - "#YatırımOrtağınız"
+      - "#SilivriEmlak"
+      - "#SilivriSatılık"
+      - "#TrakyaArsa"
+      - "#GayrimenkulYatırımı"
+    threads:
+      - "#EDMYapıGayrimenkul"
+      - "#Silivri"
+      - "#Gayrimenkul"
+      - "#Yatırım"
+    youtube:
+      - "#Shorts"
+      - "#Emlak"
+      - "#Gayrimenkul"
+      - "#Silivri"
+    tiktok:
+      - "#keşfet"
+      - "#fyp"
+      - "#emlak"
+      - "#silivri"
+      - "#arsa"
+      - "#yatırım"

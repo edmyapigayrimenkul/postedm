@@ -1,0 +1,8 @@
+name = "edm-telegram-dispatcher"
+main = "index.js"
+compatibility_date = "2026-09-08"
+
+# Değişkenler Cloudflare Dashboard'dan veya 'wrangler secret put' ile verilir:
+# TELEGRAM_BOT_TOKEN
+# GITHUB_TOKEN
+# GITHUB_REPOSITORY
