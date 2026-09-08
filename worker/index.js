@@ -73,6 +73,12 @@ export default {
       return new Response(`Hata: ${err.message}`, { status: 500 });
     }
   },
+
+  // 3. Saniyesi Şaşmayan Zamanlanmış Cron (Sabah 09:00 TR)
+  async scheduled(event, env, ctx) {
+    console.log("Cloudflare Cron tetiklendi, GitHub Actions uyarılıyor...");
+    await tetikleGitHub(env, "sabah_hazirla", { kaynak: "cloudflare_cron" });
+  },
 };
 
 async function tetikleGitHub(env, eventType, clientPayload) {

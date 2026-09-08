@@ -15,7 +15,7 @@ on:
           - haber
           - ilan_menusu
   repository_dispatch:
-    types: [ilan_menusu, hazirla_ilan]
+    types: [sabah_hazirla, ilan_menusu, hazirla_ilan]
 
 concurrency:
   group: edm-veritabani

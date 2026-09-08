@@ -6,3 +6,10 @@ compatibility_date = "2026-09-08"
 # TELEGRAM_BOT_TOKEN
 # GITHUB_TOKEN
 # GITHUB_REPOSITORY
+
+[vars]
+GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
+
+[triggers]
+# Her sabah 06:00 UTC = 09:00 TR saati (Tam vaktinde GitHub Actions'ı uyandırır)
+crons = ["0 6 * * *"]
