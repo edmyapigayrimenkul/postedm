@@ -17,6 +17,11 @@ kurum:
     - "Edirne"
     - "Tekirdağ"
     - "Trakya Geneli"
+  sosyal_hesaplar:
+    instagram: "edmyapigayrimenkul"
+    threads: "edmyapigayrimenkul"
+    youtube: "@edmyapigayrimenkul"
+    tiktok: "edmyapigayrimenkul"
 
 genel:
   zaman_dilimi: "Europe/Istanbul"
