@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -21,14 +21,24 @@ DB_YOLU = config.yol_al("data/edm.db")
 
 def _baglanti_al() -> sqlite3.Connection:
     DB_YOLU.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_YOLU)
+    conn = sqlite3.connect(DB_YOLU, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 
+def wal_bosalt() -> None:
+    """WAL dosyasındaki değişiklikleri ana veritabanına yazar (git commit öncesi zorunludur)."""
+    try:
+        with sqlite3.connect(DB_YOLU, timeout=30) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    except Exception as e:
+        log.warning("WAL boşaltılamadı: %s", e)
+
+
 def tablolari_olustur() -> None:
-    """Veritabanı tablolarını yoksa oluşturur."""
+    """Veritabanı tablolarını yoksa oluşturur ve eksik sütunları göç ettirir."""
     with _baglanti_al() as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS haberler (
@@ -37,6 +47,7 @@ def tablolari_olustur() -> None:
             orijinal_baslik TEXT NOT NULL,
             orijinal_url TEXT UNIQUE NOT NULL,
             orijinal_ozet TEXT,
+            makale_metni TEXT,
             yayin_tarihi TEXT,
             eklenme_tarihi TEXT NOT NULL,
             onem_puani INTEGER DEFAULT 0,
@@ -91,6 +102,16 @@ def tablolari_olustur() -> None:
         CREATE INDEX IF NOT EXISTS idx_haber_url ON haberler(orijinal_url);
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
         """)
+
+        # Dinamik şema göçü (Eski DB'lerde makale_metni yoksa ekle)
+        try:
+            cursor = conn.execute("PRAGMA table_info(haberler)")
+            kolonlar = [row["name"] for row in cursor.fetchall()]
+            if "makale_metni" not in kolonlar:
+                conn.execute("ALTER TABLE haberler ADD COLUMN makale_metni TEXT")
+        except Exception as e:
+            log.warning("Şema göçü hatası: %s", e)
+
         conn.commit()
 
 
@@ -114,6 +135,7 @@ def haber_kaydet(
     yayin_tarihi: str = "",
     kategori: str = "emlak",
     onem_puani: int = 0,
+    makale_metni: str = "",
 ) -> int:
     """Yeni bir haber ekler, eklenen haberin id'sini döner."""
     simdi = datetime.now(timezone.utc).isoformat()
@@ -121,14 +143,15 @@ def haber_kaydet(
         cursor = conn.execute(
             """
             INSERT OR IGNORE INTO haberler 
-            (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, yayin_tarihi, eklenme_tarihi, kategori, onem_puani)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, makale_metni, yayin_tarihi, eklenme_tarihi, kategori, onem_puani)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 kaynak,
                 orijinal_baslik,
                 orijinal_url,
                 orijinal_ozet,
+                makale_metni,
                 yayin_tarihi,
                 simdi,
                 kategori,
@@ -137,6 +160,25 @@ def haber_kaydet(
         )
         conn.commit()
         return cursor.lastrowid or 0
+
+
+def eski_kayitlari_temizle(gun: int = 14) -> int:
+    """
+    Yayınlanmamış (yeni/reddedildi) ve 'gun' günden eski haber kayıtlarını temizler.
+    'yayinlandi' durumundaki hiçbir kayıt silinmez.
+    Silinen kayıt adedini döner.
+    """
+    esik = (datetime.now(timezone.utc) - timedelta(days=gun)).isoformat()
+    with _baglanti_al() as conn:
+        cursor = conn.execute(
+            "DELETE FROM haberler WHERE durum != 'yayinlandi' AND eklenme_tarihi < ?",
+            (esik,)
+        )
+        conn.commit()
+        silinen = cursor.rowcount
+        if silinen > 0:
+            log.info("Veritabanı temizliği: %d adet eski kayıt silindi.", silinen)
+        return silinen
 
 
 def haber_guncelle(haber_id: int, **kwargs: Any) -> None:
@@ -230,6 +272,14 @@ def ilan_paylasildi_isaretle(ilan_id: str) -> None:
             (simdi, str(ilan_id)),
         )
         conn.commit()
+
+
+def ilan_reddedildi_isaretle(ilan_id: str) -> None:
+    """İlanı reddedildi olarak işaretler, böylece otomatik seçimde tekrar öne çıkarılmaz."""
+    with _baglanti_al() as conn:
+        conn.execute("UPDATE ilanlar SET durum = 'reddedildi' WHERE id = ?", (str(ilan_id),))
+        conn.commit()
+
 
 
 # Başlangıçta tabloları hazırla
