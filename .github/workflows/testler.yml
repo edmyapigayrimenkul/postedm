@@ -1,0 +1,73 @@
+# =========================================================
+#  TESTLER — her push'ta çalışır
+#
+#  NİYE VAR: bu projede iki hata sınıfı üretimde ortaya çıktı ve
+#  yerel test hiçbirini yakalayamazdı.
+#
+#  1. EKSİK BAĞIMLILIK. lxml requirements.txt'te yoktu; yerel venv'de
+#     kurulu olduğu için geliştirmede sorun görünmedi. GitHub'da ÜÇ GÜN
+#     boyunca her RSS kaynağı sessizce düştü, haber akışı hiç çalışmadı.
+#     Aynı hatanın ikinci vakası (numpy) bu test yazılırken bulundu.
+#
+#  2. ÇAĞRI/İMZA UYUŞMAZLIĞI. Python modül çağrısını ancak o satır
+#     çalışınca çözümlüyor. Gözetimsiz bir botta bu "gece cron patlar,
+#     sabah fark edilir" demek.
+#
+#  Bu testler ağa çıkmıyor, veritabanına dokunmuyor, para harcamıyor —
+#  saniyeler sürüyor. Amaç bozuk kodu push anında yakalamak.
+# =========================================================
+
+name: Testler
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "tests/**"
+      - "worker/**"
+      - "config.yaml"
+      - "requirements.txt"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Veritabanına dokunmuyor; edm-veritabani grubuna GİRMEZ.
+concurrency:
+  group: testler-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Bağımlılıkları yükle
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ÖNCE BU: kod çağrılabilir mi, bağımlılıklar eksiksiz mi.
+      # Diğer testler geçse bile buradaki hata üretimde patlar.
+      - name: Bütünlük testleri (çağrı, imza, bağımlılık)
+        run: python tests/test_butunluk.py
+
+      # Kod DOĞRU DAVRANIYOR mu. Buradaki her denetim gerçek bir olaydan doğdu.
+      - name: Sözleşme testleri (mimari kurallar)
+        run: python tests/test_sozlesme.py
+
+      # Metin bütçesi çizicinin kapasitesini aşmamalı; aşarsa metin sessizce kırpılır.
+      - name: Metin bütçesi denetimi
+        run: python scripts/metin_butcesi.py
+
+      - name: Worker sözdizimi
+        run: node --check worker/index.js
