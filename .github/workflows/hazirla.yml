@@ -101,3 +101,24 @@ jobs:
         run: |
           python scripts/db_kaydet.py "db: haber ve ilan durumlari guncellendi"
 
+      # Job patlarsa sessiz kalmasın. 8-11 Eylül 2026 arasında bu workflow
+      # yedi kez üst üste patladı ve kimse bilmedi — lxml eksikliği ancak
+      # elle log okununca bulundu.
+      - name: Hata bildir
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+          if not (t and c):
+              raise SystemExit(0)
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
+              "chat_id": c, "parse_mode": "HTML",
+              "text": f"🔴 <b>{'Paylaşım Hazırla'} BAŞARISIZ</b>\n\n"
+                      f'<a href="{url}">Log</a>',
+          })
+          PY

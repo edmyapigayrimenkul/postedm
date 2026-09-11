@@ -2,14 +2,38 @@ name = "edm-telegram-dispatcher"
 main = "index.js"
 compatibility_date = "2026-09-08"
 
-# Değişkenler Cloudflare Dashboard'dan veya 'wrangler secret put' ile verilir:
-# TELEGRAM_BOT_TOKEN
-# GITHUB_TOKEN
-# GITHUB_REPOSITORY
+# Gizli değerler 'wrangler secret put' ile veya Cloudflare API'siyle verilir:
+#   TELEGRAM_BOT_TOKEN   — answerCallbackQuery ve mesaj düzenleme için
+#   GITHUB_TOKEN         — repository_dispatch tetiklemek için (repo yetkisi)
+#   WEBHOOK_SECRET       — Telegram'ın X-Telegram-Bot-Api-Secret-Token başlığı
+#
+# ⚠️ WEBHOOK_SECRET olmadan Worker HER isteği reddeder (fail-closed).
+#    Telegram tarafı setWebhook'a secret_token ile aynı değerle kurulmalı:
+#      curl -F "url=https://<worker>.workers.dev" \
+#           -F "secret_token=<ayni-deger>" \
+#           https://api.telegram.org/bot<TOKEN>/setWebhook
+#
+# Dağıtıldığı adres: https://edm-telegram-dispatcher.ezanplus.workers.dev
+# (11 Eyl 2026'da kuruldu; öncesinde Worker HİÇ dağıtılmamıştı ve
+#  Telegram webhook'u boştu — onay butonları hiçbir şey yapmıyordu.)
 
 [vars]
 GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 
-[triggers]
-# Her sabah 06:00 UTC = 09:00 TR saati (Tam vaktinde GitHub Actions'ı uyandırır)
-crons = ["0 6 * * *"]
+# [triggers] BİLEREK KAPALI — açmadan önce oku.
+#
+# Worker'ın scheduled() işleyicisi "sabah_hazirla" gönderiyor ve hazirla.yml
+# bunu dinliyor. Ama hazirla.yml'nin KENDİ cron'u da var ("0 7 * * 1-5").
+# İkisi birden açıksa aynı gün İKİ tur çalışır: iki Telegram önizlemesi,
+# iki konu tüketimi, iki paylaşım.
+#
+# Tek tetikleyici kuralı: ya GitHub cron'u ya Cloudflare cron'u.
+# Şu an GitHub cron'u kullanılıyor (hafta içi 10:00 TR).
+#
+# Cloudflare cron'una geçmek istenirse (GitHub cron gecikmesi 5-30 dk):
+#   1. hazirla.yml'deki "0 7 * * 1-5" satırını KALDIR
+#   2. aşağıyı aç ve yeniden dağıt
+#   3. tests/test_sozlesme.py tek tetikleyici denetimini güncelle
+#
+# [triggers]
+# crons = ["0 7 * * 1-5"]

@@ -10,6 +10,29 @@ export default {
       return new Response("EDM Telegram Webhook Aktif", { status: 200 });
     }
 
+    // ---------------------------------------------------------------
+    // GÜVENLİK: secret_token doğrulaması
+    //
+    // Bu Worker GitHub Actions tetikliyor; tetiklenen iş Instagram'a
+    // paylaşım yapıyor. Doğrulama olmadan adresi bilen HERKES sahte
+    // bir callback gönderip yayın başlatabilir.
+    //
+    // Depo PUBLIC: saldırgan bu dosyayı okuyup hangi payload'ı
+    // göndereceğini tam olarak bilir. Tek savunmamız "adresi
+    // bilmiyorlar" olamaz.
+    //
+    // Telegram her webhook isteğinde bu başlığı gönderiyor
+    // (setWebhook'a secret_token parametresiyle kurulur).
+    //
+    // FAIL-CLOSED: WEBHOOK_SECRET tanımlı değilse istek REDDEDİLİR.
+    // "Tanımlı değilse kabul et" davranışı, secret'ı kurmayı unutmayı
+    // sessiz bir güvenlik açığına çevirirdi.
+    // ---------------------------------------------------------------
+    const gelenGizli = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+    if (!env.WEBHOOK_SECRET || gelenGizli !== env.WEBHOOK_SECRET) {
+      return new Response("Yetkisiz", { status: 401 });
+    }
+
     try {
       const update = await request.json();
 
@@ -50,20 +73,66 @@ export default {
         // D. Reddet: "reddet:haber:12"
         if (data.startsWith("reddet:")) {
           const [, tur, id] = data.split(":");
+          await tetikleGitHub(env, "yayinla", { tur, hedef: "reddet", id });
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: `❌ ${tur.toUpperCase()} #${id} yayından kaldırıldı.` }),
+            body: JSON.stringify({ chat_id: chatId, text: `❌ ${tur.toUpperCase()} #${id} reddedildi ve arşive kaldırılıyor...` }),
+          });
+          return new Response("OK");
+        }
+
+        // E. Yenile: "yenile:haber:12"
+        if (data.startsWith("yenile:")) {
+          const [, tur, id] = data.split(":");
+          await tetikleGitHub(env, "yayinla", { tur, hedef: "yenile", id });
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: `🔄 ${tur.toUpperCase()} #${id} için metin ve görseller yeniden hazırlanıyor...` }),
           });
           return new Response("OK");
         }
       }
 
-      // 2. Normal Komut: "/ilanlar"
+      // 2. Normal Komutlar
       if (update.message?.text) {
         const text = update.message.text.trim();
+        const chatId = update.message.chat?.id;
+
         if (text === "/ilanlar" || text === "/ilan") {
           await tetikleGitHub(env, "ilan_menusu", {});
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: "🔄 Portföy ilanları getiriliyor, lütfen bekleyin..." }),
+          });
+          return new Response("OK");
+        }
+
+        if (text === "/haber" || text === "/hazirla" || text === "/tara") {
+          await tetikleGitHub(env, "sabah_hazirla", { kaynak: "telegram_komut" });
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: "📰 Güncel gayrimenkul haberleri taranıyor ve onayınıza hazırlanıyor..." }),
+          });
+          return new Response("OK");
+        }
+
+        if (text === "/start" || text === "/yardim" || text === "/menu" || text === "/durum") {
+          const yardim = (
+            "🏢 <b>EDM Yapı & Gayrimenkul Sosyal Medya Botu</b>\n\n" +
+            "Kullanabileceğiniz komutlar:\n" +
+            "• <b>/ilanlar</b> — Güncel ilan listesini getirir ve tek tıkla paylaşım hazırlatır.\n" +
+            "• <b>/haber</b> — Silivri ve emlak haberlerini tarar, 3 slaytlık post üretir.\n" +
+            "• <b>/durum</b> — Bot ve API entegrasyonlarının sağlığını gösterir."
+          );
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: yardim, parse_mode: "HTML" }),
+          });
           return new Response("OK");
         }
       }
