@@ -56,22 +56,38 @@ haberler:
     - "edirne"
     - "tekirdağ"
   kaynaklar:
+    # Ağırlık artık ÖNEM PUANINA EKLENMİYOR (bkz. haber_puanlama.py).
+    # Kaynağın prestiji o haberin değerli olduğunu söylemez; ağırlık yalnızca
+    # eşitlik bozucu olarak kullanılır.
+    #
+    # 2026-09-11 ölçümü — 175 haber tarandı:
+    #   Emlakkulisi   50 haber → 16 haber adayı + 4 konu adayı   (asıl kaynak)
+    #   AA Ekonomi    30 haber →  1 alakalı
+    #   Ekonomim      25 haber →  2 alakalı
+    #   Bloomberg HT  20 haber →  1 alakalı (ABD konut fiyatları — kitlemize uzak)
+    #   Hürriyet      100 haber → 0 alakalı  ← ÇIKARILDI
+    # Hürriyet'in "Emlak Haberleri" beslemesi aslında emlak taşımıyor:
+    # "İTO Firma Sorgulama", "Proforma Fatura Nedir", "Şirket Nasıl Kapatılır".
+    - ad: "Emlakkulisi"
+      url: "https://www.emlakkulisi.com/rss"
+      agirlik: 10
+      kategori: "emlak"
     - ad: "Anadolu Ajansı Ekonomi"
       url: "https://www.aa.com.tr/tr/rss/default?cat=ekonomi"
-      agirlik: 10
-      kategori: "ekonomi"
-    - ad: "Bloomberg HT Emlak"
-      url: "https://www.bloomberght.com/rss"
-      agirlik: 9
+      agirlik: 8
       kategori: "ekonomi"
     - ad: "Ekonomim"
       url: "https://www.ekonomim.com/rss"
-      agirlik: 8
-      kategori: "ekonomi"
-    - ad: "Hürriyet Emlak Haberleri"
-      url: "https://www.hurriyet.com.tr/rss/ekonomi"
       agirlik: 7
-      kategori: "gundem"
+      kategori: "ekonomi"
+    - ad: "Dünya Gazetesi"
+      url: "https://www.dunya.com/rss?dunya"
+      agirlik: 7
+      kategori: "ekonomi"
+    - ad: "NTV Ekonomi"
+      url: "https://www.ntv.com.tr/ekonomi.rss"
+      agirlik: 6
+      kategori: "ekonomi"
 
 ilanlar:
   otomatik_yayin: false # Başlangıçta kapalı; Telegram'dan tek tıkla talep edilince üretilir

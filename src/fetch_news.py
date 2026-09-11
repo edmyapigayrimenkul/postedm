@@ -15,7 +15,7 @@ import urllib.parse
 import requests
 from bs4 import BeautifulSoup
 
-from . import config, db
+from . import config, db, fetch_article, haber_puanlama
 
 log = logging.getLogger(__name__)
 
@@ -53,21 +53,30 @@ def _tarih_coz(tarih_metni: str) -> str:
         return datetime.now(timezone.utc).isoformat()
 
 
-def _emlak_alakali_mi(baslik: str, ozet: str) -> bool:
-    """Haberin emlak, konut, arsa, tapu, imar veya Trakya ile ilgili olup olmadığını inceler."""
-    metin = f"{baslik} {ozet}".lower()
-    anahtarlar = config.ayar_al("haberler.anahtar_kelimeler", [])
-    for k in anahtarlar:
-        k_lower = k.lower().strip()
-        # Kelime sınırı ile ara (örn: 'kira' kelimesi 'tahliye' içinde yanlış eşleşmesin)
-        desen = r'(?:\b|_)' + re.escape(k_lower) + r'(?:\b|_)'
-        if re.search(desen, metin):
-            return True
+def _baslik_anahtari(baslik: str) -> str:
+    """Yakın kopyaları yakalamak için başlığı normalleştirir.
+
+    Emlak kaynakları aynı haberi güncelleyerek yeniden yayımlıyor:
+    "TOKİ kiralık konut başvuruları 2 gün sonra başlıyor" ve
+    "... 3 gün sonra başlıyor" ayrı kayıtlar olarak giriyordu.
+    """
+    t = baslik.lower()
+    t = re.sub(r"\d+", "#", t)                      # sayılar normalleşir
+    t = re.sub(r"[^a-zçğıöşü#\s]", " ", t)
+    kelimeler = [k for k in t.split() if len(k) > 2]
+    return " ".join(sorted(set(kelimeler))[:12])
+
+
+def _yakin_kopya_mi(baslik: str, gorulenler: set) -> bool:
+    anahtar = _baslik_anahtari(baslik)
+    if anahtar in gorulenler:
+        return True
+    gorulenler.add(anahtar)
     return False
 
 
 def _og_gorsel_cek(url: str) -> Optional[str]:
-    """Haber sayfasından og:image meta etiketini okur."""
+    """Haber sayfasından og:image meta etiketini okur (yedek yöntem)."""
     try:
         resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=8)
         if resp.status_code == 200:
@@ -85,6 +94,7 @@ def rss_tara() -> List[Dict[str, Any]]:
     kaynaklar = config.ayar_al("haberler.kaynaklar", [])
     max_yas_saat = config.ayar_al("haberler.haber_yasi_saat", 36)
     bulunan_haberler = []
+    gorulen_basliklar: set = set()   # kaynaklar arası yakın kopya denetimi
 
     for kaynak in kaynaklar:
         ad = kaynak.get("ad", "Bilinmeyen Kaynak")
@@ -129,32 +139,51 @@ def rss_tara() -> List[Dict[str, Any]]:
                 if _saat_farki_saat(tarih_str) > max_yas_saat:
                     continue
 
-                # Emlak / Gayrimenkul ilgi kontrolü
-                if not _emlak_alakali_mi(baslik, ozet):
+                # Değerlendirme: reklamı ve konu dışını ele, sütuna oturt, puanla
+                degerlendirme = haber_puanlama.degerlendir(baslik, ozet, _saat_farki_saat(tarih_str))
+                if not degerlendirme.gecti:
+                    log.debug("Elendi (%s): %s", degerlendirme.red_sebebi, baslik[:60])
                     continue
 
-                # og:image çek
-                gorsel_url = _og_gorsel_cek(haber_url)
+                if _yakin_kopya_mi(baslik, gorulen_basliklar):
+                    log.debug("Yakın kopya atlandı: %s", baslik[:60])
+                    continue
 
-                # Temel önem puanı hesapla
-                onem_puani = agirlik
-                if any(x in baslik.lower() for x in ["silivri", "trakya", "arsa", "tarla", "tapu"]):
-                    onem_puani += 2
+                # Derinlik: Haberin tam metnini ve yüksek kaliteli kapak görselini çek
+                makale_metni = fetch_article.makale_metni_cek(haber_url, baslik)
+                gorsel_url = fetch_article.og_gorseli_cek(haber_url) or _og_gorsel_cek(haber_url)
+
+                # Tam metinle yeniden puanla — başlık yanıltıcı olabiliyor
+                if makale_metni:
+                    tam = haber_puanlama.degerlendir(baslik, makale_metni, _saat_farki_saat(tarih_str))
+                    if tam.gecti:
+                        degerlendirme = tam
+
+                # Kaynak ağırlığı puana EKLENMİYOR; yalnızca eşitlik bozucu.
+                # Eski formül (agirlik + sinyal) kaynağın prestijini içeriğin
+                # önüne geçiriyordu: aynı Yargıtay kararı AA'dan geçip
+                # Hürriyet'ten eleniyordu.
+                onem_puani = degerlendirme.puan
+                sutun = degerlendirme.sutun
+                rehber_mi = degerlendirme.rehber_mi
 
                 haber_id = db.haber_kaydet(
                     kaynak=ad,
                     orijinal_baslik=baslik,
                     orijinal_url=haber_url,
                     orijinal_ozet=ozet,
+                    makale_metni=makale_metni or "",
                     yayin_tarihi=tarih_str,
-                    kategori="emlak",
+                    kategori=("rehber" if rehber_mi else (sutun or "emlak")),
                     onem_puani=onem_puani,
                 )
 
                 if gorsel_url and haber_id:
                     db.haber_guncelle(haber_id, gorsel_url=gorsel_url)
 
-                log.info("Yeni emlak haberi bulundu [ID %d]: %s", haber_id, baslik[:50])
+                log.info("Bulundu [ID %d | %s | %s]: %s",
+                         haber_id, degerlendirme.ozet(),
+                         "konu adayı" if rehber_mi else "haber", baslik[:50])
                 bulunan_haberler.append({
                     "id": haber_id,
                     "baslik": baslik,
@@ -162,7 +191,10 @@ def rss_tara() -> List[Dict[str, Any]]:
                     "url": haber_url,
                     "onem_puani": onem_puani,
                     "gorsel_url": gorsel_url,
+                    "sutun": sutun,
+                    "rehber_mi": rehber_mi,
                 })
+
 
         except Exception as e:
             log.error("RSS kaynağı taranırken hata (%s): %s", url, e)
