@@ -2,18 +2,26 @@ name: Paylaşım Hazırla (EDM)
 
 on:
   schedule:
-    # Türkiye saatiyle 10:00 ve 16:00 (UTC 07:00 ve 13:00)
-    - cron: '0 7,13 * * *'
+    # Türkiye saatiyle 10:00, HAFTA İÇİ (UTC 07:00, Pzt-Cum).
+    # Takvim haftada 5 paylaşım öngörüyor (ICERIK-SISTEMI.md §8); eski ayar
+    # günde iki kez ve 7 gün çalışıyordu — haftada 14 tetikleme demekti.
+    # Gün seçimi önemli: konu_bankasi.TAKVIM hangi sütunun sırası olduğunu
+    # haftanın gününden okuyor.
+    - cron: '0 7 * * 1-5'
+    # Cumartesi 08:00 TR — beslemeden konu adayı madenciliği (paylaşım yapmaz)
+    - cron: '0 5 * * 6'
   workflow_dispatch:
     inputs:
       hedef:
         description: 'Çalışma modu'
         required: true
-        default: 'haber'
+        default: 'gunluk'
         type: choice
         options:
+          - gunluk
           - haber
           - ilan_menusu
+          - konu_madenle
   repository_dispatch:
     types: [sabah_hazirla, ilan_menusu, hazirla_ilan]
 
@@ -24,6 +32,8 @@ concurrency:
 jobs:
   hazirla:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Kodu Çek
         uses: actions/checkout@v4
@@ -57,20 +67,37 @@ jobs:
         run: |
           python -c "from src.telegram_bot import ilan_postunu_hazirla_ve_sor; ilan_postunu_hazirla_ve_sor('${{ github.event.client_payload.ilan_id }}')"
 
-      - name: Haber Tara ve Onaya Sun
-        if: github.event_name == 'schedule' || inputs.hedef == 'haber'
+      # Günlük içerik: önce haber triyajı, geçen yoksa konu bankası.
+      # DİKKAT: burada `--haber-tara` KULLANILMAZ. O bayrak "sadece habere bak,
+      # konu bankasına başvurma" demek; cron onunla çalışınca triyajı geçen
+      # haber olmadığı günlerde hiçbir şey paylaşılmıyordu.
+      - name: Günlük İçerik Hazırla ve Onaya Sun
+        if: >-
+          (github.event_name == 'schedule' && github.event.schedule == '0 7 * * 1-5')
+          || inputs.hedef == 'gunluk' || inputs.hedef == 'haber'
+          || github.event.action == 'sabah_hazirla'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
         run: |
-          python scripts/hazirla.py --haber-tara
+          python scripts/hazirla.py
+
+      # Haftalık konu madenciliği: beslemedeki rehber içerikten konu adayı çıkarır.
+      # Paylaşım yapmaz; konu bankasının ömrünü uzatır (ICERIK-SISTEMI.md §5.7).
+      - name: Konu Adaylarını Madenle
+        if: >-
+          (github.event_name == 'schedule' && github.event.schedule == '0 5 * * 6')
+          || inputs.hedef == 'konu_madenle'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python scripts/hazirla.py --konu-madenle
 
       - name: Veritabanını Kaydet
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/edm.db
-          git diff --staged --quiet || git commit -m "db: haber ve ilan durumlari guncellendi [skip ci]"
-          git push
+          python scripts/db_kaydet.py "db: haber ve ilan durumlari guncellendi"
+

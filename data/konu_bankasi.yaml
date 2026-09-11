@@ -1,0 +1,587 @@
+# =========================================================
+# EDM — Evergreen Konu Bankası
+# Sistem kuralları: ICERIK-SISTEMI.md
+#
+# Bu havuz botun konu kaynağıdır. Model artık konu UYDURMAZ;
+# buradaki brief'i işler. Brief ne kadar iyiyse çıktı o kadar iyidir.
+#
+# Alanlar:
+#   kod         Kalıcı kimlik. Silinmez, yeniden kullanılmaz (tekrar takibi buna bakar)
+#   sutun       S1 Tapu&Hukuk | S2 Kiracı&EvSahibi | S3 Arsa&İmar | S4 Rakam&Bölge
+#   bicim       B1 RiskDosyası | B2 Karşılaştırma | B3 TekKare | B4 RakamKarnesi
+#   baslik      İç kullanım. Manşet DEĞİL — manşeti model kancadan üretir
+#   aci         Bunu paylaşmaya değer kılan şey. Prompt'un merkezi
+#   kanca_kalip ICERIK-SISTEMI.md §6'daki kalıplardan biri
+#   mevzuat     Yalnızca doğrulanmış madde. Emin değilsek null — model de uydurmaz
+#   yerel       Silivri/Trakya bağı. Zorlama olacaksa null
+# =========================================================
+
+konular:
+
+  # ---------------------------------------------------------
+  # S1 — TAPU & HUKUK  (kaydettirir)
+  # ---------------------------------------------------------
+
+  - kod: S1-001
+    sutun: S1
+    bicim: B1
+    baslik: "Hisseli tapuda önalım (şufa) davası"
+    aci: "Paydaşlardan birinden hisse alan kişi, diğer paydaşlar noterden bildirim almadıysa iki yıl boyunca o hisseyi kaybetme riski taşır. Alıcıların büyük çoğunluğu bu riski hiç duymamıştır."
+    kanca_kalip: sure
+    mevzuat: "Türk Medeni Kanunu md. 732-733"
+    yerel: "Trakya'da tarla ve bağ-bahçe tapularının önemli bölümü hisseli"
+
+  - kod: S1-002
+    sutun: S1
+    bicim: B1
+    baslik: "Tapuda satış bedelini düşük göstermek"
+    aci: "Harç kaçırmak için düşük beyan, önalım davasında mülkü o düşük bedelle kaybetmek demek. Vergi cezasından çok daha büyük bir risk ve kimse bunu söylemiyor."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-003
+    sutun: S1
+    bicim: B3
+    baslik: "Kaparo geri alınır mı"
+    aci: "Kaparo ile pey akçesi farklı şeyler. Alıcı vazgeçerse kaybeder, satıcı vazgeçerse iki katını öder — ama bu yalnızca yazılı ve şartları belirtilmiş sözleşmede geçerli. Sözlü kaparonun ispatı yok."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-004
+    sutun: S1
+    bicim: B1
+    baslik: "Tapudaki şerhler ne anlatır"
+    aci: "Beyanlar hanesindeki tek satır, mülkün değerini yarıya indirebilir veya satışını yıllarca kilitleyebilir. İpotek, haciz, irtifak, aile konutu şerhi — hangisi ne demek."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-005
+    sutun: S1
+    bicim: B3
+    baslik: "Vekâletle satışta sahtecilik"
+    aci: "Vekâletname iptal edilmiş olabilir ve tapu bunu resen kontrol etmez. Satıştan önce noterden vekâletin güncelliğini teyit etmek beş dakikalık iş, atlanınca dönüşü yok."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-006
+    sutun: S1
+    bicim: B1
+    baslik: "Aile konutu şerhi"
+    aci: "Eşin rızası olmadan aile konutu satılamaz. Şerh yoksa bile eş dava açıp satışı iptal ettirebilir. Alıcı için bu, tapuyu aldıktan sonra kaybetmek anlamına gelir."
+    kanca_kalip: eksik_imza
+    mevzuat: "Türk Medeni Kanunu md. 194"
+    yerel: null
+
+  - kod: S1-007
+    sutun: S1
+    bicim: B1
+    baslik: "Mirasçılardan biri satışa karşı çıkarsa"
+    aci: "Elbirliği mülkiyetinde tek bir mirasçı satışı kilitler. Çözüm ortaklığın giderilmesi davası — ama o dava mülkü açık artırmaya götürür ve genelde piyasa değerinin altına satılır."
+    kanca_kalip: kim_hakli
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-008
+    sutun: S1
+    bicim: B3
+    baslik: "Tapu devri kaç günde biter"
+    aci: "Randevu, harç, DASK, ekspertiz — sıralama bilinirse tek günde biter. Sıralama bilinmezse üç haftaya yayılır. Zorunlu evrakların net listesi."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-009
+    sutun: S1
+    bicim: B1
+    baslik: "Kat irtifakı ile kat mülkiyeti farkı"
+    aci: "Kat irtifaklı tapu, binanın henüz yasal olarak bitmediği anlamına gelir. Kredi çekmede, satışta ve iskân alınamamışsa yıkım riskinde doğrudan sonuç doğurur."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Kat Mülkiyeti Kanunu (634 sayılı)"
+    yerel: null
+
+  - kod: S1-010
+    sutun: S1
+    bicim: B3
+    baslik: "İskânsız daire alınır mı"
+    aci: "Yapı kullanma izni olmayan dairede doğalgaz, kredi ve resmî abonelik sorun olur. Bazı bankalar hiç kredi vermez. Fiyat cazipse sebebi genelde budur."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-011
+    sutun: S1
+    bicim: B1
+    baslik: "Ön ödemeli konut satışında cayma hakkı"
+    aci: "Projeden satın alan tüketicinin on dört gün içinde gerekçesiz cayma hakkı var ve teslim gecikirse sözleşmeyi feshedebilir. Müteahhitler bunu genelde hatırlatmaz."
+    kanca_kalip: sure
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-012
+    sutun: S1
+    bicim: B3
+    baslik: "Tapu harcı kim öder"
+    aci: "Kanunen alıcı ve satıcı yarı yarıya. Uygulamada tamamı alıcıya yıkılıyor. Pazarlıkta bilinmesi doğrudan paraya dönüşen bir madde."
+    kanca_kalip: kim_hakli
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-013
+    sutun: S1
+    bicim: B1
+    baslik: "Zilyetlikle tapu kazanma"
+    aci: "Tapusuz taşınmazda yirmi yıl davasız ve aralıksız zilyetlik tescil hakkı doğurabilir — ama tarım arazilerinde ve hazine arazisinde şartlar çok dar. Köy yerinde en çok yanlış bilinen konu."
+    kanca_kalip: sure
+    mevzuat: "Türk Medeni Kanunu md. 713"
+    yerel: "Trakya köylerinde tapusuz kullanım yaygın"
+
+  - kod: S1-014
+    sutun: S1
+    bicim: B3
+    baslik: "Emlakçı komisyonu ne zaman hak edilir"
+    aci: "Komisyon, tarafları buluşturup sözleşme kurulmasını sağlamakla hak edilir. Satış olmadan komisyon istenemez; ama yetki sözleşmesi varsa satıcı devre dışı bırakamaz."
+    kanca_kalip: kim_hakli
+    mevzuat: null
+    yerel: null
+
+  - kod: S1-015
+    sutun: S1
+    bicim: B1
+    baslik: "Kentsel dönüşümde uzlaşmazsanız"
+    aci: "Üçte iki çoğunluk karar alırsa katılmayan malikin hissesi açık artırmaya çıkarılabilir. Değerleme raporuna itiraz süresi kaçırılırsa geri dönüş yok."
+    kanca_kalip: sure
+    mevzuat: "6306 sayılı Kanun"
+    yerel: null
+
+  # ---------------------------------------------------------
+  # S2 — KİRACI & EV SAHİBİ  (paylaştırır)
+  # ---------------------------------------------------------
+
+  - kod: S2-001
+    sutun: S2
+    bicim: B1
+    baslik: "Tahliye taahhütnamesinde boş tarih"
+    aci: "Tarihi boş imzalanan taahhütname çoğu zaman geçerli sayılır. Ama kira sözleşmesiyle aynı gün imzalandığı ispatlanırsa Yargıtay irade fesadı sayıp hükümsüz kılabiliyor. İki taraf da bu ayrımı bilmiyor."
+    kanca_kalip: eksik_imza
+    mevzuat: "Türk Borçlar Kanunu md. 352/1"
+    yerel: null
+
+  - kod: S2-002
+    sutun: S2
+    bicim: B1
+    baslik: "Kira artış tavanı nasıl hesaplanır"
+    aci: "Konutta artış, bir önceki kira yılının TÜFE on iki aylık ortalamasını aşamaz. Yıllık TÜFE değil, on iki aylık ortalama — en sık yapılan hesap hatası bu."
+    kanca_kalip: rakam
+    mevzuat: "Türk Borçlar Kanunu md. 344"
+    yerel: null
+
+  - kod: S2-002b
+    sutun: S2
+    bicim: B3
+    baslik: "Ev sahibi tavanın üstünde zam isterse"
+    aci: "Kiracı fazlasını ödemek zorunda değil ve eski kirayı yatırmaya devam ederse temerrüde düşmez. Ev sahibinin yolu kira tespit davası açmaktan geçer."
+    kanca_kalip: kim_hakli
+    mevzuat: "Türk Borçlar Kanunu md. 344"
+    yerel: null
+
+  - kod: S2-003
+    sutun: S2
+    bicim: B1
+    baslik: "On yılını dolduran kiracı"
+    aci: "On yıllık uzama süresi dolduğunda ev sahibi sebep göstermeden, üç ay önceden bildirerek tahliye isteyebilir. Uzun süreli kiracıların çoğu kendini güvende sanıyor — tam tersi."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 347"
+    yerel: null
+
+  - kod: S2-004
+    sutun: S2
+    bicim: B1
+    baslik: "İhtiyaç nedeniyle tahliye"
+    aci: "Ev sahibi kendisi veya bakmakla yükümlü olduğu yakını için tahliye isteyebilir; ama boşalttıktan sonra üç yıl başkasına kiralayamaz. Kiralarsa tazminat doğar."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 350 ve 355"
+    yerel: null
+
+  - kod: S2-005
+    sutun: S2
+    bicim: B1
+    baslik: "İki haklı ihtar"
+    aci: "Bir kira yılı içinde iki kez usulüne uygun ihtar çekilirse ev sahibi yıl sonunda tahliye davası açabilir. Kirayı geç yatırma alışkanlığı burada tahliye sebebine dönüşüyor."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 352/2"
+    yerel: null
+
+  - kod: S2-006
+    sutun: S2
+    bicim: B3
+    baslik: "Depozito en fazla kaç kira"
+    aci: "Konut kirasında güvence bedeli üç aylık kirayı aşamaz ve para olarak veriliyorsa kiracı adına vadeli hesapta tutulur. Uygulamada neredeyse hiç bilinmiyor."
+    kanca_kalip: rakam
+    mevzuat: "Türk Borçlar Kanunu md. 342"
+    yerel: null
+
+  - kod: S2-007
+    sutun: S2
+    bicim: B1
+    baslik: "Depozito iade edilmezse"
+    aci: "Ev sahibi kiracının rızası olmadan depozitoyu tek başına çekemez. Alacağı olduğunu iddia ediyorsa dava veya icra takibi başlatmak zorunda."
+    kanca_kalip: kim_hakli
+    mevzuat: "Türk Borçlar Kanunu md. 342"
+    yerel: null
+
+  - kod: S2-008
+    sutun: S2
+    bicim: B2
+    baslik: "Hangi tadilat kime ait"
+    aci: "Olağan kullanımdan doğan küçük bakım kiracıya, yapısal ve zorunlu onarım ev sahibine ait. Kombi, çatı, tesisat, boya — kalem kalem kim öder."
+    kanca_kalip: kim_hakli
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-009
+    sutun: S2
+    bicim: B3
+    baslik: "Kirayı elden vermek"
+    aci: "Elden ödeme ispatlanamaz. Ev sahibi ödenmedi derse yük kiracıdadır. Banka dekontuna 'kira' açıklaması yazmak tek güvenli yol."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-010
+    sutun: S2
+    bicim: B1
+    baslik: "Ev satılınca kiracı çıkar mı"
+    aci: "Satış kira sözleşmesini kendiliğinden bitirmez; yeni malik sözleşmeye taraf olur. Ancak ihtiyaç iddiasıyla, edinme tarihinden itibaren bir ay içinde bildirimde bulunup tahliye isteyebilir."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 351"
+    yerel: null
+
+  - kod: S2-011
+    sutun: S2
+    bicim: B3
+    baslik: "Kiracı daireyi devredebilir mi"
+    aci: "Konut kirasında kiracı, ev sahibinin yazılı rızası olmadan kira ilişkisini devredemez. Rıza yoksa devir tahliye sebebi."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-012
+    sutun: S2
+    bicim: B1
+    baslik: "Kira ödenmezse süreç nasıl işler"
+    aci: "Ödenmeyen kira için otuz günlük süre veren ihtar çekilir; süre sonunda ödeme yoksa fesih ve tahliye yolu açılır. Süre yanlış hesaplanırsa dava baştan düşer."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 315"
+    yerel: null
+
+  - kod: S2-013
+    sutun: S2
+    bicim: B3
+    baslik: "Sözleşme bitince kiracı çıkmak zorunda mı"
+    aci: "Hayır. Süre bitiminde sözleşme kendiliğinden bir yıl uzar. Ev sahibinin süre bitti demesi tek başına tahliye sebebi değil."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 347"
+    yerel: null
+
+  - kod: S2-014
+    sutun: S2
+    bicim: B3
+    baslik: "Aidatı kim öder"
+    aci: "Olağan yönetim giderleri kiracıya, demirbaş ve büyük onarım fonu ev sahibine ait. Asansör bakımı ile asansör yenilemesi farklı kalemler."
+    kanca_kalip: kim_hakli
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-015
+    sutun: S2
+    bicim: B1
+    baslik: "Yeniden inşa nedeniyle tahliye"
+    aci: "Esaslı onarım veya yeniden inşa için tahliye istenebilir; ama iş, kullanımı imkânsız kılacak nitelikte olmalı. Boya badana bahanesiyle tahliye tutmaz."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 350"
+    yerel: null
+
+  - kod: S2-016
+    sutun: S2
+    bicim: B3
+    baslik: "Kiracının önalım hakkı var mı"
+    aci: "Yok. Kiracının, oturduğu evi satın almada yasal önceliği bulunmuyor. En yaygın kira efsanelerinden biri."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-017
+    sutun: S2
+    bicim: B2
+    baslik: "Kiralamak mı satın almak mı"
+    aci: "Peşinat, kredi faizi, kira çarpanı ve fırsat maliyeti yan yana konduğunda cevap bölgeye göre değişir. Silivri rakamlarıyla iki senaryo."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri kira çarpanı ve konut fiyatları"
+
+  - kod: S2-018
+    sutun: S2
+    bicim: B3
+    baslik: "Kefil ne kadar süre sorumlu"
+    aci: "Kira sözleşmesindeki kefaletin yazılı olması, azami tutar ve tarih içermesi gerekir. Bu unsurlar yoksa kefalet geçersiz."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-019
+    sutun: S2
+    bicim: B1
+    baslik: "Kiracı izinsiz tadilat yaparsa"
+    aci: "Ev sahibinin rızası olmadan yapılan değişiklikte kiracı eski hâle getirmekle yükümlü. Rıza varsa ve değer artmışsa kiracı bedel talep edebilir."
+    kanca_kalip: kim_hakli
+    mevzuat: null
+    yerel: null
+
+  - kod: S2-020
+    sutun: S2
+    bicim: B3
+    baslik: "Ev sahibi habersiz eve girebilir mi"
+    aci: "Giremez. Kiralanan kiracının zilyetliğindedir; izinsiz giriş konut dokunulmazlığını ihlal eder. Anahtarın ev sahibinde olması bu durumu değiştirmez."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  # ---------------------------------------------------------
+  # S3 — ARSA, İMAR & TOPRAK  (EDM'yi ayrıştırır)
+  # ---------------------------------------------------------
+
+  - kod: S3-001
+    sutun: S3
+    bicim: B1
+    baslik: "Tarlaya tiny house veya konteyner"
+    aci: "Tarım arazisine kalıcı yapı konulması ruhsata tabi. Ruhsatsız yapı yıkım ve idari para cezası doğurur; üstelik yapı kayıt belgesi de bu durumu kurtarmıyor."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "3194 sayılı İmar Kanunu"
+    yerel: "Silivri ve Trakya'da tarla üzerine tiny house talebi yoğun"
+
+  - kod: S3-002
+    sutun: S3
+    bicim: B1
+    baslik: "TAKS ve KAKS nasıl okunur"
+    aci: "TAKS zeminde kaplayabileceğin alanı, KAKS toplam inşaat hakkını verir. İkisi bilinmeden arsanın gerçek değeri hesaplanamaz — metrekare fiyatı tek başına yanıltıcı."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-003
+    sutun: S3
+    bicim: B3
+    baslik: "Yola cephesi olmayan arsa"
+    aci: "Yola cephesi yoksa ruhsat alınamaz. Çözüm geçit hakkı veya tevhid — ikisi de komşuya bağlı olduğu için fiyatı doğrudan düşürür."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-004
+    sutun: S3
+    bicim: B1
+    baslik: "İmar uygulaması ve DOP kesintisi"
+    aci: "18. madde uygulamasında arsadan düzenleme ortaklık payı kesilir. Kesinti sonrası elinize geçen metrekare, aldığınızdan belirgin biçimde az olabilir."
+    kanca_kalip: rakam
+    mevzuat: "3194 sayılı İmar Kanunu md. 18"
+    yerel: null
+
+  - kod: S3-005
+    sutun: S3
+    bicim: B3
+    baslik: "Tarım arazisi bölünebilir mi"
+    aci: "Tarım arazileri asgari parsel büyüklüğünün altına bölünemez. Bu yüzden hisseli satılıyor — ve hisseli tarla almak paydaşlığa girmek demek."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu"
+    yerel: "Trakya'daki hisseli tarla ilanlarının sebebi"
+
+  - kod: S3-006
+    sutun: S3
+    bicim: B1
+    baslik: "Hisseli tarlada kim nereyi kullanır"
+    aci: "Hisse, tapuda oran demek — zeminde belirli bir parça demek değil. Paydaşlar fiilen taksim etse bile bu taksim hukuken bağlayıcı olmayabilir."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: "Trakya'da hisseli tarla alımının en büyük anlaşmazlık kaynağı"
+
+  - kod: S3-007
+    sutun: S3
+    bicim: B3
+    baslik: "İfraz ve tevhid nedir"
+    aci: "İfraz parseli böler, tevhid birleştirir. İkisi de imar planına ve asgari parsel şartına bağlı; plan uygun değilse başvuru reddedilir."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-008
+    sutun: S3
+    bicim: B1
+    baslik: "İmar planı değişirse arsanız ne olur"
+    aci: "Plan revizyonu emsali artırabilir de düşürebilir de. Yeşil alana veya yola isabet eden parseller kamulaştırma sırasına girer ve yıllarca bekler."
+    kanca_kalip: sure
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-009
+    sutun: S3
+    bicim: B3
+    baslik: "Hazine arazisi kiralanır mı"
+    aci: "Kiralanabilir ama kira mülkiyet doğurmaz. Üzerine yapılan yapı da hazineye kalır. Ucuz görünen bu yolun sonu genelde hüsran."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-010
+    sutun: S3
+    bicim: B1
+    baslik: "Kadastro ile tapu ölçüsü tutmuyorsa"
+    aci: "Tapudaki yüzölçümü ile zemindeki ölçü farklıysa esas olan kadastro paftasıdır. Aradaki fark bazen yüzde onu geçiyor ve alım anında fark edilmiyor."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-011
+    sutun: S3
+    bicim: B3
+    baslik: "Bağ evi yapılabilir mi"
+    aci: "Belirli büyüklüğün üzerindeki tarım arazisinde, tarımsal amaca hizmet etmesi şartıyla ve izinle mümkün. İzinsiz yapılan bağ evi kaçak yapıdır."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: "Silivri kırsalında en sık sorulan soru"
+
+  - kod: S3-012
+    sutun: S3
+    bicim: B2
+    baslik: "İmarlı arsa mı tarla mı"
+    aci: "Tarla ucuz ama imara girme ihtimali belirsiz ve süresi öngörülemez. İmarlı arsa pahalı ama bugün inşaat hakkı var. İki senaryonun beş yıllık karşılaştırması."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri kuzey aksı örneği"
+
+  - kod: S3-013
+    sutun: S3
+    bicim: B3
+    baslik: "Arsa vasfı nasıl öğrenilir"
+    aci: "Tapudaki nitelik yeterli değil. Belediyeden imar durumu belgesi alınmadan arsanın ne yapılabileceği bilinemez — ve bu belge ücretsize yakın."
+    kanca_kalip: belge
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-014
+    sutun: S3
+    bicim: B1
+    baslik: "Kamulaştırmasız el atma"
+    aci: "İdare arsanıza fiilen el attıysa veya plan yoluyla kullanımı tamamen kısıtladıysa bedel davası açılabilir. Çoğu malik bu hakkı bilmediği için sessiz kalıyor."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  - kod: S3-015
+    sutun: S3
+    bicim: B3
+    baslik: "Yapı kayıt belgesi neyi çözer"
+    aci: "İmar barışı belgesi cezayı ve yıkımı durdurur ama yapıyı imara uygun hâle getirmez. Kentsel dönüşümde ve yeni ruhsatta hâlâ engel."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: null
+    yerel: null
+
+  # ---------------------------------------------------------
+  # S4 — RAKAM & BÖLGE  (yerelleştirir)
+  # ---------------------------------------------------------
+
+  - kod: S4-001
+    sutun: S4
+    bicim: B4
+    baslik: "Silivri mahalle mahalle metrekare fiyatları"
+    aci: "Portföy ve piyasa verisiyle mahalle bazlı m² aralığı. Kendi mahallesini gören yorum yazar — bu içerik yorum motorudur."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Doğrudan Silivri"
+    veri_kaynagi: "site/data/listings.json + bölge rehberi"
+
+  - kod: S4-002
+    sutun: S4
+    bicim: B2
+    baslik: "Konut mu arsa mı"
+    aci: "Konut kira getirir ama gideri var ve değer artışı enflasyona yakın. Arsa gelir getirmez ama gelişim aksındaysa katlamalı büyür. Beş yıllık simülasyon."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri otoban aksı"
+
+  - kod: S4-003
+    sutun: S4
+    bicim: B3
+    baslik: "Bu ayın kira artış tavanı"
+    aci: "Güncel TÜFE on iki aylık ortalamasıyla bu ay yenilenen kiralarda uygulanabilecek azami oran. Her ay tekrarlanan format, alışkanlık yaratır."
+    kanca_kalip: rakam
+    mevzuat: "Türk Borçlar Kanunu md. 344"
+    yerel: null
+    veri_kaynagi: "TÜİK TÜFE — her ay elle güncellenir"
+
+  - kod: S4-004
+    sutun: S4
+    bicim: B4
+    baslik: "Kira çarpanı: yatırım kaç yılda kendini öder"
+    aci: "Satış fiyatı bölü yıllık kira. Silivri'de ilçe ortalaması ve mahalleye göre sapma. Yatırımcının ilk baktığı rakam."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri ilçe ortalaması"
+
+  - kod: S4-005
+    sutun: S4
+    bicim: B3
+    baslik: "Alım satımın gerçek maliyeti"
+    aci: "Tapu harcı, döner sermaye, DASK, ekspertiz, komisyon. Kalem kalem toplandığında satış bedelinin üstüne binen oran çoğu alıcıyı şaşırtıyor."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: null
+
+  - kod: S4-006
+    sutun: S4
+    bicim: B2
+    baslik: "Kredi ile almak mı nakit beklemek mi"
+    aci: "Faiz maliyeti ile enflasyondaki değer artışı yan yana. Kredi bazı dönemlerde beklemekten ucuz — hangi şartlarda."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: null
+
+  - kod: S4-007
+    sutun: S4
+    bicim: B4
+    baslik: "Silivri'de hangi tip ne kadar sürede satılıyor"
+    aci: "Portföy verisinden tip bazlı ortalama satış süresi. Fiyatlamanın doğru olup olmadığını gösteren tek dürüst gösterge."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Doğrudan Silivri"
+    veri_kaynagi: "site/data/listings.json"
+
+  - kod: S4-008
+    sutun: S4
+    bicim: B3
+    baslik: "Emlak vergisi ne zaman ödenir"
+    aci: "İki taksit: mayıs sonu ve kasım sonu. Geciken taksite gecikme zammı işler. Yeni alınan mülkte beyan sorumluluğu alıcıda."
+    kanca_kalip: sure
+    mevzuat: null
+    yerel: null
+
+  - kod: S4-009
+    sutun: S4
+    bicim: B2
+    baslik: "Yazlık mı yatırım mı"
+    aci: "Silivri sahil hattında yazlık kullanım ile kiraya verme getirisi çelişir. İki amacın rakamsal karşılaştırması."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri sahil hattı"
+
+  - kod: S4-010
+    sutun: S4
+    bicim: B3
+    baslik: "Değer artış kazancı vergisi"
+    aci: "Beş yıl dolmadan satarsanız kazanç üzerinden vergi doğar. Beş yıl beklemek çoğu durumda vergiden fazlasını kazandırır."
+    kanca_kalip: sure
+    mevzuat: null
+    yerel: null
