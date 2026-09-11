@@ -1,0 +1,84 @@
+# =========================================================
+#  JETONLARI YENİLE
+#
+#  Threads jetonu 60 gün yaşıyor. Yenilenmezse bot bir sabah sessizce
+#  durur ve sebebi günlerce aranır — instabot'ta birebir yaşandı.
+#
+#  ⚠️ ÖLMÜŞ JETON YENİLENEMİYOR. O yüzden süre dolmasını beklemiyoruz:
+#  her hafta yeniliyoruz, her seferinde 60 güne çekiyor. Bir hafta
+#  kaçsa bile ikinci şans kalıyor. Ölmüş jeton için Graph API
+#  Explorer'dan elle almak gerekir.
+#
+#  Pazartesi 09:07 UTC = TR 12:07. Gündüz seçildi: bir sorun çıkarsa
+#  Telegram uyarısı gece yarısı değil, ayaktayken görülsün.
+#  Dakika :07 — GitHub cron'ları tam saatte yığılıyor ve gecikiyor.
+#
+#  Ayrıca YouTube refresh_token'ı denetleniyor: OAuth ekranı "Testing"
+#  modundaysa Google 7 GÜNDE sessizce iptal ediyor (MEMORY.md §6.1).
+# =========================================================
+
+name: Jetonları Yenile
+
+on:
+  schedule:
+    - cron: "7 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      sadece_kontrol:
+        description: "Yenileme yapma, yalnızca durumu raporla"
+        type: boolean
+        default: false
+
+# Veritabanına yazmıyor; edm-veritabani grubuna GİRMEZ.
+concurrency:
+  group: jeton
+  cancel-in-progress: false
+
+jobs:
+  jeton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Jetonları yenile ve raporla
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Yenilenen jetonu Secret'a geri yazmak için; repo Secrets yazma yetkisi ister
+          GITHUB_TOKEN: ${{ secrets.SECRET_YAZMA_PAT }}
+        run: |
+          python scripts/jeton_yenile.py ${{ inputs.sadece_kontrol && '--sadece-kontrol' || '' }}
+
+      # Job patlarsa sessiz kalmasın. Bu projedeki en sık hata sınıfı
+      # "kod başarısız oldu ama kimse bilmiyor".
+      - name: Hata bildir
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          t, c = os.environ["TELEGRAM_BOT_TOKEN"], os.environ["TELEGRAM_CHAT_ID"]
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
+              "chat_id": c, "parse_mode": "HTML",
+              "text": f"🔴 <b>Jeton yenileme BAŞARISIZ</b>\n\nJetonlardan biri "
+                      f"yenilenemedi veya geçersiz. Ölmüş jeton elle alınmalı.\n\n"
+                      f'<a href="{url}">Log</a>',
+          })
+          PY
