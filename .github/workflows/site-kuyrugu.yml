@@ -1,0 +1,80 @@
+# =========================================================
+#  SİTE İLAN PAYLAŞIM KUYRUĞU
+#
+#  Panelde "Sosyal paylaş" seçilince site D1'deki kuyruğa iş yazar.
+#  Bu iş akışı kuyruktan tek bir işi alıp yayınlar.
+#
+#  ⚠️ TETİKLEME TASARIMI — KOTA HESABI
+#
+#  İlk sürüm 10 dakikada bir yokluyordu. Depo private olduğu için
+#  Actions kotası 2000 dk/ay ve hesap tutmuyordu:
+#
+#    10 dk'da bir = ayda 4320 koşu
+#    koşu başına yalnızca checkout + pip install ≈ 40-60 sn
+#    → ayda 3000-4300 dk  (kotanın 1,5-2 katı)
+#
+#  Diğer işlerimiz ~190 dk/ay tuttuğu için koşu başına kalan pay
+#  0,42 dakikaydı — teknik olarak imkânsız.
+#
+#  Çözüm: YOKLAMA DEĞİL OLAY. Site kuyruğa iş yazarken postedm'e
+#  repository_dispatch atıyor, iş saniyeler içinde işleniyor.
+#  Saatlik cron yalnızca GÜVENLİK AĞI: dispatch düşerse iş en geç
+#  bir saat içinde yine de yayınlanır.
+#
+#    720 koşu/ay ≈ 720 dk → toplam ~910/2000 (%46)
+# =========================================================
+
+name: Site İlan Paylaşım Kuyruğu
+
+on:
+  # Asıl yol: site iş yazdığı anda tetikliyor
+  repository_dispatch:
+    types: [site_ilan_kuyrugu]
+  # Güvenlik ağı: dispatch düşerse saatlik yoklama yakalar
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: edm-site-ilan-kuyrugu
+  cancel-in-progress: false
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Kodu çek
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Bağımlılıkları yükle
+        run: pip install -r requirements.txt
+
+      - name: Site kuyruğundan bir ilan yayınla
+        env:
+          EDM_SITE_API_ANAHTARI: ${{ secrets.EDM_SITE_API_ANAHTARI }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+        run: python scripts/site_kuyrugunu_isle.py

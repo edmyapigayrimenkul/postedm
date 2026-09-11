@@ -8,9 +8,10 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from . import config
 
@@ -19,13 +20,18 @@ log = logging.getLogger(__name__)
 DB_YOLU = config.yol_al("data/edm.db")
 
 
-def _baglanti_al() -> sqlite3.Connection:
+@contextmanager
+def _baglanti_al() -> Iterator[sqlite3.Connection]:
     DB_YOLU.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_YOLU, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def wal_bosalt() -> None:
@@ -74,6 +80,7 @@ def tablolari_olustur() -> None:
             fiyat REAL,
             para_birimi TEXT DEFAULT 'TRY',
             islem TEXT,
+            kategori TEXT,
             tip TEXT,
             ilce TEXT,
             mahalle TEXT,
@@ -81,6 +88,7 @@ def tablolari_olustur() -> None:
             oda TEXT,
             kaynak_url TEXT,
             gorseller_json TEXT,
+            ozellikler_json TEXT,
             danisman TEXT,
             durum TEXT DEFAULT 'aktif',
             son_paylasim_tarihi TEXT,
@@ -103,12 +111,18 @@ def tablolari_olustur() -> None:
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
         """)
 
-        # Dinamik şema göçü (Eski DB'lerde makale_metni yoksa ekle)
+        # Dinamik şema göçü: Git geçmişindeki eski SQLite dosyaları da yeni
+        # site kuyruğundan gelen alanları kaybetmeden kullanabilsin.
         try:
             cursor = conn.execute("PRAGMA table_info(haberler)")
             kolonlar = [row["name"] for row in cursor.fetchall()]
             if "makale_metni" not in kolonlar:
                 conn.execute("ALTER TABLE haberler ADD COLUMN makale_metni TEXT")
+            ilan_kolonlari = [row["name"] for row in conn.execute("PRAGMA table_info(ilanlar)").fetchall()]
+            if "kategori" not in ilan_kolonlari:
+                conn.execute("ALTER TABLE ilanlar ADD COLUMN kategori TEXT")
+            if "ozellikler_json" not in ilan_kolonlari:
+                conn.execute("ALTER TABLE ilanlar ADD COLUMN ozellikler_json TEXT")
         except Exception as e:
             log.warning("Şema göçü hatası: %s", e)
 
@@ -217,27 +231,40 @@ def ilan_kaydet_veya_guncelle(ilan: Dict[str, Any]) -> None:
         conn.execute(
             """
             INSERT INTO ilanlar 
-            (id, baslik, fiyat, para_birimi, islem, tip, ilce, mahalle, m2, oda, kaynak_url, gorseller_json, danisman, durum)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, baslik, fiyat, para_birimi, islem, kategori, tip, ilce, mahalle, m2, oda, kaynak_url, gorseller_json, ozellikler_json, danisman, durum)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 baslik = excluded.baslik,
                 fiyat = excluded.fiyat,
+                para_birimi = excluded.para_birimi,
+                islem = excluded.islem,
+                kategori = excluded.kategori,
+                tip = excluded.tip,
+                ilce = excluded.ilce,
+                mahalle = excluded.mahalle,
+                m2 = excluded.m2,
+                oda = excluded.oda,
+                kaynak_url = excluded.kaynak_url,
                 gorseller_json = excluded.gorseller_json,
+                ozellikler_json = excluded.ozellikler_json,
+                danisman = excluded.danisman,
                 durum = excluded.durum
             """,
             (
                 str(ilan.get("id")),
                 ilan.get("baslik", ""),
-                float(ilan.get("fiyat", 0)),
+                float(ilan.get("fiyat") or 0),
                 ilan.get("paraBirimi", "TRY"),
                 ilan.get("islem", ""),
+                ilan.get("kategori", ""),
                 ilan.get("tip", ""),
                 ilan.get("ilce", ""),
                 ilan.get("mahalle", ""),
-                float(ilan.get("m2", 0)),
+                float(ilan.get("m2") or 0),
                 ilan.get("oda", ""),
                 ilan.get("kaynakUrl", ""),
                 json.dumps(ilan.get("gorseller", []), ensure_ascii=False),
+                json.dumps(ilan.get("ozellikler", {}), ensure_ascii=False),
                 ilan.get("danismanSlug", ""),
                 ilan.get("durum", "aktif"),
             ),

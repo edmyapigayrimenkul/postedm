@@ -1,0 +1,47 @@
+# =========================================================
+#  KAYNAK SAĞLIĞI
+#
+#  Emlakkulisi tek gerçek kaynağımız: haber adaylarının yarısı ondan
+#  geliyor. Beslemesi ölse veya yapısı değişse fark etmeyiz — sistem
+#  sessizce konu bankasına düşer ve "bugün haber yokmuş" sanırız.
+#
+#  Hürriyet vakası bu testin sebebi: "Emlak Haberleri" beslemesi 100
+#  haber döndürüyordu ama hiçbiri emlak değildi ("Proforma Fatura Nedir",
+#  "Şirket Nasıl Kapatılır"). Elle ölçene kadar görülmedi.
+#
+#  06:30 UTC = 09:30 TR — günlük içerik turundan (10:00 TR) yarım saat
+#  önce. Bir kaynak ölmüşse tur çalışmadan haberimiz olsun.
+#
+#  Kota: 30 koşu/ay × ~1 dk = 30 dk.
+# =========================================================
+
+name: Kaynak Sağlığı
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+# Veritabanına dokunmuyor.
+concurrency:
+  group: kaynak-sagligi
+  cancel-in-progress: true
+
+jobs:
+  kaynak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      # Sorun varsa Telegram'a rapor gider ve job kirmizi olur.
+      - name: Kaynakları denetle
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/kaynak_dogrula.py

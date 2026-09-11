@@ -593,7 +593,15 @@ def ilan_kapak_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     kenar_bosluk = 65
     kullanilabilir_w = GENISLIK - (2 * kenar_bosluk)
 
-    islem = (ilan.get("islem") or "satilik").upper()
+    islem_degeri = str(ilan.get("islem") or "satilik").lower()
+    islem = {
+        "satilik": "SATILIK",
+        "kiralik": "KİRALIK",
+        "gunluk-kiralik": "GÜNLÜK KİRALIK",
+        "sezonluk-kiralik": "SEZONLUK KİRALIK",
+        "devren-satilik": "DEVREN SATILIK",
+        "devren-kiralik": "DEVREN KİRALIK",
+    }.get(islem_degeri, islem_degeri.replace("-", " ").upper())
     tip = (ilan.get("tip") or "Gayrimenkul").upper()
     rozet_metni = f"{islem} {tip}"
     _rozet_ciz(draw, kenar_bosluk, 55, rozet_metni, bg_color=RENK_KIRMIZI, font_boyut=20)
@@ -632,12 +640,18 @@ def ilan_kapak_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         by += 54
 
     # 6. Devasa Fiyat & Vurgu (Fraunces Serif)
-    fiyat_ham = float(ilan.get("fiyat", 0))
-    islem_kiralik = "kiralik" in str(ilan.get("islem", "")).lower()
-    if islem_kiralik:
-        fiyat_metni = f"{int(fiyat_ham):,} TL / Ay".replace(",", ".")
-    else:
-        fiyat_metni = f"{int(fiyat_ham):,} TL".replace(",", ".")
+    fiyat_ham = float(ilan.get("fiyat") or 0)
+    para_simgesi = {"TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£"}.get(
+        str(ilan.get("para_birimi") or "TRY").upper(),
+        str(ilan.get("para_birimi") or "TRY"),
+    )
+    donem = (
+        " / Gün" if islem_degeri == "gunluk-kiralik"
+        else " / Sezon" if islem_degeri == "sezonluk-kiralik"
+        else " / Ay" if islem_degeri == "kiralik"
+        else ""
+    )
+    fiyat_metni = f"{int(fiyat_ham):,} {para_simgesi}{donem}".replace(",", ".")
 
     fiyat_y = by + 20
     font_fiyat_etiket = _font_yukle(FONT_MONO, 18)
@@ -734,11 +748,37 @@ def ilan_detay_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     font_sec_baslik = _font_yukle(FONT_FRAUNCES, 34)
     draw.text((kenar_bosluk, y_kutu), "Öne Çıkan Nitelikler", font=font_sec_baslik, fill=RENK_KAGIT)
 
+    try:
+        ozellikler = json.loads(ilan.get("ozellikler_json") or "{}")
+    except Exception:
+        ozellikler = {}
+    gercek_bilgiler = []
+    if ilan.get("m2"):
+        gercek_bilgiler.append(("Alan", f"{int(float(ilan['m2'])):,} m² ilan alanı".replace(",", ".")))
+    if ilan.get("oda"):
+        gercek_bilgiler.append(("Oda Bilgisi", str(ilan["oda"])))
+    if ilan.get("tip"):
+        gercek_bilgiler.append(("Mülk Türü", str(ilan["tip"]).replace("-", " ").title()))
+    for anahtar, deger in ozellikler.items():
+        if deger and len(gercek_bilgiler) < 4:
+            gercek_bilgiler.append((str(anahtar)[:32], str(deger)[:72]))
+    if len(gercek_bilgiler) < 4:
+        konum = " · ".join(x for x in [ilan.get("mahalle"), ilan.get("ilce")] if x)
+        if konum:
+            gercek_bilgiler.append(("Konum", konum))
+    yedek_bilgiler = [
+        ("Güncel İlan", f"Ayrıntılar için portföy no #{ilan.get('id', '')}"),
+        ("Bölge Uzmanlığı", "Silivri ve Trakya saha deneyimi"),
+        ("Doğrudan İletişim", "Güncel durum ve randevu için ofisimizle görüşün"),
+        ("EDM Portföyü", "Güncel ayrıntılar ilan sayfasında"),
+    ]
+    for yedek in yedek_bilgiler:
+        if len(gercek_bilgiler) >= 4:
+            break
+        gercek_bilgiler.append(yedek)
     maddeler = [
-        ("01", "Mülkiyet & İmar", "Tapu kayıtları, iskan ve kadastral sınırları incelenmiş güvenli gayrimenkul."),
-        ("02", "Konum & Ulaşım", f"{ilan.get('mahalle', 'Silivri')} bölgesinde ana ulaşım akslarına ve sahil hattına yakın."),
-        ("03", "Kullanım Konforu", "Ferah yerleşim planı, doğal ışık alan odalar ve yüksek kullanım ergonomisi."),
-        ("04", "Yatırım Potansiyeli", "Silivri ve Trakya gelişim aksında değer kazanma potansiyeli yüksek portföy."),
+        (f"{sira:02d}", baslik, aciklama)
+        for sira, (baslik, aciklama) in enumerate(gercek_bilgiler[:4], start=1)
     ]
 
     ky = y_kutu + 60
@@ -2435,4 +2475,3 @@ def haber_slayti_2_ciz(manset: str, maddeler: List[str], cikti_yolu: Optional[Pa
 
 def haber_kapanis_slayti_ciz(cikti_yolu: Optional[Path] = None) -> Path:
     return otorite_slayt_4_kapanis({}, cikti_yolu)
-

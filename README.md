@@ -10,13 +10,13 @@ EDM Yapı & Gayrimenkul (`edmyapigayrimenkul.com`) markasının kurumsal kimliğ
 Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu tanımlar.
 
 ```
-   [data/konu_bankasi.yaml]          [RSS]              [site/data/listings.json]
-    61 evergreen konu brief'i      haber akışı              portföy (Faz 2/3)
+   [data/konu_bankasi.yaml]          [RSS]              [Site D1 yayın kuyruğu]
+    61 evergreen konu brief'i      haber akışı           güncel aktif portföy
             │                          │                          │
             ▼                          ▼                          ▼
-    [konu_bankasi.py]           [fetch_news.py]           [fetch_listings.py]
-    takvime göre seçer          çekirdek terim              (EİDS nedeniyle
-    tekrarı önler                süzgeci                     şimdilik donuk)
+    [konu_bankasi.py]           [fetch_news.py]       [site_kuyrugunu_isle.py]
+    takvime göre seçer          çekirdek terim         durum/fiyat/görseli
+    tekrarı önler                süzgeci                yayından önce yeniler
             │                          │
             └───────────┬──────────────┘
                         ▼
@@ -33,8 +33,16 @@ Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu t
                         ▼
               [Cloudflare Worker] ──► [GitHub Actions: yayinla.yml]
                         ▼
-        Instagram · Facebook · Threads · YouTube Shorts
+        Instagram · Facebook · Threads · Reels · YouTube Shorts · TikTok
 ```
+
+Panelde ilan kaydederken veya ilan listesinde “Sosyal paylaş” seçildiğinde iş
+sitenin D1 kuyruğuna yazılır. `site-kuyrugu.yml` on dakikada bir tek işi atomik
+olarak alır; site, ilanı teslim etmeden hemen önce hâlâ yayında olduğunu ve
+güncel fiyat/görsellerini doğrular. `postedm` bu anlık veriyi yerel SQLite'a
+aktarır, kartları yeniden çizer, yalnızca seçilen platformlara gönderir ve
+sonucu D1'e geri yazar. Böylece eski `listings.json` kopyası yayın kararında
+kullanılmaz.
 
 ### Neden konu bankası var
 
@@ -66,6 +74,9 @@ GEMINI_API_KEY=AIzaSy...
 IMGBB_API_KEY=...
 INSTAGRAM_ACCESS_TOKEN=...
 INSTAGRAM_ACCOUNT_ID=...
+FACEBOOK_PAGE_ID=...
+FACEBOOK_ACCESS_TOKEN=...
+EDM_SITE_API_ANAHTARI=site-worker-ile-ayni-uzun-rastgele-anahtar
 ```
 
 ---
@@ -101,6 +112,14 @@ python scripts/metin_butcesi.py
 ```bash
 python scripts/hazirla.py --ilan-menu
 ```
+
+### Site Kuyruğundaki Sıradaki İlanı İşle:
+```bash
+python scripts/site_kuyrugunu_isle.py
+```
+
+Bu komut gerçek platformlara yayın yapar. Yerel doğrulamada ağ çağrıları taklit
+edilen birim testleri kullanılmalıdır; canlı anahtarlarla deneme yapılmaz.
 
 ### Doğrudan Bir İlanın Kartlarını Üret:
 ```bash
