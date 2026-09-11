@@ -45,7 +45,18 @@ def token_yenile() -> Optional[str]:
         )
         veri = r.json()
         if r.status_code == 200 and "access_token" in veri:
-            return veri["access_token"]
+            yeni_token = veri["access_token"]
+            yeni_refresh = veri.get("refresh_token")
+            os.environ["TIKTOK_ACCESS_TOKEN"] = yeni_token
+
+            from . import refresh_token as rt
+            rt.env_guncelle("TIKTOK_ACCESS_TOKEN", yeni_token)
+            if yeni_refresh:
+                os.environ["TIKTOK_REFRESH_TOKEN"] = yeni_refresh
+                rt.env_guncelle("TIKTOK_REFRESH_TOKEN", yeni_refresh)
+
+            log.info("TikTok erişim jetonu başarıyla yenilendi.")
+            return yeni_token
         log.warning("TikTok token yenileme başarısız: %s", r.text[:200])
     except Exception as e:
         log.warning("TikTok token hatası: %s", e)

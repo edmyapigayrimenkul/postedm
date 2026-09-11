@@ -133,6 +133,16 @@ def main() -> None:
                         fetch_listings.portfoyu_senkronize_et()
                         telegram_bot.tek_tikla_ilan_menusu_gonder()
 
+                    elif text.startswith("/otorite") or text.startswith("/rehber"):
+                        log.info("/otorite komutu alındı: %s", text)
+                        parcalar = text.split(maxsplit=1)
+                        konu = (
+                            parcalar[1].strip()
+                            if len(parcalar) > 1
+                            else "Hisseli tapuda şufa (önalım) hakkı ve satış bedelini tapuda düşük göstermenin riskleri"
+                        )
+                        telegram_bot.otorite_postu_hazirla_ve_sor(konu)
+
                     elif text.startswith("/haber") or text.startswith("/haberler"):
                         log.info("/haber komutu alındı.")
                         fetch_news.rss_tara()
@@ -146,14 +156,15 @@ def main() -> None:
                         bekleyen_haber = len(db.bekleyen_haberleri_getir(limit=100))
                         telegram_bot.mesaj_gonder(
                             f"📊 <b>EDM SOSYAL MEDYA SİSTEM DURUMU</b>\n\n"
-                            f"• Bekleyen Haberler: {bekleyen_haber}\n"
+                            f"• Bekleyen İçerikler: {bekleyen_haber}\n"
                             f"• Instagram: Aktif (@edmyapigayrimenkul)\n"
                             f"• Threads: Aktif (@edmyapigayrimenkul)\n"
-                            f"• YouTube: Aktif (@edmyapigayrimenkul)\n"
-                            f"• TikTok: Beklemede\n\n"
+                            f"• Facebook: Aktif (EDM Yapı & Gayrimenkul)\n"
+                            f"• YouTube Shorts: Aktif (@edmyapigayrimenkul)\n\n"
                             f"Komutlar:\n"
-                            f"/ilanlar - Portföyden tek tıkla ilan seç\n"
-                            f"/haber - En son sektörel haberi hazırla"
+                            f"/otorite &lt;konu&gt; - Belirtilen konuda 4 slaytlık otorite carousel üret\n"
+                            f"/haber - En son sektörel haberi otorite bültenine dönüştür\n"
+                            f"/ilanlar - Portföyden tek tıkla ilan seç"
                         )
 
         except requests.exceptions.Timeout:

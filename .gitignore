@@ -38,8 +38,9 @@ data/output/
 data/cache/
 data/temp/
 
-# Keep data directory in git
+# Keep data directory & database in git
 !data/.gitkeep
+!data/edm.db
 
 # macOS
 .DS_Store

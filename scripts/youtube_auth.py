@@ -171,6 +171,24 @@ def main():
     env_path.write_text("\n".join(yeni_satirlar) + "\n", encoding="utf-8")
     print(f"💾 Kalıcı Refresh Token postedm/.env dosyasına kaydedildi.")
 
+    # GitHub Actions Secrets Güncelle (gh CLI varsa)
+    try:
+        from src.refresh_token import github_secret_guncelle
+        if github_secret_guncelle(refresh_token, "YOUTUBE_REFRESH_TOKEN"):
+            print("🔒 GitHub Actions Secrets (YOUTUBE_REFRESH_TOKEN) otomatik güncellendi.")
+    except Exception as e:
+        print(f"ℹ️ GitHub secret güncellenemedi (manuel girilebilir): {e}")
+
+    print("\n" + "=" * 68)
+    print("⚠️  DİKKAT: GOOGLE OAUTH 7 GÜNLÜK JETON İPTALİ TUZAĞI (Instabot Dersi)")
+    print("=" * 68)
+    print("Google Cloud Console -> APIs & Services -> OAuth consent screen sayfasında")
+    print("Uygulama 'Testing' durumunda ise, Google refresh token'ı TAM 7 GÜN SONRA")
+    print("sessizce iptal eder. Kalıcı olması için 'Publish App' butonuna basarak")
+    print("'In Production' moduna almalısınız. (Logo eklemeyin, gizlilik linki verin).")
+    print("=" * 68 + "\n")
+
 
 if __name__ == "__main__":
     main()
+
