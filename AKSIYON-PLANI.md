@@ -72,7 +72,7 @@ konu rotasyonu ve mükerrer engeli çalışmıyor.
 
 **Tahmini:** 1 dakika (senin elinle)
 
-## 0.3 CI testleri — her push'ta
+## 0.3 CI testleri — her push'ta ✅ YAPILDI (11 Eyl 2026)
 
 instabot'un dersi birebir bizim başımıza geldi: `lxml` eksikti, yerelde çalıştı,
 üretimde 3 gün boyunca her RSS kaynağı sessizce düştü.
@@ -88,7 +88,7 @@ instabot'un dersi birebir bizim başımıza geldi: `lxml` eksikti, yerelde çal�
 
 **Tahmini:** 1 saat
 
-## 0.4 Worker güvenliği
+## 0.4 Worker güvenliği ✅ YAPILDI (11 Eyl 2026)
 
 instabot Worker'ı Telegram'ın `secret_token` başlığını doğruluyor. Bizimki
 doğrulamıyor — URL'yi bilen herkes sahte onay gönderip **yayın tetikleyebilir**.
@@ -100,9 +100,62 @@ doğrulaması + webhook'u `secret_token` parametresiyle yeniden kur.
 
 ---
 
+# 11 Eylül 2026 oturumunda yapılanlar ve çıkan sürprizler
+
+## Beklenmeyen keşif: onay akışı hiç var olmamış
+
+`§0.4` "güvenlik ekle" sanılıyordu. Ölçünce çıkan:
+
+- Cloudflare'de `edm-telegram-dispatcher` diye bir worker **yoktu**
+- Telegram webhook'u **boştu** (`getWebhookInfo` → url: "")
+- Yani gruptaki onay butonlarına basınca **hiçbir şey olmuyordu**
+
+Benzer isimli `haber-bot-onay` instabot'a ait (50 KB, "daily" içeriyor) —
+üstüne yazılmadı.
+
+Dolayısıyla onay → yayın zinciri postedm için bugün ilk kez var oldu.
+
+## Testin ilk çalıştırmada bulduğu ikinci vaka
+
+Bağımlılık denetimi yazılırken `numpy` de `requirements.txt`'te bulunamadı —
+lxml ile tam olarak aynı sınıf hata. `video.py` onu import ediyor; Reels/Shorts
+üretimi runner'da patlardı. Yerelde kurulu olduğu için görünmüyordu.
+
+**Bu, test yazmanın karşılığını ilk dakikada verdiği bir örnek.**
+
+## CI ilk koşusunda main'in kırık olduğunu buldu
+
+`testler.yml` ilk kez çalıştığında kırmızı döndü:
+
+```
+src/fetch_news.py:188 db.haber_kaydet() → 'makale_metni' diye bir parametre yok
+```
+
+Sebep bu oturumdaki kendi kararım. `fetch_news.py`'yi commit'lerken
+"oturum öncesi işi kendi mesajıma gömme" ilkesiyle `db.py`'ye dokunmadım.
+İlke doğruydu ama **main'i tutarsız bıraktı**: commit'li `fetch_news`,
+commit'li `db.py`'de olmayan bir parametre çağırıyordu. Her haber kaydı
+`TypeError` atardı.
+
+Yerelde görünmüyordu çünkü yerel `db.py` o değişikliği taşıyor — lxml ve
+numpy ile tam olarak aynı sınıf: **"bende çalışıyor" ile "orada çalışıyor"
+farkı.**
+
+Ders: bağımlılığı olan bir dosyayı commit'lerken bağımlılıklarının da
+commit'li olduğunu doğrula. `test_butunluk.py` artık bunu otomatik yapıyor.
+
+## Önlenen tuzak: çift tetikleyici
+
+Worker'ın `scheduled()` işleyicisi `sabah_hazirla` gönderiyor ve `hazirla.yml`
+bunu dinliyor; `hazirla.yml`'nin kendi cron'u da var. İkisi birden açık olsaydı
+aynı gün **iki tur** çalışırdı: iki önizleme, iki konu tüketimi, iki paylaşım.
+Cloudflare cron'u bilerek kapalı dağıtıldı, kural sözleşme testine bağlandı.
+
+---
+
 # P1 — Sessizce ölecek şeyler
 
-## 1.1 Jeton yenileme — ALTYAPI ZATEN VAR, WORKFLOW YOK
+## 1.1 Jeton yenileme ✅ YAPILDI (11 Eyl 2026)
 
 `MEMORY.md`: Threads = "Meta Long-Lived Token - 60 Günlük". 60 gün dolduğunda
 bot bir sabah sessizce durur — instabot'ta birebir yaşanmış.
@@ -143,7 +196,7 @@ ve bunu ancak elle ölçünce gördük. Bu test onu otomatik yakalar.
 
 **Tahmini:** 1 saat
 
-## 1.3 Hata bildirimi — her job
+## 1.3 Hata bildirimi ✅ YAPILDI (11 Eyl 2026)
 
 instabot: "Herhangi bir job patlarsa Telegram'a hata mesajı."
 Bizde sadece `hazirla.py`'nin kendi `try/except`'i var. Workflow adımı patlarsa
