@@ -53,11 +53,21 @@ def rapor_uret() -> tuple[str, bool]:
         bekleyen = _sayi(conn, "SELECT COUNT(*) FROM haberler WHERE durum='onay_bekliyor'")
         havuz = _sayi(conn, "SELECT COUNT(*) FROM haberler WHERE durum='yeni'")
 
+        elenen = _sayi(conn, "SELECT COUNT(*) FROM haberler WHERE durum='elendi'")
+
         satirlar.append("<b>ÜRETİM</b>")
         satirlar.append(f"  Dün taranan haber: {yeni_haber}")
         satirlar.append(f"  Toplam yayınlanan: {yayinlanan}")
         satirlar.append(f"  Onay bekleyen    : {bekleyen}")
         satirlar.append(f"  Havuzda bekleyen : {havuz}")
+        satirlar.append(f"  Triyajda elenen  : {elenen}")
+
+        # Havuz drene olmuyorsa boşa LLM çağrısı ve bayat içerik riski doğar.
+        # 11 Eyl 2026: elenen haber işaretlenmiyordu, aynı 6 kayıt her gün
+        # yeniden triyaja giriyordu.
+        if havuz > 40:
+            uyari = True
+            satirlar.append(f"  ⚠️ Havuz {havuz} kayda çıktı — drenaj çalışmıyor olabilir")
 
         # Onay beklemede takılı kalan iş var mı — instabot'ta unutulan turlar oldu
         if bekleyen >= 3:

@@ -548,6 +548,55 @@ class TestIcerikSozlesmesi(unittest.TestCase):
                       "istek reddedilmiyor. Secret'ı kurmayı unutmak sessiz bir "
                       "güvenlik açığına dönüşür.")
 
+    def test_triyaji_gecemeyen_haber_isaretleniyor(self) -> None:
+        """Elenen haber `durum` değiştirmeli; aksi halde her gün yeniden triyaja girer.
+
+        11 Eyl 2026: `hazirla.py` triyaj reddinde yalnızca `continue` diyordu.
+        İşaretlenmeyen haber ertesi gün yeniden triyaja giriyordu — günde
+        6 boşa LLM çağrısı ve sürekli büyüyen bir havuz.
+
+        (Not: o tarihte konu bankası üretimde hiç çalışmamıştı ama sebebi bu
+        değildi — tek bir üretim turu olmuştu ve o turda bir haber triyajı
+        gerçekten geçmişti. Drenaj sorunu ayrı ve gerçek: boşa çağrı, bayat
+        içerik riski ve sınırsız büyüyen havuz.)
+        """
+        kaynak = (KOK / "scripts/hazirla.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'durum="elendi"', kaynak,
+            "Triyajı geçemeyen haber 'elendi' olarak işaretlenmiyor; havuz drene olmaz.",
+        )
+        # Eleme, triyaj reddinin hemen ardından olmalı
+        i_triyaj = kaynak.find("if not brief:")
+        i_eleme = kaynak.find('durum="elendi"', i_triyaj)
+        i_devam = kaynak.find("continue", i_triyaj)
+        self.assertTrue(
+            0 < i_eleme < i_devam,
+            "'elendi' işaretlemesi triyaj reddi ile continue arasında değil.",
+        )
+
+    def test_havuz_temizligi_cagriliyor(self) -> None:
+        """`eski_kayitlari_temizle` günlük akıştan çağrılmalı.
+
+        Fonksiyon vardı ama hiçbir yerden çağrılmıyordu; havuz yalnızca
+        büyüyordu.
+        """
+        kaynak = (KOK / "scripts/hazirla.py").read_text(encoding="utf-8")
+        self.assertIn("eski_kayitlari_temizle", kaynak,
+                      "Günlük akış havuz temizliğini çağırmıyor.")
+
+    def test_yayin_aninda_tazelik_denetimi_var(self) -> None:
+        """Havuzda bayatlamış kayıt 'haber' olarak paylaşılmamalı.
+
+        Tazelik süzgeci yalnızca TARAMA anında çalışıyordu
+        (config: haberler.haber_yasi_saat). Havuzda günlerce bekleyen bir
+        kayıt triyajı geçerse bayat içerik haber diye yayınlanırdı.
+        """
+        kaynak = (KOK / "scripts/hazirla.py").read_text(encoding="utf-8")
+        self.assertIn("YAYIN_TAZELIK_SAAT", kaynak,
+                      "Yayın anı tazelik sınırı tanımlı değil.")
+        self.assertIn("_saat_farki_saat", kaynak,
+                      "Adayın yaşı yayın anında ölçülmüyor.")
+
     def test_tuval_olculeri_guvenli_alan_uretiyor(self) -> None:
         """Her tuval ölçüsü için yerleşim tutarlı ve pozitif olmalı."""
         for ad in make_image.TUVAL_OLCULERI:

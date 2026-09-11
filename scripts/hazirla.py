@@ -39,6 +39,12 @@ log = logging.getLogger(__name__)
 HABER_ON_ELEME_ESIGI = 9
 TRIYAJ_ASGARI_GUVEN = 7
 
+# Havuzda bekleyen bir haber bu yaşı geçtiyse artık "haber" değildir.
+# Tazelik süzgeci (config: haberler.haber_yasi_saat) yalnızca TARAMA anında
+# çalışıyordu; havuzda günlerce bekleyen bir kayıt triyajı geçerse bayat
+# içerik "haber" diye paylaşılırdı.
+YAYIN_TAZELIK_SAAT = 72
+
 
 def _konu_adayi_kaydet(haber: dict) -> None:
     """Haberi konu bankası adayına çevirip kaydeder."""
@@ -113,12 +119,28 @@ def main() -> None:
     yeni_haberler = fetch_news.rss_tara()
     log.info("%d adet yeni alakalı haber bulundu.", len(yeni_haberler))
 
+    # Havuz bakımı: 14 günden eski, yayınlanmamış kayıtlar silinir.
+    # Çağrılmadığı için havuz yalnızca büyüyordu.
+    silinen = db.eski_kayitlari_temizle(gun=14)
+    if silinen:
+        log.info("Havuzdan %d eski kayıt temizlendi.", silinen)
+
     # 1. kapı: kural tabanlı ön eleme
-    adaylar = [
-        h for h in db.bekleyen_haberleri_getir(limit=6)
-        if h.get("onem_puani", 0) >= HABER_ON_ELEME_ESIGI
-        and (h.get("kategori") or "") != "rehber"
-    ]
+    adaylar = []
+    for h in db.bekleyen_haberleri_getir(limit=10):
+        if h.get("onem_puani", 0) < HABER_ON_ELEME_ESIGI:
+            continue
+        if (h.get("kategori") or "") == "rehber":
+            continue
+        # Yayın anı tazeliği: havuzda bayatlamış kayıt "haber" olarak paylaşılmaz
+        yas = fetch_news._saat_farki_saat(h.get("yayin_tarihi") or "")
+        if yas > YAYIN_TAZELIK_SAAT:
+            log.info("Bayatladı (%.0f saat), eleniyor: %s", yas, h["orijinal_baslik"][:50])
+            db.haber_guncelle(h["id"], durum="elendi")
+            continue
+        adaylar.append(h)
+        if len(adaylar) >= 6:
+            break
     log.info("Ön elemeyi geçen haber adayı: %d", len(adaylar))
 
     # 2. kapı: LLM triyajı. Modelin reddetme yetkisi var ve çoğu zaman reddeder.
@@ -128,6 +150,10 @@ def main() -> None:
             # Red sebebi "kalıcı bilgi, haber değil" ise çöpe atma: bankaya aday yap
             if haber_triyaj.konu_adayi_mi(aday):
                 _konu_adayi_kaydet(aday)
+            # ELENDİ olarak işaretle. Aksi halde aynı haber HER GÜN yeniden
+            # triyaja giriyordu: günde 6 boşa LLM çağrısı ve konu bankasına
+            # hiç sıra gelmiyordu (üretimde konu_gecmisi tablosu bile oluşmamıştı).
+            db.haber_guncelle(aday["id"], durum="elendi")
             continue
         log.info(
             "Haber takvimin önüne geçiyor (puan %d, güven %s): %s",
