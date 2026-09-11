@@ -598,6 +598,13 @@ def konudan_uret(konu: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if veri:
         veri.setdefault("bicim", bicim)
         veri["konu_kodu"] = konu["kod"]
+        # Brief'i sakla: dogrula.py metindeki mevzuat ve yerel bağ iddialarını
+        # bununla karşılaştırıyor. Onay önizlemesinde uyarı olarak görünüyor.
+        veri["_brief"] = {
+            "mevzuat": konu.get("mevzuat"),
+            "yerel": konu.get("yerel"),
+            "veri_kaynagi": konu.get("veri_kaynagi"),
+        }
     return veri
 
 

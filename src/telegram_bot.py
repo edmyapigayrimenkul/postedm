@@ -205,8 +205,24 @@ def haber_onayina_sun(haber_id: int) -> bool:
 
     # 3. Medya albümü gönder
     caption_ozeti = (haber.get("ig_caption") or "")[:350]
+
+    # Yayın öncesi denetim. Otomatik eleme yapmıyor; onaylayan kişiye
+    # "şuna bir daha bak" diyor. En kritik denetim uydurma kanun maddesi:
+    # gerçek bir emlak ofisinin hesabında bu ciddi bir sorumluluk.
+    denetim_basligi = ""
+    if otorite_verisi and isinstance(otorite_verisi, dict):
+        try:
+            from . import dogrula
+            uyarilar = dogrula.denetle(otorite_verisi, otorite_verisi.get("_brief"))
+            denetim_basligi = dogrula.uyari_basligi(uyarilar)
+            if uyarilar:
+                log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
+        except Exception as e:
+            log.warning("Denetim çalıştırılamadı: %s", e)
+
     onizleme_metni = (
-        f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR</b>\n\n"
+        denetim_basligi
+        + f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR</b>\n\n"
         f"<b>Kategori:</b> {rozet}\n"
         f"<b>Dayanak:</b> {dayanak}\n"
         f"<b>Manşet:</b> {haber['manset']}\n"

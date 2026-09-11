@@ -1,0 +1,61 @@
+# =========================================================
+#  GÜNLÜK RAPOR
+#
+#  Bu sistemin en sık hata sınıfı "kod çalıştı ama iş yapılmadı ve kimse
+#  bilmedi". 8-11 Eylül arasında hazırlama işi yedi kez üst üste patladı
+#  ve üç gün fark edilmedi.
+#
+#  Rapor bunun panzehiri: her sabah dün ne olduğunu yazıyor. Sessiz
+#  bozulmalar birikmeden görünür oluyor.
+#
+#  05:40 UTC = 08:40 TR — kaynak sağlığından (09:30) ve içerik turundan
+#  (10:00) önce. Güne durum özetiyle başlanıyor.
+#
+#  ⚠️ Bu job uyarı içerse bile YEŞİL kalır. Her sabah kırmızı gören
+#  insan kırmızıya körleşir; gerçek arıza o zaman kaybolur.
+# =========================================================
+
+name: Günlük Rapor
+
+on:
+  schedule:
+    - cron: "40 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: gunluk-rapor
+  cancel-in-progress: true
+
+jobs:
+  rapor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Durumu raporla
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/gunluk_rapor.py
+
+      - name: Hata bildir
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+          if not (t and c): raise SystemExit(0)
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
+              "chat_id": c, "parse_mode": "HTML",
+              "text": f'🔴 <b>Günlük rapor BAŞARISIZ</b>\n\n<a href="{url}">Log</a>'})
+          PY

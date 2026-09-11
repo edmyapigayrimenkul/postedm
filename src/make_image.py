@@ -429,8 +429,10 @@ def _temiz_arkaplan_al(kategori_kodu: Optional[str] = None, ozel_url_veya_yol: O
         try:
             img = Image.open(yerel_bg).convert("RGB")
             return ImageOps.fit(img, (GENISLIK, YUKSEKLIK), Image.Resampling.LANCZOS)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessizce geçmiyoruz: marka varlığı yüklenemezse slayt
+            # MARKASIZ üretilir ve kimse fark etmez.
+            log.warning("arka plan yüklenemedi, slayt onsuz üretiliyor: %s", e)
 
     # Yedek prestij koyu tuval
     return Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
@@ -548,8 +550,10 @@ def _edm_pin_al(boyut: int = 34) -> Image.Image:
             h = boyut
             w = int(pin.width * (h / pin.height))
             return pin.resize((w, h), Image.Resampling.LANCZOS)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessizce geçmiyoruz: marka varlığı yüklenemezse slayt
+            # MARKASIZ üretilir ve kimse fark etmez.
+            log.warning("pin sembolü yüklenemedi, slayt onsuz üretiliyor: %s", e)
     return _vektor_ikon_uret("pin", boyut, RENK_KIRMIZI_CANLI)
 
 
@@ -614,8 +618,10 @@ def ilan_kapak_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
             lh = int(logo.height * (lw / logo.width))
             logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
             img.paste(logo, (GENISLIK - kenar_bosluk - lw, 52), logo)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessizce geçmiyoruz: marka varlığı yüklenemezse slayt
+            # MARKASIZ üretilir ve kimse fark etmez.
+            log.warning("logo (açık) yüklenemedi, slayt onsuz üretiliyor: %s", e)
 
     # 3. Rölöve Ayrım Çizgisi & Köşe Artı İşaretleri (y=830)
     panel_y = 830
@@ -709,8 +715,10 @@ def ilan_detay_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
             lh = int(logo.height * (lw / logo.width))
             logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
             img.paste(logo, (GENISLIK - kenar_bosluk - lw, 52), logo)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessizce geçmiyoruz: marka varlığı yüklenemezse slayt
+            # MARKASIZ üretilir ve kimse fark etmez.
+            log.warning("logo (açık) yüklenemedi, slayt onsuz üretiliyor: %s", e)
 
     draw.line([(kenar_bosluk, 105), (GENISLIK - kenar_bosluk, 105)], fill=RENK_CIZGI_KOYU, width=1)
 
@@ -874,8 +882,10 @@ def ilan_kapanis_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = N
             lh = int(logo.height * (lw / logo.width))
             logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
             img.paste(logo, (kenar_bosluk, YUKSEKLIK - 240), logo)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessizce geçmiyoruz: marka varlığı yüklenemezse slayt
+            # MARKASIZ üretilir ve kimse fark etmez.
+            log.warning("logo (koyu) yüklenemedi, slayt onsuz üretiliyor: %s", e)
 
     font_slogan = _font_yukle(FONT_MONO, 20)
     draw.text((kenar_bosluk, YUKSEKLIK - 90), "EDM YAPI & GAYRİMENKUL · YATIRIM ORTAĞINIZ", font=font_slogan, fill=RENK_KURSUN)
