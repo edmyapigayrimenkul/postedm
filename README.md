@@ -6,32 +6,46 @@ EDM Yapı & Gayrimenkul (`edmyapigayrimenkul.com`) markasının kurumsal kimliğ
 
 ## 🏗 Mimari ve Çalışma Mantığı
 
+**İçerik kararlarının kaynağı [`ICERIK-SISTEMI.md`](ICERIK-SISTEMI.md).**
+Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu tanımlar.
+
 ```
-[RSS Emlak Haberleri]      [site/data/listings.json (46 İlan)]
-          │                                  │
-          ▼                                  ▼
-   [fetch_news.py]                  [fetch_listings.py]
-          │                                  │
-          ├──────────────────────────────────┤
-          ▼
-   [generate_text.py]  (Google Gemini — EDM Ses Tonu: Net, Sakin, Yerel)
-          ▼
-   [make_image.py]     (Pillow — 1080x1350 4:5 Rölöve/İmar Paftası Kartları)
-   [video.py]          (imageio — 1080x1920 9:16 Dikey Video / Shorts)
-          ▼
-   [telegram_bot.py]   (Telegram Grubuna Önizleme ve Onay Butonları)
-          │
-          ├── [✅ Tümüne Yayınla]
-          ├── [📸 Sadece Instagram]
-          ├── [🧵 Sadece Threads]
-          └── [❌ Pas Geç]
-          ▼
-   [Cloudflare Worker] ──► [GitHub Actions (yayinla.yml)]
-          ▼
-   [Instagram Graph API] + [Threads API] + [YouTube API] + [TikTok API]
+   [data/konu_bankasi.yaml]          [RSS]              [site/data/listings.json]
+    61 evergreen konu brief'i      haber akışı              portföy (Faz 2/3)
+            │                          │                          │
+            ▼                          ▼                          ▼
+    [konu_bankasi.py]           [fetch_news.py]           [fetch_listings.py]
+    takvime göre seçer          çekirdek terim              (EİDS nedeniyle
+    tekrarı önler                süzgeci                     şimdilik donuk)
+            │                          │
+            └───────────┬──────────────┘
+                        ▼
+              [generate_text.py]   biçime özel prompt (B1-B5)
+                                   ölçülmüş karakter bütçeleri
+                                   bütçe aşılırsa onarım turu
+                        ▼
+               [make_image.py]     karma planlayıcı: 4 ↔ 7 slayt
+                                   kutusuz dizgi, 3 zemin varyantı
+                        ▼
+              [telegram_bot.py]    @PostEdmBot önizleme + onay
+                        │
+                        ├── [✅ Yayına Al]   └── [❌ Pas Geç]
+                        ▼
+              [Cloudflare Worker] ──► [GitHub Actions: yayinla.yml]
+                        ▼
+        Instagram · Facebook · Threads · YouTube Shorts
 ```
 
----
+### Neden konu bankası var
+
+Sistem eskiden yalnızca RSS'e bakıyordu ve süzgeç gevşekti: "Selçuk Mızraklı
+bugün tahliye oluyor" gibi haberler 8 puanla veritabanına girip modele "bunu
+otorite içeriğine çevir" diye veriliyordu. Model de alakasız haberden içerik
+uyduruyordu — çöp girdi, çöp çıktı.
+
+Artık varsayılan yol hazırlanmış konu brief'leridir. Haber ancak gerçekten
+değerliyse (`HABER_ONCELIK_ESIGI = 12`) takvimin önüne geçer. Yüksek etkileşimli
+emlak içeriğinin çoğu zaten haber değil evergreen bilgidir.
 
 ## 🚀 Hızlı Başlangıç
 
@@ -58,9 +72,29 @@ INSTAGRAM_ACCOUNT_ID=...
 
 ## 🛠 Kullanım Komutları
 
-### Emlak Haberlerini Tara ve Onaya Gönder:
+### Günlük İçerik (varsayılan: konu bankası, güçlü haber varsa haber):
+```bash
+python scripts/hazirla.py
+```
+
+### Yalnızca Konu Bankasından Üret:
+```bash
+python scripts/hazirla.py --konu
+```
+
+### Konu Bankası Doluluk Durumu:
+```bash
+python scripts/hazirla.py --durum
+```
+
+### Yalnızca RSS Tara:
 ```bash
 python scripts/hazirla.py --haber-tara
+```
+
+### Metin Bütçelerini Yeniden Ölç (font/kutu değişince ZORUNLU):
+```bash
+python scripts/metin_butcesi.py
 ```
 
 ### Portföyden Tek Tıkla İlan Paylaşma Menüsünü Gönder:

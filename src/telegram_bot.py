@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
 
-from . import config, db, fetch_listings, generate_text, make_image, upload_image
+from . import config, db, fetch_listings, generate_text, konu_bankasi, make_image, upload_image
 
 log = logging.getLogger(__name__)
 
@@ -140,31 +141,77 @@ def haber_onayina_sun(haber_id: int) -> bool:
             return False
         haber = db.haber_getir(haber_id)
 
-    # 2. Slayt görsellerini üret (3'lü Prestij Pafta)
-    k1 = make_image.haber_slayti_1_ciz(
-        manset=haber["manset"],
-        spot=haber.get("slayt_1_spot") or haber.get("detay_metni", "")[:120],
-        kaynak=haber.get("kaynak", "EDM"),
-        tarih=haber.get("yayin_tarihi", ""),
-        foto_url=haber.get("gorsel_url"),
-    )
-    maddeler = [haber.get("slayt_2_detay", "")] if haber.get("slayt_2_detay") else [haber.get("detay_metni", "")]
-    k2 = make_image.haber_slayti_2_ciz(
-        manset=haber["manset"],
-        maddeler=maddeler,
-    )
-    k3 = make_image.haber_kapanis_slayti_ciz()
+    # 2. Slayt görsellerini al veya üret
+    slayt_yollari = []
+    if haber.get("slayt_yollari"):
+        try:
+            mevcut = json.loads(haber["slayt_yollari"])
+            if isinstance(mevcut, list) and len(mevcut) > 0 and all(Path(p).exists() for p in mevcut):
+                slayt_yollari = [str(p) for p in mevcut]
+        except Exception:
+            slayt_yollari = []
 
-    slayt_yollari = [str(k1), str(k2), str(k3)]
-    db.haber_guncelle(haber_id, slayt_yollari=json.dumps(slayt_yollari), durum="onay_bekliyor")
+    otorite_verisi = None
+    if haber.get("detay_metni"):
+        try:
+            otorite_verisi = json.loads(haber["detay_metni"])
+        except Exception:
+            otorite_verisi = None
+
+    if not slayt_yollari:
+        if (
+            otorite_verisi
+            and isinstance(otorite_verisi, dict)
+            and isinstance(otorite_verisi.get("slayt_2_detay"), dict)
+        ):
+            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(otorite_verisi, cikti_onek=f"haber_{haber_id}")
+            slayt_yollari = [str(p) for p in slayt_listesi]
+        else:
+            # Klasik 3'lü Haber Paftası (Fallback)
+            k1 = make_image.haber_slayti_1_ciz(
+                manset=haber["manset"],
+                spot=haber.get("slayt_1_spot") or haber.get("detay_metni", "")[:120],
+                kaynak=haber.get("kaynak", "EDM"),
+                tarih=haber.get("yayin_tarihi", ""),
+                foto_url=haber.get("gorsel_url"),
+            )
+            maddeler = [haber.get("slayt_2_detay", "")] if haber.get("slayt_2_detay") else [haber.get("detay_metni", "")]
+            k2 = make_image.haber_slayti_2_ciz(
+                manset=haber["manset"],
+                maddeler=maddeler,
+            )
+            k3 = make_image.haber_kapanis_slayti_ciz()
+            slayt_yollari = [str(k1), str(k2), str(k3)]
+
+    rozet = "HUKUK & YATIRIM REHBERİ"
+    dayanak = haber.get("kaynak", "EDM Yapı & Gayrimenkul")
+    if otorite_verisi and isinstance(otorite_verisi, dict):
+        rozet = otorite_verisi.get("rozet_metni", rozet)
+        dayanak = otorite_verisi.get("yasal_dayanak", dayanak)
+
+    # 2.5 Slaytları Public CDN'e yükle (Runner bağımsızlığı ve API'ler için)
+    slayt_urlleri = []
+    try:
+        slayt_urlleri = upload_image.coklu_gorsel_yukle(slayt_yollari)
+    except Exception as e:
+        log.warning("Görseller CDN'e yüklenemedi: %s", e)
+
+    db.haber_guncelle(
+        haber_id,
+        slayt_yollari=json.dumps(slayt_yollari),
+        slayt_urlleri=json.dumps(slayt_urlleri) if slayt_urlleri else None,
+        durum="onay_bekliyor"
+    )
 
     # 3. Medya albümü gönder
+    caption_ozeti = (haber.get("ig_caption") or "")[:350]
     onizleme_metni = (
-        f"🗞 <b>YENİ SEKTÖR HABERİ ONAY BEKLİYOR</b>\n\n"
+        f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR</b>\n\n"
+        f"<b>Kategori:</b> {rozet}\n"
+        f"<b>Dayanak:</b> {dayanak}\n"
         f"<b>Manşet:</b> {haber['manset']}\n"
-        f"<b>Kaynak:</b> {haber['kaynak']}\n"
         f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n\n"
-        f"<b>Açıklama:</b>\n{haber['ig_caption'][:300]}..."
+        f"<b>Açıklama (Instagram/Facebook):</b>\n{caption_ozeti}..."
     )
 
     medya_grubu_gonder(slayt_yollari, caption=onizleme_metni)
@@ -173,20 +220,141 @@ def haber_onayina_sun(haber_id: int) -> bool:
     butonlar = {
         "inline_keyboard": [
             [
-                {"text": "✅ Yayına Al (IG + FB + Threads)", "callback_data": f"onayla:haber:hepsi:{haber_id}"},
+                {"text": "✅ Yayına Al (Tüm Kanallar)", "callback_data": f"onayla:haber:hepsi:{haber_id}"},
             ],
             [
-                {"text": "📸 Sadece Instagram", "callback_data": f"onayla:haber:ig:{haber_id}"},
-                {"text": "📘 Sadece Facebook", "callback_data": f"onayla:haber:fb:{haber_id}"},
-                {"text": "🧵 Sadece Threads", "callback_data": f"onayla:haber:threads:{haber_id}"},
+                {"text": "📸 Instagram", "callback_data": f"onayla:haber:ig:{haber_id}"},
+                {"text": "📘 Facebook", "callback_data": f"onayla:haber:fb:{haber_id}"},
+                {"text": "🧵 Threads", "callback_data": f"onayla:haber:threads:{haber_id}"},
             ],
             [
+                {"text": "🎬 Sadece Video (Reels/Shorts/TikTok)", "callback_data": f"onayla:haber:video:{haber_id}"},
+            ],
+            [
+                {"text": "🔄 Metinleri Yenile", "callback_data": f"yenile:haber:{haber_id}"},
                 {"text": "❌ Reddet", "callback_data": f"reddet:haber:{haber_id}"},
             ],
         ]
     }
-    mesaj_gonder("Bu haberi sosyal medya hesaplarımızda paylaşalım mı?", reply_markup=butonlar)
+    mesaj_gonder("Bu içeriği sosyal medya hesaplarımızda paylaşalım mı?", reply_markup=butonlar)
     return True
+
+
+def haberden_icerik_hazirla(haber: Dict[str, Any], brief: Dict[str, Any]) -> bool:
+    """Triyajdan geçmiş haberi, konu bankası akışıyla AYNI yoldan içeriğe çevirir.
+
+    Haber ham metin olarak değil, triyajın ürettiği brief olarak işleniyor —
+    konu bankası girdisiyle aynı şekilde. Model artık açıyı kendisi uydurmuyor,
+    hazır bir brief işliyor; kaliteyi yükselten şey bu.
+    """
+    mesaj_gonder(
+        f"📰 <b>Haber içeriği</b> · {brief['sutun']} · {brief['bicim']} · puan {brief['_guven']}\n"
+        f"<i>{haber.get('orijinal_baslik', '')[:120]}</i>\n\nİçerik hazırlanıyor..."
+    )
+
+    veri = generate_text.konudan_uret(brief)
+    if not veri:
+        mesaj_gonder("❌ Haber içeriği üretilemedi.")
+        return False
+
+    db.haber_guncelle(
+        haber["id"],
+        kategori=veri.get("kategori_kodu"),
+        manset=generate_text.manset_birlestir(veri),
+        detay_metni=json.dumps(veri, ensure_ascii=False),
+        ig_caption=veri.get("caption_instagram"),
+        threads_metin=veri.get("caption_threads"),
+    )
+    return haber_onayina_sun(haber["id"])
+
+
+def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
+    """Günün takvimine uygun konuyu bankadan alıp içerik üretir ve onaya sunar.
+
+    Faz 1'in ana giriş noktası (ICERIK-SISTEMI.md §2). RSS'e bağımlı değildir:
+    yüksek etkileşimli emlak içeriğinin çoğu haber değil evergreen bilgidir ve
+    her gün üretilebilir olması takvimin aksamamasını sağlar.
+    """
+    konu = konu_bankasi.sonraki_konu(gun=gun)
+    if not konu:
+        mesaj_gonder(
+            "⚠️ Konu bankasında uygun konu kalmadı. "
+            "<code>data/konu_bankasi.yaml</code> dosyasına yeni konu eklenmeli."
+        )
+        return False
+
+    mesaj_gonder(
+        f"⏳ <b>{konu['kod']}</b> · {konu['sutun']} · {konu['bicim']}\n"
+        f"<i>{konu['baslik']}</i>\n\nİçerik hazırlanıyor..."
+    )
+
+    veri = generate_text.konudan_uret(konu)
+    if not veri:
+        konu_bankasi.kullanildi_isaretle(konu["kod"], sonuc="hata")
+        mesaj_gonder("❌ İçerik üretilemedi. Gemini API yanıt vermedi.")
+        return False
+
+    orijinal_url = f"edm://konu/{konu['kod']}/{int(time.time())}"
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, 'yeni')""",
+            (
+                f"EDM Konu Bankası // {konu['kod']}",
+                konu["baslik"],
+                orijinal_url,
+                veri.get("spot", ""),
+                veri.get("onem_puani", 8),
+                veri.get("kategori_kodu", "TAPU_VE_HUKUK"),
+                generate_text.manset_birlestir(veri),
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+    return haber_onayina_sun(haber_id)
+
+
+def otorite_postu_hazirla_ve_sor(konu: str, kategori_kodu: Optional[str] = None) -> bool:
+    """Belirtilen hukuki, finansal veya sektörel bir konudan 4 slaytlık otorite postu üretip Telegram'a sunar."""
+    mesaj_gonder(f"⏳ <b>'{konu[:60]}...'</b> konusu için EDM Otorite Carousel içeriği hazırlanıyor...")
+
+    # 1. Gemini ile 4 slaytlık otorite içeriği üret
+    veri = generate_text.otorite_icerigi_uret(konu, kategori_kodu=kategori_kodu)
+    if not veri:
+        mesaj_gonder("❌ Otorite içeriği üretilemedi. Gemini API yanıt vermedi.")
+        return False
+
+    # 2. Veritabanına kaydet
+    orijinal_url = f"edm://otorite/{int(time.time())}"
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, eklenme_tarihi, onem_puani, kategori, manset, detay_metni, ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, 'yeni')""",
+            (
+                "EDM Otorite Masası",
+                konu,
+                orijinal_url,
+                veri.get("spot", ""),
+                veri.get("onem_puani", 9),
+                veri.get("kategori_kodu", "TAPU_VE_HUKUK"),
+                generate_text.manset_birlestir(veri) or konu,
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    # 3. Onaya sun
+    return haber_onayina_sun(haber_id)
 
 
 def tek_tikla_ilan_menusu_gonder() -> bool:
@@ -252,14 +420,18 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     butonlar = {
         "inline_keyboard": [
             [
-                {"text": "✅ İlanı Yayınla (IG + FB + Threads)", "callback_data": f"onayla:ilan:hepsi:{ilan_id}"},
+                {"text": "✅ İlanı Yayınla (Tüm Kanallar)", "callback_data": f"onayla:ilan:hepsi:{ilan_id}"},
             ],
             [
-                {"text": "📸 Sadece Instagram", "callback_data": f"onayla:ilan:ig:{ilan_id}"},
-                {"text": "📘 Sadece Facebook", "callback_data": f"onayla:ilan:fb:{ilan_id}"},
-                {"text": "🧵 Sadece Threads", "callback_data": f"onayla:ilan:threads:{ilan_id}"},
+                {"text": "📸 Instagram", "callback_data": f"onayla:ilan:ig:{ilan_id}"},
+                {"text": "📘 Facebook", "callback_data": f"onayla:ilan:fb:{ilan_id}"},
+                {"text": "🧵 Threads", "callback_data": f"onayla:ilan:threads:{ilan_id}"},
             ],
             [
+                {"text": "🎬 Sadece Video (Reels/Shorts/TikTok)", "callback_data": f"onayla:ilan:video:{ilan_id}"},
+            ],
+            [
+                {"text": "🔄 Yeniden Hazırla", "callback_data": f"yenile:ilan:{ilan_id}"},
                 {"text": "❌ İptal Et", "callback_data": f"reddet:ilan:{ilan_id}"},
             ],
         ]
