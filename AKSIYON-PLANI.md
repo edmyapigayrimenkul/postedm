@@ -185,7 +185,7 @@ logluyor; Meta'nın hata cevabı jetonu yankılayabilir. Maskelenmeli.
 
 **Tahmini:** ~~2 saat~~ **40 dakika** (altyapı hazır)
 
-## 1.2 Kaynak erişim testi
+## 1.2 Kaynak erişim testi ✅ YAPILDI (11 Eyl 2026)
 
 Emlakkulisi bizim tek gerçek kaynağımız — 50 haberin 16'sı ondan. Beslemesi
 ölse veya yapısı değişse fark etmeyiz; sistem sessizce konu bankasına düşer
@@ -215,7 +215,7 @@ log bağlantısı.
 
 # P2 — Kalite ağları
 
-## 2.1 Bütünlük testi (`test_0_butunluk.py` eşdeğeri)
+## 2.1 Bütünlük testi ✅ YAPILDI (11 Eyl 2026) (`test_0_butunluk.py` eşdeğeri)
 
 Scriptleri çalıştırmadan ayrıştırıp her `modul.fonksiyon()` çağrısının var
 olduğunu ve imzaya uyduğunu denetler.
@@ -230,7 +230,7 @@ bunları çağırıyor. Biri yeniden adlandırılırsa cron'da patlar.
 
 **Tahmini:** 1,5 saat
 
-## 2.2 Sözleşme testini genişlet + CI'a bağla
+## 2.2 Sözleşme testini genişlet ✅ YAPILDI (11 Eyl 2026) + CI'a bağla
 
 `tests/test_sozlesme.py` zaten 323 satır ve iyi denetimler içeriyor ama
 **hiçbir yerde çalıştırılmıyor.**
@@ -250,7 +250,7 @@ bunları çağırıyor. Biri yeniden adlandırılırsa cron'da patlar.
 
 **Tahmini:** 2 saat
 
-## 2.3 Sessiz başarısızlık tarayıcı
+## 2.3 Sessiz başarısızlık tarayıcı ✅ YAPILDI (11 Eyl 2026)
 
 instabot'un en sık hata sınıfı: "kod 0 döndü ama iş yapılmadı ve kimseye
 söylenmedi." Testler bunu göremiyor — kod çalışıyor, yanlış şeyi yapıyor.
@@ -265,7 +265,7 @@ eden ve bildirim göndermeyen dalları listeler. Yanlış pozitif verir, çıkt�
 
 **Tahmini:** 1,5 saat
 
-## 2.4 Günlük rapor
+## 2.4 Günlük rapor ✅ YAPILDI (11 Eyl 2026)
 
 instabot `gunluk-rapor.yml` ile her sabah dün ne olduğunu yazıyor.
 
@@ -282,7 +282,7 @@ oranları buraya eklenecek.
 
 # P3 — Olgunlaşma
 
-## 3.1 Doğrulama katmanı (`dogrula.py` uyarlaması)
+## 3.1 Doğrulama katmanı ✅ YAPILDI (11 Eyl 2026) (`dogrula.py` uyarlaması)
 
 instabot onay mesajından ÖNCE çalışıp uyarıları mesajın başına koyuyor:
 kaynakta doğrulanamayan sayı/isim, içi boş başlık kalıpları, suçlama dili.
@@ -313,7 +313,7 @@ Yine de yakalama kodu konmalı; başka bir gruba taşınırsa aynı sorun.
 
 **Tahmini:** 30 dakika
 
-## 3.3 Kota takibi
+## 3.3 Kota takibi ✅ ÖLÇÜLDÜ (11 Eyl 2026)
 
 instabot ölçtü: ~1290/2000 dakika (%65). Bizde hiç ölçülmedi.
 
@@ -327,6 +327,40 @@ Ayrıca **Gemini kotası** bizde asıl darboğaz: `gemini-3.5-flash` zaten 429
 veriyor. Günlük çağrı sayısını raporda takip etmeliyiz.
 
 **Tahmini:** 1 saat
+
+---
+
+# 11 Eylül akşamı — ilk paylaşım yayında 🎉
+
+```
+https://www.instagram.com/p/DdJzdlCoDka/
+CAROUSEL_ALBUM · 19:08 TR · Threads'e de basıldı
+```
+
+Zincirin tamamı ilk kez uçtan uca döndü:
+**RSS → puanlama → triyaj → brief → slayt → Telegram → Worker → Actions →
+Instagram + Threads.**
+
+## Günlük zaman çizelgesi (TR)
+
+| Saat | İş |
+|---|---|
+| 08:40 | Günlük rapor — dün ne oldu |
+| 09:30 | Kaynak sağlığı — beslemeler ayakta mı |
+| 10:00 | İçerik turu (Pzt-Cum) |
+| her saat :07 | Site ilan kuyruğu güvenlik ağı |
+| Pzt 12:07 | Jeton yenileme |
+| Cmt 08:00 | Konu madenciliği |
+
+**Kota:** ~780 zamanlanmış koşu/ay ≈ %39 (2000 dk private sınırı).
+
+## Kalan işler
+
+| Madde | Durum |
+|---|---|
+| §3.2 Supergroup tuzağı | yapılmadı — grup zaten supergroup, düşük risk |
+| Ölçüm (§9 kaydetme/paylaşım oranları) | ilk 10 paylaşım verisi bekleniyor |
+| Site deposu push | postedm tarafı canlı, site commit'i push edilmedi |
 
 ---
 
