@@ -30,38 +30,42 @@ uyarlanacak" diye süzüldü.
 
 # P0 — Kanayan yaralar
 
-## 0.1 Depo görünürlüğü — KARAR VERİLDİ: PUBLIC KALIYOR ✅
+## 0.1 Depo görünürlüğü — PRIVATE ✅ (11 Eyl 2026, karar değişti)
 
-Doğukan 11 Eylül 2026'da public kalmasına karar verdi. Sır güvenliği doğrulandı:
+Önce public kalmasına karar verilmişti; aynı gün Actions kotası hesaplanınca
+private'a çevrildi. Ölçülen aylık yük ~190 dakika, private ücretsiz kota
+2000 dk/ay → **%10 kullanım**, rahat sığıyor.
 
-| Kontrol | Sonuç |
-|---|---|
-| `.env` geçmişte commit'lenmiş mi | hayır ✓ |
-| Kalıp taraması (gh_, github_pat_, AIza, EAA, bot token) | temiz ✓ |
-| **Gerçek jeton değerleri** tüm geçmişte | hiçbiri yok ✓ |
-| `pull_request` / `pull_request_target` / `workflow_run` | yok ✓ |
+| İş | Aylık | Süre |
+|---|---|---|
+| Günlük içerik (hafta içi) | 22 × ~4 dk | 88 dk |
+| Onay → yayın | ~22 × 3 dk | 66 dk |
+| Cumartesi konu madenciliği | 4 × 3 dk | 12 dk |
+| Jeton yenileme | 4 × 1 dk | 4 dk |
+| CI testleri | ~20 push × 1 dk | 20 dk |
 
-**GitHub Actions Secrets public depoda güvenlidir:** depoda değil, GitHub'ın
-şifreli kasasında dururlar; fork'tan gelen PR'lara verilmezler. Bizde fork
-tetikleyicisi zaten yok.
+**Private olmanın sonuçları:**
 
-**Public olmanın bizim için iki sonucu:**
+1. **`MEMORY.md` artık depoda durabilir** — hesap ID'leri ve iç notlar
+   dışarı açık değil.
+2. **Worker güvenliği yine de gerekli.** Kod artık gizli ama Worker adresi
+   herkese açık bir uç nokta; güvenlik "kimse kodu görmüyor" varsayımına
+   dayanamaz. §0.4 zaten yapıldı.
+3. ⚠️ **Otomasyonun Actions okuma erişimi kayboldu.** Depo private olunca
+   `GITHUB_TOKEN` (ince taneli PAT) `/actions/runs` ve `/actions/workflows`
+   uçlarına 403 veriyor; public'ken "metadata" yetkisi yetiyordu.
 
-1. **Worker kodu okunabilir → §0.4 artık isteğe bağlı değil, zorunlu.**
-   Saldırgan `worker/index.js`'i okuyup tam olarak hangi `client_payload`'ı
-   göndereceğini bilir. Worker adresi depoda yazılı değil (yalnızca
-   `<worker-adiniz>.workers.dev` şablonu) ama `wrangler.toml`'da isim var:
-   `edm-telegram-dispatcher`. Bu tek başına adresi vermez, yine de tek
-   savunmamız "adresi bilmiyorlar" olmamalı.
+   Sonuç: CI sonuçları ve iş akışı logları artık otomatik okunamıyor.
+   Bugün üç `main` kırığı bu loglar sayesinde bulunmuştu.
 
-2. **`MEMORY.md` disiplini kalıcı.** Özel grup ID'si, hesap ID'leri ve iç
-   güvenlik notları içeriyor; depoda tutulmayacak. Benzer dosyalar da
-   (jeton envanteri, müşteri verisi) dışarıda kalmalı.
+   **Çözüm:** GitHub → Settings → Developer settings → Personal access
+   tokens → ilgili token → Repository permissions → **Actions: Read**
+   (yenileme işini sürdürmek için **Read and write**).
 
-**Yan fayda:** public depoda GitHub Actions dakikası **sınırsız**. §3.3'teki
-kota endişesi düştü — yalnızca Gemini kotası darboğaz olarak kalıyor.
+**Kota izleme:** aylık kullanım Settings → Billing → Actions'tan görülebilir.
+%50'yi geçerse ilk kısılacak yer CI'nın `pull_request` tetikleyicisi.
 
-## 0.2 Workflow yazma yetkisi
+## 0.2 Workflow yazma yetkisi ✅ VERİLDİ (11 Eyl 2026)
 
 Son 7 zamanlanmış koşunun 7'si başarısız. Logda `GITHUB_TOKEN Permissions:
 Contents: read`. Veritabanı hiç kaydedilemiyor → her koşu sıfırdan başlıyor →
