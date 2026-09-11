@@ -109,13 +109,27 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 3. **Dikey Video Sessiz Parça (Audio Track) Zorunluluğu:**
    * YouTube Shorts, Instagram Reels ve TikTok, ses kanalı olmayan MP4 videolarını "işleme bekliyor" diyerek transcode kuyruğuna atar veya geciktirir.
    * `src/video.py`, videoya FFmpeg üzerinden sessiz 44.1 kHz stereo AAC ses kanalı (`anullsrc`) gömer.
-4. **Veritabanı İkili Çakışma & Runner İzolasyonu:**
+4. **⚠️ VERİTABANININ SAHİBİ GITHUB'DIR, YEREL DEĞİL.**
+   * Her koşu sonunda `data/edm.db` repoya commit ediliyor. Yerelde
+     `hazirla.py` çalıştırırsan yerel veritabanı ilerler, GitHub'daki geride
+     kalır ve **iki taraf ayrışır.**
+   * 11 Eylül 2026'da yaşandı: yerelde 4 haber `onay_bekliyor`, depoda 1.
+     Telegram butonu depodaki veritabanına baktığı için yereldeki kayıtların
+     butonları "haber bulunamadı" verir.
+   * **Kural:** yerelde gerçek tur çalıştırma. Denemek gerekiyorsa çıktıyı
+     Telegram'a göndermeyen yollarla dene (`--durum`, doğrudan
+     `konudan_uret` çağrısı, `scripts/stres_testi.py`).
+   * Gerçek tur yerelde çalıştırıldıysa bitince veritabanı hemen commit+push
+     edilmeli. Ayrışma olduysa **depodaki sürüm doğrudur** — yerel üstüne
+     yazılır (yedek alarak).
+
+5. **Veritabanı İkili Çakışma & Runner İzolasyonu:**
    * `data/edm.db` ikili SQLite dosyasıdır; `git pull --rebase` çakışması repo'yu detached HEAD'de kilitler.
    * `src/db_senkron.py` çakışma durumunda otomatik `--theirs` ile en taze runner veritabanını seçer, çözülemezse `rebase --abort` ile repoyu temiz bırakır.
    * `data/edm.db`'ye yazan her GitHub Actions workflow'unda `permissions: contents: write` bulunmalıdır.
-5. **Yazı Tipi & Eksik Glif Güvenliği:**
+6. **Yazı Tipi & Eksik Glif Güvenliği:**
    * Inter ve Fraunces fontlarında bulunmayan ok ve emojiler (`➔`, `👉`, `📌`, `📈`, `🎯`) ekranda içi boş kare kutu (`.notdef`) olarak çıkar.
    * `src/make_image.py:_temizle_tipografi` bu glifleri daima güvenli unicode sembollerine (`→`, `◆`, `▲`, `▼`, `★`) dönüştürür.
-6. **Token Sağlık Kontrolü:**
+7. **Token Sağlık Kontrolü:**
    * Düzenli olarak `python scripts/token_kontrol.py` çalıştırılarak tüm API'ler ve Threads 60 günlük token durumu tek komutla denetlenir.
 
