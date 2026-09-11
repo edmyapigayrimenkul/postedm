@@ -89,6 +89,24 @@ def _og_gorsel_cek(url: str) -> Optional[str]:
     return None
 
 
+def _besle_ayristir(icerik: bytes) -> BeautifulSoup:
+    """RSS/Atom beslemesini ayrıştırır; lxml yoksa yerleşik ayrıştırıcıya düşer.
+
+    `BeautifulSoup(..., "xml")` lxml gerektiriyor ve lxml requirements.txt'te
+    yoktu. Yerelde kurulu olduğu için fark edilmedi; GitHub Actions'ta 8 Eylül'den
+    beri HER kaynak "Couldn't find a tree builder" hatasıyla düşüyordu ve haber
+    akışı üretimde hiç çalışmamıştı.
+
+    lxml artık bağımlılıklarda, ama tek bir eksik paketin tüm haber akışını
+    sessizce durdurmasına bir daha izin vermemek için yedek yol da bırakıldı.
+    """
+    try:
+        return BeautifulSoup(icerik, "xml")
+    except Exception as e:
+        log.warning("XML ayrıştırıcı kullanılamadı (%s); html.parser'a düşülüyor", e)
+        return BeautifulSoup(icerik, "html.parser")
+
+
 def rss_tara() -> List[Dict[str, Any]]:
     """Tüm yapılandırılmış RSS kaynaklarını tarar, yeni ve alakalı haberleri kaydeder."""
     kaynaklar = config.ayar_al("haberler.kaynaklar", [])
@@ -110,7 +128,7 @@ def rss_tara() -> List[Dict[str, Any]]:
                 log.warning("RSS okunamadı [%d]: %s", resp.status_code, url)
                 continue
 
-            soup = BeautifulSoup(resp.content, "xml")
+            soup = _besle_ayristir(resp.content)
             items = soup.find_all("item")
             if not items:
                 items = soup.find_all("entry")

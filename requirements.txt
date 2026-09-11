@@ -1,6 +1,10 @@
 requests>=2.32.0
 PyYAML>=6.0.0
 beautifulsoup4>=4.12.0
+# RSS ayrıştırma BeautifulSoup(..., "xml") kullanıyor ve bu lxml gerektirir.
+# Eksikken runner'da HER kaynak sessizce hata veriyordu:
+# "Couldn't find a tree builder with the features you requested: xml"
+lxml>=5.2.0
 python-dateutil>=2.9.0
 python-dotenv>=1.0.0
 Pillow>=10.4.0
