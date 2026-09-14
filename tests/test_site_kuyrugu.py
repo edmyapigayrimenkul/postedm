@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import tempfile
 import unittest
@@ -29,7 +30,7 @@ from src import db
 class TestSiteKuyrugu(unittest.TestCase):
     def test_anahtar_olmadan_api_acilmaz(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "EDM_SITE_API_ANAHTARI"):
+            with self.assertRaisesRegex(RuntimeError, "OIDC"):
                 site_kuyrugu._ayarlar()
 
     def test_bos_kuyruk_204_ile_sessizce_biter(self) -> None:
@@ -38,6 +39,19 @@ class TestSiteKuyrugu(unittest.TestCase):
             with patch.object(site_kuyrugu.requests, "get", return_value=cevap) as istek:
                 self.assertIsNone(site_kuyrugu.siradaki_isi_al())
         self.assertEqual(istek.call_args.kwargs["headers"]["X-Postedm-Anahtari"], "test-anahtari")
+
+    def test_github_actions_oidc_jetonu_kisa_omurlu_kimlik_olarak_kullanilir(self) -> None:
+        oidc = Mock()
+        oidc.json.return_value = {"value": "github-oidc-jetonu"}
+        site_kuyrugu._OIDC_JETONU = None
+        with patch.dict(os.environ, {
+            "ACTIONS_ID_TOKEN_REQUEST_URL": "https://token.actions.example/id",
+            "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "runner-istek-jetonu",
+        }, clear=True):
+            with patch.object(site_kuyrugu.requests, "get", return_value=oidc) as istek:
+                _, basliklar = site_kuyrugu._ayarlar()
+        self.assertEqual(basliklar, {"Authorization": "Bearer github-oidc-jetonu"})
+        self.assertEqual(istek.call_args.kwargs["params"]["audience"], "edm-postedm-site")
 
     def test_basarili_is_guncel_ilani_kaydeder_ve_sonucu_yazar(self) -> None:
         is_kaydi = {
@@ -79,6 +93,26 @@ class TestSiteKuyrugu(unittest.TestCase):
             sonuc="yükleme başarısız",
             hata="Yayın komutu 3 koduyla bitti.",
         )
+
+    def test_kuru_calisma_isi_sahiplenir_ama_dis_platformu_cagirmaz(self) -> None:
+        is_kaydi = {
+            "kuyrukId": 43,
+            "platformlar": ["ig", "threads"],
+            "ilan": {"id": "elle-kuru", "baslik": "Kuru test", "fiyat": 12500000, "gorseller": ["1.jpg", "2.jpg"]},
+        }
+        with (
+            patch.object(site_kuyrugu, "siradaki_isi_al", return_value=is_kaydi),
+            patch.object(site_kuyrugu.db, "ilan_kaydet_veya_guncelle") as kaydet,
+            patch.object(site_kuyrugu.subprocess, "run") as calistir,
+            patch.object(site_kuyrugu, "sonucu_yaz") as sonuc,
+        ):
+            self.assertEqual(site_kuyrugu.main(kuru_calisma=True), 0)
+        kaydet.assert_called_once_with(is_kaydi["ilan"])
+        calistir.assert_not_called()
+        self.assertEqual(sonuc.call_args.args[:2], (43, "kuru"))
+        rapor = json.loads(sonuc.call_args.kwargs["sonuc"])
+        self.assertEqual(rapor["fotografSayisi"], 2)
+        self.assertFalse(rapor["disPlatformCagrisi"])
 
     def test_platformu_olmayan_is_yayinlanmaz(self) -> None:
         is_kaydi = {"kuyrukId": 7, "platformlar": [], "ilan": {"id": "elle-bos"}}
