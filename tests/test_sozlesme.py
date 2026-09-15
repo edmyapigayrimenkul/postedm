@@ -407,29 +407,29 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             )
 
     def test_cron_takvimle_uyumlu(self) -> None:
-        """Tetikleme sıklığı içerik takvimiyle örtüşmeli (ICERIK-SISTEMI.md §8)."""
+        """Tetikleme sıklığı içerik takvimiyle örtüşmeli (Haftanın 7 günü Post + Reels)."""
         import yaml as _yaml
 
         w = _yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         cronlar = [c["cron"] for c in w[True]["schedule"]]
-        gunluk = [c for c in cronlar if c.endswith("* * 1-5")]
+        gunluk_post = any("0 7 * * *" in c for c in cronlar)
+        gunluk_reels = any("30 15 * * *" in c for c in cronlar)
         self.assertTrue(
-            gunluk,
-            f"Hafta içi günlük tetikleyici yok: {cronlar}. Takvim haftada 5 "
-            f"paylaşım öngörüyor ve konu_bankasi.TAKVIM sütunu haftanın gününden okuyor.",
+            gunluk_post,
+            f"Sabah günlük post tetikleyicisi yok: {cronlar}. Takvim her gün sabah 10:00 TR (07:00 UTC) öngörüyor.",
         )
-        for c in gunluk:
-            dakika, saat = c.split()[0], c.split()[1]
-            self.assertNotIn(",", saat,
-                             f"'{c}' günde birden fazla kez çalışıyor; takvim günde bir öngörüyor")
+        self.assertTrue(
+            gunluk_reels,
+            f"Akşam günlük Reels tetikleyicisi yok: {cronlar}. Takvim her gün akşam 18:30 TR (15:30 UTC) öngörüyor.",
+        )
 
     def test_konu_bankasi_takvimi_workflow_gunleriyle_ortusuyor(self) -> None:
-        """TAKVIM'de tanımlı her gün için cron tetiklemesi olmalı."""
+        """TAKVIM'de tanımlı her gün için takvim eşleştirmesi olmalı (7 gün)."""
         from src import konu_bankasi as kb
 
         self.assertEqual(
-            set(kb.TAKVIM), {0, 1, 2, 3, 4},
-            "TAKVIM hafta içi beş günü kapsamalı; workflow cron'u '1-5' ile çalışıyor.",
+            set(kb.TAKVIM), {0, 1, 2, 3, 4, 5, 6},
+            "TAKVIM haftanın 7 gününü (Pzt-Paz: 0-6) kapsamalı.",
         )
 
     def test_kanca_kaliplari_literal_kopyalanmiyor(self) -> None:

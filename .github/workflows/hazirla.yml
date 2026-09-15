@@ -2,12 +2,10 @@ name: Paylaşım Hazırla (EDM)
 
 on:
   schedule:
-    # Türkiye saatiyle 10:00, HAFTA İÇİ (UTC 07:00, Pzt-Cum).
-    # Takvim haftada 5 paylaşım öngörüyor (ICERIK-SISTEMI.md §8); eski ayar
-    # günde iki kez ve 7 gün çalışıyordu — haftada 14 tetikleme demekti.
-    # Gün seçimi önemli: konu_bankasi.TAKVIM hangi sütunun sırası olduğunu
-    # haftanın gününden okuyor.
-    - cron: '0 7 * * 1-5'
+    # 1. Her gün sabah 10:00 TR (UTC 07:00): Otorite Postu (Görsel / Carousel)
+    - cron: '0 7 * * *'
+    # 2. Her gün akşam 18:30 TR (UTC 15:30): Dikey Reels Videosu (9:16 MP4)
+    - cron: '30 15 * * *'
     # Cumartesi 08:00 TR — beslemeden konu adayı madenciliği (paylaşım yapmaz)
     - cron: '0 5 * * 6'
   workflow_dispatch:
@@ -19,11 +17,12 @@ on:
         type: choice
         options:
           - gunluk
+          - reels
           - haber
           - ilan_menusu
           - konu_madenle
   repository_dispatch:
-    types: [sabah_hazirla, ilan_menusu, hazirla_ilan, format_donustur]
+    types: [sabah_hazirla, reels_hazirla, ilan_menusu, hazirla_ilan, format_donustur]
 
 concurrency:
   group: edm-veritabani
@@ -78,15 +77,13 @@ jobs:
         run: |
           python scripts/hazirla.py --format-degistir "${{ github.event.client_payload.haber_id }}" --format "${{ github.event.client_payload.format_turu }}"
 
-      # Günlük içerik: önce haber triyajı, geçen yoksa konu bankası.
-      # DİKKAT: burada `--haber-tara` KULLANILMAZ. O bayrak "sadece habere bak,
-      # konu bankasına başvurma" demek; cron onunla çalışınca triyajı geçen
-      # haber olmadığı günlerde hiçbir şey paylaşılmıyordu.
+      # Günlük içerik (Sabah Postu / Akşam Reels Videosu)
       - name: Günlük İçerik Hazırla ve Onaya Sun
         if: >-
-          (github.event_name == 'schedule' && github.event.schedule == '0 7 * * 1-5')
-          || inputs.hedef == 'gunluk' || inputs.hedef == 'haber'
-          || github.event.action == 'sabah_hazirla'
+          (github.event_name == 'schedule' && github.event.schedule == '0 7 * * *')
+          || (github.event_name == 'schedule' && github.event.schedule == '30 15 * * *')
+          || inputs.hedef == 'gunluk' || inputs.hedef == 'reels' || inputs.hedef == 'haber'
+          || github.event.action == 'sabah_hazirla' || github.event.action == 'reels_hazirla'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -94,7 +91,10 @@ jobs:
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
         run: |
           FORMAT="${{ github.event.client_payload.format_turu }}"
-          if [ -n "$FORMAT" ]; then
+          IS_REELS="${{ (github.event_name == 'schedule' && github.event.schedule == '30 15 * * *') || inputs.hedef == 'reels' || github.event.action == 'reels_hazirla' || github.event.client_payload.format_turu == 'reels' }}"
+          if [ "$IS_REELS" = "true" ] || [ "$FORMAT" = "reels" ]; then
+            python scripts/hazirla.py --reels
+          elif [ -n "$FORMAT" ]; then
             python scripts/hazirla.py --format "$FORMAT"
           else
             python scripts/hazirla.py

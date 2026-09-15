@@ -31,6 +31,8 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "dogrusu",
     "vaka",
     "soru",
+    "reels",
+    "video",
 
     # Aksiyonlar
     "ertele",
@@ -52,6 +54,7 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
     {"command": "dogrusu", "description": "⚖️ Nedir Doğrusu? (Efsane vs Gerçek) üret"},
     {"command": "vaka", "description": "📂 Hukuki Vaka Analizi (2 Slayt Carousel) üret"},
     {"command": "soru", "description": "❓ Net Cevap Rehberi (Soru & Hüküm) üret"},
+    {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu üretip gruba sun"},
 
     # ── ⏸️ AKIŞ KONTROLÜ ─────────────────────────────────────────────
     {"command": "durdur", "description": "⏸️ Otomatik paylaşımları duraklat"},
@@ -60,9 +63,24 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
 
 
 def mesajsiz_komut_mu(komut: str) -> bool:
-    """Verilen komutun serbest bir komut olup olmadığını denetler."""
-    if not komut:
+    """Komutun onay mesajı olmadan bağımsız çalışıp çalışamayacağını doğrular."""
+    temiz = (komut or "").strip().lower().lstrip("/")
+    return temiz in MESAJSIZ_KOMUTLAR
+
+
+def menuyu_telegrama_kaydet() -> bool:
+    """Telegram resmi setMyCommands API'sini çağırarak komutları 3 kapsama kaydeder."""
+    import os, requests
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
         return False
-    temiz = komut.strip().lstrip("/").lower()
-    kok = temiz.split(":", 1)[0].strip()
-    return kok in MESAJSIZ_KOMUTLAR or temiz in MESAJSIZ_KOMUTLAR
+    url = f"https://api.telegram.org/bot{token}/setMyCommands"
+    basarili = True
+    for scope in [{"type": "default"}, {"type": "all_private_chats"}, {"type": "all_group_chats"}]:
+        try:
+            r = requests.post(url, json={"commands": KOMUT_MENUSU, "scope": scope}, timeout=10)
+            if not r.json().get("ok"):
+                basarili = False
+        except Exception:
+            basarili = False
+    return basarili

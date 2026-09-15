@@ -173,6 +173,54 @@ def fotograf_gonder(
     return None
 
 
+def video_gonder(
+    video_yolu: Path | str,
+    aciklama: Optional[str] = None,
+    butonlar: Optional[Dict[str, Any] | List[List[Dict[str, Any]]]] = None,
+) -> Optional[int]:
+    """
+    Üretilen MP4 Reels/video dosyasını Telegram grubuna gönderir.
+    Instabot mimarisinden uyarlanmıştır.
+    """
+    token, chat_id = _bot_bilgileri()
+    if not token or not chat_id:
+        return None
+
+    p = Path(str(video_yolu))
+    if not p.exists() or not p.is_file():
+        log.error("Video dosyası bulunamadı: %s", video_yolu)
+        return None
+
+    url = TELEGRAM_API_URL.format(token=token, method="sendVideo")
+    data: Dict[str, Any] = {"chat_id": chat_id}
+    if aciklama:
+        data["caption"] = aciklama[:1024]
+        if "<" in aciklama and ">" in aciklama:
+            data["parse_mode"] = "HTML"
+    if butonlar:
+        markup = butonlar if isinstance(butonlar, dict) and "inline_keyboard" in butonlar else {"inline_keyboard": butonlar}
+        data["reply_markup"] = json.dumps(markup)
+
+    try:
+        with open(p, "rb") as f:
+            r = requests.post(url, data=data, files={"video": f}, timeout=180)
+        veri = r.json() if r.content else {}
+        if not veri.get("ok"):
+            if "can't parse entities" in (veri.get("description") or "").lower():
+                data.pop("parse_mode", None)
+                with open(p, "rb") as f2:
+                    r2 = requests.post(url, data=data, files={"video": f2}, timeout=180)
+                veri2 = r2.json() if r2.content else {}
+                if veri2.get("ok"):
+                    return veri2["result"]["message_id"]
+            log.warning("Telegram video gönderme hatası: %s", veri.get("description", r.text[:200]))
+            return None
+        return veri["result"]["message_id"]
+    except Exception as e:
+        log.exception("Telegram video gönderme istisnası: %s", e)
+        return None
+
+
 def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> bool:
     """Carousel önizlemesi için albüm (medya grubu) gönderir.
 
@@ -498,6 +546,9 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
                 {"text": "❓ Net Cevap", "callback_data": "hizli_uret:net_cevap"},
             ],
             [
+                {"text": "🎬 Reels Videosu Üret (9:16)", "callback_data": "hizli_uret:reels"},
+            ],
+            [
                 {"text": "📊 Sıradaki Post & Durum", "callback_data": "durum"},
                 duraklat_butonu,
             ],
@@ -807,7 +858,10 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
 
 
 def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
-    """Belirtilen formata (sozluk, nedir_dogrusu, vaka, net_cevap) göre sıradaki konuyu üretir ve onaya sunar."""
+    """Belirtilen formata (sozluk, nedir_dogrusu, vaka, net_cevap, reels) göre sıradaki konuyu üretir ve onaya sunar."""
+    if format_turu == "reels":
+        return reels_hazirla_ve_sun()
+
     etiketler = {
         "sozluk": "📖 EDM Gayrimenkul Sözlüğü",
         "nedir_dogrusu": "⚖️ Nedir Doğrusu?",
@@ -855,6 +909,97 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
 
     konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
     return haber_onayina_sun(haber_id)
+
+
+def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
+    """
+    Konu bankasından sıradaki konudan 9:16 dikey MP4 Reels videosu üretir,
+    videoyu Telegram grubuna gönderir, kopyalanabilir açıklama metnini iletir
+    ve YouTube Shorts / TikTok otomatik yayın butonlarını sunar.
+    Instabot mimarisinden uyarlanmıştır.
+    """
+    mesaj_gonder("⏳ <b>EDM Reels Videosu (9:16 Dikey)</b> hazırlanıyor, lütfen bekleyin...")
+
+    konu = konu_bankasi.sonraki_konu() if not konu_kodu else next((k for k in konu_bankasi.havuzu_yukle() if k["kod"] == konu_kodu), None)
+    if not konu:
+        mesaj_gonder("⚠️ Konu bankasında uygun konu bulunamadı.")
+        return False
+
+    veri = generate_text.konudan_uret(konu)
+    if not veri:
+        mesaj_gonder("❌ Gemini metin üretemedi.")
+        return False
+
+    from . import yeni_formatlar, video
+    format_turu = konu_bankasi.gun_icin_format()
+    veri["format_turu"] = format_turu
+
+    slayt_yollari = yeni_formatlar.slaytlari_uret(veri, format_turu=format_turu, cikti_onek=f"reels_{konu['kod']}")
+    if not slayt_yollari:
+        mesaj_gonder("❌ Reels için slayt görselleri üretilemedi.")
+        return False
+
+    # 1080x1920 MP4 Dikey Video Üret
+    video_yolu = video.slaytlardan_reels_uret(slayt_yollari, fps=30, slayt_suresi=3.5, gecis_suresi=0.5)
+    if not video_yolu or not Path(video_yolu).exists():
+        mesaj_gonder("❌ 1080x1920 MP4 Reels videosu üretilemedi.")
+        return False
+
+    # Veritabanına kaydet
+    orijinal_url = f"edm://reels/{konu['kod']}/{int(time.time())}"
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum, slayt_yollari)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?)""",
+            (
+                f"EDM Reels // {konu['kod']}",
+                konu["baslik"],
+                orijinal_url,
+                konu.get("aci", ""),
+                konu.get("onem_puani", 8),
+                "REELS",
+                generate_text.manset_birlestir(veri) or konu["baslik"],
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+                json.dumps([str(p) for p in slayt_yollari], ensure_ascii=False),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+
+    # 1. MP4 Videosunu Gönder
+    video_gonder(
+        video_yolu,
+        aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
+                 f"📌 <b>Konu:</b> {konu['baslik']}\n\n"
+                 f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzikle kolayca paylaşabilirsiniz.</i>",
+    )
+
+    # 2. Kopyalanabilir Caption'ı Gönder
+    import html as html_lib
+    caption_metin = veri.get("caption_instagram") or konu["baslik"]
+    temiz_caption = html_lib.escape(caption_metin.strip())
+    mesaj_gonder(
+        "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+        f"<pre>{temiz_caption}</pre>",
+        reply_markup={
+            "inline_keyboard": [
+                [
+                    {"text": "🚀 YouTube & TikTok'ta Otomatik Yayınla", "callback_data": f"onayla:reels:video:{haber_id}"},
+                ],
+                [
+                    {"text": "🔄 Yeniden Üret", "callback_data": f"yenile:reels:{haber_id}"},
+                    {"text": "❌ İptal Et", "callback_data": f"reddet:reels:{haber_id}"},
+                ],
+            ]
+        }
+    )
+    return True
 
 
 def format_degistir_ve_sun(haber_id: int, hedef_format: str) -> bool:

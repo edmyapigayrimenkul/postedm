@@ -229,3 +229,21 @@ def slaytlardan_video_uret(
             raw_video_yolu.rename(cikti_yolu)
             return cikti_yolu
         return None
+
+
+def slaytlardan_reels_uret(
+    slayt_yollari: List[Path | str],
+    cikti_yolu: Optional[Path] = None,
+    slayt_suresi: float = 3.5,
+    gecis_suresi: float = 0.5,
+    fps: int = 30,
+) -> Optional[Path]:
+    """slaytlardan_video_uret için uyumluluk fonksiyonu (instabot mimarisi)."""
+    return slaytlardan_video_uret(
+        slayt_yollari=slayt_yollari,
+        cikti_yolu=cikti_yolu,
+        slayt_suresi_saniye=slayt_suresi,
+        gecis_suresi_saniye=gecis_suresi,
+        fps=fps,
+    )
+

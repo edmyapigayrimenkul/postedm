@@ -171,6 +171,15 @@ export default {
         if (data.startsWith("hizli_uret:")) {
           const format = data.split(":")[1];
           await cevapVer("İçerik üretimi başlatıldı");
+          if (format === "reels") {
+            await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: chatId, text: `🎬 <b>EDM Reels Videosu</b> hazırlanıyor, videonuz ve metniniz birazdan gruba iletilecek...`, parse_mode: "HTML" }),
+            });
+            await tetikleGitHub(env, "sabah_hazirla", { format_turu: "reels", kaynak: "hizli_uret_reels" });
+            return new Response("OK");
+          }
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -334,6 +343,12 @@ export default {
           return new Response("OK");
         }
 
+        if (text === "/reels" || text === "/video") {
+          await mesajGonder("🎬 <b>EDM Reels Videosu (9:16 Dikey)</b> hazırlanıyor, birazdan video ve metin gruba iletilecek...");
+          await tetikleGitHub(env, "sabah_hazirla", { format_turu: "reels", kaynak: "slash_reels" });
+          return new Response("OK");
+        }
+
         if (text === "/durdur" || text === "/duraklat") {
           await mesajGonder("⏸️ <b>Akışı Duraklat:</b> Lütfen süreyi seçin:", duraklatmaMenusu());
           return new Response("OK");
@@ -356,6 +371,7 @@ export default {
             "• <b>/dogrusu</b> — Nedir Doğrusu formatında içerik üretir.\n" +
             "• <b>/vaka</b> — 2 slaytlık vaka analizi carousel üretir.\n" +
             "• <b>/soru</b> — Net cevap rehberi üretir.\n" +
+            "• <b>/reels</b> — 9:16 Dikey Reels videosu ve metni üretir.\n" +
             "• <b>/durdur</b> — Otomatik paylaşımları duraklatır.\n" +
             "• <b>/devam</b> — Duraklatılmış akışı devam ettirir."
           );
@@ -387,6 +403,9 @@ function kontrolMerkeziMenusu() {
       [
         { text: "📂 Vaka Analizi", callback_data: "hizli_uret:vaka" },
         { text: "❓ Net Cevap", callback_data: "hizli_uret:net_cevap" },
+      ],
+      [
+        { text: "🎬 Reels Videosu Üret (9:16)", callback_data: "hizli_uret:reels" },
       ],
       [
         { text: "📊 Durum & Sağlık", callback_data: "durum" },

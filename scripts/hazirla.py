@@ -82,15 +82,16 @@ def main() -> None:
     parser.add_argument("--durum", action="store_true", help="Konu bankası doluluk durumunu yazar ve çıkar")
     parser.add_argument("--konu-madenle", action="store_true",
                         help="Rehber haberleri konu bankası adaylarına çevirir")
-    parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap"],
+    parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap", "reels"],
                         help="Belirli bir formatta otorite içeriği üretir")
+    parser.add_argument("--reels", action="store_true", help="Günün konusundan dikey Reels videosu üretir")
     parser.add_argument("--format-degistir", dest="format_degistir_id", type=int,
                         help="Mevcut bir haber/içerik kaydının formatını değiştirip yeniden sunar")
     args = parser.parse_args()
 
     # Bot duraklatma denetimi (Kullanıcı Telegram'dan duraklatmışsa atla)
     duraklatildi, kalan = telegram_bot.bot_duraklatildi_mi()
-    if duraklatildi and not args.durum and not args.format_turu and not args.format_degistir_id:
+    if duraklatildi and not args.durum and not args.format_turu and not args.format_degistir_id and not args.reels:
         log.info("Bot kullanıcı tarafından duraklatılmış (%s). Otomatik hazırlık atlanıyor.", kalan)
         return
 
@@ -104,6 +105,11 @@ def main() -> None:
         log.info("Onay bekleyen konu adayı: %d", len(bekleyen))
         for a in bekleyen[:8]:
             log.info("   [%s/%s] %s", a.get("sutun"), a.get("bicim"), (a.get("baslik") or "")[:64])
+        return
+
+    if args.reels or args.format_turu == "reels":
+        log.info("Akşam Reels videosu hazırlanıyor...")
+        telegram_bot.reels_hazirla_ve_sun()
         return
 
     if args.konu_madenle:

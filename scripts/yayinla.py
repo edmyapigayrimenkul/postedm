@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="EDM Paylaşım Yayınlayıcı")
-    parser.add_argument("--tur", required=True, choices=["haber", "ilan"], help="İçerik türü")
+    parser.add_argument("--tur", required=True, choices=["haber", "ilan", "reels"], help="İçerik türü")
     parser.add_argument("--id", required=True, help="Haber ID veya İlan ID")
     parser.add_argument("--hedef", default="hepsi", help="Hedef platform veya işlem (hepsi, ig, threads, video, reels, fb, reddet, iptal, yenile)")
     parser.add_argument("--yeniden-ciz", action="store_true", help="İlan kartlarını güncel site verisiyle yeniden üret")
@@ -75,7 +75,7 @@ def main() -> None:
     caption = ""
     baslik = ""
 
-    if tur == "haber":
+    if tur in ("haber", "reels"):
         haber = db.haber_getir(int(ref_id))
         if not haber:
             raise RuntimeError(f"Haber bulunamadı: #{ref_id}")
@@ -202,20 +202,23 @@ def main() -> None:
             video_yolu = None
         if video_yolu and video_yolu.exists():
             # Instagram Reels
+            # Instagram Reels (Instabot Manuel Trend Müzik Modu: MP4 + Kopyalanabilir Caption Telegram'a İletilir)
             if hedef_mi("reels"):
                 try:
-                    v_url = upload_image.video_yukle(video_yolu)
-                    if v_url:
-                        kapak = public_urller[0] if public_urller else None
-                        reels_id = instagram.reels_yayinla(v_url, caption, kapak_url=kapak)
-                        if reels_id:
-                            rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Paylaşıldı ✓")
-                        else:
-                            rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Hata oluştu ✗")
-                    else:
-                        rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video yüklenemedi ✗")
+                    import html as html_lib
+                    temiz_metin = html_lib.escape(caption.strip())
+                    telegram_bot.video_gonder(
+                        video_yolu,
+                        aciklama="🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
+                                 "💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
+                    )
+                    telegram_bot.mesaj_gonder(
+                        "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+                        f"<pre>{temiz_metin}</pre>"
+                    )
+                    rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve metin Telegram'a iletildi (Müzikli paylaşıma hazır) ✓")
                 except Exception as re:
-                    log.warning("Instagram Reels yayını hatası: %s", re)
+                    log.warning("Instagram Reels teslim hatası: %s", re)
                     rapor_satirlari.append(f"🎬 <b>Instagram Reels:</b> Hata ({re}) ✗")
 
             # YouTube Shorts

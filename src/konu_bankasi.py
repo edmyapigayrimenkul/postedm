@@ -23,16 +23,36 @@ log = logging.getLogger(__name__)
 
 BANKA_YOLU = config.yol_al("data/konu_bankasi.yaml")
 
-# ICERIK-SISTEMI.md §8 — haftalık takvim.
-# Pazartesi=0 ... Pazar=6. Hafta sonu paylaşım yok; kitle sektörel içeriğe
-# hafta içi bakıyor, cumartesi/pazar erişimi düşürüyor.
+# Haftalık 7 Günlük Takvim (Pazartesi=0 ... Pazar=6).
+# Her gün 1 Otorite Postu (Görsel/Carousel) + 1 Dikey Video (Reels).
 TAKVIM: Dict[int, Dict[str, Any]] = {
-    0: {"sutun": "S2", "bicim": "B1"},
-    1: {"sutun": "S4", "bicim": "B3"},
-    2: {"sutun": "S1", "bicim": "B1"},
-    3: {"sutun": "S3", "bicim": "B3"},
-    4: {"sutun": ("S2", "S4"), "bicim": "B2"},
+    0: {"sutun": "S2", "bicim": "B1"},           # Pazartesi: Sözlük
+    1: {"sutun": "S4", "bicim": "B3"},           # Salı: Net Cevap Rehberi
+    2: {"sutun": "S1", "bicim": "B1"},           # Çarşamba: Nedir Doğrusu?
+    3: {"sutun": "S3", "bicim": "B1"},           # Perşembe: Sözlük / Mevzuat
+    4: {"sutun": ("S2", "S4"), "bicim": "B2"},   # Cuma: Vaka Analizi (Carousel)
+    5: {"sutun": "S1", "bicim": "B3"},           # Cumartesi: Nedir Doğrusu? / Yatırım
+    6: {"sutun": "S4", "bicim": "B3"},           # Pazar: Net Cevap Rehberi
 }
+
+GUN_FORMATLARI: Dict[int, str] = {
+    0: "sozluk",
+    1: "net_cevap",
+    2: "nedir_dogrusu",
+    3: "sozluk",
+    4: "vaka",
+    5: "nedir_dogrusu",
+    6: "net_cevap",
+}
+
+
+def gun_icin_format(gun: Optional[int] = None) -> str:
+    """Günün indeksine (0-6) göre aktif otorite format türünü döner."""
+    if gun is None:
+        # Türkiye saatine göre gün (UTC+3)
+        simdi_tr = datetime.now(timezone.utc) + timedelta(hours=3)
+        gun = simdi_tr.weekday()
+    return GUN_FORMATLARI.get(gun, "sozluk")
 
 _havuz_onbellek: Optional[List[Dict[str, Any]]] = None
 

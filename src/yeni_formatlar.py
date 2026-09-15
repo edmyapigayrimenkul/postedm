@@ -690,7 +690,12 @@ def uret_net_cevap_tek_kare(cikti_yolu: Path, kategori: str, soru: str, net_ceva
 # =============================================================================
 # OTOMATİK ŞABLON SEÇİCİ VE ÜRETİCİ DİSPATCHER
 # =============================================================================
-def slaytlari_uret(veri: Dict[str, Any], cikti_dizini: Optional[Path] = None, cikti_onek: str = "post") -> List[Path]:
+def slaytlari_uret(
+    veri: Dict[str, Any],
+    cikti_dizini: Optional[Path] = None,
+    cikti_onek: str = "post",
+    format_turu: Optional[str] = None,
+) -> List[Path]:
     """İçerik verisini inceleyip 4 yeni formattan en uygun olanı seçerek slaytları üretir.
     Hem doğrudan yeni format şemalarını (sozluk, nedir_dogrusu, net_cevap, vaka) hem de geriye dönük uyumluluk adaptörünü destekler.
     """
@@ -698,7 +703,7 @@ def slaytlari_uret(veri: Dict[str, Any], cikti_dizini: Optional[Path] = None, ci
         cikti_dizini = config.yol_al("data/output/gonderiler")
     cikti_dizini.mkdir(parents=True, exist_ok=True)
 
-    format_turu = str(veri.get("format_turu") or veri.get("format") or "").lower()
+    format_turu = str(format_turu or veri.get("format_turu") or veri.get("format") or "").lower()
     kategori = veri.get("kategori") or veri.get("kategori_kodu", "TAPU VE HUKUK").replace("_", " ")
 
     # =========================================================================
