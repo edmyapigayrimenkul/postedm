@@ -27,7 +27,7 @@ sys.path.insert(0, str(KOK))
 
 load_dotenv(KOK / ".env")
 
-REDIRECT_URI = "https://edm-telegram-dispatcher.ezanplus.workers.dev/tiktok-callback"
+REDIRECT_URI = os.getenv("TIKTOK_REDIRECT_URI", "https://edmyapigayrimenkul.com/tiktok-callback")
 SCOPES = ["user.info.basic", "video.upload", "video.publish"]
 
 

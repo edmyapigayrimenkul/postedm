@@ -1,6 +1,7 @@
 name = "edm-telegram-dispatcher"
 main = "index.js"
 compatibility_date = "2026-09-08"
+workers_dev = true
 
 # Gizli değerler 'wrangler secret put' ile veya Cloudflare API'siyle verilir:
 #   TELEGRAM_BOT_TOKEN   — answerCallbackQuery ve mesaj düzenleme için
@@ -16,6 +17,11 @@ compatibility_date = "2026-09-08"
 # Dağıtıldığı adres: https://edm-telegram-dispatcher.ezanplus.workers.dev
 # (11 Eyl 2026'da kuruldu; öncesinde Worker HİÇ dağıtılmamıştı ve
 #  Telegram webhook'u boştu — onay butonları hiçbir şey yapmıyordu.)
+
+routes = [
+  { pattern = "edmyapigayrimenkul.com", custom_domain = true },
+  { pattern = "www.edmyapigayrimenkul.com", custom_domain = true }
+]
 
 [vars]
 GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
