@@ -27,6 +27,7 @@ def _baglanti_al() -> Iterator[sqlite3.Connection]:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 30000")
     try:
         with conn:
             yield conn
@@ -106,6 +107,11 @@ def tablolari_olustur() -> None:
             yanit_tarihi TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS ayarlar (
+            anahtar TEXT PRIMARY KEY,
+            deger TEXT
+        );
+
         CREATE INDEX IF NOT EXISTS idx_haber_durum ON haberler(durum);
         CREATE INDEX IF NOT EXISTS idx_haber_url ON haberler(orijinal_url);
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
@@ -126,6 +132,27 @@ def tablolari_olustur() -> None:
         except Exception as e:
             log.warning("Şema göçü hatası: %s", e)
 
+        conn.commit()
+
+
+# --- AYARLAR VE SAYAÇ İŞLEMLERİ ---
+
+
+def ayar_oku(anahtar: str, varsayilan: Any = None) -> Any:
+    """ayarlar tablosundan bir anahtarın değerini okur."""
+    with _baglanti_al() as conn:
+        satir = conn.execute("SELECT deger FROM ayarlar WHERE anahtar = ?", (anahtar,)).fetchone()
+        return satir["deger"] if satir else varsayilan
+
+
+def ayar_yaz(anahtar: str, deger: Any) -> None:
+    """ayarlar tablosuna anahtar-değer kaydeder veya günceller."""
+    with _baglanti_al() as conn:
+        conn.execute(
+            "INSERT INTO ayarlar (anahtar, deger) VALUES (?, ?) "
+            "ON CONFLICT(anahtar) DO UPDATE SET deger = excluded.deger",
+            (anahtar, str(deger)),
+        )
         conn.commit()
 
 

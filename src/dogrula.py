@@ -59,6 +59,13 @@ _ICI_BOS_KALIPLAR = [
 _ABARTI = ["şok", "inanılmaz", "kaçırmayın", "bomba", "müjde", "sakın",
            "asla", "herkes bunu", "kimse bilmiyor", "sır gibi"]
 
+# İçi boş genel geçer tavsiyeler ("Sakin Otorite" yerine kuru nasihat veren kalıplar)
+_BOS_TAVSIYELER = [
+    "uzmana danışın", "uzmanına danışın", "avukatınıza başvurun",
+    "dikkatli olun", "araştırma yapın", "ihmal etmeyin",
+    "tedbirli olun", "önem taşır", "göz ardı etmeyin", "yetkililere danışın",
+]
+
 # Yakın bölge adları — brief'te yerel bağ yokken metinde geçiyorsa uydurma olabilir
 _YEREL_ADLAR = ["silivri", "trakya", "çatalca", "çorlu", "çerkezköy",
                 "tekirdağ", "edirne", "kırklareli", "selimpaşa", "alibey"]
@@ -142,6 +149,9 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     abartilar = [a for a in _ABARTI if a in kucuk]
     if abartilar:
         uyarilar.append(f"⚠️ ABARTI DİLİ: \"{abartilar[0]}\" geçiyor.")
+    bos_tavsiyeler = [b for b in _BOS_TAVSIYELER if b in kucuk]
+    if bos_tavsiyeler:
+        uyarilar.append(f"⚠️ BOŞ TAVSİYE (FLUFF): \"{bos_tavsiyeler[0]}\" geçiyor — genel geçer tavsiye yerine somut resmi merci, belge adı veya yasal süre belirtin.")
 
     # --- 5. İÇİ BOŞ MANŞET ---
     manset = _kucult(" ".join(str(veri.get(k) or "") for k in

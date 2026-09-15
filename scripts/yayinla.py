@@ -103,11 +103,11 @@ def main() -> None:
         if not slayt_yollari or not all(Path(p).exists() for p in slayt_yollari):
             detay_str = haber.get("detay_metni")
             if detay_str:
-                from src import make_image
+                from src import yeni_formatlar
                 try:
                     otorite_verisi = json.loads(detay_str)
-                    if isinstance(otorite_verisi, dict) and isinstance(otorite_verisi.get("slayt_2_detay"), dict):
-                        slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(otorite_verisi, cikti_onek=f"haber_{ref_id}")
+                    if isinstance(otorite_verisi, dict):
+                        slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, cikti_onek=f"haber_{ref_id}")
                         slayt_yollari = [str(p) for p in slayt_listesi]
                 except Exception as e:
                     log.warning("Slaytlar detay_metni'nden çizilemedi: %s", e)
@@ -235,7 +235,10 @@ def main() -> None:
                 try:
                     tt_res = tiktok.video_yukle(video_yolu, baslik=baslik)
                     if tt_res.get("durum"):
-                        rapor_satirlari.append("🎵 <b>TikTok:</b> Yüklendi ✓")
+                        if tt_res.get("taslak_mi"):
+                            rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi (Uygulamadan Onaylayın) ✓")
+                        else:
+                            rapor_satirlari.append("🎵 <b>TikTok:</b> Yüklendi ✓")
                     else:
                         rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata oluştu'} ✗")
                 except Exception as yayin_hatasi:
@@ -250,8 +253,13 @@ def main() -> None:
                 rapor_satirlari.append("🎵 <b>TikTok:</b> Dikey video üretilemedi ✗")
 
     # 6. Veritabanını güncelle
+    herhangi_biri_basarili = any("✓" in satir for satir in rapor_satirlari)
     if tur == "haber":
-        guncelleme = {"durum": "yayinlandi"}
+        guncelleme = {}
+        if herhangi_biri_basarili:
+            guncelleme["durum"] = "yayinlandi"
+        else:
+            guncelleme["durum"] = "hata"
         if ig_id:
             guncelleme["instagram_post_id"] = ig_id
         if threads_id:
@@ -261,7 +269,7 @@ def main() -> None:
         if "tt_res" in locals() and tt_res.get("durum") and tt_res.get("publish_id"):
             guncelleme["tiktok_publish_id"] = tt_res.get("publish_id")
         db.haber_guncelle(int(ref_id), **guncelleme)
-    elif tur == "ilan" and any("✓" in satir for satir in rapor_satirlari):
+    elif tur == "ilan" and herhangi_biri_basarili:
         db.ilan_paylasildi_isaretle(ref_id)
 
     # 7. Telegram'a sonuç raporu ilet
@@ -290,5 +298,8 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         log.exception("Yayınlama esnasında kritik hata: %s", e)
-        hata_bildir.telegrama_hata_bildir("Sosyal Medya Yayını", istisna=e)
+        # Eğer zaten özet sonuç raporu (rapor_satirlari) Telegram'a iletildiyse,
+        # ikinci bir mükerrer teknik hata kartı gönderip grubu kirletme.
+        if "Bir veya daha fazla sosyal medya yayını başarısız oldu" not in str(e):
+            hata_bildir.telegrama_hata_bildir("Sosyal Medya Yayını", istisna=e)
         sys.exit(1)

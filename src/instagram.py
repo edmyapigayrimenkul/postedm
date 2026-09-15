@@ -23,6 +23,24 @@ log = logging.getLogger(__name__)
 GRAPH_TABAN = "https://graph.facebook.com/v21.0"
 CIKTI_KLASORU = Path("data/output")
 
+GECICI_HATALAR = {429, 500, 502, 503, 504}
+# Instagram Graph API geçici alt hata kodları:
+# 2207003: Medyanın indirilmesi çok uzun sürüyor (Timeout)
+# 2207032: Medya geçici olarak işlenemedi
+# 2207052: Only photo or video can be accepted (Medya indirme başarısız / geçici erişim gecikmesi)
+# Instagram 'is_transient: false' dese dahi bu hatalar karşı tarafın anlık durumundan kaynaklıdır ve geçicidir.
+GECICI_ALT_KODLAR = {2207003, 2207032, 2207052}
+MEDYA_BEKLEME_SANIYE = 15
+MEDYA_AZAMI_DENEME = 6
+
+
+def _alt_kod(cevap: requests.Response) -> Optional[int]:
+    """Graph API hata cevabından `error_subcode`'u çıkarır."""
+    try:
+        return cevap.json().get("error", {}).get("error_subcode")
+    except Exception:
+        return None
+
 
 def _hesap_bilgileri() -> Tuple[str, str]:
     token = config.env_al("INSTAGRAM_ACCESS_TOKEN")
@@ -167,7 +185,7 @@ def tekil_gorsel_yayinla(gorsel_url: str, caption: str) -> Optional[str]:
     # 4:5 format güvencesi
     gorsel_url = gorselleri_4_5_yap([gorsel_url])[0]
 
-    # 1. Konteyner oluştur
+    # 1. Konteyner oluştur (Geçici alt kod ve ağ hatası korumalı)
     url = f"{GRAPH_TABAN}/{hesap_id}/media"
     payload = {
         "image_url": gorsel_url,
@@ -175,14 +193,34 @@ def tekil_gorsel_yayinla(gorsel_url: str, caption: str) -> Optional[str]:
         "access_token": token,
     }
 
-    try:
-        resp = requests.post(url, data=payload, timeout=30)
-        if resp.status_code != 200:
-            log.error("Instagram konteyner hatası: %s", resp.text)
-            return None
-        creation_id = resp.json().get("id")
-    except Exception as e:
-        log.error("Instagram konteyner isteği hatası: %s", e)
+    creation_id = None
+    for deneme in range(1, MEDYA_AZAMI_DENEME + 1):
+        try:
+            resp = requests.post(url, data=payload, timeout=30)
+            if resp.status_code == 200:
+                creation_id = resp.json().get("id")
+                break
+
+            subcode = _alt_kod(resp)
+            if subcode in GECICI_ALT_KODLAR:
+                log.warning(
+                    "Instagram medya indirme gecikmesi (subcode %s, %s sn bekleniyor, deneme %d/%d): %s",
+                    subcode, MEDYA_BEKLEME_SANIYE, deneme, MEDYA_AZAMI_DENEME, gorsel_url,
+                )
+                time.sleep(MEDYA_BEKLEME_SANIYE)
+                continue
+
+            if resp.status_code in GECICI_HATALAR:
+                time.sleep(3 * deneme)
+                continue
+
+            log.error("Instagram tekil konteyner hatası [%d]: %s", resp.status_code, resp.text)
+            break
+        except Exception as e:
+            log.warning("Instagram tekil konteyner ağ istisnası (deneme %d/%d): %s", deneme, MEDYA_AZAMI_DENEME, e)
+            time.sleep(3 * deneme)
+
+    if not creation_id:
         return None
 
     # 2. İşlenmesini bekle
@@ -206,7 +244,7 @@ def carousel_yayinla(gorsel_urlleri: List[str], caption: str) -> Optional[str]:
     if len(gorsel_urlleri) < 2:
         return tekil_gorsel_yayinla(gorsel_urlleri[0], caption)
 
-    # 1. Her görsel için alt öğe oluştur (is_carousel_item=true)
+    # 1. Her görsel için alt öğe oluştur (is_carousel_item=true, geçici medya gecikmesi korumalı)
     cocuk_idler = []
     for g_url in gorsel_urlleri[:10]:  # Instagram Carousel azami 10
         payload = {
@@ -214,15 +252,42 @@ def carousel_yayinla(gorsel_urlleri: List[str], caption: str) -> Optional[str]:
             "is_carousel_item": "true",
             "access_token": token,
         }
-        resp = requests.post(f"{GRAPH_TABAN}/{hesap_id}/media", data=payload, timeout=25)
-        if resp.status_code == 200:
-            cocuk_idler.append(resp.json().get("id"))
+        child_id = None
+        for deneme in range(1, MEDYA_AZAMI_DENEME + 1):
+            try:
+                resp = requests.post(f"{GRAPH_TABAN}/{hesap_id}/media", data=payload, timeout=25)
+                if resp.status_code == 200:
+                    child_id = resp.json().get("id")
+                    break
+
+                subcode = _alt_kod(resp)
+                if subcode in GECICI_ALT_KODLAR:
+                    log.warning(
+                        "Instagram medya indirme gecikmesi (subcode %s, %s sn bekleniyor, deneme %d/%d): %s",
+                        subcode, MEDYA_BEKLEME_SANIYE, deneme, MEDYA_AZAMI_DENEME, g_url,
+                    )
+                    time.sleep(MEDYA_BEKLEME_SANIYE)
+                    continue
+
+                if resp.status_code in GECICI_HATALAR:
+                    time.sleep(3 * deneme)
+                    continue
+
+                log.error("Carousel alt öğe hatası (%s): %s", g_url, resp.text)
+                break
+            except Exception as e:
+                log.warning("Carousel alt öğe isteği hatası (%s, deneme %d/%d): %s", g_url, deneme, MEDYA_AZAMI_DENEME, e)
+                time.sleep(3 * deneme)
+
+        if child_id:
+            cocuk_idler.append(child_id)
         else:
-            log.error("Carousel alt öğe hatası (%s): %s", g_url, resp.text)
+            log.error("Carousel alt öğesi üretilemedi: %s", g_url)
+
         time.sleep(1)
 
     if len(cocuk_idler) < 2:
-        log.error("Carousel için yeterli alt öğe üretilemedi.")
+        log.error("Carousel için yeterli alt öğe üretilemedi (%d/%d başarılı).", len(cocuk_idler), len(gorsel_urlleri))
         return None
 
     # 2. Ana Carousel konteyneri oluştur
@@ -232,12 +297,23 @@ def carousel_yayinla(gorsel_urlleri: List[str], caption: str) -> Optional[str]:
         "caption": caption,
         "access_token": token,
     }
-    resp = requests.post(f"{GRAPH_TABAN}/{hesap_id}/media", data=payload, timeout=30)
-    if resp.status_code != 200:
-        log.error("Carousel ana konteyner hatası: %s", resp.text)
-        return None
 
-    creation_id = resp.json().get("id")
+    creation_id = None
+    for deneme in range(1, 4):
+        try:
+            resp = requests.post(f"{GRAPH_TABAN}/{hesap_id}/media", data=payload, timeout=30)
+            if resp.status_code == 200:
+                creation_id = resp.json().get("id")
+                break
+            log.warning("Carousel ana konteyner denemesi %d başarısız: %s", deneme, resp.text)
+            time.sleep(3 * deneme)
+        except Exception as e:
+            log.warning("Carousel ana konteyner istek hatası (%d/3): %s", deneme, e)
+            time.sleep(3 * deneme)
+
+    if not creation_id:
+        log.error("Carousel ana konteyneri oluşturulamadı.")
+        return None
 
     # 3. Bekle ve Yayınla
     if not _konteyner_durumu_bekle(creation_id, token):
@@ -273,14 +349,31 @@ def reels_yayinla(
     if kapak_url:
         payload["cover_url"] = kapak_url
 
-    try:
-        resp = requests.post(url, data=payload, timeout=35)
-        if resp.status_code != 200:
+    creation_id = None
+    for deneme in range(1, MEDYA_AZAMI_DENEME + 1):
+        try:
+            resp = requests.post(url, data=payload, timeout=35)
+            if resp.status_code == 200:
+                creation_id = resp.json().get("id")
+                break
+
+            subcode = _alt_kod(resp)
+            if subcode in GECICI_ALT_KODLAR:
+                log.warning("Reels video indirme gecikmesi (subcode %s, %s sn bekleniyor): %s", subcode, MEDYA_BEKLEME_SANIYE, video_url)
+                time.sleep(MEDYA_BEKLEME_SANIYE)
+                continue
+
+            if resp.status_code in GECICI_HATALAR:
+                time.sleep(3 * deneme)
+                continue
+
             log.error("Reels container oluşturma hatası: %s", resp.text)
-            return None
-        creation_id = resp.json().get("id")
-    except Exception as e:
-        log.error("Reels konteyner isteği hatası: %s", e)
+            break
+        except Exception as e:
+            log.warning("Reels konteyner istek hatası (deneme %d/%d): %s", deneme, MEDYA_AZAMI_DENEME, e)
+            time.sleep(3 * deneme)
+
+    if not creation_id:
         return None
 
     # Reels işlenmesi Meta tarafında 30-120 sn sürebilir

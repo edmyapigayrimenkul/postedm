@@ -102,6 +102,10 @@ tasarim:
   video_boy: 1920 # 9:16 dikey oranı (Reels / Shorts / TikTok standardı)
   guvenli_pay_dikey: 140
   guvenli_pay_yatay: 60
+  # Kapanış Slaytı Tasarım Stili:
+  # Seçenekler: editoryal (varsayılan), kartvizit, kitap_afis, split_screen, mimari_pafta, kurucu_mektubu,
+  #             paspartu_fotograf, dikey_tipografi, iletisim_terminali, dev_numara, resmi_muhur
+  kapanis_stili: "editoryal"
   renkler:
     kirmizi: "#f0000d"
     kirmizi_derin: "#c4030f"

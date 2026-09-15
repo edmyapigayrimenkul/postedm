@@ -148,49 +148,61 @@ def _gun_farki(iso_tarih: str) -> float:
         return 9999.0
 
 
+def _son_kullanilan_sutunlar(limit: int = 3) -> List[str]:
+    """Son paylaşılan konuların sütunlarını döner (rotasyon dengesi için)."""
+    try:
+        havuz_map = {k["kod"]: k.get("sutun") for k in havuzu_yukle()}
+        with db._baglanti_al() as conn:
+            satirlar = conn.execute(
+                "SELECT konu_kodu FROM konu_gecmisi WHERE sonuc != 'hata' ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [havuz_map[s["konu_kodu"]] for s in satirlar if s["konu_kodu"] in havuz_map]
+    except Exception:
+        return []
+
+
 def sonraki_konu(
     gun: Optional[int] = None,
     sutun: Optional[str] = None,
     bicim: Optional[str] = None,
     bekleme_gun: int = 120,
 ) -> Optional[Dict[str, Any]]:
-    """Takvime uygun, yakın zamanda kullanılmamış bir konu seçer.
-
-    Seçim sırası:
-      1. Takvimin istediği sütun+biçim, hiç kullanılmamış
-      2. Aynı sütun, biçim serbest, hiç kullanılmamış
-      3. Herhangi bir sütun, hiç kullanılmamış
-      4. `bekleme_gun`den eski, en uzun süredir dokunulmamış konu
-
-    Havuz tükendiğinde durmak yerine en eskiye dönmek bilinçli: bir konu dört ay
-    sonra farklı kancayla yeniden işlenebilir ve takipçi kitlesi bu sürede değişir.
+    """Akıllı dinamik rotasyonla yakın zamanda kullanılmamış bir konu seçer.
+    
+    Haftanın gününe katı kilitlenmez; sütunlar (S1-S4) arasında dengeli rotasyon yapar
+    ve arka arkaya aynı sütunun gelmesini önler.
     """
     tabloyu_kur()
     havuz = havuzu_yukle()
     if not havuz:
         return None
 
-    if gun is None:
-        gun = date.today().weekday()
-
-    plan = TAKVIM.get(gun)
-    if sutun is None and plan:
-        p_sutun = plan["sutun"]
-        sutun = random.choice(p_sutun) if isinstance(p_sutun, tuple) else p_sutun
-    if bicim is None and plan:
-        bicim = plan["bicim"]
-
     gecmis = _kullanim_gecmisi()
     bakir = [k for k in havuz if k["kod"] not in gecmis]
+    son_sutunlar = _son_kullanilan_sutunlar(limit=2)
+
+    # Eğer sütun özellikle belirtilmemişse, son kullanılan sütunları dışlayarak çeşitlilik sağla
+    if sutun is None:
+        tum_sutunlar = ["S1", "S2", "S3", "S4"]
+        tercih_sutunlar = [s for s in tum_sutunlar if not son_sutunlar or s != son_sutunlar[0]]
+        if gun is not None and gun in TAKVIM:
+            p_sutun = TAKVIM[gun]["sutun"]
+            oneri = random.choice(p_sutun) if isinstance(p_sutun, tuple) else p_sutun
+            if oneri in tercih_sutunlar:
+                sutun = oneri
+        if sutun is None:
+            sutun = random.choice(tercih_sutunlar if tercih_sutunlar else tum_sutunlar)
 
     for aday_kume in (
-        [k for k in bakir if k["sutun"] == sutun and k["bicim"] == bicim],
+        [k for k in bakir if k["sutun"] == sutun and (bicim is None or k["bicim"] == bicim)],
         [k for k in bakir if k["sutun"] == sutun],
+        [k for k in bakir if not son_sutunlar or k["sutun"] != son_sutunlar[0]],
         bakir,
     ):
         if aday_kume:
             secim = random.choice(aday_kume)
-            log.info("Konu seçildi: %s — %s", secim["kod"], secim["baslik"])
+            log.info("Konu seçildi: %s [%s/%s] — %s", secim["kod"], secim["sutun"], secim["bicim"], secim["baslik"])
             return secim
 
     # Havuz tükendi: bekleme süresini doldurmuş, en uzun süredir kullanılmayan konu

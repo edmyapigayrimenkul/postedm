@@ -23,7 +23,7 @@ on:
           - ilan_menusu
           - konu_madenle
   repository_dispatch:
-    types: [sabah_hazirla, ilan_menusu, hazirla_ilan]
+    types: [sabah_hazirla, ilan_menusu, hazirla_ilan, format_donustur]
 
 concurrency:
   group: edm-veritabani
@@ -67,6 +67,17 @@ jobs:
         run: |
           python -c "from src.telegram_bot import ilan_postunu_hazirla_ve_sor; ilan_postunu_hazirla_ve_sor('${{ github.event.client_payload.ilan_id }}')"
 
+      # Format dönüştürme (Kullanıcı Telegram'dan farklı bir formata çevirirse)
+      - name: Format Dönüştür ve Onaya Sun
+        if: github.event.action == 'format_donustur'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+        run: |
+          python scripts/hazirla.py --format-degistir "${{ github.event.client_payload.haber_id }}" --format "${{ github.event.client_payload.format_turu }}"
+
       # Günlük içerik: önce haber triyajı, geçen yoksa konu bankası.
       # DİKKAT: burada `--haber-tara` KULLANILMAZ. O bayrak "sadece habere bak,
       # konu bankasına başvurma" demek; cron onunla çalışınca triyajı geçen
@@ -82,7 +93,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
         run: |
-          python scripts/hazirla.py
+          FORMAT="${{ github.event.client_payload.format_turu }}"
+          if [ -n "$FORMAT" ]; then
+            python scripts/hazirla.py --format "$FORMAT"
+          else
+            python scripts/hazirla.py
+          fi
 
       # Haftalık konu madenciliği: beslemedeki rehber içerikten konu adayı çıkarır.
       # Paylaşım yapmaz; konu bankasının ömrünü uzatır (ICERIK-SISTEMI.md §5.7).

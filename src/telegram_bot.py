@@ -6,15 +6,18 @@ Tek tıkla portföyden ilan seçip post üretme özelliğini yönetir.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
+import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from . import config, db, fetch_listings, generate_text, konu_bankasi, make_image, upload_image
+from . import config, db, fetch_listings, generate_text, komutlar, konu_bankasi, make_image, upload_image
 
 log = logging.getLogger(__name__)
 
@@ -27,30 +30,97 @@ def _bot_bilgileri() -> tuple[str, str]:
     return token, chat_id
 
 
-def mesaj_gonder(metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+def _istek(metot: str, **parametreler: Any) -> Optional[Dict[str, Any]]:
+    """Telegram API metotlarını çağırır; 429, 502/504 ve HTML ayrıştırma hatalarını otomatik kurtarır."""
     token, chat_id = _bot_bilgileri()
-    if not token or not chat_id:
-        log.warning("Telegram token veya chat_id eksik.")
+    if not token:
+        log.warning("Telegram bot token eksik (.env kontrol edin).")
         return None
 
-    url = TELEGRAM_API_URL.format(token=token, method="sendMessage")
+    if "chat_id" not in parametreler and chat_id:
+        parametreler["chat_id"] = chat_id
+
+    url = TELEGRAM_API_URL.format(token=token, method=metot)
+
+    # 4096 ve 1024 karakter sınır koruması
+    if "text" in parametreler and isinstance(parametreler["text"], str) and len(parametreler["text"]) > 4096:
+        parametreler["text"] = parametreler["text"][:4093] + "..."
+    if "caption" in parametreler and isinstance(parametreler["caption"], str) and len(parametreler["caption"]) > 1024:
+        parametreler["caption"] = parametreler["caption"][:1021] + "..."
+
+    for deneme in range(1, 4):
+        try:
+            cevap = requests.post(url, json=parametreler, timeout=25)
+        except requests.RequestException as e:
+            log.warning("Telegram ağ hatası (%s, deneme %d/3): %s", metot, deneme, e)
+            time.sleep(2 * deneme)
+            continue
+
+        veri = cevap.json() if cevap.content else {}
+        if veri.get("ok"):
+            return veri.get("result")
+
+        # 1. Supergroup göçü (migrate_to_chat_id)
+        yeni_id = (veri.get("parameters") or {}).get("migrate_to_chat_id")
+        if yeni_id:
+            log.info("Telegram supergroup göçü: %s -> %s", chat_id, yeni_id)
+            parametreler["chat_id"] = str(yeni_id)
+            continue
+
+        # 2. Rate limit (429) retry_after beklemesi
+        retry_after = (veri.get("parameters") or {}).get("retry_after")
+        if retry_after:
+            bekle = min(int(retry_after) + 1, 60)
+            log.warning("Telegram rate limit (429), %d sn bekleniyor...", bekle)
+            time.sleep(bekle)
+            continue
+
+        # 3. Geçici ağ ve sunucu hataları (500, 502, 503, 504)
+        if cevap.status_code in (429, 500, 502, 503, 504):
+            time.sleep(2 * deneme)
+            continue
+
+        aciklama = (veri.get("description") or "").lower()
+
+        # 4. HTML parse hatası: parse_mode kaldırılıp düz metinle anında kurtarma
+        if cevap.status_code == 400 and ("can't parse entities" in aciklama or "entity" in aciklama):
+            if parametreler.get("parse_mode"):
+                log.warning("Telegram HTML parse hatası (%s), düz metinle kurtarılıyor: %s", metot, veri.get("description"))
+                parametreler.pop("parse_mode", None)
+                if "text" in parametreler and isinstance(parametreler["text"], str):
+                    parametreler["text"] = re.sub(r"<[^>]+>", "", parametreler["text"])
+                if "caption" in parametreler and isinstance(parametreler["caption"], str):
+                    parametreler["caption"] = re.sub(r"<[^>]+>", "", parametreler["caption"])
+                continue
+
+        # 5. Önemsiz/beklenen durum hataları
+        if "message is not modified" in aciklama or "message to delete not found" in aciklama:
+            return None
+
+        log.error("Telegram API hatası [%d] (%s): %s", cevap.status_code, metot, veri.get("description"))
+        break
+
+    return None
+
+
+def mesaj_gonder(
+    metin: str,
+    reply_markup: Optional[Dict[str, Any]] = None,
+    butonlar: Optional[Dict[str, Any]] = None,
+    html: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Telegram grubuna metin mesajı gönderir (HTML parse hatası ve karakter taşma korumalı)."""
+    markup = reply_markup or butonlar
     payload: Dict[str, Any] = {
-        "chat_id": chat_id,
         "text": metin,
-        "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
-    if reply_markup:
-        payload["reply_markup"] = json.dumps(reply_markup)
+    if html:
+        payload["parse_mode"] = "HTML"
+    if markup:
+        payload["reply_markup"] = markup
 
-    try:
-        r = requests.post(url, json=payload, timeout=15)
-        if r.status_code == 200:
-            return r.json().get("result")
-        log.error("Telegram mesaj hatası [%d]: %s", r.status_code, r.text)
-    except Exception as e:
-        log.error("Telegram istek hatası: %s", e)
-    return None
+    return _istek("sendMessage", **payload)
 
 
 def fotograf_gonder(
@@ -58,6 +128,7 @@ def fotograf_gonder(
     caption: str = "",
     reply_markup: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
+    """Tekil fotoğrafı Telegram'a gönderir (yerel dosya veya URL desteğiyle)."""
     token, chat_id = _bot_bilgileri()
     if not token or not chat_id:
         return None
@@ -75,13 +146,27 @@ def fotograf_gonder(
     try:
         if p.exists() and p.is_file():
             with open(p, "rb") as f:
-                r = requests.post(url, data=data, files={"photo": f}, timeout=30)
+                r = requests.post(url, data=data, files={"photo": f}, timeout=35)
         else:
             data["photo"] = str(foto_yolu_veya_url)
-            r = requests.post(url, data=data, timeout=30)
+            r = requests.post(url, data=data, timeout=35)
 
         if r.status_code == 200:
             return r.json().get("result")
+
+        # HTML entity parse hatası durumunda düz metinle kurtar
+        resp_json = r.json() if r.content else {}
+        if "can't parse entities" in (resp_json.get("description") or "").lower():
+            data.pop("parse_mode", None)
+            data["caption"] = re.sub(r"<[^>]+>", "", caption[:1024])
+            if p.exists() and p.is_file():
+                with open(p, "rb") as f:
+                    r2 = requests.post(url, data=data, files={"photo": f}, timeout=35)
+            else:
+                r2 = requests.post(url, data=data, timeout=35)
+            if r2.status_code == 200:
+                return r2.json().get("result")
+
         log.error("Telegram fotoğraf hatası [%d]: %s", r.status_code, r.text)
     except Exception as e:
         log.error("Telegram fotoğraf gönderme hatası: %s", e)
@@ -89,37 +174,446 @@ def fotograf_gonder(
 
 
 def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> bool:
-    """Carousel önizlemesi için albüm (medya grubu) gönderir."""
+    """Carousel önizlemesi için albüm (medya grubu) gönderir.
+
+    WEBPAGE_CURL_FAILED ve ağ zaman aşımına karşı instabot koruması içerir:
+    1. Yerel dosya varsa doğrudan yerel dosyadan açıp multipart/form-data ile gönderir (sıfır ağ gecikmesi).
+    2. Uzak URL verilmişse ve yerelde kopyası yoksa, URL ile dener; Telegram WEBPAGE_CURL_FAILED verirse
+       arka planda indirip BytesIO üzerinden multipart stream ile anında kurtarır.
+    """
     token, chat_id = _bot_bilgileri()
     if not token or not chat_id or not foto_yollari:
         return False
 
+    import io
     url = TELEGRAM_API_URL.format(token=token, method="sendMediaGroup")
-    media = []
-    files = {}
+    foto_yollari = foto_yollari[:10]
 
-    for idx, f_yol in enumerate(foto_yollari[:10]):
-        attach_name = f"photo_{idx}"
-        m_item: Dict[str, Any] = {"type": "photo", "media": f"attach://{attach_name}"}
+    def _yerel_dosya_bul(f_yol: Path | str) -> Optional[Path]:
+        p = Path(str(f_yol))
+        if p.exists() and p.is_file():
+            return p
+        # upload_image önbelleğinden bak
+        try:
+            yerel = upload_image.yerel_karsiligi(str(f_yol))
+            if yerel and yerel.exists() and yerel.is_file():
+                return yerel
+        except Exception:
+            pass
+        # data/output veya output altında isim eşleşmesi ara
+        temiz_ad = Path(str(f_yol).split("?")[0]).name
+        for klasor in [Path("data/output"), Path("output")]:
+            olasi = klasor / temiz_ad
+            if olasi.exists() and olasi.is_file():
+                return olasi
+        return None
+
+    # Strateji 1: Tüm görseller yerelde var mı veya yerel karşılıkları bulunabiliyor mu?
+    yereller = [_yerel_dosya_bul(fy) for fy in foto_yollari]
+    hepsi_yerel = all(y is not None for y in yereller)
+
+    if hepsi_yerel:
+        files = {}
+        handles = []
+        media = []
+        try:
+            for idx, yerel_p in enumerate(yereller):
+                attach_name = f"photo_{idx}"
+                m_item: Dict[str, Any] = {"type": "photo", "media": f"attach://{attach_name}"}
+                if idx == 0 and caption:
+                    m_item["caption"] = caption[:1024]
+                    m_item["parse_mode"] = "HTML"
+                media.append(m_item)
+                fh = open(yerel_p, "rb")
+                handles.append(fh)
+                files[attach_name] = (yerel_p.name, fh, "image/jpeg")
+
+            r = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=60)
+            if r.status_code == 200:
+                return True
+
+            # Caption parse hatası varsa parse_mode kaldırıp tekrar dene
+            if "can't parse entities" in r.text.lower() and caption:
+                for m in media:
+                    m.pop("parse_mode", None)
+                    if "caption" in m:
+                        m["caption"] = re.sub(r"<[^>]+>", "", m["caption"])
+                for fh in handles:
+                    fh.seek(0)
+                r_fallback = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=60)
+                if r_fallback.status_code == 200:
+                    return True
+
+            log.warning("Yerel multipart medya grubu gönderimi başarısız [%d]: %s", r.status_code, r.text[:200])
+        except Exception as e:
+            log.warning("Yerel medya grubu istisnası: %s", e)
+        finally:
+            for fh in handles:
+                try:
+                    fh.close()
+                except Exception:
+                    pass
+
+    # Strateji 2: URL tabanlı gönderim dene
+    media_url = []
+    for idx, f_yol in enumerate(foto_yollari):
+        m_item = {"type": "photo", "media": str(f_yol)}
         if idx == 0 and caption:
             m_item["caption"] = caption[:1024]
             m_item["parse_mode"] = "HTML"
-        media.append(m_item)
-
-        p = Path(str(f_yol))
-        if p.exists():
-            files[attach_name] = open(p, "rb")
+        media_url.append(m_item)
 
     try:
-        r = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=45)
-        for fp in files.values():
-            fp.close()
-        return r.status_code == 200
+        r = requests.post(url, json={"chat_id": chat_id, "media": media_url}, timeout=30)
+        if r.status_code == 200:
+            return True
+
+        hata_aciklama = r.text.lower()
+        if "can't parse entities" in hata_aciklama and caption:
+            for m in media_url:
+                m.pop("parse_mode", None)
+                if "caption" in m:
+                    m["caption"] = re.sub(r"<[^>]+>", "", m["caption"])
+            r_fb = requests.post(url, json={"chat_id": chat_id, "media": media_url}, timeout=30)
+            if r_fb.status_code == 200:
+                return True
+
+        # Telegram WEBPAGE_CURL_FAILED veya indirme zaman aşımı verdiyse:
+        if "webpage_curl_failed" in hata_aciklama or "failed to send message" in hata_aciklama:
+            log.warning("Telegram URL'den indiremedi (WEBPAGE_CURL_FAILED), acil indirme ve stream yüklemeye geçiliyor...")
+            stream_files = {}
+            stream_media = []
+            headers_dl = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+
+            for idx, f_yol in enumerate(foto_yollari):
+                attach_name = f"photo_{idx}"
+                s_item = {"type": "photo", "media": f"attach://{attach_name}"}
+                if idx == 0 and caption:
+                    s_item["caption"] = re.sub(r"<[^>]+>", "", caption[:1024])
+                stream_media.append(s_item)
+
+                yerel_var = _yerel_dosya_bul(f_yol)
+                if yerel_var:
+                    stream_files[attach_name] = (yerel_var.name, open(yerel_var, "rb"), "image/jpeg")
+                else:
+                    dl_resp = requests.get(str(f_yol), headers=headers_dl, timeout=25)
+                    if dl_resp.status_code == 200:
+                        stream_files[attach_name] = (f"foto_{idx}.jpg", io.BytesIO(dl_resp.content), "image/jpeg")
+
+            if len(stream_files) == len(foto_yollari):
+                r_dl = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(stream_media)}, files=stream_files, timeout=60)
+                for f_tuple in stream_files.values():
+                    if hasattr(f_tuple[1], "close"):
+                        f_tuple[1].close()
+                if r_dl.status_code == 200:
+                    log.info("WEBPAGE_CURL_FAILED hatası stream multipart ile başarıyla kurtarıldı.")
+                    return True
     except Exception as e:
-        log.error("Telegram medya grubu hatası: %s", e)
-        for fp in files.values():
-            fp.close()
+        log.error("Telegram medya grubu gönderme hatası: %s", e)
+
     return False
+
+
+def mesaji_sil(mesaj_id: int) -> bool:
+    """Belirtilen mesajı siler; mesaj zaten silinmişse çökmeden False döner."""
+    res = _istek("deleteMessage", message_id=mesaj_id)
+    return bool(res)
+
+
+def mesaji_guncelle(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> bool:
+    """Var olan mesajı günceller; 'message is not modified' durumunda çökmez."""
+    res = _istek(
+        "editMessageText",
+        message_id=mesaj_id,
+        text=metin,
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+        reply_markup=reply_markup,
+    )
+    return bool(res)
+
+
+def sonucu_yaz(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> bool:
+    """İşlem tamamlandığında butonları kaldırır veya sonucu yazar."""
+    return mesaji_guncelle(mesaj_id, metin, reply_markup=reply_markup)
+
+
+def durum_guncelle(mesaj_id: int, baslik: str, adim: int, toplam_adim: int = 4, detay: str = "") -> None:
+    """İşlem sürerken Telegram'da görsel progress bar günceller."""
+    dolu = "█" * adim
+    bos = "░" * max(0, toplam_adim - adim)
+    yuzde = int((adim / max(1, toplam_adim)) * 100)
+    metin = (
+        f"⏳ <b>{baslik}</b>\n\n"
+        f"<code>[{dolu}{bos}] %{yuzde}</code>\n"
+        f"<i>{detay}</i>"
+    )
+    mesaji_guncelle(mesaj_id, metin)
+
+
+# =========================================================================
+# BOT YÖNETİMİ & DURAKLATMA (DATABASE DESTEKLİ)
+# =========================================================================
+
+def bot_duraklat(saat: int = 0) -> str:
+    """Botu belirtilen saat kadar veya süresiz duraklatır."""
+    if saat > 0:
+        bitis = datetime.now(timezone.utc) + timedelta(hours=saat)
+        db.ayar_yaz("bot_duraklatildi_bitis", bitis.isoformat())
+        return f"{saat} saat"
+    else:
+        db.ayar_yaz("bot_duraklatildi_bitis", "suresiz")
+        return "süresiz"
+
+
+def bot_devam_et() -> bool:
+    """Duraklatılmış botu tekrar aktif eder."""
+    db.ayar_yaz("bot_duraklatildi_bitis", "")
+    return True
+
+
+def bot_duraklatildi_mi() -> Tuple[bool, str]:
+    """Botun duraklatılma durumunu ve kalan süreyi döner."""
+    deger = db.ayar_oku("bot_duraklatildi_bitis")
+    if not deger:
+        return False, ""
+    if deger == "suresiz":
+        return True, "Süresiz"
+    try:
+        bitis = datetime.fromisoformat(deger)
+        simdi = datetime.now(timezone.utc)
+        if simdi >= bitis:
+            db.ayar_yaz("bot_duraklatildi_bitis", "")
+            return False, ""
+        fark = bitis - simdi
+        toplam_dakika = int(fark.total_seconds() / 60)
+        saat = toplam_dakika // 60
+        dakika = toplam_dakika % 60
+        kalan = f"{saat} sa {dakika} dk" if saat > 0 else f"{dakika} dk"
+        return True, kalan
+    except Exception:
+        return False, ""
+
+
+# =========================================================================
+# KANAL TOGGLE & MENÜ SİSTEMİ (INSTABOT MİMARİSİ)
+# =========================================================================
+
+def varsayilan_kanallar() -> Dict[str, bool]:
+    """Aktif kanalları ayarlar tablosundan okur veya varsayılanı döner."""
+    kayitli = db.ayar_oku("aktif_kanallar")
+    if kayitli:
+        try:
+            return json.loads(kayitli)
+        except Exception:
+            pass
+    return {"ig": True, "threads": True, "fb": False}
+
+
+def kanal_ayarla(kanal: str, aktif: bool) -> Dict[str, bool]:
+    """Kanal durumunu günceller ve kaydeder."""
+    kanallar = varsayilan_kanallar()
+    kanallar[kanal] = aktif
+    db.ayar_yaz("aktif_kanallar", json.dumps(kanallar))
+    return kanallar
+
+
+def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dict[str, str]]]:
+    """Tek tıkla açılıp kapanabilen kompakt kanal toggle butonları döner."""
+    if kanallar is None:
+        kanallar = varsayilan_kanallar()
+
+    def _simge(k: str) -> str:
+        return "✅" if kanallar.get(k, False) else "⬜"
+
+    return [
+        [
+            {"text": f"{_simge('ig')} Instagram", "callback_data": "kanal_toggle:ig"},
+            {"text": f"{_simge('threads')} Threads", "callback_data": "kanal_toggle:threads"},
+            {"text": f"{_simge('fb')} Facebook", "callback_data": "kanal_toggle:fb"},
+        ]
+    ]
+
+
+def onay_menusu(haber_id: int, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """İçerik onayına sunulduğunda gösterilen tam yetkili kontrol menüsü."""
+    if kanallar is None:
+        kanallar = varsayilan_kanallar()
+
+    aktif_list = [k for k, v in kanallar.items() if v]
+    hedef_param = ",".join(aktif_list) if aktif_list else "ig,threads"
+
+    return {
+        "inline_keyboard": [
+            *kanal_butonlari(kanallar),
+            [
+                {"text": "🚀 Seçili Kanallarda Yayınla", "callback_data": f"onayla:haber:{hedef_param}:{haber_id}"},
+            ],
+            [
+                {"text": "🔄 Metinleri Yenile", "callback_data": f"yenile:haber:{haber_id}"},
+                {"text": "🎨 Formatı Değiştir", "callback_data": f"format_menu:{haber_id}"},
+            ],
+            [
+                {"text": "⏰ 1 Saat Ertele", "callback_data": f"ertele:haber:{haber_id}"},
+                {"text": "❌ İptal / Reddet", "callback_data": f"reddet:haber:{haber_id}"},
+            ],
+        ]
+    }
+
+
+def format_secim_menusu(haber_id: int) -> Dict[str, Any]:
+    """İçeriğin görsel formatını tek tıkla değiştirmek için sunulan menü."""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "📖 EDM Sözlük", "callback_data": f"format_uygula:sozluk:{haber_id}"},
+                {"text": "⚖️ Nedir Doğrusu?", "callback_data": f"format_uygula:nedir_dogrusu:{haber_id}"},
+            ],
+            [
+                {"text": "📂 Vaka Analizi", "callback_data": f"format_uygula:vaka:{haber_id}"},
+                {"text": "❓ Net Cevap", "callback_data": f"format_uygula:net_cevap:{haber_id}"},
+            ],
+            [
+                {"text": "← Onay Menüsüne Dön", "callback_data": f"onay_menu_don:{haber_id}"},
+            ],
+        ]
+    }
+
+
+def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> Dict[str, Any]:
+    """Telegram /panel ve /menu komutları için interaktif kontrol paneli."""
+    duraklat_butonu = (
+        {"text": f"▶️ Botu Devam Ettir ({kalan_sure})", "callback_data": "devam_et"}
+        if duraklatildi
+        else {"text": "⏸️ Otomatik Akışı Duraklat", "callback_data": "duraklat_menu"}
+    )
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "📖 Sözlük Üret", "callback_data": "hizli_uret:sozluk"},
+                {"text": "⚖️ Nedir Doğrusu?", "callback_data": "hizli_uret:nedir_dogrusu"},
+            ],
+            [
+                {"text": "📂 Vaka Analizi", "callback_data": "hizli_uret:vaka"},
+                {"text": "❓ Net Cevap", "callback_data": "hizli_uret:net_cevap"},
+            ],
+            [
+                {"text": "📊 Sıradaki Post & Durum", "callback_data": "durum"},
+                duraklat_butonu,
+            ],
+            [
+                {"text": "🩺 Sistem Sağlık Testi", "callback_data": "saglik_testi"},
+                {"text": "🔄 Konu Havuzu Durumu", "callback_data": "havuz_durum"},
+            ],
+        ]
+    }
+
+
+def duraklatma_secenekleri_menusu() -> Dict[str, Any]:
+    """Duraklatma süresi seçim menüsü."""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "⏸️ 1 Saat Duraklat", "callback_data": "duraklat:1"},
+                {"text": "⏸️ 6 Saat Duraklat", "callback_data": "duraklat:6"},
+            ],
+            [
+                {"text": "⏸️ 24 Saat Duraklat", "callback_data": "duraklat:24"},
+                {"text": "⏸️ Süresiz Duraklat", "callback_data": "duraklat:0"},
+            ],
+            [
+                {"text": "← Kontrol Paneline Dön", "callback_data": "panel"},
+            ],
+        ]
+    }
+
+
+def panel_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Telegram Kontrol Merkezini gönderir veya günceller."""
+    duraklatildi, kalan = bot_duraklatildi_mi()
+    durum_str = f"⏸️ <b>DURAKLATILDI</b> ({kalan})" if duraklatildi else "🟢 <b>OTOMATİK AKIŞ AKTİF</b>"
+
+    metin = (
+        "🏢 <b>EDM YAPI & GAYRİMENKUL // KONTROL MERKEZİ</b>\n\n"
+        f"<b>Sistem Durumu:</b> {durum_str}\n"
+        "Aşağıdaki butonları kullanarak tek tıkla yeni içerik üretebilir, "
+        "yayın akışını yönetebilir veya sistem durumunu denetleyebilirsiniz."
+    )
+    menu = kontrol_merkezi_menusu(duraklatildi=duraklatildi, kalan_sure=kalan)
+
+    if mesaj_id:
+        mesaji_guncelle(mesaj_id, metin, reply_markup=menu)
+        return None
+    return mesaj_gonder(metin, reply_markup=menu)
+
+
+def durum_raporu_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Detaylı sistem ve yayın durumu raporu gönderir."""
+    duraklatildi, kalan = bot_duraklatildi_mi()
+    durum_str = f"⏸️ Duraklatıldı ({kalan})" if duraklatildi else "🟢 Aktif (Zamanlanmış Akış)"
+
+    ozet = konu_bankasi.durum_ozeti()
+    kanallar = varsayilan_kanallar()
+    kanal_str = " · ".join([f"{'✅' if v else '⬜'} {k.upper()}" for k, v in kanallar.items()])
+
+    # Son yayınlanan post
+    son_yayinlanan = None
+    with db._baglanti_al() as conn:
+        row = conn.execute("SELECT id, orijinal_baslik, manset, yayin_tarihi FROM haberler WHERE durum = 'yayinlandi' ORDER BY id DESC LIMIT 1").fetchone()
+        if row:
+            son_yayinlanan = dict(row)
+
+    son_post_str = (
+        f"#{son_yayinlanan['id']} — {son_yayinlanan.get('manset') or son_yayinlanan.get('orijinal_baslik', '')}"
+        if son_yayinlanan else "Henüz kayıt yok"
+    )
+
+    metin = (
+        "📊 <b>EDM SİSTEM & YAYIN DURUMU</b>\n\n"
+        f"• <b>Otomasyon:</b> {durum_str}\n"
+        f"• <b>Yayın Kanalları:</b> {kanal_str}\n"
+        f"• <b>Konu Bankası:</b> {ozet['bakir']}/{ozet['toplam']} bakir konu (~{ozet['kalan_hafta']} hafta)\n"
+        f"• <b>Sütun Dağılımı:</b> S1:{ozet['bakir_sutun_dagilimi'].get('S1',0)} · S2:{ozet['bakir_sutun_dagilimi'].get('S2',0)} · S3:{ozet['bakir_sutun_dagilimi'].get('S3',0)} · S4:{ozet['bakir_sutun_dagilimi'].get('S4',0)}\n"
+        f"• <b>Son Yayın:</b> {son_post_str}\n\n"
+        "<i>Otomatik paylaşımlar haftalık plan doğrultusunda belirlenen günlerde sabah 10:00'da onaya sunulur.</i>"
+    )
+
+    geri_menu = {"inline_keyboard": [[{"text": "← Kontrol Paneline Dön", "callback_data": "panel"}]]}
+    if mesaj_id:
+        mesaji_guncelle(mesaj_id, metin, reply_markup=geri_menu)
+        return None
+    return mesaj_gonder(metin, reply_markup=geri_menu)
+
+
+def komut_menusu_kaydet() -> bool:
+    """Telegram komut açılır menüsünü (setMyCommands) 3 kapsama birden kaydeder."""
+    kapsamlar = [
+        None,
+        {"type": "all_private_chats"},
+        {"type": "all_group_chats"},
+    ]
+    basarili = 0
+    token, _ = _bot_bilgileri()
+    if not token:
+        return False
+
+    url = TELEGRAM_API_URL.format(token=token, method="setMyCommands")
+    for kapsam in kapsamlar:
+        payload: Dict[str, Any] = {"commands": komutlar.KOMUT_MENUSU}
+        if kapsam:
+            payload["scope"] = json.dumps(kapsam)
+        try:
+            r = requests.post(url, json=payload, timeout=15)
+            res = r.json() if r.content else {}
+            if res.get("ok"):
+                basarili += 1
+            else:
+                log.warning("Komut menüsü kaydedilemedi (%s): %s", kapsam or "varsayılan", res)
+        except Exception as e:
+            log.warning("setMyCommands isteği başarısız (%s): %s", kapsam or "varsayılan", e)
+
+    log.info("Telegram komut menüsü %d/%d kapsama yazıldı.", basarili, len(kapsamlar))
+    return basarili == len(kapsamlar)
 
 
 # =========================================================================
@@ -159,29 +653,22 @@ def haber_onayina_sun(haber_id: int) -> bool:
             otorite_verisi = None
 
     if not slayt_yollari:
-        if (
-            otorite_verisi
-            and isinstance(otorite_verisi, dict)
-            and isinstance(otorite_verisi.get("slayt_2_detay"), dict)
-        ):
-            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(otorite_verisi, cikti_onek=f"haber_{haber_id}")
+        from . import yeni_formatlar
+        if otorite_verisi and isinstance(otorite_verisi, dict):
+            slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, cikti_onek=f"gonderi_{haber_id}")
             slayt_yollari = [str(p) for p in slayt_listesi]
         else:
-            # Klasik 3'lü Haber Paftası (Fallback)
-            k1 = make_image.haber_slayti_1_ciz(
-                manset=haber["manset"],
-                spot=haber.get("slayt_1_spot") or haber.get("detay_metni", "")[:120],
-                kaynak=haber.get("kaynak", "EDM"),
-                tarih=haber.get("yayin_tarihi", ""),
-                foto_url=haber.get("gorsel_url"),
-            )
-            maddeler = [haber.get("slayt_2_detay", "")] if haber.get("slayt_2_detay") else [haber.get("detay_metni", "")]
-            k2 = make_image.haber_slayti_2_ciz(
-                manset=haber["manset"],
-                maddeler=maddeler,
-            )
-            k3 = make_image.haber_kapanis_slayti_ciz()
-            slayt_yollari = [str(k1), str(k2), str(k3)]
+            # Fallback durumunda da yeni format motorunu kullan
+            fallback_veri = {
+                "kategori_kodu": haber.get("kategori") or "TAPU_VE_HUKUK",
+                "manset_parca_1": haber.get("manset") or haber.get("orijinal_baslik", ""),
+                "manset_vurgu": "",
+                "manset_parca_2": "",
+                "spot": haber.get("detay_metni") or haber.get("orijinal_ozet", ""),
+                "bicim": "B1",
+            }
+            slayt_listesi = yeni_formatlar.slaytlari_uret(fallback_veri, cikti_onek=f"gonderi_{haber_id}")
+            slayt_yollari = [str(p) for p in slayt_listesi]
 
     rozet = "HUKUK & YATIRIM REHBERİ"
     dayanak = haber.get("kaynak", "EDM Yapı & Gayrimenkul")
@@ -232,27 +719,9 @@ def haber_onayina_sun(haber_id: int) -> bool:
 
     medya_grubu_gonder(slayt_yollari, caption=onizleme_metni)
 
-    # 4. Onay Butonları
-    butonlar = {
-        "inline_keyboard": [
-            [
-                {"text": "✅ Yayına Al (Tüm Kanallar)", "callback_data": f"onayla:haber:hepsi:{haber_id}"},
-            ],
-            [
-                {"text": "📸 Instagram", "callback_data": f"onayla:haber:ig:{haber_id}"},
-                {"text": "📘 Facebook", "callback_data": f"onayla:haber:fb:{haber_id}"},
-                {"text": "🧵 Threads", "callback_data": f"onayla:haber:threads:{haber_id}"},
-            ],
-            [
-                {"text": "🎬 Sadece Video (Reels/Shorts/TikTok)", "callback_data": f"onayla:haber:video:{haber_id}"},
-            ],
-            [
-                {"text": "🔄 Metinleri Yenile", "callback_data": f"yenile:haber:{haber_id}"},
-                {"text": "❌ Reddet", "callback_data": f"reddet:haber:{haber_id}"},
-            ],
-        ]
-    }
-    mesaj_gonder("Bu içeriği sosyal medya hesaplarımızda paylaşalım mı?", reply_markup=butonlar)
+    # 4. İnteraktif Onay Menüsü (Kanal Toggle, Format Değiştirme, Yenileme, Erteleme)
+    butonlar = onay_menusu(haber_id)
+    mesaj_gonder("Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:", reply_markup=butonlar)
     return True
 
 
@@ -334,6 +803,71 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
         conn.commit()
 
     konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+    return haber_onayina_sun(haber_id)
+
+
+def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
+    """Belirtilen formata (sozluk, nedir_dogrusu, vaka, net_cevap) göre sıradaki konuyu üretir ve onaya sunar."""
+    etiketler = {
+        "sozluk": "📖 EDM Gayrimenkul Sözlüğü",
+        "nedir_dogrusu": "⚖️ Nedir Doğrusu?",
+        "vaka": "📂 Hukuki Vaka Analizi",
+        "net_cevap": "❓ Net Cevap Rehberi",
+    }
+    format_etiketi = etiketler.get(format_turu or "", "Otorite İçeriği")
+    mesaj_gonder(f"⏳ <b>{format_etiketi}</b> için sıradaki konu hazırlanıyor...")
+
+    konu = konu_bankasi.sonraki_konu()
+    if not konu:
+        mesaj_gonder("⚠️ Konu bankasında bakir konu kalmadı.")
+        return False
+
+    veri = generate_text.konudan_uret(konu)
+    if not veri:
+        mesaj_gonder("❌ İçerik üretilemedi. Gemini API yanıt vermedi.")
+        return False
+
+    if format_turu:
+        veri["format_turu"] = format_turu
+
+    orijinal_url = f"edm://konu/{konu['kod']}/{int(time.time())}"
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, 'yeni')""",
+            (
+                f"EDM Konu Bankası // {konu['kod']}",
+                konu["baslik"],
+                orijinal_url,
+                konu.get("aci", ""),
+                konu.get("onem_puani", 8),
+                konu.get("sutun", "S1"),
+                generate_text.manset_birlestir(veri) or konu["baslik"],
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+    return haber_onayina_sun(haber_id)
+
+
+def format_degistir_ve_sun(haber_id: int, hedef_format: str) -> bool:
+    """Onay bekleyen bir içeriğin görsel formatını anında değiştirip yeni önizlemeyi sunar."""
+    haber = db.haber_getir(haber_id)
+    if not haber:
+        return False
+
+    detay_metni = haber.get("detay_metni")
+    veri = json.loads(detay_metni) if detay_metni else {}
+    veri["format_turu"] = hedef_format
+    db.haber_guncelle(haber_id, detay_metni=json.dumps(veri, ensure_ascii=False), slayt_yollari=None, slayt_urlleri=None)
+    mesaj_gonder(f"🎨 Haber #{haber_id} <b>{hedef_format.upper()}</b> formatına dönüştürülüyor...")
     return haber_onayina_sun(haber_id)
 
 

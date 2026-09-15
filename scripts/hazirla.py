@@ -82,7 +82,17 @@ def main() -> None:
     parser.add_argument("--durum", action="store_true", help="Konu bankası doluluk durumunu yazar ve çıkar")
     parser.add_argument("--konu-madenle", action="store_true",
                         help="Rehber haberleri konu bankası adaylarına çevirir")
+    parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap"],
+                        help="Belirli bir formatta otorite içeriği üretir")
+    parser.add_argument("--format-degistir", dest="format_degistir_id", type=int,
+                        help="Mevcut bir haber/içerik kaydının formatını değiştirip yeniden sunar")
     args = parser.parse_args()
+
+    # Bot duraklatma denetimi (Kullanıcı Telegram'dan duraklatmışsa atla)
+    duraklatildi, kalan = telegram_bot.bot_duraklatildi_mi()
+    if duraklatildi and not args.durum and not args.format_turu and not args.format_degistir_id:
+        log.info("Bot kullanıcı tarafından duraklatılmış (%s). Otomatik hazırlık atlanıyor.", kalan)
+        return
 
     if args.durum:
         ozet = konu_bankasi.durum_ozeti()
@@ -102,19 +112,32 @@ def main() -> None:
         log.info("%d konu adayı eklendi. 'hazirla.py --durum' ile görebilirsin.", n)
         return
 
-    # 1. Portföy senkronizasyonu
-    fetch_listings.portfoyu_senkronize_et()
+    # İlanlar kullanıcının isteği doğrultusunda şimdilik devre dışı bırakıldı
+    # fetch_listings.portfoyu_senkronize_et()
 
     if args.ilan_menu:
-        log.info("Tek tıkla ilan menüsü Telegram'a gönderiliyor...")
-        telegram_bot.tek_tikla_ilan_menusu_gonder()
+        log.info("İlan menüsü geçici olarak devre dışı.")
         return
 
-    if args.konu:
+    # Mevcut haberin formatı değiştirilecekse
+    if args.format_degistir_id and args.format_turu:
+        log.info("Haber #%d '%s' formatına dönüştürülüyor...", args.format_degistir_id, args.format_turu)
+        telegram_bot.format_degistir_ve_sun(haber_id=args.format_degistir_id, hedef_format=args.format_turu)
+        return
+
+    # Belirli bir format istendiyse doğrudan o formatı üret
+    if args.format_turu:
+        log.info("'%s' formatında içerik hazırlanıyor...", args.format_turu)
+        telegram_bot.hizli_icerik_uret(format_turu=args.format_turu)
+        return
+
+    # Varsayılan akış: Konu bankasından günün takvimine uygun otorite içeriği üret
+    if not args.haber_tara:
+        log.info("Konu bankasından günün konusu hazırlanıyor...")
         telegram_bot.konu_bankasindan_hazirla(gun=args.gun)
         return
 
-    # 2. RSS taraması — haber yalnızca gerçekten değerliyse takvimin önüne geçer
+    # Yalnızca --haber-tara bayrağı verildiğinde RSS taranır
     log.info("Emlak ve ekonomi RSS kaynakları taranıyor...")
     yeni_haberler = fetch_news.rss_tara()
     log.info("%d adet yeni alakalı haber bulundu.", len(yeni_haberler))

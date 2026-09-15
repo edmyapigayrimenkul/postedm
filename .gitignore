@@ -50,5 +50,8 @@ data/temp/
 # Editor
 .idea/
 .vscode/
+*.sublime-workspace
+.wrangler/
+worker/.wrangler/
 *.swp
 *.swo

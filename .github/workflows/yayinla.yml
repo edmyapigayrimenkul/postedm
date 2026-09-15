@@ -2,7 +2,7 @@ name: Paylaşım Yayınla (EDM)
 
 on:
   repository_dispatch:
-    types: [yayinla]
+    types: [yayinla, bot_yonetim]
   workflow_dispatch:
     inputs:
       tur:
@@ -41,7 +41,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Bot Yönetimi (Duraklat / Devam Et)
+        if: github.event.action == 'bot_yonetim'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          EYLEM="${{ github.event.client_payload.eylem }}"
+          SAAT="${{ github.event.client_payload.saat }}"
+          if [ "$EYLEM" = "duraklat" ]; then
+            python -c "from src.telegram_bot import bot_duraklat; bot_duraklat(saat=int('$SAAT'))"
+          elif [ "$EYLEM" = "devam_et" ]; then
+            python -c "from src.telegram_bot import bot_devam_et; bot_devam_et()"
+          fi
+
       - name: Yayınla
+        if: github.event.action == 'yayinla' || github.event_name == 'workflow_dispatch'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

@@ -1,6 +1,17 @@
 """
 threads.py — Meta Threads API Yayın Modülü
+Instabot / Daily Brief mimarisinden uyarlanmıştır.
+
 Metin, tekil görsel ve çoklu slayt (Carousel) paylaşımları yapar.
+
+ÖNEMLİ SAHA TECRÜBELERİ (instabot bulguları):
+1. 2207052 / 2207003 ("An unknown error occurred"): Meta'nın medya işleme hattı görseli
+   hemen indiremediğinde HTTP 400 altında bu kodları döner. 15 saniye bekleyip tekrar
+   denendiğinde kendiliğinden geçer.
+2. CONTAINER_ARASI_SANIYE: Threads art arda gelen medya isteklerini reddeder; carousel
+   öğeleri arasında 12-15 sn aralık bırakmak zorunludur.
+3. 4279009 ("Media Not Found"): Konteyner FINISHED olduktan hemen sonra publish çağrıldığında
+   oluşan yarış durumu. Publish öncesi 2 sn bekleme bunu önler.
 """
 
 from __future__ import annotations
@@ -11,17 +22,74 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from . import config
+from . import config, filtre
 
 log = logging.getLogger(__name__)
 
 THREADS_TABAN = "https://graph.threads.net/v1.0"
+GECICI_HATALAR = {429, 500, 502, 503, 504}
+GECICI_ALT_KODLAR = {2207003, 2207032, 2207052}
+MEDYA_BEKLEME_SANIYE = 15
+CONTAINER_ARASI_SANIYE = 12
+PUBLISH_ONCESI_SANIYE = 2
+MEDYA_YOK_ALT_KODU = 4279009
+AZAMI_DENEME = 5
 
 
 def _hesap_bilgileri() -> Tuple[str, str]:
     token = config.env_al("THREADS_ACCESS_TOKEN")
     kullanici_id = config.env_al("THREADS_USER_ID")
     return kullanici_id, token
+
+
+def kullanilabilir_mi() -> bool:
+    kid, tok = _hesap_bilgileri()
+    return bool(kid and tok)
+
+
+def _konteyner_olustur(url: str, payload: Dict[str, Any]) -> Optional[str]:
+    """
+    Threads konteynerini geçici hatalara ve Meta medya indirme gecikmelerine
+    (2207003 / 2207052) karşı dayanıklı biçimde oluşturur.
+    """
+    for deneme in range(1, AZAMI_DENEME + 1):
+        try:
+            resp = requests.post(url, data=payload, timeout=30)
+            if resp.status_code == 200:
+                return resp.json().get("id")
+
+            # Hata kodlarını çözümle
+            alt_kod = None
+            try:
+                hata_detay = resp.json().get("error", {})
+                alt_kod = hata_detay.get("error_subcode")
+            except Exception:
+                pass
+
+            if alt_kod in GECICI_ALT_KODLAR:
+                log.warning(
+                    "Threads geçici medya gecikmesi (subcode %s, %d sn bekleniyor, deneme %d/%d)",
+                    alt_kod,
+                    MEDYA_BEKLEME_SANIYE,
+                    deneme,
+                    AZAMI_DENEME,
+                )
+                time.sleep(MEDYA_BEKLEME_SANIYE)
+                continue
+
+            if resp.status_code in GECICI_HATALAR:
+                bekle = 3 * deneme
+                log.warning("Threads geçici HTTP %d hatası, %d sn sonra tekrar", resp.status_code, bekle)
+                time.sleep(bekle)
+                continue
+
+            log.warning("Threads konteyner oluşturma başarısız [%d]: %s", resp.status_code, resp.text[:200])
+            break
+        except requests.RequestException as e:
+            log.warning("Threads ağ hatası (deneme %d/%d): %s", deneme, AZAMI_DENEME, e)
+            time.sleep(3 * deneme)
+
+    return None
 
 
 def _konteyner_bekle(creation_id: str, access_token: str, max_bekleme: int = 60) -> bool:
@@ -35,6 +103,8 @@ def _konteyner_bekle(creation_id: str, access_token: str, max_bekleme: int = 60)
             if resp.status_code == 200:
                 durum = resp.json().get("status")
                 if durum == "FINISHED":
+                    # FINISHED ile yayın anı arasındaki küçük yarış durumunu önle (instabot 4279009 dersi)
+                    time.sleep(PUBLISH_ONCESI_SANIYE)
                     return True
                 elif durum == "ERROR":
                     log.error("Threads konteyner hatası: %s", resp.text)
@@ -49,18 +119,35 @@ def _yayina_al(creation_id: str, kullanici_id: str, access_token: str) -> Option
     url = f"{THREADS_TABAN}/{kullanici_id}/threads_publish"
     payload = {"creation_id": creation_id, "access_token": access_token}
 
-    for deneme in range(3):
+    for deneme in range(1, 4):
         try:
             resp = requests.post(url, data=payload, timeout=25)
             if resp.status_code == 200:
                 post_id = resp.json().get("id")
                 log.info("Threads yayını başarılı! ID: %s", post_id)
                 return post_id
-            log.warning("Threads yayınlama denemesi %d başarısız: %s", deneme + 1, resp.text)
-            time.sleep(3)
+
+            # Media Not Found (4279009) geçici işleme gecikmesi olabilir
+            alt_kod = None
+            try:
+                alt_kod = resp.json().get("error", {}).get("error_subcode")
+            except Exception:
+                pass
+
+            if alt_kod == MEDYA_YOK_ALT_KODU:
+                log.warning("Threads 4279009 Media Not Found, 4 sn bekleniyor (deneme %d/3)", deneme)
+                time.sleep(4)
+                continue
+
+            if resp.status_code in GECICI_HATALAR:
+                time.sleep(3 * deneme)
+                continue
+
+            log.warning("Threads yayınlama denemesi %d başarısız: %s", deneme, resp.text[:200])
+            break
         except Exception as e:
-            log.error("Threads yayınlama hatası: %s", e)
-            time.sleep(3)
+            log.error("Threads yayınlama hatası (deneme %d): %s", deneme, e)
+            time.sleep(3 * deneme)
     return None
 
 
@@ -71,14 +158,15 @@ def paylas(metin: str, gorsel_urlleri: Optional[List[str]] = None) -> Optional[s
         log.warning("Threads kimlik bilgileri eksik (.env kontrol edin).")
         return None
 
+    # Markdown yıldızlarını ve literal kaçış dizilerini temizle
+    temiz_metin = filtre.markdown_temizle(metin)
     url = f"{THREADS_TABAN}/{kullanici_id}/threads"
 
     # 1. Salt Metin Paylaşımı
     if not gorsel_urlleri:
-        payload = {"media_type": "TEXT", "text": metin, "access_token": token}
-        resp = requests.post(url, data=payload, timeout=25)
-        if resp.status_code == 200:
-            creation_id = resp.json().get("id")
+        payload = {"media_type": "TEXT", "text": temiz_metin, "access_token": token}
+        creation_id = _konteyner_olustur(url, payload)
+        if creation_id:
             return _yayina_al(creation_id, kullanici_id, token)
         return None
 
@@ -87,43 +175,45 @@ def paylas(metin: str, gorsel_urlleri: Optional[List[str]] = None) -> Optional[s
         payload = {
             "media_type": "IMAGE",
             "image_url": gorsel_urlleri[0],
-            "text": metin,
+            "text": temiz_metin,
             "access_token": token,
         }
-        resp = requests.post(url, data=payload, timeout=25)
-        if resp.status_code == 200:
-            creation_id = resp.json().get("id")
-            if _konteyner_bekle(creation_id, token):
-                return _yayina_al(creation_id, kullanici_id, token)
+        creation_id = _konteyner_olustur(url, payload)
+        if creation_id and _konteyner_bekle(creation_id, token):
+            return _yayina_al(creation_id, kullanici_id, token)
         return None
 
     # 3. Carousel (Çoklu Slayt)
     cocuk_idler = []
-    for g_url in gorsel_urlleri[:10]:
+    for idx, g_url in enumerate(gorsel_urlleri[:10]):
         payload = {
             "media_type": "IMAGE",
             "image_url": g_url,
             "is_carousel_item": "true",
             "access_token": token,
         }
-        resp = requests.post(url, data=payload, timeout=25)
-        if resp.status_code == 200:
-            cocuk_idler.append(resp.json().get("id"))
-        time.sleep(1)
+        cid = _konteyner_olustur(url, payload)
+        if cid:
+            cocuk_idler.append(cid)
+        else:
+            log.warning("Threads carousel slaytı oluşturulamadı: %s", g_url)
+
+        # Meta'nın ardışık istek sınırlamasına karşı güvenli bekleme
+        if idx < len(gorsel_urlleri[:10]) - 1:
+            time.sleep(CONTAINER_ARASI_SANIYE)
 
     if len(cocuk_idler) < 2:
+        log.error("Threads carousel için en az 2 geçerli görsel gerekli, %d adet elde edildi.", len(cocuk_idler))
         return None
 
     payload = {
         "media_type": "CAROUSEL",
         "children": ",".join(cocuk_idler),
-        "text": metin,
+        "text": temiz_metin,
         "access_token": token,
     }
-    resp = requests.post(url, data=payload, timeout=30)
-    if resp.status_code == 200:
-        creation_id = resp.json().get("id")
-        if _konteyner_bekle(creation_id, token):
-            return _yayina_al(creation_id, kullanici_id, token)
+    creation_id = _konteyner_olustur(url, payload)
+    if creation_id and _konteyner_bekle(creation_id, token):
+        return _yayina_al(creation_id, kullanici_id, token)
 
     return None

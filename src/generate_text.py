@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from . import config, db
+from . import config, db, filtre
 
 log = logging.getLogger(__name__)
 
@@ -94,32 +94,58 @@ ORTAK_KURALLAR = """Sen "EDM Yapı & Gayrimenkul"ün içerik editörüsün. Sili
 toprağı bilen, tapuya kadar müşterisinin yanında duran bir emlak ofisi.
 Slogan: "Yatırım Ortağınız".
 
-MARKA SESİ — SAKİN OTORİTE:
-Bilen ama bağırmayan bir uzman gibi yaz. Otorite yüksek sesle değil, kesinlikle kurulur.
+MARKA SESİ — SAKİN OTORİTE & HALK DİLİNDE DERİN UZMANLIK:
+Bilen ama bağırmayan, tapudan yeni çıkmış tecrübeli bir dost gibi yaz. Otorite ağır bürokrasi veya hukuk jargonuyla değil; herkesin tek okuyuşta anladığı kristal netlikteki cümlelerle kurulur.
 
 MUTLAK KURALLAR:
 1. ÜNLEM İŞARETİ KULLANMA. Hiçbir alanda, hiçbir gerekçeyle.
 2. "ŞOK", "KAÇIRMAYIN", "İNANILMAZ", "SAKIN", "DİKKAT!", "ACİL" gibi tıklama tuzağı
    kelimeleri ve emoji kullanma. Bunlar markayı ucuzlatır.
-3. KANUN MADDESİ UYDURMA. Brief'te "DOĞRULANMIŞ MEVZUAT" verildiyse yalnızca onu,
+3. TEK OKUYUŞTA ANLAŞILIR DİL (HERKES ANLAMALI):
+   - Cümleleri kısa tut (ortalama 6-10 kelime). Asla Yargıtay kararı, mahkeme ilamı veya kanun metni gibi dolambaçlı yan cümleler kurma.
+   - Ağır hukuk ve tapu terimlerini halk dilindeki karşılığıyla açıkla:
+     * "Şufa / Yasal önalım hakkı" → "Ön alım hakkı (ortağın hisseyi önceden alma hakkı)"
+     * "Hak düşürücü süre" → "Son dava açma süresi"
+     * "Noter onaylı feragatname" → "Noterden 'hisse istemiyorum' yazısı (feragatname)"
+     * "Fiili taksim" → "Arazide kimin nereyi kullandığı krokisi"
+     * "Düşük rayiç bedel tuzağı" → "Tapuda gerçek ödenen parayı yazdırmamak"
+   - Pasif bürokrasi dili ("yapılmalıdır", "özen gösterilmelidir") KESİNLİKLE YASAKTIR. Doğrudan okuyucuya hitap et: "İsteyin", "Yazdırın", "Kontrol edin", "Haber vermezseniz hisseniz gider".
+   - Okuyan kişi 3 saniyede "Bunu yapmazsam ne olur?" ve "Nasıl korunurum?" sorularının cevabını tek nefeste anlamalıdır.
+4. BOŞ TAVSİYE VE GENEL GEÇER NASİHAT VERME:
+   "Uzmana danışın", "avukatınıza başvurun", "dikkatli olun", "araştırma yapın",
+   "ihmal etmeyin", "önem taşır", "göz ardı etmeyin", "tedbirli olun", "yetkililere sorun"
+   gibi içi boş genel geçer ifadeler KESİNLİKLE YASAKTIR. Okuyucu bizden kuru nasihat değil;
+   içeriden bir gayrimenkul uzmanının bildiği somut mekanizmayı, usulü ve testi bekler.
+5. SOMUT MEKANİZMA, BELGE VE SÜRE VER:
+   Kuru tavsiye yerine DOĞRUDAN eylemi yaz:
+   - Resmi merci: Belediye İmar İşleri Müdürlüğü, Tapu ve Kadastro Müdürlüğü, Noter, Sulh Hukuk Mahkemesi.
+   - Belge adı: 1/1000 Uygulama İmar Planı, TAKBİS tapu kaydı (şerhler ve beyanlar hanesi), Aplikasyon krokisi, Yapı Kullanma İzin Belgesi (İskân), Zemin etüt raporu.
+   - Yasal süre ve oran: 2 yıllık hak düşürücü süre, 90 günlük dava açma hakkı, en fazla %%45 DOP kesintisi (İmar K. md. 18), 10 yıllık tahliye süresi.
+   - Test adımı: "Tapu kütüğünde kamulaştırma veya şufa şerhi sorgulayın", "Belediyeden parselin terk veya ifraz şartını teyit edin", "Noter kanalıyla ihtarname gönderin".
+6. KANUN MADDESİ UYDURMA. Brief'te "DOĞRULANMIŞ MEVZUAT" verildiyse yalnızca onu,
    aynen yaz. Verilmediyse madde numarası YAZMA — "ilgili mevzuat", "yürürlükteki
    düzenleme" gibi ifade kullan. Uydurulmuş bir madde numarası gerçek bir emlak
    ofisinin hesabında ciddi bir sorumluluktur.
-4. RAKAM UYDURMA. Oran veya tutar veriyorsan dayanağını belirt ("TÜFE on iki aylık
+7. RAKAM UYDURMA. Oran veya tutar veriyorsan dayanağını belirt ("TÜFE on iki aylık
    ortalaması" gibi). Dayanağı yoksa rakam verme, niteliksel yaz.
-5. Görsel metinlerinde ortalama cümle uzunluğu 12 kelimeyi geçmesin. Uzun cümle
+8. DİNAMİK DETAY SAYFALARI:
+   Konuyu yapay olarak kalıplara sokma.
+   - Detay analizi (`slayt_2_detay`): Konu tek bir tuzaktan ibaretse 1 kart; iki taraf/seçenek varsa 2 kart; 3 veya 4 aşamalı bir durum varsa `kartlar` dizisinde 3-4 kart yaz. Yapay karşıtlık üretme.
+   - Korunma adımları (`slayt_3_cozum`): 2 ile 5 arasında somut, doğrudan uygulanabilir adım (`maddeler`) yaz. Dolgu madde ekleme.
+9. Görsel metinlerinde ortalama cümle uzunluğu 12 kelimeyi geçmesin. Uzun cümle
    1080 piksellik karede okunmuyor.
-6. Brief'teki "AÇI" içeriğin merkezidir. Konuyu genel geçer anlatma; o açıyı işle.
+10. Brief'teki "AÇI" içeriğin merkezidir. Konuyu genel geçer anlatma; o açıyı işle.
 
 MANŞET YAPISI (üç parça):
-  manset_parca_1  → beyaz görünecek açılış. Durumu kurar
-  manset_vurgu    → KIRMIZI görünecek kanca, BÜYÜK HARF. Okuyanın durduğu yer
-  manset_parca_2  → beyaz görünecek kapanış. SONUCU söyler
+  manset_parca_1  → beyaz görünecek açılış. DOĞRUDAN AKSİYON ve DURUMU kurar (Title Case, örn: "Arsa Alırken", "Tapuyu İmzalamadan", "Kira Kontratında", "Hisseli Tapuda"). ASLA "Muhtelif", "Genel olarak", "Birtakım" gibi bürokratik, pasif veya kuru kelimelerle başlama.
+  manset_vurgu    → KIRMIZI görünecek kanca, BÜYÜK HARF. Okuyanın durduğu yer (BÜYÜK HARF, örn: "İMAR DURUMU YOKSA", "BU İMZAYI ATARSANIZ", "FERAGATNAME YOKSA").
+  manset_parca_2  → beyaz görünecek kapanış. SONUCU ve RİSKİ söyler (İlk harfi büyük / Title Case, örn: "Paranız Çöp Olur", "Tüm Birikiminiz Gider", "Evden Çıkartılırsınız").
 
 ÜÇ PARÇA BİRLEŞTİĞİNDE TAM VE BİTMİŞ BİR CÜMLE OLMALIDIR.
 En sık yapılan hata, cümleyi şartla bırakıp sonucu yazmamaktır:
   YANLIŞ: "Ev kiralarken" + "BU İMZAYI" + "unutursanız"     → sonuç yok, cümle askıda
   DOĞRU : "Ev kiralarken" + "BU İMZAYI" + "atarsanız evden çıkarsınız"
+  DOĞRU : "Arsa alırken"  + "İMAR DURUMU YOKSA" + "paranız çöp olur"
   DOĞRU : "Hisseli tapuda" + "ŞUFA TUZAĞI" + "iki yıl peşinizi bırakmaz"
 Okuyan üçüncü satırı bitirdiğinde riskin ne olduğunu anlamış olmalı.
 
@@ -158,16 +184,18 @@ CAPTION KURALLARI:
 # Biçim şemaları
 # ---------------------------------------------------------------------------
 
-_SEMA_B1 = """BİÇİM: B1 — RİSK DOSYASI (4 slayt)
-Bir tuzak ve ondan korunma yolu. Kaydettirmeyi hedefler.
+_SEMA_B1 = """BİÇİM: B1 — RİSK DOSYASI (Dinamik 4-8 Slayt)
+Bir tuzak ve ondan somut korunma mekanizması.
 
-Slayt 2 iki taraflı analizdir: Ev Sahibi vs Kiracı, Doğru vs Yanlış, ya da
-Riskin Sebebi vs Riskin Sonucu. İki taraf gerçekten varsa kullan; yoksa
-kart_1'i "risk nasıl doğuyor", kart_2'yi "hangi durumda doğmuyor" olarak kur.
-ASLA yapay karşıtlık uydurma.
+Slayt 2 detay analizi: Konunun gereksinimine göre 1 ile 4 arasında kart (`kartlar`) içerebilir.
+- Tek bir risk/tuzak varsa: 1 kart yeterlidir.
+- Karşılaştırma veya iki durum varsa: 2 kart (`kart_1` ve `kart_2`).
+- Çok yönlü bir risk varsa: 3 veya 4 kart.
+ASLA yapay karşıtlık veya dolgu madde uydurma.
 
-Slayt 3 üç somut, uygulanabilir korunma adımıdır. Her adım okuyanın yarın
-yapabileceği bir şey olmalı; "dikkatli olun" gibi soyut tavsiye değil.
+Slayt 3 çözüm adımları: 2 ile 5 arasında somut, uygulanabilir adımdır (`maddeler`).
+Her adım okuyanın yarın tapuda, belediyede veya noter kanalıyla yapabileceği bir işlem olmalı;
+"dikkatli olun" gibi soyut nasihat değil.
 
 JSON:
 {
@@ -182,17 +210,25 @@ JSON:
   "slayt_2_detay": {
     "baslik_satir_1": "≤%(manset_satir)d karakter",
     "baslik_vurgu": "≤%(manset_satir)d karakter, BÜYÜK HARF",
+    "kartlar": [
+      {
+        "etiket": "≤%(rozet)d karakter (örn: RİSKİN SEBEBİ // YASAL ÇERÇEVE)",
+        "renk": "kirmizi | yesil | gri",
+        "baslik": "≤%(kart_baslik)d karakter",
+        "aciklama": "≤%(kart_aciklama)d karakter. Somut mekanizma ve tam cümle"
+      }
+    ],
     "kart_1": {
-      "etiket": "≤%(rozet)d karakter (örn: RİSKİN KAYNAĞI // YASAL ÇERÇEVE)",
+      "etiket": "≤%(rozet)d karakter",
       "renk": "kirmizi",
       "baslik": "≤%(kart_baslik)d karakter",
-      "aciklama": "≤%(kart_aciklama)d karakter. Tam cümlelerle bitir"
+      "aciklama": "≤%(kart_aciklama)d karakter"
     },
     "kart_2": {
       "etiket": "≤%(rozet)d karakter",
       "renk": "yesil",
       "baslik": "≤%(kart_baslik)d karakter",
-      "aciklama": "≤%(kart_aciklama)d karakter. Tam cümlelerle bitir"
+      "aciklama": "≤%(kart_aciklama)d karakter"
     }
   },
   "slayt_3_cozum": {
@@ -201,8 +237,7 @@ JSON:
     "baslik_vurgu": "≤%(manset_satir)d karakter",
     "maddeler": [
       {"no": "01", "baslik": "≤%(adim_baslik)d karakter", "aciklama": "≤%(adim_aciklama)d karakter"},
-      {"no": "02", "baslik": "≤%(adim_baslik)d karakter", "aciklama": "≤%(adim_aciklama)d karakter"},
-      {"no": "03", "baslik": "≤%(adim_baslik)d karakter", "aciklama": "≤%(adim_aciklama)d karakter"}
+      {"no": "02", "baslik": "≤%(adim_baslik)d karakter", "aciklama": "≤%(adim_aciklama)d karakter"}
     ]
   },
   "slayt_4_cta": {
@@ -340,17 +375,39 @@ MARKANIN SES TONU & İLKELERİ:
 # Gemini çağrısı
 # ---------------------------------------------------------------------------
 
+_TUKENMIS: set[tuple[str, str]] = set()
+
+
+def _anahtarlari_al() -> List[Tuple[str, str]]:
+    """Denenecek API anahtarlarını döner."""
+    anahtarlar = []
+    ana = config.env_al("GEMINI_API_KEY")
+    if ana:
+        anahtarlar.append(("birincil", ana))
+    yedek = config.env_al("GEMINI_API_KEY_2") or config.env_al("GEMINI_IMAGE_API_KEY")
+    if yedek and yedek != ana:
+        anahtarlar.append(("yedek", yedek))
+    return anahtarlar
+
+
+def _gunluk_kota_hatasi(cevap: Any) -> bool:
+    if isinstance(cevap, dict):
+        mesaj = str(cevap.get("error", {}).get("message", ""))
+    else:
+        mesaj = str(cevap)
+    return "PerDay" in mesaj or "per day" in mesaj.lower()
+
+
 def _gemini_cagri(
     prompt: str,
     sistem_talimati: str,
     sicaklik: float = 0.7,
     modeller: Optional[List[str]] = None,
 ) -> Optional[str]:
-    """Model zincirini sırayla dener. Sıcaklık 0.7: kanca yazımı 0.3'te fazla
-    kalıplaşıyordu, brief zaten olguları sabitlediği için yaratıcılık payı güvenli."""
-    api_key = config.env_al("GEMINI_API_KEY")
-    if not api_key:
-        log.warning("GEMINI_API_KEY tanımlanmamış")
+    """Model zincirini ve yedek anahtarları sırayla dener."""
+    anahtarlar = _anahtarlari_al()
+    if not anahtarlar:
+        log.warning("Hiçbir GEMINI_API_KEY tanımlanmamış")
         return None
 
     payload = {
@@ -358,29 +415,62 @@ def _gemini_cagri(
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": sicaklik, "responseMimeType": "application/json"},
     }
-    headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
 
-    for model in (modeller or MODELLER):
-        url = GEMINI_API_URL.format(model=model)
-        for _ in range(2):
-            try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=35)
-                if resp.status_code == 200:
-                    log.info("Yanıt veren model: %s", model)
-                    return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                if resp.status_code in (429, 500, 503):
-                    # 503 "yoğunluk" ve 429 "kota" aynı modelde 2 saniyede
-                    # düzelmiyor. Beklemek yerine sıradaki modele geçmek hem
-                    # daha hızlı hem daha çok işe yarıyor: 246 saniyelik
-                    # başarısız tur bu döngüde geçmişti.
-                    log.warning("%s kullanılamıyor [%d], sıradaki modele geçiliyor", model, resp.status_code)
-                    break
-                else:
+    for anahtar_adi, api_key in anahtarlar:
+        headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
+        for model in (modeller or MODELLER):
+            if (model, anahtar_adi) in _TUKENMIS:
+                log.debug("%s/%s günlük kotası tükenmiş, atlanıyor", model, anahtar_adi)
+                continue
+
+            url = GEMINI_API_URL.format(model=model)
+            for _ in range(2):
+                try:
+                    resp = requests.post(url, headers=headers, json=payload, timeout=35)
+                    if resp.status_code == 200:
+                        veri = resp.json()
+                        candidates = veri.get("candidates", [])
+                        if candidates:
+                            c = candidates[0]
+                            sebep = c.get("finishReason", "STOP")
+                            if sebep in ("SAFETY", "RECITATION", "BLOCKLIST"):
+                                log.warning(
+                                    "%s güvenlik filtresine takıldı (finishReason=%s), sıradaki modele geçiliyor",
+                                    model,
+                                    sebep,
+                                )
+                                break
+                            parts = c.get("content", {}).get("parts", [])
+                            if parts and "text" in parts[0]:
+                                log.info("Yanıt veren model: %s (%s)", model, anahtar_adi)
+                                return parts[0]["text"]
+                        log.warning("%s adayı boş döndü, sıradaki model", model)
+                        break
+
+                    if resp.status_code == 429:
+                        try:
+                            if _gunluk_kota_hatasi(resp.json()):
+                                _TUKENMIS.add((model, anahtar_adi))
+                                log.warning(
+                                    "%s/%s günlük kotası doldu, bu çalıştırmada tekrar denenmeyecek",
+                                    model,
+                                    anahtar_adi,
+                                )
+                        except Exception:
+                            pass
+                        log.warning("%s hız/kota sınırında [%d], sıradaki modele geçiliyor", model, resp.status_code)
+                        break
+
+                    if resp.status_code in (500, 503):
+                        log.warning("%s sunucu yoğun [%d], sıradaki modele geçiliyor", model, resp.status_code)
+                        break
+
                     log.warning("%s hata [%d]: %s", model, resp.status_code, resp.text[:120])
                     break
-            except Exception as e:
-                log.warning("%s istek istisnası: %s", model, e)
-                time.sleep(1)
+                except Exception as e:
+                    log.warning("%s istek istisnası: %s", model, e)
+                    time.sleep(1)
+
     return None
 
 
@@ -493,6 +583,12 @@ def butce_ihlalleri(veri: Dict[str, Any]) -> List[str]:
         if deger and len(deger) > BUTCE[anahtar]:
             ihlaller.append(f"{yol}: {len(deger)}/{BUTCE[anahtar]} karakter")
 
+    for i, k in enumerate(_yoldan_al_liste(veri, "slayt_2_detay.kartlar")):
+        for alan, anahtar in (("etiket", "rozet"), ("baslik", "kart_baslik"), ("aciklama", "kart_aciklama")):
+            d = k.get(alan)
+            if isinstance(d, str) and len(d) > BUTCE[anahtar]:
+                ihlaller.append(f"slayt_2_detay.kartlar[{i}].{alan}: {len(d)}/{BUTCE[anahtar]} karakter")
+
     for i, m in enumerate(_yoldan_al_liste(veri, "slayt_3_cozum.maddeler")):
         for alan, anahtar in (("baslik", "adim_baslik"), ("aciklama", "adim_aciklama")):
             d = m.get(alan)
@@ -517,7 +613,7 @@ def _temizle(veri: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(veri, list):
         return [_temizle(v) for v in veri]
     if isinstance(veri, str):
-        return _unlemleri_kaldir(_markdown_temizle(veri))
+        return _unlemleri_kaldir(filtre.markdown_temizle(veri))
     return veri
 
 

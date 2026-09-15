@@ -33,53 +33,44 @@ LOGO_PIN = config.yol_al("assets/logos/pin-sembol.png")
 
 
 def _cercevele_9_16(kart_img: Image.Image) -> Image.Image:
-    """1080x1350 slaytını 1080x1920 tuvale sinematik blur, derinlik gölgesi ve marka başlığı ile yerleştirir."""
+    """1080x1350 slayt görselini 1080x1920 (9:16) formatına dönüştürür.
+
+    Kart görünümü ve yapay kenarlıklar yerine, dikeyde 140px yumuşak
+    degrade geçiş (soft vertical vignette fade) ile sinematik arka plana eritir.
+    """
     w, h = kart_img.size
     if (w, h) == (HEDEF_W, HEDEF_H):
         return kart_img.convert("RGB")
 
-    tuval = Image.new("RGB", (HEDEF_W, HEDEF_H), (18, 19, 22))
+    kart_rgb = kart_img.convert("RGB")
 
     # 1. Arka plan: Orantılı büyütüp sinematik blur ve karartma uygula
-    oran = max(HEDEF_W / w, HEDEF_H / h)
-    bg_w, bg_h = int(w * oran), int(h * oran)
-    bg = kart_img.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
-    sol = (bg_w - HEDEF_W) // 2
-    ust = (bg_h - HEDEF_H) // 2
+    oran = max(HEDEF_W / max(1, w), HEDEF_H / max(1, h))
+    bg_w, bg_h = max(HEDEF_W, int(w * oran)), max(HEDEF_H, int(h * oran))
+    bg = kart_rgb.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
+    sol = max(0, (bg_w - HEDEF_W) // 2)
+    ust = max(0, (bg_h - HEDEF_H) // 2)
     bg_kirp = bg.crop((sol, ust, sol + HEDEF_W, ust + HEDEF_H))
-    bg_blur = bg_kirp.filter(ImageFilter.GaussianBlur(radius=35))
+    bg_blur = bg_kirp.filter(ImageFilter.GaussianBlur(radius=45))
 
-    # Karartma perdesi
-    karartma = Image.new("RGB", (HEDEF_W, HEDEF_H), (0, 0, 0))
-    bg_son = Image.blend(bg_blur, karartma, 0.45)
-    tuval.paste(bg_son, (0, 0))
+    # Koyu sinematik perde
+    karartma = Image.new("RGB", (HEDEF_W, HEDEF_H), (10, 12, 16))
+    tuval = Image.blend(bg_blur, karartma, 0.48)
 
-    # 2. Ana Kartın Arkasına Yumuşak Derinlik Gölgesi
-    card_y = (HEDEF_H - h) // 2  # 285px
-    golge = Image.new("RGBA", (HEDEF_W, HEDEF_H), (0, 0, 0, 0))
-    gdraw = ImageDraw.Draw(golge)
-    gdraw.rectangle([15, card_y - 8, HEDEF_W - 15, card_y + h + 8], fill=(0, 0, 0, 190))
-    golge = golge.filter(ImageFilter.GaussianBlur(25))
-    tuval_rgba = Image.alpha_composite(tuval.convert("RGBA"), golge)
-    tuval = tuval_rgba.convert("RGB")
+    # 2. 4:5 Görseli Merkeze Yerleştir — Soft Degrade Fade ile
+    card_y = max(0, (HEDEF_H - h) // 2)
 
-    # 3. Ana Kartı Merkeze Koy (1080x1350)
-    tuval.paste(kart_img, (0, card_y))
+    # Alfa Maskesi: Dikeyde ortası %100 opak, üst ve alt kenarlar yumuşak degrade
+    mask = Image.new("L", (w, h), 255)
+    m_draw = ImageDraw.Draw(mask)
+    fade_h = min(140, max(10, h // 4))
+    for i in range(fade_h):
+        alpha = int(255 * ((i / max(1, fade_h)) ** 1.3))
+        m_draw.line([(0, i), (w, i)], fill=alpha)
+        m_draw.line([(0, h - 1 - i), (w, h - 1 - i)], fill=alpha)
 
-    draw = ImageDraw.Draw(tuval)
-
-    # 4. Üst Marka Başlığı (0 - 285px güvenli alan)
-    try:
-        font_mono = ImageFont.truetype(str(FONT_MONO), 24)
-    except Exception:
-        font_mono = ImageFont.load_default()
-
-    draw.text((70, 180), "EDM YAPI & GAYRİMENKUL", font=font_mono, fill=(244, 244, 243))
-    draw.line([(70, 220), (HEDEF_W - 70, 220)], fill=(240, 0, 13), width=2)
-
-    # 5. Alt Marka İmzası (1635 - 1920px güvenli alan)
-    draw.line([(70, 1700), (HEDEF_W - 70, 1700)], fill=(80, 80, 85), width=1)
-    draw.text((70, 1725), "edmyapigayrimenkul.com · 0536 343 41 97", font=font_mono, fill=(180, 180, 185))
+    # Yumuşak geçişle tuvale yapıştır
+    tuval.paste(kart_rgb, (0, card_y), mask)
 
     return tuval
 

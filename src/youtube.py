@@ -1,19 +1,31 @@
 """
 youtube.py — YouTube Data API v3 üzerinden 9:16 Shorts Video Yükleyici
+Instabot / Daily Brief mimarisinden uyarlanmıştır.
+
 Dikey (1080x1920) emlak ve haber videolarını YouTube Shorts olarak yayınlar.
+
+ÖNEMLİ SAHA TECRÜBELERİ (instabot bulguları):
+1. Günlük Kota Tavanı: YouTube Data API ücretsiz kotası 10.000 birim/gündür. 1 video yüklemesi
+   1600 birim harcar. Günde azami 5 video (8000 birim) tavanı konularak kota tükenmesi önlenir.
+2. invalid_grant & Testing Modu: Google Cloud Console OAuth ekranı "Testing" durumundaysa
+   refresh token tam 7 günde bir ölür. Kalıcı çözüm konsolda "Publish App" yapmaktır.
+3. Sessiz Video: Tamamen sessiz videolar algoritmaların ikincil transcode kuyruğuna düşüp
+   gecikmelere yol açabilir; hafif bir ambiyans fon miksi eklenir.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import logging
 import os
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
 
-from . import config
+from . import config, db
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +33,60 @@ YOUTUBE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 YOUTUBE_UPLOAD_URL = (
     "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status"
 )
+YOUTUBE_GUNLUK_AZAMI_VIDEO = 5
+
+
+def gunluk_yukleme_sayisi_al() -> int:
+    """Bugün YouTube'a başarıyla yüklenmiş Shorts videosu sayısını döner."""
+    bugun = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    anahtar = f"youtube_gunluk_sayac_{bugun}"
+    deger = db.ayar_oku(anahtar, 0)
+    try:
+        return int(deger)
+    except (ValueError, TypeError):
+        return 0
+
+
+def gunluk_yukleme_sayisi_artir() -> None:
+    """Bugünkü YouTube yükleme sayacını 1 artırır."""
+    bugun = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    anahtar = f"youtube_gunluk_sayac_{bugun}"
+    mevcut = gunluk_yukleme_sayisi_al()
+    db.ayar_yaz(anahtar, str(mevcut + 1))
+
+
+def youtube_icin_sesli_video_hazirla(video_yolu: Path | str) -> Path:
+    """
+    Videoya arka planda hafif bir fon sesi miksler veya orijinal videoyu döner.
+    """
+    yol = Path(video_yolu)
+    if not yol.exists():
+        return yol
+
+    try:
+        import imageio_ffmpeg
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        yt_cikti = yol.with_name(f"{yol.stem}_yt.mp4")
+
+        # Hafif ve modern kurumsal ambiyans akordu üret
+        komut = [
+            ffmpeg_exe, "-y",
+            "-i", str(yol),
+            "-f", "lavfi", "-i",
+            "aevalsrc=0.02*sin(2*PI*110*t)+0.015*sin(2*PI*164.81*t)+0.015*sin(2*PI*220*t):s=44100",
+            "-map", "0:v", "-map", "1:a",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+            "-shortest", "-movflags", "+faststart",
+            str(yt_cikti),
+        ]
+        subprocess.run(komut, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if yt_cikti.exists() and yt_cikti.stat().st_size > 0:
+            log.info("YouTube Shorts için hafif ambiyans fon mikslendi: %s", yt_cikti.name)
+            return yt_cikti
+    except Exception as e:
+        log.debug("YouTube için fon sesi mikslenemedi, orijinal video ile devam: %s", e)
+
+    return yol
 
 
 def access_token_al() -> Optional[str]:
@@ -43,7 +109,15 @@ def access_token_al() -> Optional[str]:
         res = requests.post(YOUTUBE_TOKEN_URL, data=data, timeout=12)
         if res.status_code == 200:
             return res.json().get("access_token")
-        log.warning("YouTube token yenileme başarısız (%s): %s", res.status_code, res.text[:200])
+
+        cevap_metni = res.text
+        if "invalid_grant" in cevap_metni:
+            log.error(
+                "YouTube refresh token geçersiz (invalid_grant). Google Cloud Console OAuth Consent Screen "
+                "'Testing' modunda ise jeton 7 günde iptal edilir; 'Publish App' (In production) yapılmalıdır."
+            )
+        else:
+            log.warning("YouTube token yenileme başarısız (%s): %s", res.status_code, cevap_metni[:200])
     except Exception as e:
         log.warning("YouTube token alma hatası: %s", e)
     return None
@@ -59,12 +133,26 @@ def shorts_yukle(
     """1080x1920 MP4 videosunu YouTube Shorts olarak yükler."""
     yol = Path(video_yolu)
     if not yol.exists() or yol.stat().st_size == 0:
-        return {"durum": False, "hata": f"Video dosyası bulunamadı: {yol}"}
+        return {"durum": False, "hata": f"Video dosyası bulunamadı veya boş: {yol}"}
+
+    # 1. Günlük YouTube Kota Denetimi (Maksimum 5 video / gün = 8000 birim)
+    yuklenen_bugun = gunluk_yukleme_sayisi_al()
+    if yuklenen_bugun >= YOUTUBE_GUNLUK_AZAMI_VIDEO:
+        log.warning(
+            "YouTube günlük kota koruması: bugün zaten %d video yüklendi. Kota aşımını önlemek için atlanıyor.",
+            yuklenen_bugun,
+        )
+        return {
+            "durum": False,
+            "hata": f"YouTube günlük kota sınırına ({yuklenen_bugun}/{YOUTUBE_GUNLUK_AZAMI_VIDEO} video) ulaşıldı. Shorts atlandı.",
+            "kota_siniri": True,
+        }
 
     token = access_token_al()
     if not token:
         return {"durum": False, "hata": "YouTube erişim jetonu alınamadı."}
 
+    # Shorts Başlık & Açıklama Optimizasyonu
     temiz_baslik = baslik.strip()
     if "#Shorts" not in temiz_baslik and "#shorts" not in temiz_baslik:
         if len(temiz_baslik) <= 90:
@@ -90,11 +178,14 @@ def shorts_yukle(
         },
     }
 
+    # Ses miksi dene
+    yuklenecek_yol = youtube_icin_sesli_video_hazirla(yol)
+
     headers_init = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json; charset=UTF-8",
         "X-Upload-Content-Type": "video/mp4",
-        "X-Upload-Content-Length": str(yol.stat().st_size),
+        "X-Upload-Content-Length": str(yuklenecek_yol.stat().st_size),
     }
 
     try:
@@ -109,24 +200,34 @@ def shorts_yukle(
 
         upload_url = r_init.headers["Location"]
 
-        # 2. Binary Video Yüklemesi
-        with open(yol, "rb") as f_video:
-            headers_upload = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "video/mp4",
-                "Content-Length": str(yol.stat().st_size),
-            }
-            r_up = requests.put(upload_url, headers=headers_upload, data=f_video, timeout=120)
+        # 2. Binary Video Yüklemesi (3 denemeli)
+        for deneme in range(1, 4):
+            try:
+                with open(yuklenecek_yol, "rb") as f_video:
+                    headers_upload = {
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "video/mp4",
+                        "Content-Length": str(yuklenecek_yol.stat().st_size),
+                    }
+                    r_up = requests.put(upload_url, headers=headers_upload, data=f_video, timeout=120)
 
-        if r_up.status_code in (200, 201):
-            veri = r_up.json()
-            vid_id = veri.get("id")
-            video_url = f"https://youtube.com/shorts/{vid_id}"
-            log.info("YouTube Shorts yayını başarılı! URL: %s", video_url)
-            return {"durum": True, "video_id": vid_id, "url": video_url}
-        else:
-            return {"durum": False, "hata": f"Video yüklenemedi [{r_up.status_code}]: {r_up.text[:200]}"}
+                if r_up.status_code in (200, 201):
+                    veri = r_up.json()
+                    vid_id = veri.get("id")
+                    video_url = f"https://youtube.com/shorts/{vid_id}"
+                    log.info("YouTube Shorts yayını başarılı! URL: %s", video_url)
+                    gunluk_yukleme_sayisi_artir()
+                    return {"durum": True, "video_id": vid_id, "url": video_url}
 
+                if r_up.status_code in (500, 502, 503, 504):
+                    log.warning("YouTube video yükleme geçici hata [%d], tekrar deneniyor", r_up.status_code)
+                    continue
+
+                return {"durum": False, "hata": f"Video yüklenemedi [{r_up.status_code}]: {r_up.text[:200]}"}
+            except requests.RequestException as e:
+                log.warning("YouTube upload bağlantı hatası (deneme %d): %s", deneme, e)
+
+        return {"durum": False, "hata": "YouTube video yükleme denemeleri tükendi."}
     except Exception as e:
         log.error("YouTube Shorts yükleme istisnası: %s", e)
         return {"durum": False, "hata": str(e)}
