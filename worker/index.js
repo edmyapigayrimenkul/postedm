@@ -18,11 +18,150 @@ export default {
         : `<div style="color:#f85149;margin:20px 0;">Hata: ${error || "Yetkilendirme kodu alınamadı"}</div>`;
 
       const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>TikTok EDM Yetkilendirme</title></head>
-<body style="font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:50px;background:#0d1117;color:#c9d1d9;">
+<html lang="tr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TikTok EDM Yetkilendirme</title></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:50px 20px;background:#0d1117;color:#c9d1d9;">
   <h2 style="color:#58a6ff;">🎵 TikTok EDM Yetkilendirme</h2>
   ${icerik}
+</body>
+</html>`;
+      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
+    // Gizlilik Politikası (Privacy Policy) — TikTok & Meta API Onayı ve KVKK İçin
+    if (reqUrl.pathname === "/privacy") {
+      const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gizlilik Politikası (Privacy Policy) | EDM Yapı Gayrimenkul</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background: #0b132b; color: #e0e1dd; margin: 0; padding: 40px 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: #1c2541; padding: 40px; border-radius: 12px; border: 1px solid #3a506b; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    h1 { color: #64dfdf; margin-top: 0; font-size: 26px; border-bottom: 2px solid #3a506b; padding-bottom: 12px; }
+    h2 { color: #48cae4; font-size: 19px; margin-top: 24px; }
+    p, li { color: #cbd5e1; font-size: 15px; }
+    a { color: #64dfdf; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .footer { margin-top: 40px; pt-20; border-top: 1px solid #3a506b; font-size: 13px; color: #8d99ae; text-align: center; }
+    .badge { background: #3a506b; color: #e0e1dd; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>EDM Yapı Gayrimenkul — Gizlilik Politikası (Privacy Policy)</h1>
+    <p><strong>Son Güncelleme:</strong> 15 Eylül 2026 | <span class="badge">KVKK & GDPR Uyumlu</span></p>
+
+    <h2>1. Genel Bilgiler ve Veri Sorumlusu</h2>
+    <p>İşbu Gizlilik Politikası, <strong>EDM Yapı Gayrimenkul</strong> (Web: <a href="https://edmyapigayrimenkul.com">edmyapigayrimenkul.com</a>, İletişim: <a href="mailto:edmyapigayrimenkul@gmail.com">edmyapigayrimenkul@gmail.com</a>) tarafından yürütülen dijital yayıncılık, gayrimenkul danışmanlığı ve otomatik sosyal medya entegrasyonu hizmetleri için geçerlidir.</p>
+
+    <h2>2. Toplanan Veriler ve Kullanım Amacı</h2>
+    <p>EDM Yapı sistemleri ve bağlı sosyal medya otomasyon uygulamaları (TikTok for Developers, Meta Graph API vb.);</p>
+    <ul>
+      <li>Yalnızca şirketimizin resmi sosyal medya profillerine içerik ve kısa eğitim videoları yayınlamak amacıyla yetkilendirilmiş API erişim anahtarlarını (OAuth token) kullanır.</li>
+      <li>Son kullanıcılara veya üçüncü taraflara ait hiçbir kişisel kimlik verisi, mesaj, telefon veya kredi kartı bilgisi toplanmaz, kaydedilmez veya üçüncü şahıslara satılmaz.</li>
+    </ul>
+
+    <h2>3. TikTok ve Üçüncü Taraf API Entegrasyonları</h2>
+    <p>Uygulamamız TikTok Developer Platformu üzerinden <code>video.upload</code>, <code>video.publish</code> ve <code>user.info.basic</code> izinlerini kullanır. Bu izinler münhasıran şirketimizin yetkilendirdiği gayrimenkul ve tapu bilgilendirme videolarının TikTok hesabımızda yayınlanması için kullanılır. TikTok Topluluk Kuralları ve Veri Politikasına tam uyum gösterilir.</p>
+
+    <h2>4. Veri Güvenliği ve Saklama</h2>
+    <p>Yetkilendirme anahtarları yüksek güvenlikli şifrelenmiş sunucu ortamlarında (Cloudflare Worker & GitHub Secrets) saklanır. İlgili yetkilendirmeler istendiği anda kullanıcı veya platform tarafından tek tıkla iptal edilebilir.</p>
+
+    <h2>5. Haklarınız ve İletişim</h2>
+    <p>6698 sayılı KVKK ve ilgili mevzuat uyarınca verilerinizin durumunu öğrenmek veya silinmesini talep etmek için <a href="mailto:edmyapigayrimenkul@gmail.com">edmyapigayrimenkul@gmail.com</a> adresi üzerinden bizimle dilediğiniz an iletişime geçebilirsiniz.</p>
+
+    <div class="footer">
+      &copy; 2026 EDM Yapı Gayrimenkul. Tüm hakları saklıdır. &bull; <a href="/terms">Kullanım Şartları (Terms of Service)</a>
+    </div>
+  </div>
+</body>
+</html>`;
+      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
+    // Kullanım Şartları (Terms of Service) — TikTok & Meta API Onayı İçin
+    if (reqUrl.pathname === "/terms") {
+      const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kullanım Şartları (Terms of Service) | EDM Yapı Gayrimenkul</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background: #0b132b; color: #e0e1dd; margin: 0; padding: 40px 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: #1c2541; padding: 40px; border-radius: 12px; border: 1px solid #3a506b; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    h1 { color: #64dfdf; margin-top: 0; font-size: 26px; border-bottom: 2px solid #3a506b; padding-bottom: 12px; }
+    h2 { color: #48cae4; font-size: 19px; margin-top: 24px; }
+    p, li { color: #cbd5e1; font-size: 15px; }
+    a { color: #64dfdf; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .footer { margin-top: 40px; pt-20; border-top: 1px solid #3a506b; font-size: 13px; color: #8d99ae; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>EDM Yapı Gayrimenkul — Kullanım Şartları (Terms of Service)</h1>
+    <p><strong>Son Güncelleme:</strong> 15 Eylül 2026</p>
+
+    <h2>1. Şartların Kabulü</h2>
+    <p><strong>EDM Yapı Gayrimenkul</strong> ("edmyapigayrimenkul.com") web sitesini ve bağlı içerik otomasyon servislerini kullanan tüm yetkili kullanıcılar bu kullanım koşullarını kabul etmiş sayılır.</p>
+
+    <h2>2. Hizmetin Kapsamı ve Amacı</h2>
+    <p>Uygulamamız, EDM Yapı Gayrimenkul kurumsal ekibi tarafından gayrimenkul piyasası, tapu mevzuatı, arsa ve konut projelerine ilişkin özgün bilgilendirici grafik ve video içeriklerinin üretilmesi ve sosyal medya mecralarına (Instagram, TikTok, YouTube vb.) planlı şekilde iletilmesi amacıyla geliştirilmiştir.</p>
+
+    <h2>3. Fikri Mülkiyet ve Telif Hakları</h2>
+    <p>Platformda üretilen ve paylaşılan tüm görsel tasarımlar, metinler, logolar ve video kurguları EDM Yapı Gayrimenkul'e aittir. İzinsiz kopyalanamaz veya ticari amaçla çoğaltılamaz.</p>
+
+    <h2>4. Platform Kurallarına Uyum</h2>
+    <p>Uygulama, entegre olduğu TikTok for Developers ve Meta for Developers platformlarının geliştirici sözleşmelerine ve topluluk kurallarına mutlak surette riayet eder. Spam, manipülasyon veya yanıltıcı içerik yayını kesinlikle yasaktır.</p>
+
+    <h2>5. İletişim ve Destek</h2>
+    <p>Kullanım koşulları veya servislerimiz hakkında tüm sorularınız için resmi e-posta adresimiz: <a href="mailto:edmyapigayrimenkul@gmail.com">edmyapigayrimenkul@gmail.com</a></p>
+
+    <div class="footer">
+      &copy; 2026 EDM Yapı Gayrimenkul. Tüm hakları saklıdır. &bull; <a href="/privacy">Gizlilik Politikası (Privacy Policy)</a>
+    </div>
+  </div>
+</body>
+</html>`;
+      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
+    // Ana Sayfa (Landing Page)
+    if (reqUrl.pathname === "/" && (request.method === "GET" || request.method === "HEAD")) {
+      const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EDM Yapı Gayrimenkul | Resmi Web Portalı</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background: #0b132b; color: #e0e1dd; margin: 0; padding: 50px 20px; text-align: center; }
+    .container { max-width: 700px; margin: 0 auto; background: #1c2541; padding: 50px 30px; border-radius: 16px; border: 1px solid #3a506b; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+    h1 { color: #ffffff; font-size: 30px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+    p.lead { color: #64dfdf; font-size: 18px; margin-top: 0; margin-bottom: 25px; }
+    p.desc { color: #cbd5e1; font-size: 15px; max-width: 550px; margin: 0 auto 30px; }
+    .links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 30px; }
+    .btn { background: #3a506b; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; transition: background 0.2s; border: 1px solid #48cae4; }
+    .btn:hover { background: #48cae4; color: #0b132b; }
+    .footer { margin-top: 40px; font-size: 13px; color: #8d99ae; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>EDM YAPI GAYRİMENKUL</h1>
+    <p class="lead">Güvenilir Gayrimenkul Danışmanlığı & Dijital İçerik Portalı</p>
+    <p class="desc">EDM Yapı Gayrimenkul, modern gayrimenkul çözümleri, tapu-imar danışmanlığı ve dijital medya otomasyonlarıyla sektöre değer katmaktadır.</p>
+    <div class="links">
+      <a href="/privacy" class="btn">Gizlilik Politikası (Privacy Policy)</a>
+      <a href="/terms" class="btn">Kullanım Şartları (Terms of Service)</a>
+    </div>
+    <div class="footer">
+      İletişim: edmyapigayrimenkul@gmail.com &bull; &copy; 2026 EDM Yapı
+    </div>
+  </div>
 </body>
 </html>`;
       return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
