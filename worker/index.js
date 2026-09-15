@@ -423,12 +423,25 @@ export default {
           return new Response("OK");
         }
 
-        // F. YAYIN ONAYI
+        // F. MANUEL PAYLAŞIM PAKETİ
+        if (data.startsWith("manuel_paket:")) {
+          const id = data.split(":")[1];
+          await cevapVer("Manuel paket hazırlanıyor...");
+          await tetikleGitHub(env, "yayinla", { tur: "haber", hedef: "manuel_paket", id });
+          await mesajiGuncelle(`📲 <b>Haber #${id} için Manuel Paylaşım Paketi hazırlanıyor...</b>\nAçıklama metni ve yönlendirme butonları birazdan iletilecek.`);
+          return new Response("OK");
+        }
+
+        // F. YAYIN ONAYI VEYA TAMAMLANDI
         if (data.startsWith("onayla:")) {
-          await cevapVer("Yayın süreci başlatıldı");
           const [, tur, hedef, id] = data.split(":");
+          await cevapVer(hedef === "tamamla" || hedef === "manuel_tamam" ? "Tamamlandı olarak işaretleniyor..." : "Yayın süreci başlatıldı");
           await tetikleGitHub(env, "yayinla", { tur, hedef, id });
-          await mesajiGuncelle(`🚀 <b>${tur.toUpperCase()} #${id} yayına alınıyor...</b>\nSeçili kanallar: <code>${hedef}</code>`);
+          if (hedef === "tamamla" || hedef === "manuel_tamam") {
+            await mesajiGuncelle(`✅ <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} #${id} tamamlandı olarak kaydediliyor...</b>`);
+          } else {
+            await mesajiGuncelle(`🚀 <b>${tur.toUpperCase()} #${id} yayına alınıyor...</b>\nSeçili kanallar: <code>${hedef}</code>`);
+          }
           return new Response("OK");
         }
 
@@ -673,6 +686,7 @@ function standartOnayMenusu(id) {
       ],
       [
         { text: "🚀 Seçili Kanallarda Yayınla", callback_data: `onayla:haber:ig,threads:${id}` },
+        { text: "📲 Manuel Paket", callback_data: `manuel_paket:${id}` },
       ],
       [
         { text: "🔄 Metinleri Yenile", callback_data: `yenile:haber:${id}` },

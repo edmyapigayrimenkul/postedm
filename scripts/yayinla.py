@@ -26,7 +26,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="EDM Paylaşım Yayınlayıcı")
     parser.add_argument("--tur", required=True, choices=["haber", "ilan", "reels"], help="İçerik türü")
     parser.add_argument("--id", required=True, help="Haber ID veya İlan ID")
-    parser.add_argument("--hedef", default="hepsi", help="Hedef platform veya işlem (hepsi, ig, threads, video, reels, fb, reddet, iptal, yenile)")
+    parser.add_argument("--hedef", default="hepsi", help="Hedef platform veya işlem (hepsi, ig, threads, video, reels, fb, reddet, iptal, yenile, manuel_paket, tamamla)")
     parser.add_argument("--yeniden-ciz", action="store_true", help="İlan kartlarını güncel site verisiyle yeniden üret")
     args = parser.parse_args()
 
@@ -53,6 +53,71 @@ def main() -> None:
             db.onay_istegi_sonuclandir(tur, str(ref_id), "reddedildi")
             log.info("İlan #%s reddedildi olarak işaretlendi.", ref_id)
             telegram_bot.mesaj_gonder(f"❌ <b>İlan #{ref_id} reddedildi ve arşive kaldırıldı.</b>")
+        return
+
+    # 0.3 Manuel Paylaşım Paketi Aksiyonu
+    if hedef == "manuel_paket":
+        if tur in ("haber", "reels"):
+            haber = db.haber_getir(int(ref_id))
+            if not haber:
+                log.error("Manuel paket için haber bulunamadı: #%s", ref_id)
+                return
+            caption = haber.get("ig_caption") or haber.get("manset") or haber.get("orijinal_baslik") or ""
+            import html as html_lib
+            temiz_caption = html_lib.escape(caption.strip())
+            butonlar = {
+                "inline_keyboard": [
+                    [{"text": "📸 Instagram'ı Aç", "url": "https://instagram.com"}],
+                    [{"text": "🚀 Diğer Kanallarda Yayınla (Threads, FB)", "callback_data": f"onayla:haber:threads,fb:{ref_id}"}],
+                    [{"text": "✅ Paylaştım (Tamamlandı Olarak İşaretle)", "callback_data": f"onayla:haber:tamamla:{ref_id}"}],
+                    [{"text": "← Onay Menüsüne Dön", "callback_data": f"onay_menu_don:{ref_id}"}],
+                ]
+            }
+            mesaj = (
+                f"📲 <b>MANUEL INSTAGRAM PAYLAŞIM PAKETİ</b>\n\n"
+                f"Aşağıdaki açıklama metnini tek tıkla kopyalayıp Instagram uygulamasında veya webde paylaşabilirsiniz:\n\n"
+                f"<pre>{temiz_caption}</pre>\n\n"
+                f"💡 <i>Görseller yukarıdaki Telegram albümünde hazır. Tek tıkla telefonunuzun galerisine kaydedebilirsiniz.</i>\n\n"
+                f"Paylaşımı tamamladıktan sonra lütfen aşağıdaki <b>Paylaştım</b> butonuna basınız."
+            )
+            telegram_bot.mesaj_gonder(mesaj, reply_markup=butonlar)
+        elif tur == "ilan":
+            ilan = db.ilan_getir(ref_id)
+            if not ilan:
+                log.error("Manuel paket için ilan bulunamadı: #%s", ref_id)
+                return
+            import html as html_lib
+            baslik = ilan.get("baslik", "")
+            ilan_adresi = ilan.get("kaynak_url") or "https://edmyapigayrimenkul.com/ilanlar"
+            caption = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0536 343 41 97 · {ilan_adresi}"
+            temiz_caption = html_lib.escape(caption.strip())
+            butonlar = {
+                "inline_keyboard": [
+                    [{"text": "📸 Instagram'ı Aç", "url": "https://instagram.com"}],
+                    [{"text": "✅ Paylaştım (Tamamlandı Olarak İşaretle)", "callback_data": f"onayla:ilan:tamamla:{ref_id}"}],
+                ]
+            }
+            mesaj = (
+                f"📲 <b>MANUEL İLAN PAYLAŞIM PAKETİ</b>\n\n"
+                f"<pre>{temiz_caption}</pre>\n\n"
+                f"💡 <i>Görseller yukarıdaki albümde hazır. Paylaşımı yaptıktan sonra 'Paylaştım' butonuna dokununuz.</i>"
+            )
+            telegram_bot.mesaj_gonder(mesaj, reply_markup=butonlar)
+        return
+
+    # 0.4 Tamamlandı / Manuel Paylaşıldı Olarak İşaretle
+    if hedef in ("tamamla", "manuel_tamam"):
+        if tur in ("haber", "reels"):
+            db.haber_guncelle(int(ref_id), durum="yayinlandi")
+            db.onay_istegi_sonuclandir(tur, str(ref_id), "yayinlandi")
+            tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
+            log.info("%s #%s kullanıcı tarafından manuel paylaşıldı ve tamamlandı olarak işaretlendi.", tur_adi, ref_id)
+            telegram_bot.mesaj_gonder(f"✅ <b>{tur_adi} #{ref_id} paylaşıldı ve tamamlandı olarak arşivlendi. Tebrikler! 🎉</b>")
+        elif tur == "ilan":
+            db.ilan_paylasildi_isaretle(ref_id)
+            db.onay_istegi_sonuclandir(tur, str(ref_id), "yayinlandi")
+            log.info("İlan #%s kullanıcı tarafından manuel paylaşıldı ve tamamlandı olarak işaretlendi.", ref_id)
+            telegram_bot.mesaj_gonder(f"✅ <b>İlan #{ref_id} paylaşıldı ve tamamlandı olarak arşivlendi.</b>")
         return
 
     # 0.5 Yenile Aksiyonu (Gemini metinleri ve slaytları yeniden üretip onaya sunar)

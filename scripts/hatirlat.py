@@ -76,6 +76,9 @@ def main():
                         {"text": "🚀 YouTube & TikTok'ta Otomatik Yayınla", "callback_data": f"onayla:reels:video:{haber_id}"},
                     ],
                     [
+                        {"text": "✅ Instagram'da Paylaştım (Tamamlandı)", "callback_data": f"onayla:reels:tamamla:{haber_id}"},
+                    ],
+                    [
                         {"text": "🔄 Yeniden Üret", "callback_data": f"yenile:reels:{haber_id}"},
                         {"text": "❌ İptal Et", "callback_data": f"reddet:reels:{haber_id}"},
                     ],
@@ -92,6 +95,7 @@ def main():
                 "inline_keyboard": [
                     [
                         {"text": "🚀 Seçili Kanallarda Yayınla", "callback_data": f"onayla:haber:ig,threads:{haber_id}"},
+                        {"text": "📲 Manuel Paket", "callback_data": f"manuel_paket:{haber_id}"},
                     ],
                     [
                         {"text": "🔄 Metinleri Yenile", "callback_data": f"yenile:haber:{haber_id}"},

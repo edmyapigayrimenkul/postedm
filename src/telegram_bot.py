@@ -496,6 +496,7 @@ def onay_menusu(haber_id: int, kanallar: Optional[Dict[str, bool]] = None) -> Di
             *kanal_butonlari(kanallar),
             [
                 {"text": "🚀 Seçili Kanallarda Yayınla", "callback_data": f"onayla:haber:{hedef_param}:{haber_id}"},
+                {"text": "📲 Manuel Paket", "callback_data": f"manuel_paket:{haber_id}"},
             ],
             [
                 {"text": "🔄 Metinleri Yenile", "callback_data": f"yenile:haber:{haber_id}"},
@@ -1014,6 +1015,9 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
             "inline_keyboard": [
                 [
                     {"text": "🚀 YouTube & TikTok'ta Otomatik Yayınla", "callback_data": f"onayla:reels:video:{haber_id}"},
+                ],
+                [
+                    {"text": "✅ Instagram'da Paylaştım (Tamamlandı)", "callback_data": f"onayla:reels:tamamla:{haber_id}"},
                 ],
                 [
                     {"text": "🔄 Yeniden Üret", "callback_data": f"yenile:reels:{haber_id}"},

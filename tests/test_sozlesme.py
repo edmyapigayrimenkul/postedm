@@ -234,7 +234,7 @@ class TestSozlesme(unittest.TestCase):
         parser.add_argument("--id", required=True)
         parser.add_argument("--hedef", default="hepsi")
 
-        for gecerli_hedef in ["hepsi", "ig", "threads", "video", "reels", "fb", "reddet", "iptal", "yenile"]:
+        for gecerli_hedef in ["hepsi", "ig", "threads", "video", "reels", "fb", "reddet", "iptal", "yenile", "manuel_paket", "tamamla"]:
             args = parser.parse_args(["--tur", "haber", "--id", "42", "--hedef", gecerli_hedef])
             self.assertEqual(args.hedef, gecerli_hedef)
 
@@ -607,6 +607,56 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             self.assertGreater(yer["kronik_ust"], 0, f"{ad}: üst kronik negatif")
             self.assertLess(yer["alt_bar"], make_image.TUVAL_OLCULERI[ad][1],
                             f"{ad}: alt bar tuvalin dışında")
+
+    def test_manuel_paket_ve_tamamla_isleyisi(self) -> None:
+        """scripts/yayinla.py manuel_paket ve tamamla hedeflerini hatasız işlemeli."""
+        import importlib.util
+        from unittest.mock import patch, MagicMock
+
+        yayin_yolu = KOK / "scripts" / "yayinla.py"
+        spec = importlib.util.spec_from_file_location("yayinla_modul", yayin_yolu)
+        yayinla_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(yayinla_mod)
+
+        sahte_haber = {
+            "id": 88,
+            "manset": "Test Manşet Başlığı",
+            "ig_caption": "Bu bir test caption metnidir. #gayrimenkul",
+            "orijinal_baslik": "Orijinal Başlık",
+            "durum": "onay_bekliyor",
+        }
+
+        # 1. manuel_paket testi
+        with patch.object(yayinla_mod.db, "haber_getir", return_value=sahte_haber), \
+             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "88", "--hedef", "manuel_paket"]):
+            yayinla_mod.main()
+            mock_mesaj.assert_called_once()
+            gonderilen_metin = mock_mesaj.call_args[0][0]
+            gonderilen_butonlar = mock_mesaj.call_args[1].get("reply_markup", {})
+            self.assertIn("MANUEL INSTAGRAM PAYLAŞIM PAKETİ", gonderilen_metin)
+            self.assertIn("Bu bir test caption metnidir.", gonderilen_metin)
+            self.assertTrue(any("tamamla:88" in str(btn) for row in gonderilen_butonlar.get("inline_keyboard", []) for btn in row))
+
+        # 2. tamamla testi (haber)
+        with patch.object(yayinla_mod.db, "haber_guncelle") as mock_hguncelle, \
+             patch.object(yayinla_mod.db, "onay_istegi_sonuclandir") as mock_osonuc, \
+             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "88", "--hedef", "tamamla"]):
+            yayinla_mod.main()
+            mock_hguncelle.assert_called_once_with(88, durum="yayinlandi")
+            mock_osonuc.assert_called_once_with("haber", "88", "yayinlandi")
+            self.assertIn("tamamlandı", mock_mesaj.call_args[0][0].lower())
+
+        # 3. tamamla testi (reels)
+        with patch.object(yayinla_mod.db, "haber_guncelle") as mock_hguncelle, \
+             patch.object(yayinla_mod.db, "onay_istegi_sonuclandir") as mock_osonuc, \
+             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "reels", "--id", "99", "--hedef", "tamamla"]):
+            yayinla_mod.main()
+            mock_hguncelle.assert_called_once_with(99, durum="yayinlandi")
+            mock_osonuc.assert_called_once_with("reels", "99", "yayinlandi")
+            self.assertIn("reels", mock_mesaj.call_args[0][0].lower())
 
 
 if __name__ == "__main__":
