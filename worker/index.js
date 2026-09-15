@@ -35,6 +35,7 @@ export default {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="tiktok-developers-site-verification" content="S7Gxo9q0MKvPpjQ4AqK9qZZ8zPJI7ETq">
   <title>Gizlilik Politikası (Privacy Policy) | EDM Yapı Gayrimenkul</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background: #0b132b; color: #e0e1dd; margin: 0; padding: 40px 20px; }
@@ -88,6 +89,7 @@ export default {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="tiktok-developers-site-verification" content="S7Gxo9q0MKvPpjQ4AqK9qZZ8zPJI7ETq">
   <title>Kullanım Şartları (Terms of Service) | EDM Yapı Gayrimenkul</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background: #0b132b; color: #e0e1dd; margin: 0; padding: 40px 20px; }
@@ -136,6 +138,7 @@ export default {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="tiktok-developers-site-verification" content="S7Gxo9q0MKvPpjQ4AqK9qZZ8zPJI7ETq">
   <title>EDM Yapı Gayrimenkul | Resmi Web Portalı</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background: #0b132b; color: #e0e1dd; margin: 0; padding: 50px 20px; text-align: center; }
