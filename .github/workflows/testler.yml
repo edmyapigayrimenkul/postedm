@@ -65,9 +65,15 @@ jobs:
       - name: Sözleşme testleri (mimari kurallar)
         run: python tests/test_sozlesme.py
 
+      # Tüm test paketini çalıştır (hata dayanıklılığı, tipografi, kuyruk, formatlar - 72 test)
+      - name: Tam test paketi (resilience, typography, queue)
+        run: python -m unittest discover tests
+
       # Metin bütçesi çizicinin kapasitesini aşmamalı; aşarsa metin sessizce kırpılır.
       - name: Metin bütçesi denetimi
         run: python scripts/metin_butcesi.py
 
-      - name: Worker sözdizimi
-        run: node --check worker/index.js
+      - name: Worker sözdizimi ve derleme
+        run: |
+          node --check worker/index.js
+          npx wrangler deploy --dry-run worker/index.js --config worker/wrangler.toml

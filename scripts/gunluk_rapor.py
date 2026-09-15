@@ -98,6 +98,19 @@ def rapor_uret() -> tuple[str, bool]:
         for a in adaylar[:3]:
             satirlar.append(f"    · [{a.get('sutun')}] {(a.get('baslik') or '')[:44]}")
 
+    # --- Son 24 Saatin Hata Özeti (instabot hafızası: yazılıp okunmayan kayıt kalmasın) ---
+    from src import hata_bildir
+    son_hatalar = hata_bildir.son_hatalari_ozetle(saat=24)
+    satirlar.append("")
+    satirlar.append("<b>SİSTEM SAĞLIĞI & TEKNİK GÜNLÜK</b>")
+    if son_hatalar:
+        uyari = True
+        satirlar.append(f"  ⚠️ Son 24 saatte {len(son_hatalar)} teknik hata kaydedildi:")
+        for h in son_hatalar[:3]:
+            satirlar.append(f"    · [{h.get('nerede', 'İşlem')}] {h.get('ne_oldu', '')[:50]}")
+    else:
+        satirlar.append("  Son 24 saatte teknik hata kaydedilmedi ✓")
+
     return "\n".join(satirlar), uyari
 
 

@@ -70,6 +70,9 @@ def _konu_adaylarini_madenle(limit: int = 4) -> int:
         if oneri and konu_bankasi.aday_kaydet(oneri):
             sayac += 1
             log.info("Konu adayı: %s", oneri.get("baslik", "")[:60])
+            db.haber_guncelle(h["id"], durum="madenlendi")
+        else:
+            db.haber_guncelle(h["id"], durum="elendi")
     return sayac
 
 
@@ -94,6 +97,11 @@ def main() -> None:
     if duraklatildi and not args.durum and not args.format_turu and not args.format_degistir_id and not args.reels:
         log.info("Bot kullanıcı tarafından duraklatılmış (%s). Otomatik hazırlık atlanıyor.", kalan)
         return
+
+    # Havuz bakımı: 14 günden eski, yayınlanmamış kayıtlar her koşuda temizlenir
+    silinen = db.eski_kayitlari_temizle(gun=14)
+    if silinen:
+        log.info("Havuzdan %d eski kayıt temizlendi.", silinen)
 
     if args.durum:
         ozet = konu_bankasi.durum_ozeti()
@@ -156,9 +164,7 @@ def main() -> None:
 
     # 1. kapı: kural tabanlı ön eleme
     adaylar = []
-    for h in db.bekleyen_haberleri_getir(limit=10):
-        if h.get("onem_puani", 0) < HABER_ON_ELEME_ESIGI:
-            continue
+    for h in db.bekleyen_haberleri_getir(limit=20):
         if (h.get("kategori") or "") == "rehber":
             continue
         # Yayın anı tazeliği: havuzda bayatlamış kayıt "haber" olarak paylaşılmaz
@@ -166,6 +172,8 @@ def main() -> None:
         if yas > YAYIN_TAZELIK_SAAT:
             log.info("Bayatladı (%.0f saat), eleniyor: %s", yas, h["orijinal_baslik"][:50])
             db.haber_guncelle(h["id"], durum="elendi")
+            continue
+        if h.get("onem_puani", 0) < HABER_ON_ELEME_ESIGI:
             continue
         adaylar.append(h)
         if len(adaylar) >= 6:

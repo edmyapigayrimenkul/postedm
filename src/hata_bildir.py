@@ -15,7 +15,7 @@ import logging
 import os
 import re
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -174,6 +174,35 @@ def hata_kaydet(nerede: str, baslik: str, ham_hata: str, teshis: Dict[str, Any])
             f.write(f"[{kayit['tarih_tr']}] {nerede} -> {baslik}\n\n{ham_hata[:3000]}")
     except Exception as e:
         log.warning("Hata loguna yazılamadı: %s", e)
+
+
+def son_hatalari_ozetle(saat: int = 24) -> List[Dict[str, Any]]:
+    """Son belirtilen saat içindeki hata kayıtlarını döner."""
+    if not HATA_LOG_YOLU.exists():
+        return []
+
+    sonuc = []
+    esik = datetime.now(timezone.utc) - timedelta(hours=saat)
+
+    try:
+        with open(HATA_LOG_YOLU, "r", encoding="utf-8") as f:
+            for satir in f:
+                satir = satir.strip()
+                if not satir:
+                    continue
+                try:
+                    kayit = json.loads(satir)
+                    t_str = kayit.get("tarih_iso")
+                    if t_str:
+                        t = datetime.fromisoformat(t_str)
+                        if t >= esik:
+                            sonuc.append(kayit)
+                except Exception:
+                    continue
+    except Exception as e:
+        log.warning("Hata logları okunamadı: %s", e)
+
+    return sonuc
 
 
 def hatayi_analiz_et(hata_metni: str) -> Dict[str, Any]:

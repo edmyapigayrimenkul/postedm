@@ -215,6 +215,10 @@ def eski_kayitlari_temizle(gun: int = 14) -> int:
             "DELETE FROM haberler WHERE durum != 'yayinlandi' AND eklenme_tarihi < ?",
             (esik,)
         )
+        conn.execute(
+            "DELETE FROM onay_istekleri WHERE olusturma_tarihi < ?",
+            (esik,)
+        )
         conn.commit()
         silinen = cursor.rowcount
         if silinen > 0:

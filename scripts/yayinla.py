@@ -311,7 +311,7 @@ def main() -> None:
             # YouTube Shorts
             if hedef_mi("video", "youtube"):
                 try:
-                    yt_res = youtube.shorts_yukle(video_yolu, baslik=baslik)
+                    yt_res = youtube.shorts_yukle(video_yolu, baslik=baslik, aciklama=caption)
                     if yt_res.get("durum"):
                         rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> <a href='{yt_res.get('url')}'>İzle</a> ✓")
                     else:
