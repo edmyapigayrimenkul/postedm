@@ -1,0 +1,40 @@
+name: Onay Hatırlatıcı (EDM)
+
+on:
+  schedule:
+    # 1. Öğleden sonra 13:30 TR (UTC 10:30)
+    - cron: '30 10 * * *'
+    # 2. Akşam 21:30 TR (UTC 18:30)
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: edm-veritabani
+  cancel-in-progress: false
+
+jobs:
+  hatirlat:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
+      - name: Python Kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Bağımlılıkları Yükle
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Hatırlatıcıyı Çalıştır
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/hatirlat.py

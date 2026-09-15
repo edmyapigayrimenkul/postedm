@@ -939,6 +939,22 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         mesaj_gonder("❌ Reels için slayt görselleri üretilemedi.")
         return False
 
+    # Eğer tek slayt üretildiyse, arkasına şık bir EDM Kapanış Slaytı ekle (Akıcı 2 slaytlı sinematik Reels)
+    if len(slayt_yollari) == 1:
+        from . import kapanis_stilleri
+        kapanis_yolu = Path(slayt_yollari[0]).parent / f"reels_{konu['kod']}_kapanis.jpg"
+        try:
+            kapanis_slayti = kapanis_stilleri.kapanis_ciz(
+                stil="editoryal",
+                veri=veri,
+                sayfa="02 / 02",
+                cikti_yolu=kapanis_yolu,
+            )
+            if kapanis_slayti and Path(kapanis_slayti).exists():
+                slayt_yollari.append(kapanis_slayti)
+        except Exception as e:
+            log.warning("Reels kapanış slaytı eklenemedi: %s", e)
+
     # 1080x1920 MP4 Dikey Video Üret
     video_yolu = video.slaytlardan_reels_uret(slayt_yollari, fps=30, slayt_suresi=3.5, gecis_suresi=0.5)
     if not video_yolu or not Path(video_yolu).exists():

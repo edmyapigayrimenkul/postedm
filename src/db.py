@@ -250,6 +250,16 @@ def bekleyen_haberleri_getir(limit: int = 5) -> List[Dict[str, Any]]:
         return [dict(r) for r in rows]
 
 
+def onay_bekleyen_haberleri_getir(limit: int = 5) -> List[Dict[str, Any]]:
+    """Telegram'a gönderilmiş ancak henüz yayınlanmamış/reddedilmemiş onay bekleyen kayıtları döner."""
+    with _baglanti_al() as conn:
+        rows = conn.execute(
+            "SELECT * FROM haberler WHERE durum IN ('onay_bekliyor', 'ertelendi') ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 # --- İLAN İŞLEMLERİ ---
 
 

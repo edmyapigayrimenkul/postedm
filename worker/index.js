@@ -7,6 +7,27 @@
 
 export default {
   async fetch(request, env) {
+    const reqUrl = new URL(request.url);
+
+    // TikTok OAuth Callback Yakalayıcı (PKCE Yetkilendirme)
+    if (reqUrl.pathname === "/tiktok-callback") {
+      const code = reqUrl.searchParams.get("code") || "";
+      const error = reqUrl.searchParams.get("error_description") || reqUrl.searchParams.get("error") || "";
+      const icerik = code
+        ? `<div style="background:#161b22;border:1px solid #30363d;padding:15px;font-size:20px;font-family:monospace;color:#7ee787;display:inline-block;border-radius:6px;margin:20px 0;user-select:all;">${code}</div><p style="color:#8b949e;">Yukarıdaki kodu kopyalayıp terminaldeki sihirbaza yapıştırın.</p>`
+        : `<div style="color:#f85149;margin:20px 0;">Hata: ${error || "Yetkilendirme kodu alınamadı"}</div>`;
+
+      const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>TikTok EDM Yetkilendirme</title></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:50px;background:#0d1117;color:#c9d1d9;">
+  <h2 style="color:#58a6ff;">🎵 TikTok EDM Yetkilendirme</h2>
+  ${icerik}
+</body>
+</html>`;
+      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
     if (request.method !== "POST") {
       return new Response("EDM Telegram Webhook Aktif", { status: 200 });
     }
