@@ -363,6 +363,45 @@ class TestHataDayaniklik(unittest.TestCase):
                 self.assertEqual(db.ayar_oku("test_anahtar"), "yeni_deger_456")
                 self.assertEqual(db.ayar_oku("olmayan_anahtar", varsayilan="varsayilan"), "varsayilan")
 
+    def test_12_onay_istekleri_ve_tiktok_hata_teshis(self):
+        """onay_istekleri kaydı, TikTok hata teşhisi ve boş/bozuk site kuyruğu dayanıklılığı doğrulanmalı."""
+        # 1. onay_istekleri döngüsü
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_db = Path(tmpdir) / "test_onay.db"
+            with patch("src.db.DB_YOLU", tmp_db):
+                db.tablolari_olustur()
+                istek_id = db.onay_istegi_kaydet("haber", "101", telegram_mesaj_id=5555, telegram_chat_id=-10099)
+                self.assertIsInstance(istek_id, int)
+                
+                with db._baglanti_al() as conn:
+                    row = conn.execute("SELECT * FROM onay_istekleri WHERE id = ?", (istek_id,)).fetchone()
+                    self.assertEqual(row["durum"], "bekliyor")
+                    self.assertEqual(row["telegram_mesaj_id"], 5555)
+
+                db.onay_istegi_sonuclandir("haber", "101", "yayinlandi")
+                with db._baglanti_al() as conn:
+                    row = conn.execute("SELECT * FROM onay_istekleri WHERE id = ?", (istek_id,)).fetchone()
+                    self.assertEqual(row["durum"], "yayinlandi")
+                    self.assertIsNotNone(row["yanit_tarihi"])
+
+        # 2. TikTok hata teşhisi
+        teshis_audit = hata_bildir.hatayi_analiz_et("TikTok error: unaudited_client_can_only_post_to_private_accounts")
+        self.assertTrue(teshis_audit["tanindi"])
+        self.assertIn("Gelen Kutusu", teshis_audit["ne_yapilir"])
+
+        teshis_token = hata_bildir.hatayi_analiz_et("TikTok api error: access_token_invalid or expired")
+        self.assertTrue(teshis_token["tanindi"])
+        self.assertEqual(teshis_audit["eylem"], "durum")
+
+        # 3. Boş ve HTML kuyruk yanıtı (Site İlan Paylaşım Kuyruğu dayanıklılığı)
+        from scripts import site_kuyrugunu_isle
+        with patch.object(site_kuyrugunu_isle.requests, "get", return_value=MagicMock(status_code=204, text="")):
+            with patch.dict(os.environ, {"EDM_SITE_API_ANAHTARI": "test"}):
+                self.assertIsNone(site_kuyrugunu_isle.siradaki_isi_al())
+
+        with patch.object(site_kuyrugunu_isle.requests, "get", return_value=MagicMock(status_code=200, text="EDM Telegram Webhook Aktif", json=MagicMock(side_effect=json.decoder.JSONDecodeError("err", "doc", 0)))):
+            with patch.dict(os.environ, {"EDM_SITE_API_ANAHTARI": "test"}):
+                self.assertIsNone(site_kuyrugunu_isle.siradaki_isi_al())
 
 
 if __name__ == "__main__":

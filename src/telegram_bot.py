@@ -772,7 +772,14 @@ def haber_onayina_sun(haber_id: int) -> bool:
 
     # 4. İnteraktif Onay Menüsü (Kanal Toggle, Format Değiştirme, Yenileme, Erteleme)
     butonlar = onay_menusu(haber_id)
-    mesaj_gonder("Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:", reply_markup=butonlar)
+    res = mesaj_gonder("Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:", reply_markup=butonlar)
+    if res and isinstance(res, dict) and "message_id" in res:
+        _, chat_id = _bot_bilgileri()
+        try:
+            cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
+            db.onay_istegi_kaydet("haber", str(haber_id), res["message_id"], cid)
+        except Exception as e:
+            log.warning("Onay isteği kaydedilemedi: %s", e)
     return True
 
 
@@ -1000,7 +1007,7 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     import html as html_lib
     caption_metin = veri.get("caption_instagram") or konu["baslik"]
     temiz_caption = html_lib.escape(caption_metin.strip())
-    mesaj_gonder(
+    res = mesaj_gonder(
         "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
         f"<pre>{temiz_caption}</pre>",
         reply_markup={
@@ -1015,6 +1022,13 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
             ]
         }
     )
+    if res and isinstance(res, dict) and "message_id" in res:
+        _, chat_id = _bot_bilgileri()
+        try:
+            cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
+            db.onay_istegi_kaydet("reels", str(haber_id), res["message_id"], cid)
+        except Exception as e:
+            log.warning("Reels onay isteği kaydedilemedi: %s", e)
     return True
 
 

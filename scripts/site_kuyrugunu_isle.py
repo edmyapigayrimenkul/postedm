@@ -62,10 +62,14 @@ def _ayarlar() -> tuple[str, Dict[str, str]]:
 def siradaki_isi_al() -> Optional[Dict[str, Any]]:
     adres, basliklar = _ayarlar()
     cevap = requests.get(adres, headers=basliklar, timeout=30)
-    if cevap.status_code == 204:
+    if cevap.status_code == 204 or not (cevap.text or "").strip():
         return None
     cevap.raise_for_status()
-    return cevap.json()
+    try:
+        return cevap.json()
+    except Exception as e:
+        log.warning("Kuyruk yanıtı geçerli bir JSON objesi değil (%s): %s", e, (cevap.text or "")[:200])
+        return None
 
 
 def sonucu_yaz(kuyruk_id: int, durum: str, sonuc: str = "", hata: str = "") -> None:

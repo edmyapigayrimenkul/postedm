@@ -123,6 +123,31 @@ def main() -> int:
         sorunlu = True
         satirlar.append(f"❌ YouTube — {y['mesaj']}")
 
+    # --- TikTok: 24 saatlik erişim jetonu, otomatik yenileme ---
+    from src import tiktok
+    try:
+        if args.sadece_kontrol:
+            token = config.env_al("TIKTOK_ACCESS_TOKEN")
+            if token:
+                satirlar.append("✅ TikTok — Yapılandırılmış ve aktif")
+            else:
+                sorunlu = True
+                satirlar.append("❌ TikTok — Jeton eksik")
+        else:
+            yeni_tt = tiktok.token_yenile()
+            if yeni_tt:
+                satirlar.append("✅ TikTok — 24 saatlik jeton yenilendi")
+            else:
+                token = config.env_al("TIKTOK_ACCESS_TOKEN")
+                if token:
+                    satirlar.append("✅ TikTok — Mevcut jeton devrede")
+                else:
+                    sorunlu = True
+                    satirlar.append("❌ TikTok — Jeton yenilenemedi")
+    except Exception as tt_err:
+        sorunlu = True
+        satirlar.append(f"❌ TikTok — Hata: {tt_err}")
+
     baslik = "🔑 <b>JETON RAPORU</b>" + ("  ⚠️ MÜDAHALE GEREKİYOR" if sorunlu else "")
     rapor = baslik + "\n\n" + "\n".join(satirlar)
 

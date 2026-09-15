@@ -7,6 +7,8 @@ on:
     # 2. Akşam 21:30 TR (UTC 18:30)
     - cron: '30 18 * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types: [hatirlat]
 
 concurrency:
   group: edm-veritabani
@@ -37,4 +39,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python scripts/hatirlat.py
+          ZORLA="${{ github.event.client_payload.zorla || github.event_name == 'workflow_dispatch' }}"
+          if [ "$ZORLA" = "true" ]; then
+            python scripts/hatirlat.py --zorla
+          else
+            python scripts/hatirlat.py
+          fi

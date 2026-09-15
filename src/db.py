@@ -345,6 +345,35 @@ def ilan_reddedildi_isaretle(ilan_id: str) -> None:
         conn.commit()
 
 
+def onay_istegi_kaydet(
+    tur: str,
+    referans_id: str,
+    telegram_mesaj_id: Optional[int] = None,
+    telegram_chat_id: Optional[int] = None,
+) -> int:
+    """Telegram grubuna gönderilen onay mesajını onay_istekleri tablosuna kaydeder."""
+    simdi = datetime.now(timezone.utc).isoformat()
+    with _baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO onay_istekleri (tur, referans_id, telegram_mesaj_id, telegram_chat_id, durum, olusturma_tarihi)
+               VALUES (?, ?, ?, ?, 'bekliyor', ?)""",
+            (tur, str(referans_id), telegram_mesaj_id, telegram_chat_id, simdi),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def onay_istegi_sonuclandir(tur: str, referans_id: str, durum: str) -> None:
+    """Onay isteğini yayınlandı, reddedildi veya yenilendi olarak sonuçlandırır."""
+    simdi = datetime.now(timezone.utc).isoformat()
+    with _baglanti_al() as conn:
+        conn.execute(
+            """UPDATE onay_istekleri SET durum = ?, yanit_tarihi = ?
+               WHERE tur = ? AND referans_id = ? AND durum = 'bekliyor'""",
+            (durum, simdi, tur, str(referans_id)),
+        )
+        conn.commit()
+
 
 # Başlangıçta tabloları hazırla
 tablolari_olustur()

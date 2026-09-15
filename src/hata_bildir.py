@@ -121,6 +121,27 @@ HATA_KATALOGU = [
         "ne_yapilir": "'🔄 Tekrar Yayınla' veya '🔄 Yeniden Hazırla' butonuna basabilirsiniz.",
         "eylem": "yeniden_yayinla",
     },
+    {
+        "desen": r"unaudited_client|unaudited_client_can_only_post_to_private_accounts",
+        "ne_oldu": "TikTok Sandbox/Denetim kısıtı nedeniyle video gelen kutusu taslağı olarak yüklendi.",
+        "neden": "TikTok Developer uygulamasının App Audit incelemesi henüz onaylanmadığı için doğrudan herkese açık paylaşım kısıtlıdır.",
+        "ne_yapilir": "Video hesabınıza 'Gelen Kutusu Taslağı' olarak iletildi. TikTok uygulamasından Gelen Kutusu > Sistem Bildirimleri bölümünden tek tıkla yayınlayabilirsiniz.",
+        "eylem": "durum",
+    },
+    {
+        "desen": r"tiktok.*(token|access_token|expired|invalid_grant|invalid_request)",
+        "ne_oldu": "TikTok API erişim yetkisinin (Token) süresi dolmuş veya geçersiz.",
+        "neden": "TikTok 24 saatlik erişim jetonunun yenilenmesi gerekiyor.",
+        "ne_yapilir": "Sistem refresh_token ile otomatik yenilemeyi dener. '🔄 Tekrar Yayınla' butonuyla işlemi tekrarlayabilirsiniz.",
+        "eylem": "yeniden_yayinla",
+    },
+    {
+        "desen": r"tiktok.*(init|upload|publish_id|500|502|503)",
+        "ne_oldu": "TikTok video sunucularına erişirken geçici ağ gecikmesi yaşandı.",
+        "neden": "TikTok yükleme uç noktası video paketini alırken zaman aşımına uğradı.",
+        "ne_yapilir": "Video hazırdır. 1 dakika bekleyip '🔄 Tekrar Yayınla' butonuna basabilirsiniz.",
+        "eylem": "yeniden_yayinla",
+    },
 ]
 
 

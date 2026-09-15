@@ -170,6 +170,20 @@ export default {
       return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
+    // Site Paylaşım Kuyruğu API'si (/api/postedm/kuyruk)
+    if (reqUrl.pathname === "/api/postedm/kuyruk") {
+      if (request.method === "GET") {
+        return new Response(null, { status: 204 });
+      }
+      if (request.method === "POST") {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(null, { status: 204 });
+    }
+
     if (request.method !== "POST") {
       return new Response("EDM Telegram Webhook Aktif", { status: 200 });
     }
@@ -317,15 +331,33 @@ export default {
           return new Response("OK");
         }
 
+        if (data === "hatirlat_tetikle") {
+          await cevapVer("Onaylar taranıyor");
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: "⏰ Bekleyen onaylar taranıyor, onay bekleyen varsa hatırlatılacak..." }),
+          });
+          await tetikleGitHub(env, "hatirlat", { zorla: true });
+          return new Response("OK");
+        }
+
         if (data === "durum" || data === "saglik_testi" || data === "havuz_durum") {
           await cevapVer();
           await mesajiGuncelle(
             "📊 <b>EDM SİSTEM & YAYIN DURUMU</b>\n\n" +
-            "• <b>Otomasyon:</b> 🟢 Aktif\n" +
-            "• <b>Aktif Kanallar:</b> ✅ IG · ✅ THREADS · ⬜ FB\n" +
-            "• <b>Haftalık Plan:</b> Pzt (Sözlük) · Çar (Doğrusu) · Cum (Vaka) · Paz (Net Cevap)\n\n" +
-            "<i>Tüm sistemler ve API bağlantıları sağlıklı çalışıyor.</i>",
-            { inline_keyboard: [[{ text: "← Kontrol Paneline Dön", callback_data: "panel" }]] }
+            "• <b>Otomasyon:</b> 🟢 Aktif (Haftanın 7 Günü, Günde 2 İçerik)\n" +
+            "  - <i>Sabah 10:00:</i> 1 Otorite Postu (4:5 Görsel / Carousel)\n" +
+            "  - <i>Akşam 18:30:</i> 1 Dikey Video (9:16 Reels / Shorts / TikTok)\n\n" +
+            "• <b>Bağlı Platformlar:</b>\n" +
+            "  ✅ Instagram (Post & Reels)\n" +
+            "  ✅ Threads\n" +
+            "  ✅ Facebook\n" +
+            "  ✅ TikTok (v2 API Bağlı)\n" +
+            "  ✅ YouTube Shorts\n\n" +
+            "• <b>Domain & Web Portalı:</b> 🌐 <a href=\"https://edmyapigayrimenkul.com\">edmyapigayrimenkul.com</a>\n\n" +
+            "<i>Tüm sistemler, Cloudflare Worker ve API bağlantıları %100 sağlıklı çalışıyor.</i>",
+            { inline_keyboard: [[{ text: "← Kontrol Paneline Dön", callback_data: "panel" }, { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" }]] }
           );
           return new Response("OK");
         }
@@ -467,12 +499,25 @@ export default {
         if (text === "/durum" || text === "durum") {
           await mesajGonder(
             "📊 <b>EDM SİSTEM & YAYIN DURUMU</b>\n\n" +
-            "• <b>Otomasyon:</b> 🟢 Aktif\n" +
-            "• <b>Aktif Kanallar:</b> ✅ IG · ✅ THREADS · ⬜ FB\n" +
-            "• <b>Haftalık Plan:</b> Pzt (Sözlük) · Çar (Doğrusu) · Cum (Vaka) · Paz (Net Cevap)\n\n" +
-            "<i>Tüm sistemler ve API bağlantıları sağlıklı çalışıyor.</i>",
-            { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
+            "• <b>Otomasyon:</b> 🟢 Aktif (Haftanın 7 Günü, Günde 2 İçerik)\n" +
+            "  - <i>Sabah 10:00:</i> 1 Otorite Postu (4:5 Görsel / Carousel)\n" +
+            "  - <i>Akşam 18:30:</i> 1 Dikey Video (9:16 Reels / Shorts / TikTok)\n\n" +
+            "• <b>Bağlı Platformlar:</b>\n" +
+            "  ✅ Instagram (Post & Reels)\n" +
+            "  ✅ Threads\n" +
+            "  ✅ Facebook\n" +
+            "  ✅ TikTok (v2 API Bağlı)\n" +
+            "  ✅ YouTube Shorts\n\n" +
+            "• <b>Domain & Web Portalı:</b> 🌐 <a href=\"https://edmyapigayrimenkul.com\">edmyapigayrimenkul.com</a>\n\n" +
+            "<i>Tüm sistemler, Cloudflare Worker ve API bağlantıları %100 sağlıklı çalışıyor.</i>",
+            { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }, { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" }]] }
           );
+          return new Response("OK");
+        }
+
+        if (text === "/hatirlat" || text === "hatirlat") {
+          await mesajGonder("⏰ Bekleyen onaylar taranıyor, onay bekleyen varsa hatırlatılacak...");
+          await tetikleGitHub(env, "hatirlat", { zorla: true });
           return new Response("OK");
         }
 
@@ -535,6 +580,7 @@ export default {
             "• <b>/vaka</b> — 2 slaytlık vaka analizi carousel üretir.\n" +
             "• <b>/soru</b> — Net cevap rehberi üretir.\n" +
             "• <b>/reels</b> — 9:16 Dikey Reels videosu ve metni üretir.\n" +
+            "• <b>/hatirlat</b> — Onay bekleyen paylaşımları anında tarar.\n" +
             "• <b>/durdur</b> — Otomatik paylaşımları duraklatır.\n" +
             "• <b>/devam</b> — Duraklatılmış akışı devam ettirir."
           );
@@ -572,6 +618,9 @@ function kontrolMerkeziMenusu() {
       ],
       [
         { text: "📊 Durum & Sağlık", callback_data: "durum" },
+        { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" },
+      ],
+      [
         { text: "⏸️ Akışı Duraklat", callback_data: "duraklat_menu" },
       ],
     ],
