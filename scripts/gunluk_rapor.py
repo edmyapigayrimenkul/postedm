@@ -116,6 +116,8 @@ def main() -> int:
         try:
             from src import telegram_bot
             telegram_bot.mesaj_gonder(rapor)
+            # Kendini onaran komut menüsü: her sabah açılır menüyü Telegram'a tazeler
+            telegram_bot.komut_menusu_kaydet()
         except Exception as e:
             log.warning("Telegram raporu gönderilemedi: %s", e)
 

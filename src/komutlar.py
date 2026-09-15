@@ -23,6 +23,7 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "saglik",
     "saglik_testi",
     "havuz_durum",
+    "hatirlat",
 
     # Hızlı İçerik Üretimi
     "yeni",
@@ -46,6 +47,7 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
     # ── 🎛 YÖNETİM & KONTROL MERKEZİ ─────────────────────────────────
     {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
     {"command": "durum", "description": "📊 Bot sağlığı, sıradaki post ve kota"},
+    {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},
     {"command": "yardim", "description": "❓ Bot komutları ve kullanım kılavuzu"},
 
     # ── ✍️ OTORİTE İÇERİK ÜRETİMİ ─────────────────────────────────────
