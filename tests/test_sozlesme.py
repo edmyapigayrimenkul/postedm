@@ -23,7 +23,7 @@ import re
 import sqlite3
 import sys
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Proje kökünü sys.path'e ekle
@@ -657,6 +657,88 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             mock_hguncelle.assert_called_once_with(99, durum="yayinlandi")
             mock_osonuc.assert_called_once_with("reels", "99", "yayinlandi")
             self.assertIn("reels", mock_mesaj.call_args[0][0].lower())
+
+    def test_db_yazan_workflow_commit_ediyor(self) -> None:
+        """Veritabanına yazan her workflow onu commit de etmeli ve contents: write yetkisine sahip olmalı."""
+        wf_klasoru = KOK / ".github" / "workflows"
+        if not wf_klasoru.exists():
+            return
+
+        yazanlar = {
+            "hazirla.yml": "haber ve içerik hazırlar/günceller",
+            "yayinla.yml": "yayın ve onay durumlarını yazar",
+            "hatirlat.yml": "hatırlatma sayısını ve zaman aşımını günceller",
+        }
+
+        for ad, neden in yazanlar.items():
+            yol = wf_klasoru / ad
+            self.assertTrue(yol.exists(), f"{ad} bulunamadı")
+            kod = "\n".join(l for l in yol.read_text(encoding="utf-8").splitlines() if not l.strip().startswith("#"))
+            self.assertIn("db_kaydet", kod, f"{ad} ({neden}) veritabanına yazıyor ama 'db_kaydet' adımı yok!")
+            self.assertIn("contents: write", kod, f"{ad} yazma iznine sahip olmalı (contents: write)")
+
+    def test_uretim_workflow_hata_bildirimi_var(self) -> None:
+        """Tüm üretim workflow'ları başarısızlık durumunda Telegram'a hata bildirimi göndermeli."""
+        wf_klasoru = KOK / ".github" / "workflows"
+        if not wf_klasoru.exists():
+            return
+
+        uretim_isleri = [
+            "hazirla.yml",
+            "yayinla.yml",
+            "hatirlat.yml",
+            "gunluk-rapor.yml",
+            "jeton-yenile.yml",
+            "kaynak-sagligi.yml",
+            "site-kuyrugu.yml",
+        ]
+
+        for ad in uretim_isleri:
+            yol = wf_klasoru / ad
+            self.assertTrue(yol.exists(), f"{ad} bulunamadı")
+            kod = "\n".join(l for l in yol.read_text(encoding="utf-8").splitlines() if not l.strip().startswith("#"))
+            self.assertTrue(
+                "failure()" in kod or "Hata bildir" in kod,
+                f"{ad} dosyasında 'if: failure()' hata bildirim adımı bulunamadı!"
+            )
+
+    def test_hatirlatici_zaman_asimi_ve_sayac(self) -> None:
+        """hatirlat.py 24 saatten eski veya 3 kez hatırlatılmış içerikleri zaman aşımına uğratmalı, diğerlerinin sayacını artırmalı."""
+        from unittest.mock import patch
+        import importlib
+        hatirlat_mod = importlib.import_module("scripts.hatirlat")
+
+        # 1. 25 saat beklemiş haber -> zaman aşımı
+        eski_haber = {
+            "id": 101,
+            "manset": "Çok Eski Haber",
+            "eklenme_tarihi": "2020-01-01T00:00:00+00:00",
+            "hatirlatma_sayisi": 1,
+            "durum": "onay_bekliyor",
+        }
+        with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[eski_haber]), \
+             patch.object(hatirlat_mod.db, "durum_zaman_asimi_yap") as mock_za, \
+             patch.object(hatirlat_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch.object(hatirlat_mod.db, "wal_bosalt"):
+            hatirlat_mod.main(argv=[])
+            mock_za.assert_called_once_with(101)
+            self.assertIn("ZAMAN AŞIMINA UĞRADI", mock_mesaj.call_args[0][0])
+
+        # 2. 2 saat beklemiş taze haber -> sayaç artırılır ve hatırlatılır
+        taze_haber = {
+            "id": 102,
+            "manset": "Taze Haber",
+            "eklenme_tarihi": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+            "hatirlatma_sayisi": 0,
+            "durum": "onay_bekliyor",
+        }
+        with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[taze_haber]), \
+             patch.object(hatirlat_mod.db, "hatirlatma_arttir", return_value=1) as mock_arttir, \
+             patch.object(hatirlat_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch.object(hatirlat_mod.db, "wal_bosalt"):
+            hatirlat_mod.main(argv=[])
+            mock_arttir.assert_called_once_with(102)
+            self.assertIn("1. Hatırlatma", mock_mesaj.call_args[0][0])
 
 
 if __name__ == "__main__":

@@ -37,10 +37,10 @@ def bekleme_suresi_dakika(haber: dict) -> float | None:
         return None
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="EDM Onay Bekleyen Paylaşımları Hatırlatıcı")
     parser.add_argument("--zorla", "-z", action="store_true", help="60 dakika bekleme sınırını yok say ve hemen hatırlat")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     bekleyenler = db.onay_bekleyen_haberleri_getir(limit=5)
     if not bekleyenler:
@@ -53,11 +53,25 @@ def main():
     for haber in bekleyenler:
         haber_id = haber["id"]
         dakika = bekleme_suresi_dakika(haber)
+        baslik = haber.get("manset") or haber.get("orijinal_baslik") or "İçerik"
+        mevcut_hatirlatma = haber.get("hatirlatma_sayisi") or 0
+
+        # 1. Zaman aşımı kontrolü (24 saat = 1440 dakika veya 3 hatırlatma)
+        if dakika is not None and (dakika >= 24 * 60 or mevcut_hatirlatma >= 3):
+            log.info("Haber #%d zaman aşımına uğradı (%d dakika, %d hatırlatma).", haber_id, int(dakika), mevcut_hatirlatma)
+            db.durum_zaman_asimi_yap(haber_id)
+            telegram_bot.mesaj_gonder(
+                f"⌛️ <b>İÇERİK ZAMAN AŞIMINA UĞRADI</b>\n\n"
+                f"📌 <b>Başlık:</b> {baslik}\n"
+                f"ℹ️ Bu içerik 24 saati aşkın süredir onay beklediği için güncelliğini yitirmemesi adına arşivlendi ve onay kuyruğundan kaldırıldı."
+            )
+            continue
+
         if not args.zorla and dakika is not None and dakika < 60:
             log.info("Haber #%d henüz %d dakikadır bekliyor, hatırlatma için erken.", haber_id, int(dakika))
             continue
 
-        baslik = haber.get("manset") or haber.get("orijinal_baslik") or "İçerik"
+        yeni_sayi = db.hatirlatma_arttir(haber_id)
         saat_str = f"{int(dakika // 60)} saat " if dakika and dakika >= 60 else ""
         sure_str = f"{saat_str}{int(dakika % 60) if dakika else 0} dakikadır" if dakika else "Bir süredir"
 
@@ -65,7 +79,7 @@ def main():
 
         if is_reels:
             metin = (
-                f"⏰ <b>ONAY BEKLEYEN REELS VİDEOSU HATIRLATMASI</b>\n\n"
+                f"⏰ <b>ONAY BEKLEYEN REELS VİDEOSU HATIRLATMASI ({yeni_sayi}. Hatırlatma)</b>\n\n"
                 f"🎬 <b>Başlık:</b> {baslik}\n"
                 f"⏳ <b>Bekleme Süresi:</b> {sure_str} onay bekliyor.\n\n"
                 f"<i>Videoyu Instagram uygulamasından trend müzikle paylaşabilir; YouTube Shorts ve TikTok için tek tıkla yayınlayabilirsiniz:</i>"
@@ -86,7 +100,7 @@ def main():
             }
         else:
             metin = (
-                f"⏰ <b>ONAY BEKLEYEN PAYLAŞIM HATIRLATMASI</b>\n\n"
+                f"⏰ <b>ONAY BEKLEYEN PAYLAŞIM HATIRLATMASI ({yeni_sayi}. Hatırlatma)</b>\n\n"
                 f"📌 <b>Başlık:</b> {baslik}\n"
                 f"⏳ <b>Bekleme Süresi:</b> {sure_str} onay bekliyor.\n\n"
                 f"<i>Lütfen aşağıdaki butonlardan birini seçerek yayını onaylayın veya erteleyin:</i>"
@@ -110,10 +124,12 @@ def main():
 
         telegram_bot.mesaj_gonder(metin, reply_markup=butonlar)
         hatirlatilan_sayisi += 1
-        log.info("Haber #%d için hatırlatma mesajı Telegram'a iletildi.", haber_id)
+        log.info("Haber #%d için hatırlatma mesajı (%d.) Telegram'a iletildi.", haber_id, yeni_sayi)
 
     if hatirlatilan_sayisi == 0 and args.zorla:
         telegram_bot.mesaj_gonder("ℹ️ İçerik yakın zamanda hazırlandığı için henüz hatırlatma eşiğine (60 dk) ulaşmadı.")
+
+    db.wal_bosalt()
 
 
 if __name__ == "__main__":

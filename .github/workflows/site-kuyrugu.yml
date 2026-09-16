@@ -90,3 +90,22 @@ jobs:
           else
             python scripts/site_kuyrugunu_isle.py
           fi
+
+      - name: Hata bildir
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+          if not (t and c):
+              raise SystemExit(0)
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
+              "chat_id": c, "parse_mode": "HTML",
+              "text": f"🔴 <b>{'Site İlan Paylaşım Kuyruğu'} BAŞARISIZ</b>\n\n"
+                      f'<a href="{url}">Log</a>',
+          })
+          PY

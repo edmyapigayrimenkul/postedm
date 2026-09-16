@@ -72,7 +72,8 @@ def tablolari_olustur() -> None:
             instagram_post_id TEXT,
             threads_post_id TEXT,
             youtube_video_id TEXT,
-            tiktok_publish_id TEXT
+            tiktok_publish_id TEXT,
+            hatirlatma_sayisi INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS ilanlar (
@@ -124,6 +125,8 @@ def tablolari_olustur() -> None:
             kolonlar = [row["name"] for row in cursor.fetchall()]
             if "makale_metni" not in kolonlar:
                 conn.execute("ALTER TABLE haberler ADD COLUMN makale_metni TEXT")
+            if "hatirlatma_sayisi" not in kolonlar:
+                conn.execute("ALTER TABLE haberler ADD COLUMN hatirlatma_sayisi INTEGER DEFAULT 0")
             ilan_kolonlari = [row["name"] for row in conn.execute("PRAGMA table_info(ilanlar)").fetchall()]
             if "kategori" not in ilan_kolonlari:
                 conn.execute("ALTER TABLE ilanlar ADD COLUMN kategori TEXT")
@@ -262,6 +265,30 @@ def onay_bekleyen_haberleri_getir(limit: int = 5) -> List[Dict[str, Any]]:
             (limit,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def hatirlatma_arttir(haber_id: int) -> int:
+    """Haberin hatırlatma sayısını 1 artırır ve güncel sayıyı döner."""
+    with _baglanti_al() as conn:
+        conn.execute(
+            "UPDATE haberler SET hatirlatma_sayisi = COALESCE(hatirlatma_sayisi, 0) + 1 WHERE id = ?",
+            (haber_id,),
+        )
+        conn.commit()
+        satir = conn.execute("SELECT hatirlatma_sayisi FROM haberler WHERE id = ?", (haber_id,)).fetchone()
+        return int(satir["hatirlatma_sayisi"]) if satir and satir["hatirlatma_sayisi"] is not None else 1
+
+
+def durum_zaman_asimi_yap(haber_id: int) -> None:
+    """Onay bekleyen haberi ve onay isteğini zaman aşımına uğratır."""
+    simdi = datetime.now(timezone.utc).isoformat()
+    with _baglanti_al() as conn:
+        conn.execute("UPDATE haberler SET durum = 'zaman_asimi' WHERE id = ?", (haber_id,))
+        conn.execute(
+            "UPDATE onay_istekleri SET durum = 'zaman_asimi', yanit_tarihi = ? WHERE tur = 'haber' AND referans_id = ?",
+            (simdi, str(haber_id)),
+        )
+        conn.commit()
 
 
 # --- İLAN İŞLEMLERİ ---
