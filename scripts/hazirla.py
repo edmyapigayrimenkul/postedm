@@ -102,6 +102,9 @@ def main() -> None:
     silinen = db.eski_kayitlari_temizle(gun=14)
     if silinen:
         log.info("Havuzdan %d eski kayıt temizlendi.", silinen)
+    bayat = db.bayat_haberleri_ayikla(saat=YAYIN_TAZELIK_SAAT)
+    if bayat:
+        log.info("Havuzdan %d bayat haber elendi.", bayat)
 
     if args.durum:
         ozet = konu_bankasi.durum_ozeti()

@@ -229,6 +229,18 @@ def eski_kayitlari_temizle(gun: int = 14) -> int:
         return silinen
 
 
+def bayat_haberleri_ayikla(saat: int = 72) -> int:
+    """72 saatten eski ve hala 'yeni' olan haberleri 'elendi' (bayat) olarak işaretler."""
+    esik = (datetime.now(timezone.utc) - timedelta(hours=saat)).isoformat()
+    with _baglanti_al() as conn:
+        cursor = conn.execute(
+            "UPDATE haberler SET durum = 'elendi' WHERE durum = 'yeni' AND eklenme_tarihi < ?",
+            (esik,),
+        )
+        conn.commit()
+        return cursor.rowcount
+
+
 def haber_guncelle(haber_id: int, **kwargs: Any) -> None:
     """Belirtilen haberin alanlarını günceller."""
     if not kwargs:
