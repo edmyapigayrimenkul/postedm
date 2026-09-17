@@ -123,10 +123,21 @@ def tablolari_olustur() -> None:
         try:
             cursor = conn.execute("PRAGMA table_info(haberler)")
             kolonlar = [row["name"] for row in cursor.fetchall()]
-            if "makale_metni" not in kolonlar:
-                conn.execute("ALTER TABLE haberler ADD COLUMN makale_metni TEXT")
-            if "hatirlatma_sayisi" not in kolonlar:
-                conn.execute("ALTER TABLE haberler ADD COLUMN hatirlatma_sayisi INTEGER DEFAULT 0")
+            haber_ek_kolonlar = [
+                ("makale_metni", "TEXT"),
+                ("hatirlatma_sayisi", "INTEGER DEFAULT 0"),
+                ("threads_metin", "TEXT"),
+                ("yayin_zamani", "TEXT"),
+                ("instagram_post_id", "TEXT"),
+                ("threads_post_id", "TEXT"),
+                ("youtube_video_id", "TEXT"),
+                ("tiktok_publish_id", "TEXT"),
+                ("video_yolu", "TEXT"),
+            ]
+            for ad, tip in haber_ek_kolonlar:
+                if ad not in kolonlar:
+                    conn.execute(f"ALTER TABLE haberler ADD COLUMN {ad} {tip}")
+
             ilan_kolonlari = [row["name"] for row in conn.execute("PRAGMA table_info(ilanlar)").fetchall()]
             if "kategori" not in ilan_kolonlari:
                 conn.execute("ALTER TABLE ilanlar ADD COLUMN kategori TEXT")
@@ -416,6 +427,29 @@ def onay_istegi_sonuclandir(tur: str, referans_id: str, durum: str) -> None:
             (durum, simdi, tur, str(referans_id)),
         )
         conn.commit()
+
+
+def onay_istegi_ertele(tur: str, referans_id: str, dakika: int = 60) -> bool:
+    """
+    Onay bekleyen bir içeriğin bekleme süresini belirtilen dakika kadar ileri öteler
+    ve hatırlatma sayacını sıfırlar. Böylece '1 Saat Ertele' butonuna basıldığında
+    hatırlatıcı bir sonraki periyoda kadar kullanıcıyı rahatsız etmez.
+    """
+    simdi = datetime.now(timezone.utc).isoformat()
+    with _baglanti_al() as conn:
+        conn.execute(
+            """UPDATE onay_istekleri 
+               SET olusturma_tarihi = ? 
+               WHERE tur = ? AND referans_id = ? AND durum = 'bekliyor'""",
+            (simdi, tur, str(referans_id)),
+        )
+        if tur in ("haber", "reels") and str(referans_id).isdigit():
+            conn.execute(
+                "UPDATE haberler SET hatirlatma_sayisi = 0 WHERE id = ?",
+                (int(referans_id),),
+            )
+        conn.commit()
+    return True
 
 
 # Başlangıçta tabloları hazırla

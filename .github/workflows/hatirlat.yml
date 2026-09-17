@@ -47,6 +47,7 @@ jobs:
           fi
 
       - name: Veritabanını Kaydet
+        if: always()
         run: |
           python scripts/db_kaydet.py "db: hatirlatma ve zaman asimi durumlari guncellendi"
 

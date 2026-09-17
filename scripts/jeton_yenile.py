@@ -137,6 +137,11 @@ def main() -> int:
             yeni_tt = tiktok.token_yenile()
             if yeni_tt:
                 satirlar.append("✅ TikTok — 24 saatlik jeton yenilendi")
+                if refresh_token.github_secret_guncelle(yeni_tt, "TIKTOK_ACCESS_TOKEN"):
+                    satirlar.append("   ↳ GitHub Secret (TIKTOK_ACCESS_TOKEN) güncellendi")
+                yeni_refresh = os.environ.get("TIKTOK_REFRESH_TOKEN")
+                if yeni_refresh:
+                    refresh_token.github_secret_guncelle(yeni_refresh, "TIKTOK_REFRESH_TOKEN")
             else:
                 token = config.env_al("TIKTOK_ACCESS_TOKEN")
                 if token:

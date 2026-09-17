@@ -34,6 +34,9 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "soru",
     "reels",
     "video",
+    "ilan",
+    "ilanlar",
+    "havuz",
 
     # Aksiyonlar
     "ertele",
@@ -47,16 +50,19 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
     # ── 🎛 YÖNETİM & KONTROL MERKEZİ ─────────────────────────────────
     {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
     {"command": "durum", "description": "📊 Bot sağlığı, sıradaki post ve kota"},
+    {"command": "ilanlar", "description": "🏡 Portföyden tek tıkla ilan seçip paylaş"},
     {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},
+    {"command": "saglik", "description": "🩺 Sistem ve API sağlık testi"},
     {"command": "yardim", "description": "❓ Bot komutları ve kullanım kılavuzu"},
 
     # ── ✍️ OTORİTE İÇERİK ÜRETİMİ ─────────────────────────────────────
     {"command": "yeni", "description": "✍️ Sıradaki konuyu hemen üretip onaya sun"},
+    {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu üretip gruba sun"},
     {"command": "sozluk", "description": "📖 EDM Gayrimenkul Sözlüğü postu üret"},
     {"command": "dogrusu", "description": "⚖️ Nedir Doğrusu? (Efsane vs Gerçek) üret"},
     {"command": "vaka", "description": "📂 Hukuki Vaka Analizi (2 Slayt Carousel) üret"},
     {"command": "soru", "description": "❓ Net Cevap Rehberi (Soru & Hüküm) üret"},
-    {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu üretip gruba sun"},
+    {"command": "havuz", "description": "🔄 Konu havuzu doluluk ve istatistikleri"},
 
     # ── ⏸️ AKIŞ KONTROLÜ ─────────────────────────────────────────────
     {"command": "durdur", "description": "⏸️ Otomatik paylaşımları duraklat"},

@@ -115,6 +115,14 @@ class TestSabotajTipografi(unittest.TestCase):
         self.assertIn("#Emlak", temiz)
         self.assertIn("EDM Yapı", temiz)
 
+    def test_make_image_cizim_oncesi_markdown_yildizlarini_siler(self):
+        """7. Test: make_image._temizle_tipografi tuvale çizilecek metindeki **bold** yıldızlarını ve eksik glifleri temizlemeli."""
+        from src.make_image import _temizle_tipografi
+        ham = "**Silivri** arsa alımında **dikkat** edilmesi gerekenler: ➔ Bilgi al📌"
+        temiz = _temizle_tipografi(ham)
+        self.assertNotIn("**", temiz)
+        self.assertIn("Silivri arsa alımında dikkat edilmesi gerekenler: → Bilgi al■", temiz)
+
 
 if __name__ == "__main__":
     unittest.main()

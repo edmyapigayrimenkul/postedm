@@ -31,7 +31,9 @@ def bekleme_suresi_dakika(haber: dict) -> float | None:
     if not ham:
         return None
     try:
-        gonderim = datetime.fromisoformat(ham).replace(tzinfo=timezone.utc)
+        gonderim = datetime.fromisoformat(str(ham).strip().replace(" ", "T"))
+        if gonderim.tzinfo is None:
+            gonderim = gonderim.replace(tzinfo=timezone.utc)
         return (datetime.now(timezone.utc) - gonderim).total_seconds() / 60
     except Exception:
         return None

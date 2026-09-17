@@ -160,6 +160,14 @@ def paylas(metin: str, gorsel_urlleri: Optional[List[str]] = None) -> Optional[s
 
     # Markdown yıldızlarını ve literal kaçış dizilerini temizle
     temiz_metin = filtre.markdown_temizle(metin)
+    if len(temiz_metin) > 500:
+        # Threads API katı 500 karakter sınırına sahiptir; kelime sınırından güvenli kırp
+        kirpilmis = temiz_metin[:496]
+        son_bosluk = kirpilmis.rfind(" ")
+        if son_bosluk > 400:
+            temiz_metin = kirpilmis[:son_bosluk] + "..."
+        else:
+            temiz_metin = kirpilmis + "..."
     url = f"{THREADS_TABAN}/{kullanici_id}/threads"
 
     # 1. Salt Metin Paylaşımı
@@ -217,3 +225,135 @@ def paylas(metin: str, gorsel_urlleri: Optional[List[str]] = None) -> Optional[s
         return _yayina_al(creation_id, kullanici_id, token)
 
     return None
+
+
+def metinleri_slaytlara_dagit(
+    haber_veya_detay: Dict[str, Any],
+    gorsel_urlleri: List[str],
+) -> List[Dict[str, str]]:
+    """
+    Her slayt görseli için Threads karakter limitine (<= 500) tam uygun,
+    parça parça zincir metinleri üretir.
+    """
+    detay = haber_veya_detay
+    if "detay_metni" in detay and isinstance(detay["detay_metni"], str):
+        try:
+            detay = json.loads(detay["detay_metni"])
+        except Exception:
+            detay = haber_veya_detay
+
+    toplam_slayt = len(gorsel_urlleri)
+    if toplam_slayt == 0:
+        return []
+
+    manset_p1 = detay.get("manset_parca_1") or detay.get("manset", "")
+    manset_v = detay.get("manset_vurgu", "")
+    manset_p2 = detay.get("manset_parca_2", "")
+    tam_manset = f"{manset_p1} {manset_v} {manset_p2}".strip()
+    spot = detay.get("spot") or detay.get("orijinal_ozet", "")
+
+    parcalar: List[str] = []
+
+    # 1. Kapak Metni
+    kapak_metin = f"📌 {tam_manset}\n\n{spot}".strip()
+    parcalar.append(kapak_metin)
+
+    # 2. Detay Kartları (slayt_2_detay)
+    s2 = detay.get("slayt_2_detay", {})
+    if isinstance(s2, dict):
+        if "kart_1" in s2:
+            k1 = s2["kart_1"]
+            txt = f"⚠️ {k1.get('baslik', '')}\n\n{k1.get('aciklama', '')}".strip()
+            parcalar.append(txt)
+        if "kart_2" in s2:
+            k2 = s2["kart_2"]
+            txt = f"⚖️ {k2.get('baslik', '')}\n\n{k2.get('aciklama', '')}".strip()
+            parcalar.append(txt)
+        elif "kartlar" in s2 and isinstance(s2["kartlar"], list):
+            for k in s2["kartlar"]:
+                txt = f"🔹 {k.get('baslik', '')}\n\n{k.get('aciklama', '')}".strip()
+                parcalar.append(txt)
+
+    # 3. Çözüm Adımları (slayt_3_cozum)
+    s3 = detay.get("slayt_3_cozum", {})
+    if isinstance(s3, dict):
+        maddeler = s3.get("maddeler", [])
+        for idx, m in enumerate(maddeler, start=1):
+            if isinstance(m, dict):
+                txt = f"✅ Adım {idx}: {m.get('baslik', '')}\n\n{m.get('aciklama', '')}".strip()
+            else:
+                txt = f"✅ Adım {idx}: {str(m)}".strip()
+            parcalar.append(txt)
+
+    # 4. Kapanış / CTA
+    cta = (detay.get("slayt_4_cta") or {}).get("cagri_metni") if isinstance(detay.get("slayt_4_cta"), dict) else ""
+    kapanis_metin = (
+        f"🤝 {cta}\n\n"
+        "EDM Yapı & Gayrimenkul · Yatırım ve Hukuk Danışmanlığı\n"
+        "📞 0536 343 41 97 · Silivri / İstanbul"
+    ).strip()
+    parcalar.append(kapanis_metin)
+
+    sayfalar: List[Dict[str, str]] = []
+    for i, g_url in enumerate(gorsel_urlleri):
+        metin = parcalar[i] if i < len(parcalar) else kapanis_metin
+        temiz = filtre.markdown_temizle(metin)
+        if len(temiz) > 480:
+            temiz = temiz[:475].rsplit(" ", 1)[0] + "..."
+        sayfalar.append({"gorsel_url": g_url, "metin": temiz})
+
+    return sayfalar
+
+
+def zincir_paylas(sayfalar: List[Dict[str, str]]) -> Optional[str]:
+    """
+    Threads'te 4:5 görselleri ve her sayfanın metnini parça parça
+    birbirine bağlı bir yanıt zinciri (Thread Chain) olarak yayınlar.
+    """
+    kullanici_id, token = _hesap_bilgileri()
+    if not kullanici_id or not token:
+        log.warning("Threads kimlik bilgileri eksik (.env kontrol edin).")
+        return None
+
+    if not sayfalar:
+        log.warning("Zincir için sayfa verisi bulunamadı.")
+        return None
+
+    url = f"{THREADS_TABAN}/{kullanici_id}/threads"
+    kok_id: Optional[str] = None
+    onceki_id: Optional[str] = None
+
+    for idx, sayfa in enumerate(sayfalar):
+        g_url = sayfa.get("gorsel_url")
+        metin = filtre.markdown_temizle(sayfa.get("metin", ""))
+        if len(metin) > 500:
+            metin = metin[:495].rsplit(" ", 1)[0] + "..."
+
+        payload: Dict[str, Any] = {
+            "media_type": "IMAGE",
+            "image_url": g_url,
+            "text": metin,
+            "access_token": token,
+        }
+        if onceki_id:
+            payload["reply_to_id"] = onceki_id
+
+        log.info("Threads zincir parçası %d/%d oluşturuluyor...", idx + 1, len(sayfalar))
+        cid = _konteyner_olustur(url, payload)
+        if not cid or not _konteyner_bekle(cid, token):
+            log.warning("Threads zincir parçası %d hazırlanamadı.", idx + 1)
+            continue
+
+        yeni_id = _yayina_al(cid, kullanici_id, token)
+        if yeni_id:
+            if not kok_id:
+                kok_id = yeni_id
+            onceki_id = yeni_id
+            log.info("Threads zincir parçası %d yayınlandı: ID=%s", idx + 1, yeni_id)
+        else:
+            log.warning("Threads zincir parçası %d yayına alınamadı.", idx + 1)
+
+        if idx < len(sayfalar) - 1:
+            time.sleep(CONTAINER_ARASI_SANIYE)
+
+    return kok_id

@@ -57,7 +57,10 @@ def gunluk_yukleme_sayisi_artir() -> None:
 
 def youtube_icin_sesli_video_hazirla(video_yolu: Path | str) -> Path:
     """
-    Videoya arka planda hafif bir fon sesi miksler veya orijinal videoyu döner.
+    Sadece YouTube Shorts'a özel: Videoya arka planda telifsiz, rahatsız etmeyen
+    hafif bir emlak fon müziği miksler.
+    assets/audio/ altında .mp3/.wav/.m4a dosyası varsa onu döngüyle ve %20 ses seviyesinde miksler.
+    Dosya yoksa sıcak bir C-Maj7 ambiyans akor yatağı üretir.
     """
     yol = Path(video_yolu)
     if not yol.exists():
@@ -68,23 +71,50 @@ def youtube_icin_sesli_video_hazirla(video_yolu: Path | str) -> Path:
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         yt_cikti = yol.with_name(f"{yol.stem}_yt.mp4")
 
-        # Hafif ve modern kurumsal ambiyans akordu üret
-        komut = [
-            ffmpeg_exe, "-y",
-            "-i", str(yol),
-            "-f", "lavfi", "-i",
-            "aevalsrc=0.02*sin(2*PI*110*t)+0.015*sin(2*PI*164.81*t)+0.015*sin(2*PI*220*t):s=44100",
-            "-map", "0:v", "-map", "1:a",
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
-            "-shortest", "-movflags", "+faststart",
-            str(yt_cikti),
-        ]
+        # 1. Özel fon müziği var mı bak
+        ses_dosyasi = None
+        ses_dizini = config.yol_al("assets/audio")
+        if ses_dizini.exists():
+            muzikler = (
+                list(ses_dizini.glob("*.mp3"))
+                + list(ses_dizini.glob("*.wav"))
+                + list(ses_dizini.glob("*.m4a"))
+            )
+            if muzikler:
+                ses_dosyasi = muzikler[0]
+
+        if ses_dosyasi and ses_dosyasi.exists():
+            komut = [
+                ffmpeg_exe, "-y",
+                "-i", str(yol),
+                "-stream_loop", "-1", "-i", str(ses_dosyasi),
+                "-map", "0:v", "-map", "1:a",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                "-filter:a", "volume=0.20,afade=t=in:st=0:d=1,afade=t=out:st=12:d=2",
+                "-shortest", "-movflags", "+faststart",
+                str(yt_cikti),
+            ]
+            log.info("YouTube Shorts için özel telifsiz fon müziği miksleniyor: %s", ses_dosyasi.name)
+        else:
+            # 2. Sıcak C-Maj7 kurumsal ambiyans akoru (lo-fi emlak hissi)
+            komut = [
+                ffmpeg_exe, "-y",
+                "-i", str(yol),
+                "-f", "lavfi", "-i",
+                "aevalsrc=0.015*sin(2*PI*130.81*t)+0.012*sin(2*PI*164.81*t)+0.012*sin(2*PI*196.00*t)+0.010*sin(2*PI*261.63*t):s=44100",
+                "-map", "0:v", "-map", "1:a",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                "-filter:a", "volume=0.25,afade=t=in:st=0:d=1,afade=t=out:st=12:d=2",
+                "-shortest", "-movflags", "+faststart",
+                str(yt_cikti),
+            ]
+            log.info("YouTube Shorts için C-Maj7 sıcak ambiyans fonu üretildi.")
+
         subprocess.run(komut, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if yt_cikti.exists() and yt_cikti.stat().st_size > 0:
-            log.info("YouTube Shorts için hafif ambiyans fon mikslendi: %s", yt_cikti.name)
             return yt_cikti
     except Exception as e:
-        log.debug("YouTube için fon sesi mikslenemedi, orijinal video ile devam: %s", e)
+        log.warning("YouTube için fon sesi mikslenemedi, orijinal video ile devam: %s", e)
 
     return yol
 

@@ -60,7 +60,7 @@ def _baslik_anahtari(baslik: str) -> str:
     "TOKİ kiralık konut başvuruları 2 gün sonra başlıyor" ve
     "... 3 gün sonra başlıyor" ayrı kayıtlar olarak giriyordu.
     """
-    t = baslik.lower()
+    t = baslik.replace("I", "ı").replace("İ", "i").lower()
     t = re.sub(r"\d+", "#", t)                      # sayılar normalleşir
     t = re.sub(r"[^a-zçğıöşü#\s]", " ", t)
     kelimeler = [k for k in t.split() if len(k) > 2]

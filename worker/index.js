@@ -235,13 +235,16 @@ export default {
 
         // Butonları güncelleme yardımcısı
         const butonlariGuncelle = async (inlineKeyboard) => {
+          const markup = Array.isArray(inlineKeyboard)
+            ? { inline_keyboard: inlineKeyboard }
+            : (inlineKeyboard && inlineKeyboard.inline_keyboard ? inlineKeyboard : { inline_keyboard: inlineKeyboard });
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chat_id: chatId,
               message_id: messageId,
-              reply_markup: { inline_keyboard: inlineKeyboard },
+              reply_markup: markup,
             }),
           });
         };
@@ -272,7 +275,7 @@ export default {
           const hedefStr = aktifKanallar.length > 0 ? aktifKanallar.join(",") : "ig,threads";
           for (let row of keyboard) {
             for (let btn of row) {
-              if (btn.callback_data?.startsWith("onayla:haber:")) {
+              if (btn.callback_data?.startsWith("onayla:")) {
                 const parts = btn.callback_data.split(":");
                 parts[2] = hedefStr;
                 btn.callback_data = parts.join(":");
@@ -392,10 +395,63 @@ export default {
           return new Response("OK");
         }
 
+        // METİN SEÇİM MENÜSÜ (İnstabot Standardı)
+        if (data.startsWith("metin_menu:")) {
+          const parts = data.split(":");
+          const tur = parts[1] || "haber";
+          const id = parts[2] || "";
+          await cevapVer("Metin seçenekleri");
+          await butonlariGuncelle(metinSecimMenusu(id, tur));
+          return new Response("OK");
+        }
+
+        // FOTOĞRAF / GÖRSEL MENÜSÜ (İnstabot Standardı)
+        if (data.startsWith("foto_menu:")) {
+          const parts = data.split(":");
+          const tur = parts[1] || "haber";
+          const id = parts[2] || "";
+          await cevapVer("Görsel seçenekleri");
+          await butonlariGuncelle(fotoSecimMenusu(id, tur));
+          return new Response("OK");
+        }
+
+        // METİN EYLEMLERİ (ÖZETLE / DETAYLANDIR)
+        if (data.startsWith("metin_eylem:")) {
+          const [, eylem, tur, id] = data.split(":");
+          await cevapVer("Metin düzenleniyor...");
+          await mesajiGuncelle(`✍️ <b>${tur === "reels" ? "Reels" : "Haber"} #${id} için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await tetikleGitHub(env, "yayinla", { tur, hedef: `metin_${eylem}`, id });
+          return new Response("OK");
+        }
+
+        // FOTOĞRAF EYLEMLERİ (DEĞİŞTİR / EDİTORYAL)
+        if (data.startsWith("foto_eylem:")) {
+          const [, eylem, tur, id] = data.split(":");
+          await cevapVer("Görsel güncelleniyor...");
+          await mesajiGuncelle(`🖼️ <b>${tur === "reels" ? "Reels" : "Haber"} #${id} görseli güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await tetikleGitHub(env, "yayinla", { tur, hedef: `foto_${eylem}`, id });
+          return new Response("OK");
+        }
+
+        // ÇÖPE AT (DÖNMESİN - KALICI ENGELLEME)
+        if (data.startsWith("cope_at:")) {
+          const [, tur, id] = data.split(":");
+          await cevapVer("İçerik çöpe atıldı, bu konu havuza bir daha dönmeyecek.");
+          await mesajiGuncelle(`🗑️ <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} #${id} çöpe atıldı.</b>\n<i>Bu konu kalıcı olarak engellendi ve havuza bir daha dönmeyecek.</i>`);
+          await tetikleGitHub(env, "yayinla", { tur, hedef: "cope_at", id });
+          return new Response("OK");
+        }
+
         if (data.startsWith("onay_menu_don:")) {
-          const id = data.split(":")[1];
+          const parts = data.split(":");
+          const tur = parts.length > 2 ? parts[1] : "haber";
+          const id = parts.length > 2 ? parts[2] : parts[1];
           await cevapVer();
-          await butonlariGuncelle(standartOnayMenusu(id));
+          if (tur === "reels") {
+            await butonlariGuncelle(reelsOnayMenusu(id));
+          } else {
+            await butonlariGuncelle(standartOnayMenusu(id));
+          }
           return new Response("OK");
         }
 
@@ -413,12 +469,15 @@ export default {
 
         // E. ERTELEME
         if (data.startsWith("ertele:")) {
-          const id = data.split(":")[1] || "";
+          const parts = data.split(":");
+          const id = parts.length > 2 ? parts[2] : (parts[1] || "");
+          const tur = parts.length > 2 ? parts[1] : "haber";
           await cevapVer("Yayın 1 saat ertelendi");
+          await tetikleGitHub(env, "yayinla", { tur, hedef: "ertele", id });
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: `⏰ Post #${id} yayını 1 saat ertelendi.` }),
+            body: JSON.stringify({ chat_id: chatId, text: `⏰ ${tur === "reels" ? "Reels" : "Post"} #${id} yayını 1 saat ertelendi.` }),
           });
           return new Response("OK");
         }
@@ -628,6 +687,7 @@ function kontrolMerkeziMenusu() {
       ],
       [
         { text: "🎬 Reels Videosu Üret (9:16)", callback_data: "hizli_uret:reels" },
+        { text: "🏡 Portföy İlanları", callback_data: "ilan_menu_yenile" },
       ],
       [
         { text: "📊 Durum & Sağlık", callback_data: "durum" },
@@ -676,25 +736,96 @@ function formatSecimMenusu(id) {
   };
 }
 
-function standartOnayMenusu(id) {
+function standartOnayMenusu(id, kanallar = { ig: true, threads: true, fb: false }) {
+  const simge = (k) => kanallar[k] ? "✅" : "⬜";
+  const aktif = Object.keys(kanallar).filter(k => kanallar[k]).join(",") || "ig,threads";
   return {
     inline_keyboard: [
       [
-        { text: "✅ Instagram", callback_data: "kanal_toggle:ig" },
-        { text: "✅ Threads", callback_data: "kanal_toggle:threads" },
-        { text: "⬜ Facebook", callback_data: "kanal_toggle:fb" },
+        { text: `${simge('ig')} Instagram`, callback_data: "kanal_toggle:ig" },
+        { text: `${simge('threads')} Threads`, callback_data: "kanal_toggle:threads" },
+        { text: `${simge('fb')} Facebook`, callback_data: "kanal_toggle:fb" },
       ],
       [
-        { text: "🚀 Seçili Kanallarda Yayınla", callback_data: `onayla:haber:ig,threads:${id}` },
-        { text: "📲 Manuel Paket", callback_data: `manuel_paket:${id}` },
+        { text: "🚀 Seçili Kanallarda Yayınla", callback_data: `onayla:haber:${aktif}:${id}` },
+        { text: "📲 Manuel Paket", callback_data: `manuel_paket:haber:${id}` },
       ],
       [
-        { text: "🔄 Metinleri Yenile", callback_data: `yenile:haber:${id}` },
+        { text: "✍️ Metinleri Yenile", callback_data: `metin_menu:haber:${id}` },
+        { text: "🖼️ Fotoğrafı Değiştir", callback_data: `foto_menu:haber:${id}` },
+      ],
+      [
         { text: "🎨 Formatı Değiştir", callback_data: `format_menu:${id}` },
+        { text: "⏰ 1 Saat Ertele", callback_data: `ertele:haber:${id}` },
       ],
       [
-        { text: "⏰ 1 Saat Ertele", callback_data: `ertele:haber:${id}` },
-        { text: "❌ İptal / Reddet", callback_data: `reddet:haber:${id}` },
+        { text: "❌ İptal Et (Havuza Döner)", callback_data: `reddet:haber:${id}` },
+        { text: "🗑️ Çöpe At (Dönmesin)", callback_data: `cope_at:haber:${id}` },
+      ],
+    ],
+  };
+}
+
+function reelsOnayMenusu(id, kanallar = { reels: true, shorts: true, fb_reels: true, threads: true, tiktok: false }) {
+  const simge = (k) => kanallar[k] ? "✅" : "⬜";
+  const aktif = Object.keys(kanallar).filter(k => kanallar[k]).join(",") || "reels,shorts,fb_reels,threads";
+  return {
+    inline_keyboard: [
+      [
+        { text: `${simge('reels')} Reels`, callback_data: "kanal_toggle:reels" },
+        { text: `${simge('shorts')} Shorts`, callback_data: "kanal_toggle:shorts" },
+        { text: `${simge('fb_reels')} FB Reels`, callback_data: "kanal_toggle:fb_reels" },
+      ],
+      [
+        { text: `${simge('threads')} Threads`, callback_data: "kanal_toggle:threads" },
+        { text: `${simge('tiktok')} TikTok`, callback_data: "kanal_toggle:tiktok" },
+      ],
+      [
+        { text: "🚀 Seçili Kanallarda Yayınla", callback_data: `onayla:reels:${aktif}:${id}` },
+        { text: "📲 Manuel Paket", callback_data: `manuel_paket:reels:${id}` },
+      ],
+      [
+        { text: "✍️ Metinleri Yenile", callback_data: `metin_menu:reels:${id}` },
+        { text: "🖼️ Kapak Foto Değiştir", callback_data: `foto_menu:reels:${id}` },
+      ],
+      [
+        { text: "✅ Manuel Paylaştım", callback_data: `onayla:reels:tamamla:${id}` },
+        { text: "🔄 Sıfırdan Yeniden Üret", callback_data: `yenile:reels:${id}` },
+      ],
+      [
+        { text: "❌ İptal Et (Havuza Döner)", callback_data: `reddet:reels:${id}` },
+        { text: "🗑️ Çöpe At (Dönmesin)", callback_data: `cope_at:reels:${id}` },
+      ],
+    ],
+  };
+}
+
+function metinSecimMenusu(id, tur = "haber") {
+  return {
+    inline_keyboard: [
+      [
+        { text: "✂️ Daha da Özetle", callback_data: `metin_eylem:ozetle:${tur}:${id}` },
+        { text: "📖 Hukuki Detay Ekle", callback_data: `metin_eylem:detaylandir:${tur}:${id}` },
+      ],
+      [
+        { text: "🔄 Standart Yeniden Yaz", callback_data: `yenile:${tur}:${id}` },
+      ],
+      [
+        { text: "← Onay Menüsüne Dön", callback_data: `onay_menu_don:${tur}:${id}` },
+      ],
+    ],
+  };
+}
+
+function fotoSecimMenusu(id, tur = "haber") {
+  return {
+    inline_keyboard: [
+      [
+        { text: "🖼️ Başka Fotoğraf Seç", callback_data: `foto_eylem:degistir:${tur}:${id}` },
+        { text: "🏛️ Saf Editoryal Zemin Yap", callback_data: `foto_eylem:editoryal:${tur}:${id}` },
+      ],
+      [
+        { text: "← Onay Menüsüne Dön", callback_data: `onay_menu_don:${tur}:${id}` },
       ],
     ],
   };

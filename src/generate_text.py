@@ -708,6 +708,7 @@ def otorite_icerigi_uret(
     konu_veya_haber: Any,
     kategori_kodu: Optional[str] = None,
     bicim: str = "B1",
+    ek_talimat: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Serbest konu veya RSS haber kaydından içerik üretir.
 
@@ -729,6 +730,8 @@ def otorite_icerigi_uret(
 
     if kategori_kodu:
         girdi += f"HEDEF KATEGORİ: {kategori_kodu}\n"
+    if ek_talimat:
+        girdi += f"\nEK EDİTORYAL TALİMAT: {ek_talimat}\n"
     girdi += (
         "\nDOĞRULANMIŞ MEVZUAT: yok. Kanun maddesi numarası YAZMA.\n"
         "Bu içeriği yukarıdaki biçim şemasına göre işle."
@@ -752,9 +755,9 @@ def otorite_icerigi_uret(
     return veri
 
 
-def haber_metinleri_uret(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def haber_metinleri_uret(haber: Dict[str, Any], ek_talimat: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Geriye dönük uyumlu haber girişi — B5 biçimine yönlendirir."""
-    return otorite_icerigi_uret(haber, bicim="B5")
+    return otorite_icerigi_uret(haber, bicim="B5", ek_talimat=ek_talimat)
 
 
 def ilan_metinleri_uret(ilan: Dict[str, Any]) -> Optional[Dict[str, Any]]:

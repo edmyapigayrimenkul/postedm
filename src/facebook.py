@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -164,5 +165,50 @@ def story_yayinla(gorsel_url: str) -> Optional[str]:
             return d_story["post_id"]
     except Exception as e:
         log.warning("Facebook Story yayınlama hatası: %s", e)
+
+    return None
+
+
+def video_yayinla(video_yolu: Path | str, description: str = "") -> Optional[str]:
+    """
+    Facebook sayfasında MP4 video (Reels) yayınlar.
+    Meta Graph API /{page_id}/videos endpointine multipart/form-data ile yükleme yapar.
+    """
+    token, page_id = _page_bilgileri()
+    if not token:
+        log.warning("Facebook erişim tokeni bulunamadı.")
+        return None
+
+    yol = Path(video_yolu)
+    if not yol.exists():
+        log.warning("Facebook'a yüklenecek video dosyası bulunamadı: %s", video_yolu)
+        return None
+
+    temiz_desc = filtre.markdown_temizle(description)
+    url = f"{GRAPH_API_URL}/{page_id}/videos"
+
+    for deneme in range(1, 4):
+        try:
+            with open(yol, "rb") as f:
+                res = requests.post(
+                    url,
+                    data={"access_token": token, "description": temiz_desc},
+                    files={"source": f},
+                    timeout=120,
+                )
+            if res.status_code == 200:
+                vid_id = res.json().get("id")
+                log.info("Facebook video/reels yayını başarılı: %s", vid_id)
+                return vid_id
+
+            if res.status_code in GECICI_HATALAR:
+                time.sleep(deneme * 5)
+                continue
+
+            log.error("Facebook video yükleme hatası [%d]: %s", res.status_code, res.text[:200])
+            break
+        except requests.RequestException as e:
+            log.warning("Facebook video ağ hatası (deneme %d): %s", deneme, e)
+            time.sleep(deneme * 5)
 
     return None

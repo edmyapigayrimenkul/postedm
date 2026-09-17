@@ -22,7 +22,7 @@ import qrcode
 import requests
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-from . import config, fetch_listings, filtre, upload_image
+from . import config, db, fetch_listings, filtre, upload_image
 
 log = logging.getLogger(__name__)
 
@@ -114,8 +114,8 @@ def _temizle_tipografi(metin: str) -> str:
     """Metindeki kaçış dizilerini (\\n), markdown yıldızlarını (**) ve eksik glifleri temizler."""
     if not metin:
         return ""
-    # filtre modülünden tipografi standartlarını uygula (bin 410 -> 1.410, yüzde 25 -> %25, TL -> ₺)
-    temiz = filtre.tipografi_temizle(metin)
+    # filtre modülünden tipografi standartlarını ve markdown temizliğini uygula
+    temiz = filtre.markdown_temizle(metin)
     # Inter ve Fraunces fontunda bulunmayan ve .notdef (boş kutu) basan glifleri güvenli alternatiflerle değiştir
     glifler = {
         "➔": "→",
@@ -507,12 +507,17 @@ def _difuzyon_golgeli_metin(
     return curr_y
 
 
-# Kategori bazlı zengin görsel havuzu (her içerikte farklı ve çarpıcı atmosfer)
+# Kategori bazlı zengin görsel havuzu (her içerikte farklı ve çarpıcı mimari / arsa atmosferi)
 ARKA_PLAN_HAVUZU = {
     "ARSA": [
         "arsa_aerial_green.jpg",
-        "arsa_countryside.jpg",
+        "arsa_green_drone.jpg",
         "arsa_landscape_field.jpg",
+        "arsa_parsel_aerial.jpg",
+        "arsa_plow_field.jpg",
+        "arsa_suburb_plot.jpg",
+        "arsa_suburban_parsel.jpg",
+        "arsa_villa_land.jpg",
         "clean_land_aerial.jpg",
         "bg_land_villa.jpg",
     ],
@@ -521,6 +526,7 @@ ARKA_PLAN_HAVUZU = {
         "villa_luxury_dusk.jpg",
         "villa_minimal_white.jpg",
         "villa_estate_contemporary.jpg",
+        "villa_estate_garden.jpg",
         "clean_modern_villa.jpg",
         "bg_modern_villa.jpg",
     ],
@@ -531,6 +537,7 @@ ARKA_PLAN_HAVUZU = {
         "bina_architecture_highrise.jpg",
         "clean_architecture.jpg",
         "bg_building_facade.jpg",
+        "bg_architecture.jpg",
     ],
     "ICMEKAN": [
         "icmekan_luxury_penthouse.jpg",
@@ -541,6 +548,7 @@ ARKA_PLAN_HAVUZU = {
     ],
     "INSAAT": [
         "insaat_modern_structure.jpg",
+        "bina_architecture_highrise.jpg",
         "bina_modern_glass.jpg",
         "bg_architecture.jpg",
     ],
@@ -551,10 +559,14 @@ def _temiz_arkaplan_al(
     kategori_kodu: Optional[str] = None,
     ozel_url_veya_yol: Optional[str] = None,
     tohum: Optional[Any] = None,
+    haric_tut: Optional[List[str]] = None,
 ) -> Image.Image:
     """Kategoriye en uygun yüksek çözünürlüklü temiz mimari görseli yükler veya koyu zemin üretir.
 
-    Tekrarlayan aynı görsel sorununu önlemek için kategori havuzundan tohum bazlı çeşitli görsel seçer.
+    Tekrarlayan aynı görsel sorununu kalıcı olarak önlemek için:
+    1. Son paylaşılan 10 görsel veritabanından okunur ve adaylardan elenir.
+    2. Kalan adaylar arasından tohum (MD5) veya zaman bazlı seçim yapılır.
+    3. Seçilen görsel son kullanılanlar listesine kaydedilir.
     """
     if ozel_url_veya_yol:
         foto = _foto_indir_veya_ac(ozel_url_veya_yol)
@@ -563,38 +575,67 @@ def _temiz_arkaplan_al(
 
     kat = (kategori_kodu or "").upper()
     if "ARSA" in kat or "IMAR" in kat or "PARSEL" in kat or "TARLA" in kat:
-        havuz = ARKA_PLAN_HAVUZU["ARSA"]
+        havuz = list(ARKA_PLAN_HAVUZU["ARSA"])
     elif "KIRACI" in kat or "EV_SAHIBI" in kat or "HUKUK" in kat or "SITE" in kat or "APARTMAN" in kat:
-        havuz = ARKA_PLAN_HAVUZU["BINA"]
+        havuz = list(ARKA_PLAN_HAVUZU["BINA"])
     elif "YATIRIM" in kat or "FINANS" in kat or "VERGI" in kat or "DEGERLEME" in kat:
-        havuz = ARKA_PLAN_HAVUZU["ICMEKAN"]
+        havuz = list(ARKA_PLAN_HAVUZU["ICMEKAN"])
     elif "INSAAT" in kat or "KENTSEL" in kat or "DONUSUM" in kat or "PROJE" in kat:
-        havuz = ARKA_PLAN_HAVUZU["INSAAT"]
+        havuz = list(ARKA_PLAN_HAVUZU["INSAAT"])
     else:
-        havuz = ARKA_PLAN_HAVUZU["KONUT"]
+        havuz = list(ARKA_PLAN_HAVUZU["KONUT"])
 
-    # Tohum varsa deterministik ama zengin çeşitlilik
+    # Son kullanılanları oku
+    son_kullanilan = []
+    try:
+        raw = db.ayar_oku("son_arkaplanlar")
+        if raw:
+            son_kullanilan = json.loads(raw)
+            if not isinstance(son_kullanilan, list):
+                son_kullanilan = []
+    except Exception:
+        son_kullanilan = []
+
+    if haric_tut:
+        son_kullanilan.extend(haric_tut)
+
+    # Havuzdaki mevcut dosyaları kontrol et
+    mevcut_havuz = [b_ad for b_ad in havuz if config.yol_al(f"assets/backgrounds/{b_ad}").exists()]
+    if not mevcut_havuz:
+        mevcut_havuz = havuz
+
+    # Son kullanılanları hariç tut
+    adaylar = [ad for ad in mevcut_havuz if ad not in son_kullanilan]
+    if not adaylar:
+        # Havuz dolduysa son 2 hariç tekrar aç
+        adaylar = [ad for ad in mevcut_havuz if ad not in son_kullanilan[-2:]]
+    if not adaylar:
+        adaylar = mevcut_havuz
+
+    # Tohum varsa kararlı MD5 hash ile seç
+    import hashlib
     if tohum is not None:
-        idx = abs(hash(str(tohum))) % len(havuz)
+        idx = int(hashlib.md5(str(tohum).encode("utf-8")).hexdigest(), 16) % len(adaylar)
     else:
         import time
-        idx = int(time.time()) % len(havuz)
+        idx = int(time.time() * 1000) % len(adaylar)
 
-    secilen_ad = havuz[idx]
+    secilen_ad = adaylar[idx]
+
+    # Son kullanılanlara ekle ve max 10 sakla
+    try:
+        yeni_liste = [ad for ad in son_kullanilan if ad != secilen_ad] + [secilen_ad]
+        db.ayar_yaz("son_arkaplanlar", json.dumps(yeni_liste[-10:]))
+    except Exception:
+        pass
+
     yerel_bg = config.yol_al(f"assets/backgrounds/{secilen_ad}")
-    if not yerel_bg.exists():
-        for b_ad in havuz:
-            y = config.yol_al(f"assets/backgrounds/{b_ad}")
-            if y.exists():
-                yerel_bg = y
-                break
-
     if yerel_bg.exists():
         try:
             img = Image.open(yerel_bg).convert("RGB")
             return ImageOps.fit(img, (GENISLIK, YUKSEKLIK), Image.Resampling.LANCZOS)
         except Exception as e:
-            log.warning("arka plan yüklenemedi, slayt onsuz üretiliyor: %s", e)
+            log.warning("Arka plan yüklenemedi: %s", e)
 
     # Yedek prestij koyu tuval
     return Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
@@ -1211,6 +1252,8 @@ OPTIK_KALDIRMA = 26
 TUVAL_OLCULERI: Dict[str, Tuple[int, int]] = {
     "besleme": (1080, 1350),   # 4:5 — Instagram/Facebook carousel
     "story": (1080, 1920),     # 9:16 — Reels, Shorts, TikTok, Story
+    "yatay": (1920, 1080),     # 16:9 — YouTube video, web banner, TV ekranı
+    "16_9": (1920, 1080),
 }
 
 
@@ -1253,18 +1296,20 @@ def tuval(olcu: Any) -> Iterator[Tuple[int, int]]:
 def _yerlesim() -> Dict[str, int]:
     """Geçerli tuval boyutundan yerleşim sınırlarını türetir.
 
-    Sabit sayılar yerine türetme, tek bir çizim kodunun hem 4:5 besleme hem
-    9:16 story üretmesini sağlıyor. İki formatın güvenli alanı farklı:
-    story/Reels'te üstte profil ve alt tarafta yanıt çubuğu ile eylem butonları
-    kareyi kapatıyor, o bölgelere metin konursa okunmuyor.
+    Sabit sayılar yerine türetme, tek bir çizim kodunun hem 4:5 besleme, hem
+    9:16 dikey story hem de 16:9 yatay üretmesini sağlıyor.
     """
-    kenar = max(48, round(GENISLIK * 0.072))
     if YUKSEKLIK >= 1700:
-        # 9:16 — üstte profil başlığı, altta yanıt çubuğu ve eylem butonları var.
-        # Rozet ve logo da aşağı iner; y=62'de kalsalardı Story arayüzünün
-        # altında görünmez olurlardı.
+        # 9:16 Dikey — üstte profil başlığı, altta yanıt çubuğu ve eylem butonları var.
+        kenar = max(48, round(GENISLIK * 0.072))
         kronik_ust, ust, icerik_alt_payi, bar_payi = 180, 380, 340, 300
+    elif GENISLIK > YUKSEKLIK:
+        # 16:9 Yatay (1920x1080) — ferah genişlik, daha alçak yükseklik
+        kenar = max(60, round(GENISLIK * 0.055))
+        kronik_ust, ust, icerik_alt_payi, bar_payi = 50, 175, 120, 85
     else:
+        # 4:5 Dikey Besleme (1080x1350)
+        kenar = max(48, round(GENISLIK * 0.072))
         kronik_ust, ust, icerik_alt_payi, bar_payi = 62, 212, 135, 100
 
     alt_bar = YUKSEKLIK - bar_payi
@@ -1658,13 +1703,13 @@ def slayt_adimlar_toplu(
 
 def _sayfa_etiketi(veri: Dict[str, Any], sira: int) -> str:
     """Slayt sayacını gerçek slayt sayısından üretir.
-
-    Eski slaytlar "01 / 04" sabitini taşıyordu. Karma mimaride carousel 1 ile 7
-    slayt arasında değişiyor; B2 karşılaştırma 3 slayt üretirken kapakta
-    "01 / 04" yazıyordu. Prova turunda yakalandı.
+    Dikey video (Reels/Shorts/Story) formatında 'KAYDIRIN' yazılmaz; yalnızca sayaç yazılır.
     """
     toplam = veri.get("_toplam_slayt") or 4
     etiket = f"{str(sira).zfill(2)} / {str(toplam).zfill(2)}"
+    olcu = str(veri.get("olcu") or "").lower()
+    if YUKSEKLIK == 1920 or olcu in ("story", "reels", "shorts", "dikey") or veri.get("_video_modu"):
+        return etiket
     return etiket if sira >= toplam else f"{etiket}  ›  KAYDIRIN"
 
 
@@ -1680,7 +1725,11 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     kategori_kodu = veri.get("kategori_kodu") or veri.get("kategori", "HUKUK")
     foto_url = veri.get("gorsel_url") or veri.get("foto_url")
     tohum = veri.get("manset") or veri.get("manset_vurgu") or veri.get("id") or veri.get("orijinal_baslik")
-    canvas = _temiz_arkaplan_al(kategori_kodu, foto_url, tohum=tohum)
+    if veri.get("saf_editoryal"):
+        canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
+    else:
+        haric = [veri.get("onceki_foto")] if veri.get("foto_degistir") and veri.get("onceki_foto") else None
+        canvas = _temiz_arkaplan_al(kategori_kodu, foto_url, tohum=tohum, haric_tut=haric)
 
     # 2. Manşet ve Başlık Verisini Analiz Et
     manset_ham = veri.get("manset", "")
@@ -1898,7 +1947,8 @@ def otorite_slayt_2_detay(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     kullanilabilir_w = GENISLIK - (2 * kenar_bosluk)
 
     kategori_kodu = veri.get("kategori_kodu") or veri.get("kategori", "GENEL")
-    canvas = _temiz_arkaplan_al(kategori_kodu)
+    tohum = veri.get("manset") or veri.get("id") or veri.get("orijinal_baslik")
+    canvas = _temiz_arkaplan_al(kategori_kodu, tohum=tohum)
 
     # Koyu sinematik perde
     karartma = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (10, 12, 16, 190))
@@ -2690,7 +2740,7 @@ def _gonderi_slaytlarini_ciz(veri: Dict[str, Any], cikti_onek: Optional[str]) ->
     yollar: List[Path] = []
     for i, adim in enumerate(plan, start=1):
         sayfa = f"{str(i).zfill(2)} / {str(toplam).zfill(2)}"
-        if i < toplam:
+        if i < toplam and YUKSEKLIK != 1920 and GENISLIK != 1920:
             sayfa += "  ›"
         yol = config.yol_al(f"data/output/{onek}_{str(i).zfill(2)}_{adim['tur']}.jpg")
         tur = adim["tur"]

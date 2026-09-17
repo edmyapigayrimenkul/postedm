@@ -46,11 +46,11 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EYLEM: ${{ github.event.client_payload.eylem }}
+          SAAT: ${{ github.event.client_payload.saat }}
         run: |
-          EYLEM="${{ github.event.client_payload.eylem }}"
-          SAAT="${{ github.event.client_payload.saat }}"
           if [ "$EYLEM" = "duraklat" ]; then
-            python -c "from src.telegram_bot import bot_duraklat; bot_duraklat(saat=int('$SAAT'))"
+            python -c "import os; from src.telegram_bot import bot_duraklat; s = os.environ.get('SAAT', ''); bot_duraklat(saat=int(s) if s.isdigit() else 24)"
           elif [ "$EYLEM" = "devam_et" ]; then
             python -c "from src.telegram_bot import bot_devam_et; bot_devam_et()"
           fi
@@ -79,6 +79,7 @@ jobs:
           python scripts/yayinla.py --tur "$TUR" --id "$ID" --hedef "$HEDEF"
 
       - name: Veritabanını Kaydet
+        if: always()
         run: |
           python scripts/db_kaydet.py "db: yayin durumlari guncellendi"
 

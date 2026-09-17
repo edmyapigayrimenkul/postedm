@@ -114,6 +114,7 @@ jobs:
           python scripts/hazirla.py --konu-madenle
 
       - name: Veritabanını Kaydet
+        if: always()
         run: |
           python scripts/db_kaydet.py "db: haber ve ilan durumlari guncellendi"
 

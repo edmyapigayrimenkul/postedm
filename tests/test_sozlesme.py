@@ -644,7 +644,9 @@ class TestIcerikSozlesmesi(unittest.TestCase):
              patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
              patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "88", "--hedef", "tamamla"]):
             yayinla_mod.main()
-            mock_hguncelle.assert_called_once_with(88, durum="yayinlandi")
+            self.assertEqual(mock_hguncelle.call_args[0][0], 88)
+            self.assertEqual(mock_hguncelle.call_args[1].get("durum"), "yayinlandi")
+            self.assertIn("yayin_zamani", mock_hguncelle.call_args[1])
             mock_osonuc.assert_called_once_with("haber", "88", "yayinlandi")
             self.assertIn("tamamlandı", mock_mesaj.call_args[0][0].lower())
 
@@ -654,7 +656,9 @@ class TestIcerikSozlesmesi(unittest.TestCase):
              patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
              patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "reels", "--id", "99", "--hedef", "tamamla"]):
             yayinla_mod.main()
-            mock_hguncelle.assert_called_once_with(99, durum="yayinlandi")
+            self.assertEqual(mock_hguncelle.call_args[0][0], 99)
+            self.assertEqual(mock_hguncelle.call_args[1].get("durum"), "yayinlandi")
+            self.assertIn("yayin_zamani", mock_hguncelle.call_args[1])
             mock_osonuc.assert_called_once_with("reels", "99", "yayinlandi")
             self.assertIn("reels", mock_mesaj.call_args[0][0].lower())
 
@@ -739,6 +743,62 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             hatirlat_mod.main(argv=[])
             mock_arttir.assert_called_once_with(102)
             self.assertIn("1. Hatırlatma", mock_mesaj.call_args[0][0])
+
+    def test_actions_asla_beklemede_kalmaz(self) -> None:
+        """GitHub Actions iş akışları asla Telegram yanıtı beklemek için açık kalmamalı (sıfır bekleme kuralı)."""
+        wf_klasoru = KOK / ".github" / "workflows"
+        for yml in wf_klasoru.glob("*.yml"):
+            icerik = yml.read_text(encoding="utf-8")
+            self.assertNotIn("telegram_poller", icerik, f"{yml.name} poller çalıştırmamalı!")
+            self.assertNotIn("getUpdates", icerik, f"{yml.name} içinde getUpdates döngüsü olmamalı!")
+
+    def test_yayinla_ertele_akisi(self) -> None:
+        """yayinla.py hedef=ertele durumunda onay_istegi_ertele çağırıp Telegram'a teyit iletmeli."""
+        from unittest.mock import patch
+        import importlib
+        yayinla_mod = importlib.import_module("scripts.yayinla")
+
+        with patch.object(yayinla_mod.db, "onay_istegi_ertele") as mock_ertele, \
+             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch.object(yayinla_mod.db, "wal_bosalt"), \
+             patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "55", "--hedef", "ertele"]):
+            yayinla_mod.main()
+            mock_ertele.assert_called_once_with("haber", "55", dakika=60)
+            self.assertIn("ertelendi", mock_mesaj.call_args[0][0].lower())
+
+    def test_tiktok_turkce_hashtag_ve_db_yedegi(self) -> None:
+        """TikTok baslik_kur Türkçe karakter duyarlı olmalı; token_yenile DB ayarından okuyabilmeli."""
+        from src import tiktok
+        from unittest.mock import patch
+
+        # 1. Hashtag tekilleştirme: #silivri ve sabitler arasındaki #Silivri tekilleşmeli
+        baslik = tiktok.baslik_kur("Yeni Konut Projesi", ["#silivri", "#emlak"])
+        self.assertIn("#silivri", baslik.lower())
+        self.assertEqual(baslik.lower().count("#silivri"), 1)
+
+        # 2. DB fallback
+        with patch.object(tiktok.config, "env_al", return_value=None), \
+             patch.object(tiktok.db, "ayar_oku", side_effect=lambda k: "fake_" + k if "tiktok" in k else None), \
+             patch("requests.post") as mock_post:
+            mock_post.return_value.status_code = 200
+            mock_post.return_value.json.return_value = {"access_token": "yeni_access_123", "refresh_token": "yeni_refresh_456"}
+            token = tiktok.token_yenile()
+            self.assertEqual(token, "yeni_access_123")
+
+    def test_haber_dedup_turkce_karakter(self) -> None:
+        """_baslik_anahtari İ/I harflerini düzgün eşleştirmeli."""
+        from src.fetch_news import _baslik_anahtari
+        b1 = "İSTANBUL KONUT FİYATLARI 2026"
+        b2 = "istanbul konut fiyatları 2026"
+        self.assertEqual(_baslik_anahtari(b1), _baslik_anahtari(b2))
+
+    def test_db_kaydet_always_kosuyor(self) -> None:
+        """hazirla, yayinla ve hatirlat workflow'larında Veritabanını Kaydet adımı 'if: always()' olmalı."""
+        wf_klasoru = KOK / ".github" / "workflows"
+        for wf_adi in ("hazirla.yml", "yayinla.yml", "hatirlat.yml"):
+            icerik = (wf_klasoru / wf_adi).read_text(encoding="utf-8")
+            self.assertIn("name: Veritabanını Kaydet", icerik)
+            self.assertIn("if: always()", icerik, f"{wf_adi} içinde Veritabanını Kaydet adımı 'if: always()' taşımalı!")
 
 
 if __name__ == "__main__":

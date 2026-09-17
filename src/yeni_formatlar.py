@@ -447,8 +447,8 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
         if (bbox_emsal[2] - bbox_emsal[0]) > kullanilabilir_w:
             emsal_etiket = emsal_etiket[:52].rstrip() + "…"
 
-    draw.text((kenar, curr_y), emsal_etiket, font=f_kaynak_ust, fill=RENK_LOGO_KIRMIZI)
-    curr_y += 38
+    make_image._rozet_ciz(draw, kenar, curr_y, emsal_etiket, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
+    curr_y += 46
 
     for s in manset_satirlar:
         draw.text((kenar, curr_y), s, font=f_manset, fill=RENK_BEYAZ)
@@ -464,8 +464,8 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
         draw.text((kenar, curr_y), s, font=f_olay, fill=(225, 230, 240))
         curr_y += leading_olay
 
-    draw.rounded_rectangle([(kenar, kaydir_y), (GENISLIK - kenar, kaydir_y + kaydir_kutusu_h)], radius=8, fill=(28, 32, 42), outline=(50, 60, 78), width=1)
-    draw.text((kenar + 24, kaydir_y + 19), "KAYDIRIN // YARGITAY HÜKMÜ VE ALINACAK DERS >>", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_LOGO_KIRMIZI)
+    draw.rounded_rectangle([(kenar, kaydir_y), (GENISLIK - kenar, kaydir_y + kaydir_kutusu_h)], radius=10, fill=RENK_LOGO_KIRMIZI)
+    draw.text((kenar + 24, kaydir_y + 18), "KAYDIRIN // YARGITAY HÜKMÜ VE ALINACAK DERS ››", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_BEYAZ)
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -538,8 +538,8 @@ def uret_vaka_slayt2(cikti_yolu: Path, vaka_kodu: str, yargitay_hukmu: str, cika
 
     hukum_blok_h = 36 + 18 + h_hukum
     curr_y = ust_sinir + min(36, max(0, mevcut_hukum_h - hukum_blok_h) // 3)
-    draw.text((kenar, curr_y), "// YARGITAY'IN VERDİĞİ KESİN HÜKÜM:", font=f_etiket, fill=RENK_LOGO_KIRMIZI)
-    curr_y += 42
+    make_image._rozet_ciz(draw, kenar, curr_y, "YARGITAY'IN VERDİĞİ KESİN HÜKÜM", bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
+    curr_y += 44
 
     for s in hukum_satirlar:
         draw.text((kenar, curr_y), s, font=f_hukum, fill=RENK_BEYAZ)
@@ -778,6 +778,9 @@ def slaytlari_uret(
             kartlar = s2.get("kartlar", [])
             if kartlar:
                 dogru = kartlar[0].get("aciklama", "")
+            elif "kart_2" in s2 or "kart_1" in s2:
+                k = s2.get("kart_2") or s2.get("kart_1", {})
+                dogru = f"{k.get('baslik', '')}: {k.get('aciklama', '')}".strip(": ")
         if not dogru:
             dogru = veri.get("spot", "")
         
@@ -839,6 +842,12 @@ def slaytlari_uret(
             kartlar = s2.get("kartlar", [])
             if kartlar:
                 hukum = kartlar[0].get("aciklama", "")
+            elif "kart_1" in s2 or "kart_2" in s2:
+                k1 = s2.get("kart_1", {})
+                k2 = s2.get("kart_2", {})
+                p1_txt = f"{k1.get('baslik', '')}: {k1.get('aciklama', '')}".strip(": ") if k1 else ""
+                p2_txt = f"{k2.get('baslik', '')}: {k2.get('aciklama', '')}".strip(": ") if k2 else ""
+                hukum = f"{p1_txt} | {p2_txt}".strip(" |")
         if not hukum:
             hukum = "Yargıtay yerleşik içtihatları uyarınca, resmi tescil ve bildirim yapılmayan işlemler iyi niyetli üçüncü kişilere karşı ileri sürülemez."
 

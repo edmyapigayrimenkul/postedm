@@ -35,9 +35,9 @@ TIKTOK_INBOX_INIT_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video
 
 def token_yenile() -> Optional[str]:
     """TIKTOK_REFRESH_TOKEN ile yeni bir 24 saatlik Access Token alır."""
-    client_key = config.env_al("TIKTOK_CLIENT_KEY")
-    client_secret = config.env_al("TIKTOK_CLIENT_SECRET")
-    refresh_token = config.env_al("TIKTOK_REFRESH_TOKEN")
+    client_key = config.env_al("TIKTOK_CLIENT_KEY") or db.ayar_oku("tiktok_client_key")
+    client_secret = config.env_al("TIKTOK_CLIENT_SECRET") or db.ayar_oku("tiktok_client_secret")
+    refresh_token = config.env_al("TIKTOK_REFRESH_TOKEN") or db.ayar_oku("tiktok_refresh_token")
 
     if not client_key or not client_secret or not refresh_token:
         log.warning("TikTok API kimlik bilgileri eksik (CLIENT_KEY / SECRET / REFRESH_TOKEN).")
@@ -83,6 +83,11 @@ def token_yenile() -> Optional[str]:
     return None
 
 
+def _etiket_anahtari(etiket: str) -> str:
+    """Türkçe İ ve I harflerini gözeterek etiket anahtarı üretir."""
+    return etiket.strip().replace("I", "ı").replace("İ", "i").lower()
+
+
 def baslik_kur(baslik: str, etiketler: Optional[List[str]] = None) -> str:
     """
     TikTok için en fazla 150 karakterlik açıklama kurar.
@@ -95,9 +100,10 @@ def baslik_kur(baslik: str, etiketler: Optional[List[str]] = None) -> str:
 
     for et in (etiketler or []) + sabitler:
         et_temiz = et.strip()
-        if et_temiz and et_temiz.lower() not in gorulen:
+        anahtar = _etiket_anahtari(et_temiz)
+        if et_temiz and anahtar not in gorulen:
             tum_etiketler.append(et_temiz)
-            gorulen.add(et_temiz.lower())
+            gorulen.add(anahtar)
 
     secilen_etiketler: List[str] = []
     for et in tum_etiketler:
@@ -122,7 +128,7 @@ def video_yukle(
     if not yol.exists() or yol.stat().st_size == 0:
         return {"durum": False, "hata": f"Video dosyası bulunamadı veya boş: {yol}"}
 
-    token = config.env_al("TIKTOK_ACCESS_TOKEN") or token_yenile()
+    token = config.env_al("TIKTOK_ACCESS_TOKEN") or db.ayar_oku("tiktok_access_token") or token_yenile()
     if not token:
         return {"durum": False, "hata": "TikTok erişim jetonu alınamadı."}
 
@@ -158,6 +164,22 @@ def video_yukle(
             data=json.dumps(init_payload),
             timeout=20,
         )
+
+        # 401 durumunda token süresi dolmuş olabilir (24 saatlik ömür) — otomatik yenile ve tekrar dene
+        if init_res.status_code == 401 or (init_res.status_code != 200 and "token" in init_res.text.lower()):
+            log.warning("TikTok erişim jetonu geçersiz veya süresi dolmuş (HTTP %d). Otomatik yenileniyor...", init_res.status_code)
+            yeni_tok = token_yenile()
+            if yeni_tok:
+                token = yeni_tok
+                init_res = requests.post(
+                    init_url,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json; charset=UTF-8",
+                    },
+                    data=json.dumps(init_payload),
+                    timeout=20,
+                )
 
         # Unaudited client durumunda (HTTP 403) Inbox Draft fallback devreye girer
         if init_res.status_code == 403 or "unaudited_client" in init_res.text:

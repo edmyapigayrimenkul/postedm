@@ -585,3 +585,289 @@ konular:
     kanca_kalip: sure
     mevzuat: null
     yerel: null
+
+  # ---------------------------------------------------------
+  # S1 — TAPU & HUKUK (İlave Zengin Havuz)
+  # ---------------------------------------------------------
+
+  - kod: S1-016
+    sutun: S1
+    bicim: B1
+    baslik: "Tapu Takas Sistemi (Takasbank) ile güvenli satış"
+    aci: "Satıcı parayı almadan tapuyu vermek istemez, alıcı tapuyu görmeden parayı yatırmaz. Çanta dolusu nakitle tapu müdürlüğüne gitmek yerine Takasbank güvencesiyle blokeli para transferi nasıl yapılır?"
+    kanca_kalip: belge
+    mevzuat: "Tapu ve Kadastro Genel Müdürlüğü ile Takasbank Protokolü"
+    yerel: null
+
+  - kod: S1-017
+    sutun: S1
+    bicim: B2
+    baslik: "İntifa hakkı ile çıplak mülkiyet ayrımı"
+    aci: "Çıplak mülkiyeti satın alan kişi mülkün sahibi olur ama intifa hakkı sahibinin rızası olmadan içine giremez veya kiraya veremez. Tapudaki bu ayrımı bilmeden konut alanların karşılaştığı şok."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Medeni Kanunu md. 794-822"
+    yerel: null
+
+  - kod: S1-018
+    sutun: S1
+    bicim: B1
+    baslik: "Mirasta tenkis davası ve saklı pay ihlali"
+    aci: "Anne-baba sağlığında evi tek bir çocuğuna veya üçüncü kişiye devretse bile, diğer mirasçılar vefat sonrasında saklı paylarını almak için tenkis davası açıp haklarını geri alabilir."
+    kanca_kalip: kim_hakli
+    mevzuat: "Türk Medeni Kanunu md. 560-571"
+    yerel: null
+
+  - kod: S1-019
+    sutun: S1
+    bicim: B1
+    baslik: "Ecrimisil davası: Hissedarlar arası haksız işgal"
+    aci: "Miras kalan evi veya tarlayı kardeşlerden biri tek başına kullanıyorsa, diğer hissedarlar noterden ihtarname çekerek geriye dönük 5 yıllık haksız işgal tazminatı (ecrimisil) talep edebilir."
+    kanca_kalip: sure
+    mevzuat: "Türk Medeni Kanunu md. 995"
+    yerel: "Trakya'da hisseli tarla ve aile apartmanlarında en sık açılan dava"
+
+  - kod: S1-020
+    sutun: S1
+    bicim: B3
+    baslik: "Tapudaki eski ipotek ve haczin fekki (kaldırılması)"
+    aci: "Yıllar önce ödenmiş konut kredisinin ipoteği tapuda hâlâ duruyor olabilir. Bankadan fek yazısı alınıp harç ödenmeden tapu temizlenmez ve satış günü işlem kilitlenir."
+    kanca_kalip: belge
+    mevzuat: "İcra ve İflas Kanunu md. 144"
+    yerel: null
+
+  - kod: S1-021
+    sutun: S1
+    bicim: B1
+    baslik: "Noterde gayrimenkul satış vaadi sözleşmesi ve 5 yıl kuralı"
+    aci: "Noterde yapılan gayrimenkul satış vaadi sözleşmesi tapu kütüğüne şerh edilmezse üçüncü kişilere karşı hüküm ifade etmez. Şerh edilse dahi 5 yıl içinde tapu devri yapılmazsa şerh kendiliğinden düşer."
+    kanca_kalip: sure
+    mevzuat: "Tapu Kanunu md. 26"
+    yerel: null
+
+  - kod: S1-022
+    sutun: S1
+    bicim: B3
+    baslik: "Konut satışında gayrimenkul değerleme zorunluluğu"
+    aci: "SPK lisanslı değerleme raporu olmadan yabancıya satış yapılamaz, kredili alımlarda da banka eksperi belirleyicidir. Ekspertiz değerinin satış bedelinden düşük çıkması durumunda oluşacak riskler."
+    kanca_kalip: belge
+    mevzuat: "SPK Gayrimenkul Değerleme Esasları"
+    yerel: null
+
+  - kod: S1-023
+    sutun: S1
+    bicim: B1
+    baslik: "Kentsel dönüşümde arsa payı düzeltme davası"
+    aci: "Eski binalarda zemin kattaki dükkan veya üst kattaki dairelerin arsa payları eşit ya da hatalı yazılmış olabilir. Dönüşüme girmeden önce arsa payı düzeltme davası açılmazsa milyonluk hak kaybı yaşanır."
+    kanca_kalip: kim_hakli
+    mevzuat: "Kat Mülkiyeti Kanunu md. 3"
+    yerel: "Marmara depremi hazırlığı kapsamında riskli binalarda hayati konu"
+
+  # ---------------------------------------------------------
+  # S2 — KİRACI & EV SAHİBİ (İlave Zengin Havuz)
+  # ---------------------------------------------------------
+
+  - kod: S2-021
+    sutun: S2
+    bicim: B1
+    baslik: "5 yılını dolduran kiracıda kira tespit davası"
+    aci: "Kira sözleşmesinde 5 yıl dolduğunda ev sahibi artık TÜFE tavanına bağlı değildir. Mahkeme emsal kira bedellerine, evin durumuna ve hakkaniyet indirimine göre yeni piyasa kirasını belirler."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 344/3"
+    yerel: null
+
+  - kod: S2-022
+    sutun: S2
+    bicim: B3
+    baslik: "Kiralanan taşınmazın çatılı işyeri olması durumu"
+    aci: "İşyeri kiralarında tacir ve tüzel kişi kiracılar için sözleşme serbestisi vardır, konut korumalarının tamamı geçerli değildir. Depozito ve erken tahliye kuralları tamamen sözleşmeye tabidir."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 339"
+    yerel: null
+
+  - kod: S2-023
+    sutun: S2
+    bicim: B3
+    baslik: "Kiracının evi alıcı adaylarına gösterme yükümlülüğü"
+    aci: "Ev sahibi evi satmak veya sözleşme bitiminde kiraya vermek istiyorsa, kiracı makul gün ve saatlerde evi göstermekle yükümlüdür. Göstermezse mahkemeden 'Göstermeye İzin' kararı alınır."
+    kanca_kalip: kim_hakli
+    mevzuat: "Türk Borçlar Kanunu md. 319"
+    yerel: null
+
+  - kod: S2-024
+    sutun: S2
+    bicim: B1
+    baslik: "Kira ödenmediğinde 30 günlük noter ihtarı ve temerrüt tahliyesi"
+    aci: "Kiracı kirayı 1 gün bile geciktirse noterden çekilecek ihtarla 30 gün süre verilir. Bu 30 gün içinde ödeme yapılmazsa ev sahibi tahliye davası açarak kesin tahliye kararı alabilir."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 315"
+    yerel: null
+
+  - kod: S2-025
+    sutun: S2
+    bicim: B3
+    baslik: "Ev satıldığında kiracının eski depozitosunu kim öder"
+    aci: "Mülk el değiştirdiğinde yeni malik eski kira sözleşmesinin tüm hak ve borçlarına halef olur. Sözleşme bittiğinde depozitoyu kiracıya iade etme borcu yeni ev sahibine aittir."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 310"
+    yerel: null
+
+  - kod: S2-026
+    sutun: S2
+    bicim: B1
+    baslik: "Konutların turizm amaçlı kiralanması (Airbnb) izin belgesi şartı"
+    aci: "100 günün altındaki kiralamalarda Kültür ve Turizm Bakanlığı'ndan izin belgesi ve apartmandaki TÜM kat maliklerinin oy birliği şart. İzinsiz kiralama yapan mülk sahibine 100.000 TL'den başlayan devasa cezalar."
+    kanca_kalip: rakam
+    mevzuat: "7464 Sayılı Konutların Turizm Amaçlı Kiralanması Kanunu"
+    yerel: "Silivri sahil şeridinde ve yazlıklarda sıkı denetim konusu"
+
+  # ---------------------------------------------------------
+  # S3 — ARSA & İMAR (İlave Zengin Havuz)
+  # ---------------------------------------------------------
+
+  - kod: S3-016
+    sutun: S3
+    bicim: B1
+    baslik: "5403 Sayılı Kanun: Tarım arazilerinde asgari büyüklük ve bölünemezlik"
+    aci: "Tarım arazileri mutlak tarımda 20 dönümden, dikili arazide 5 dönümden küçük parçalara bölünemez ve hisselendirilemez. Hisseli parselasyon vaadiyle satılan küçük hisselerin tapusuz kalma tehlikesi."
+    kanca_kalip: rakam
+    mevzuat: "5403 Sayılı Toprak Koruma ve Arazi Kullanımı Kanunu md. 8"
+    yerel: "Silivri, Çanta, Değirmenköy ve Trakya tarım arazilerinde birincil kural"
+
+  - kod: S3-017
+    sutun: S3
+    bicim: B1
+    baslik: "Geçit hakkı davası: Yolu olmayan parsele yol açtırma şartları"
+    aci: "Genel yola cephesi olmayan parsel maliki, komşu parsellerden en az zarar verecek olanı üzerinden geçit hakkı talep edebilir. Bedeli mahkemece belirlenir ve tapuya şerh edilir."
+    kanca_kalip: kim_hakli
+    mevzuat: "Türk Medeni Kanunu md. 747"
+    yerel: "Trakya iç kesimlerinde ve köy sınırlarında tarlaların yol problemi"
+
+  - kod: S3-018
+    sutun: S3
+    bicim: B1
+    baslik: "Köy yerleşik alanı (civar) sınırı içinde yapılaşma hakları"
+    aci: "Köy yerleşik alan sınırı içinde kalan parsellerde imar planı olmasa dahi İl Özel İdaresi izniyle taban alanı %40'ı ve toplam 250 m²'yi aşmayan 2 katlı konut yapılabilir."
+    kanca_kalip: rakam
+    mevzuat: "Plansız Alanlar İmar Yönetmeliği md. 43-56"
+    yerel: "Silivri'nin köylerinde (Danamandıra, Sayalar, Çeltik) konut yapacaklar için rehber"
+
+  - kod: S3-019
+    sutun: S3
+    bicim: B3
+    baslik: "Tapuda cins değişikliği (Cins tashihi) nasıl yapılır"
+    aci: "Yapılan bina tamamlandığında tapuda parsel hâlâ 'Tarla' veya 'Arsa' gözükür. Yapı kullanma izin belgesi (iskân) ile kadastro ve tapuda cins tashihi yapılmazsa mülk kat mülkiyetine geçemez."
+    kanca_kalip: belge
+    mevzuat: "Tapu ve Kadastro Cins Değişikliği Genelgesi"
+    yerel: null
+
+  - kod: S3-020
+    sutun: S3
+    bicim: B1
+    baslik: "Tarımsal sit ve doğal sit alanında kalan arazide kısıtlılıklar"
+    aci: "Tapusunda 1. derece sit veya koruma alanı şerhi bulunan tarlalarda çivi dahi çakılamaz, tarımsal faaliyet dahi kısıtlanabilir. Satın almadan önce Tabiat Varlıklarını Koruma şerhlerinin incelenmesi zorunludur."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "2863 Sayılı Kültür ve Tabiat Varlıklarını Koruma Kanunu"
+    yerel: null
+
+  - kod: S3-021
+    sutun: S3
+    bicim: B1
+    baslik: "İmar barışında alınan Yapı Kayıt Belgesi hangi durumlarda iptal edilir"
+    aci: "31 Aralık 2017'den sonra yapılan kaçak yapılar için alınan belgeler uydu görüntüleriyle tespit edilip iptal ediliyor. Belge iptal edilirse yıkım kararı ve TCK 184 imar kirliliği davası açılır."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "İmar Kanunu Geçici md. 16"
+    yerel: "Silivri sahil ve orman bitişiğindeki kaçak yapılarda denetimler"
+
+  - kod: S3-022
+    sutun: S3
+    bicim: B3
+    baslik: "Prefabrik ev yapmak için ruhsat ve imar şartı"
+    aci: "Prefabrik yapı taşınabilir değildir; beton temel üzerine kurulduğu için İmar Kanunu kapsamında yapı sayılır. Ruhsatsız kurulan prefabrik ev kaçak yapı statüsündedir ve mühürlenir."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "İmar Kanunu md. 5 ve 21"
+    yerel: "Hobi bahçelerine izinsiz prefabrik koyanların yaşadığı ceza süreçleri"
+
+  - kod: S3-023
+    sutun: S3
+    bicim: B1
+    baslik: "İmar Kanunu 18. madde (şuyulandırma) uygulamasına itiraz süresi"
+    aci: "Belediye 18. madde uyguladığında parselinizin yeri değişebilir veya değer kaybına uğrayabilir. Askı süresi olan 30 gün içinde itiraz edilmez ve 60 günde dava açılmazsa kazanılmış hak iddia edilemez."
+    kanca_kalip: sure
+    mevzuat: "İmar Kanunu md. 18"
+    yerel: "Silivri imar genişleme bölgelerinde parselasyon süreçleri"
+
+  # ---------------------------------------------------------
+  # S4 — RAKAM, FİNANS & BÖLGE (İlave Zengin Havuz)
+  # ---------------------------------------------------------
+
+  - kod: S4-011
+    sutun: S4
+    bicim: B1
+    baslik: "Tapu harcı matrahı ve Maliye'nin banka transferi denetimi"
+    aci: "Belediye rayici üzerinden tapu devri yapıp bankadan milyonlarca lira ek transfer göndermek MASAK ve Vergi Denetim Kurulu radarına takılıyor. 5 yıl geriye dönük faizli ceza riski."
+    kanca_kalip: rakam
+    mevzuat: "Harçlar Kanunu md. 63 ve Vergi Usul Kanunu md. 359"
+    yerel: null
+
+  - kod: S4-012
+    sutun: S4
+    bicim: B2
+    baslik: "Konut kredisinde eksper değeri ile piyasa fiyatı makası"
+    aci: "Banka krediyi satıcının istediği fiyata değil, bağımsız SPK eksperinin biçtiği değere göre ve BDDK LTV oranlarında kullandırır. Aradaki peşinat farkını öngörmeyen alıcının kaparo riski."
+    kanca_kalip: rakam
+    mevzuat: "BDDK Kredi Değer Oranı (LTV) Kararları"
+    yerel: null
+
+  - kod: S4-013
+    sutun: S4
+    bicim: B4
+    baslik: "Arsa yatırımı yaparken amortisman ve getiri hesabı nasıl yapılır"
+    aci: "Arsada kira getirisi yoktur; getiri altyapı, imar açılımı ve nüfus göçü hızıyla hesaplanır. Yanlış lokasyonda alınan arsanın enflasyona yenilme riski."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Kınalı-Tekirdağ otoyolu ve Kuzey Marmara Otoyolu bağlantı noktaları"
+
+  - kod: S4-014
+    sutun: S4
+    bicim: B4
+    baslik: "Silivri sanayi ve lojistik aksında arsa prim oranları"
+    aci: "E-5, TEM ve Kuzey Marmara Otoyolu kesişiminde yer alan sanayi ve depolama imarlı arazilerin son 3 yıllık değer artış grafiği ve yatırımcı talebi analizi."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri Kınalı, Değirmenköy ve Selimpaşa sanayi bölgeleri"
+
+  - kod: S4-015
+    sutun: S4
+    bicim: B3
+    baslik: "Tapuda döner sermaye bedeli ve il katsayıları"
+    aci: "Alım-satımda yalnızca %4 tapu harcı ödenmez; Tapu ve Kadastro döner sermaye işletmesi de yöresel katsayıya göre maktu ücret tahsil eder. Büyükşehirlerdeki güncel tarife."
+    kanca_kalip: rakam
+    mevzuat: "Tapu ve Kadastro Döner Sermaye İşletmesi Kanunu"
+    yerel: "İstanbul 2026 döner sermaye katsayısı"
+
+  - kod: S4-016
+    sutun: S4
+    bicim: B1
+    baslik: "Miras intikali ve Veraset İntikal Vergisi muafiyet sınırları"
+    aci: "Vefat eden kişiden kalan gayrimenkulün mirasçılar adına tapuda tescili için veraset ilişiğinin kesilmesi gerekir. Çocuklar ve eş için geçerli istisna tutarları ve 4 aylık beyan süresi."
+    kanca_kalip: sure
+    mevzuat: "7338 Sayılı Veraset ve İntikal Vergisi Kanunu"
+    yerel: null
+
+  - kod: S4-017
+    sutun: S4
+    bicim: B3
+    baslik: "Emlak vergisi yeniden değerleme oranları ve artış hesabı"
+    aci: "Her yıl kasım ayında açıklanan yeniden değerleme oranının yarısı nispetinde emlak vergi değerleri artırılır. 4 yılda bir ise takdir komisyonları arsa m² asgari rayiçlerini yeniden belirler."
+    kanca_kalip: rakam
+    mevzuat: "Emlak Vergisi Kanunu md. 29"
+    yerel: null
+
+  - kod: S4-018
+    sutun: S4
+    bicim: B2
+    baslik: "Sıfır ve ikinci el konut alımında KDV oranları (%1, %10, %20)"
+    aci: "İkinci el konut satışlarında KDV yoktur (harç vardır). Müteahhitten sıfır daire alırken net 150 m² altı ve üstü ayrımı ile arsa rayicine göre değişen KDV yükünün bütçeye etkisi."
+    kanca_kalip: rakam
+    mevzuat: "Katma Değer Vergisi Kanunu Genel Uygulama Tebliği"
+    yerel: null

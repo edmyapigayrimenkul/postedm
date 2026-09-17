@@ -136,11 +136,18 @@ HATA_KATALOGU = [
         "eylem": "yeniden_yayinla",
     },
     {
-        "desen": r"tiktok.*(init|upload|publish_id|500|502|503)",
-        "ne_oldu": "TikTok video sunucularına erişirken geçici ağ gecikmesi yaşandı.",
-        "neden": "TikTok yükleme uç noktası video paketini alırken zaman aşımına uğradı.",
-        "ne_yapilir": "Video hazırdır. 1 dakika bekleyip '🔄 Tekrar Yayınla' butonuna basabilirsiniz.",
-        "eylem": "yeniden_yayinla",
+        "desen": r"youtube.*(invalid_grant|token.*(expired|revoked))|invalid_grant.*(google|oauth2)",
+        "ne_oldu": "YouTube erişim yetkisi (Refresh Token) geçersiz veya süresi dolmuş.",
+        "neden": "Google Cloud OAuth consent screen 'Testing' modundaysa refresh_token tam 7 gün sonra iptal edilir (7 gün tuzağı).",
+        "ne_yapilir": "Google Cloud Console > OAuth Consent Screen ekranında 'Publish App' ile uygulamayı 'In production' moduna alın ve jetonu yenileyin.",
+        "eylem": "durum",
+    },
+    {
+        "desen": r"youtube.*(quota|uploadLimitExceeded|quotaExceeded)|uploadLimitExceeded",
+        "ne_oldu": "YouTube API günlük yükleme veya işlem kotası aşıldı.",
+        "neden": "YouTube Data API v3 günlük 10.000 birim kota verir; video yükleme işlemi 1.600 birim harcar (günde azami ~6 video).",
+        "ne_yapilir": "Kota her gece Pasifik Saatiyle (PST) sıfırlanır. Reels ve TikTok paylaşımları etkilenmez.",
+        "eylem": "durum",
     },
 ]
 

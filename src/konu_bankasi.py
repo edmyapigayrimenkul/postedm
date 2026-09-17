@@ -182,6 +182,18 @@ def _son_kullanilan_sutunlar(limit: int = 3) -> List[str]:
         return []
 
 
+def _engellenen_konular() -> set[str]:
+    """Kullanıcının 'Çöpe At' ile kalıcı engellediği konuları döner."""
+    try:
+        with db._baglanti_al() as conn:
+            satirlar = conn.execute(
+                "SELECT DISTINCT konu_kodu FROM konu_gecmisi WHERE sonuc IN ('cope_at', 'engellendi')"
+            ).fetchall()
+        return {s["konu_kodu"] for s in satirlar}
+    except Exception:
+        return set()
+
+
 def sonraki_konu(
     gun: Optional[int] = None,
     sutun: Optional[str] = None,
@@ -192,10 +204,17 @@ def sonraki_konu(
     
     Haftanın gününe katı kilitlenmez; sütunlar (S1-S4) arasında dengeli rotasyon yapar
     ve arka arkaya aynı sütunun gelmesini önler.
+    Çöpe atılan/engellenen konular havuza ASLA bir daha dönmez.
     """
     tabloyu_kur()
-    havuz = havuzu_yukle()
+    ham_havuz = havuzu_yukle()
+    if not ham_havuz:
+        return None
+
+    engelliler = _engellenen_konular()
+    havuz = [k for k in ham_havuz if k["kod"] not in engelliler]
     if not havuz:
+        log.warning("Havuzdaki tüm konular engellenmiş veya boş.")
         return None
 
     gecmis = _kullanim_gecmisi()
