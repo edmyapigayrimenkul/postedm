@@ -540,7 +540,8 @@ export default {
       // 2. YAZILI SLASH KOMUTLARI
       // =====================================================================
       if (update.message?.text) {
-        const text = update.message.text.trim().toLowerCase();
+        const rawText = update.message.text.trim();
+        const text = rawText.split("@")[0].trim().toLowerCase();
         const chatId = update.message.chat?.id;
 
         const mesajGonder = async (metin, replyMarkup = null) => {

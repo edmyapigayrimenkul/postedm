@@ -48,7 +48,12 @@ def main() -> None:
             db.onay_istegi_sonuclandir(tur, str(ref_id), "reddedildi")
             tur_adi = "Reels Videosu" if tur == "reels" else "Haber"
             log.info("%s #%s reddedildi olarak işaretlendi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"❌ <b>{tur_adi} #{ref_id} reddedildi ve arşive kaldırıldı.</b>")
+            telegram_bot.mesaj_gonder(f"❌ <b>{tur_adi} #{ref_id} reddedildi ve arşive kaldırıldı.</b>\n<i>Sıradaki içerik hazırlanıyor...</i>")
+            # Instabot standardı: İptal edildiğinde boşta kalınmaz, sıradaki konu derhal onaya sunulur
+            if tur == "reels":
+                telegram_bot.reels_hazirla_ve_sun()
+            else:
+                telegram_bot.konu_bankasindan_hazirla()
         elif tur == "ilan":
             db.ilan_reddedildi_isaretle(ref_id)
             db.onay_istegi_sonuclandir(tur, str(ref_id), "reddedildi")
@@ -80,7 +85,12 @@ def main() -> None:
             db.onay_istegi_sonuclandir(tur, str(ref_id), "engellendi")
             tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
             log.info("%s #%s çöpe atıldı ve kalıcı olarak engellendi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"🗑️ <b>{tur_adi} #{ref_id} kalıcı olarak çöpe atıldı.</b>\n<i>Bu konu havuza bir daha dönmeyecek şekilde kilitlendi.</i>")
+            telegram_bot.mesaj_gonder(f"🗑️ <b>{tur_adi} #{ref_id} kalıcı olarak çöpe atıldı.</b>\n<i>Bu konu havuza bir daha dönmeyecek şekilde kilitlendi. Sıradaki içerik hazırlanıyor...</i>")
+            # Instabot standardı: Çöpe atıldığında sıradaki konu derhal onaya sunulur
+            if tur == "reels":
+                telegram_bot.reels_hazirla_ve_sun()
+            else:
+                telegram_bot.konu_bankasindan_hazirla()
         elif tur == "ilan":
             db.ilan_reddedildi_isaretle(ref_id)
             db.onay_istegi_sonuclandir(tur, str(ref_id), "engellendi")
