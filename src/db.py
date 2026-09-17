@@ -452,8 +452,8 @@ def onay_istegi_ertele(tur: str, referans_id: str, dakika: int = 60) -> bool:
     return True
 
 
-def mesajdan_icerik_bul(mesaj_id: Optional[int] = None) -> Optional[Tuple[str, int, Dict[str, Any]]]:
-    """telegram_mesaj_id üzerinden ilgili haber/reels kaydını döner. (tur, haber_id, haber_dict)"""
+def mesajdan_icerik_bul(mesaj_id: Optional[int] = None) -> Optional[Tuple[str, Any, Dict[str, Any]]]:
+    """telegram_mesaj_id üzerinden ilgili haber/reels/ilan kaydını döner. (tur, ref_id, veri_dict)"""
     with _baglanti_al() as conn:
         if mesaj_id:
             row = conn.execute(
@@ -462,17 +462,34 @@ def mesajdan_icerik_bul(mesaj_id: Optional[int] = None) -> Optional[Tuple[str, i
             ).fetchone()
             if row:
                 tur = row["tur"]
-                ref_id = int(row["referans_id"])
-                h = conn.execute("SELECT * FROM haberler WHERE id = ?", (ref_id,)).fetchone()
-                if h:
-                    return (tur, ref_id, dict(h))
-        # Yedek: son onay bekleyen kaydı al
+                ref_id_str = str(row["referans_id"])
+                if tur == "ilan":
+                    i = conn.execute("SELECT * FROM ilanlar WHERE id = ?", (ref_id_str,)).fetchone()
+                    if i:
+                        return (tur, ref_id_str, dict(i))
+                else:
+                    ref_id = int(ref_id_str) if ref_id_str.isdigit() else ref_id_str
+                    h = conn.execute("SELECT * FROM haberler WHERE id = ?", (ref_id,)).fetchone()
+                    if h:
+                        return (tur, ref_id, dict(h))
+
+        # Yedek 1: son onay bekleyen haber kaydını al
         son = conn.execute(
             "SELECT * FROM haberler WHERE durum = 'onay_bekliyor' ORDER BY id DESC LIMIT 1"
         ).fetchone()
         if son:
-            tur = "reels" if son.get("kategori") == "REELS" else "haber"
-            return (tur, son["id"], dict(son))
+            d_son = dict(son)
+            tur = "reels" if d_son.get("kategori") == "REELS" else "haber"
+            return (tur, d_son["id"], d_son)
+
+        # Yedek 2: son onay bekleyen ilan kaydını al
+        son_ilan = conn.execute(
+            "SELECT * FROM ilanlar WHERE durum = 'onay_bekliyor' ORDER BY son_paylasim_tarihi DESC LIMIT 1"
+        ).fetchone()
+        if son_ilan:
+            d_ilan = dict(son_ilan)
+            return ("ilan", d_ilan["id"], d_ilan)
+
     return None
 
 

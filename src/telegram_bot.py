@@ -1345,7 +1345,10 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
             ],
         ]
     }
-    mesaj_gonder("Bu portföy ilanını sosyal medyada yayınlayalım mı?", reply_markup=butonlar)
+    res = mesaj_gonder("Bu portföy ilanını sosyal medyada yayınlayalım mı?", reply_markup=butonlar)
+    if res and isinstance(res, dict) and "message_id" in res:
+        cid = config.env_al("TELEGRAM_CHAT_ID")
+        db.onay_istegi_kaydet("ilan", str(ilan_id), res["message_id"], int(cid) if cid and cid.lstrip("-").isdigit() else None)
     return True
 
 

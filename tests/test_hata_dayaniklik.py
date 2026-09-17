@@ -403,6 +403,47 @@ class TestHataDayaniklik(unittest.TestCase):
             with patch.dict(os.environ, {"EDM_SITE_API_ANAHTARI": "test"}):
                 self.assertIsNone(site_kuyrugunu_isle.siradaki_isi_al())
 
+    def test_13_mesajdan_icerik_bul_dayaniklik(self):
+        """mesajdan_icerik_bul fonksiyonu sqlite3.Row ve ilan aramalarında hata vermemeli."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_db = Path(tmpdir) / "test_bul.db"
+            with patch("src.db.DB_YOLU", tmp_db):
+                db.tablolari_olustur()
+                # 1. Hiçbir kayıt yokken None dönmeli
+                self.assertIsNone(db.mesajdan_icerik_bul(None))
+
+                # 2. Onay bekleyen haber varken AttributeError vermeden doğru dönmeli
+                h_id = db.haber_kaydet(
+                    kaynak="test",
+                    orijinal_baslik="Test Başlık",
+                    orijinal_url="https://test.com/1",
+                    onem_puani=8,
+                    kategori="TAPU",
+                )
+                db.haber_guncelle(h_id, durum="onay_bekliyor")
+                bulunan = db.mesajdan_icerik_bul(None)
+                self.assertIsNotNone(bulunan)
+                tur, ref_id, veri = bulunan
+                self.assertEqual(tur, "haber")
+                self.assertEqual(ref_id, h_id)
+                self.assertIsInstance(veri, dict)
+
+                # 3. İlan onay isteği varken doğru ilan kaydını getirmeli
+                db.onay_istegi_kaydet("ilan", "ilan-xyz-123", telegram_mesaj_id=9876)
+                with db._baglanti_al() as conn:
+                    conn.execute(
+                        "INSERT INTO ilanlar (id, baslik, durum) VALUES (?, ?, ?)",
+                        ("ilan-xyz-123", "Silivri Çanta Satılık Arsa", "onay_bekliyor"),
+                    )
+                    conn.commit()
+
+                ilan_bulunan = db.mesajdan_icerik_bul(9876)
+                self.assertIsNotNone(ilan_bulunan)
+                i_tur, i_id, i_veri = ilan_bulunan
+                self.assertEqual(i_tur, "ilan")
+                self.assertEqual(i_id, "ilan-xyz-123")
+                self.assertEqual(i_veri["baslik"], "Silivri Çanta Satılık Arsa")
+
 
 if __name__ == "__main__":
     unittest.main()

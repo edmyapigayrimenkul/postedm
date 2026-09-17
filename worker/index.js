@@ -417,19 +417,36 @@ export default {
         if (data === "yayinla" || data.startsWith("yayinla_sonra:") || data.startsWith("onayla:")) {
           const klavye = cb.message?.reply_markup?.inline_keyboard || [];
           const secili = seciliKanallariCikar(klavye) || ["ig", "threads"];
-          const isReels = secili.includes("reels");
-          const tur = isReels ? "reels" : "haber";
+          let isReels = secili.includes("reels");
+          let tur = isReels ? "reels" : "haber";
+          let hedef = secili.join(",");
+          let icerikId = "";
+
+          if (data.startsWith("onayla:")) {
+            // Örn: onayla:ilan:hepsi:123 veya onayla:123
+            const parts = data.split(":");
+            if (parts.length >= 4) {
+              tur = parts[1];
+              hedef = parts[2] === "hepsi" ? "hepsi" : parts[2];
+              icerikId = parts[3];
+            } else if (parts.length === 2 && parts[1]) {
+              icerikId = parts[1];
+            }
+          }
+
           const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1] : null;
 
           await cevapVer("Yayın süreci başlatıldı");
+          const baslikEtiketi = tur === "reels" ? "Reels Videosu" : (tur === "ilan" ? "İlan Postu" : "İçerik");
           if (gecikme) {
-            await mesajiGuncelle(`⏰ <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} ${gecikme} dakika sonra yayınlanacak şekilde planlandı.</b>\nSeçili Kanallar: <code>${secili.join(", ").toUpperCase()}</code>`);
+            await mesajiGuncelle(`⏰ <b>${baslikEtiketi} ${gecikme} dakika sonra yayınlanacak şekilde planlandı.</b>\nSeçili Kanallar: <code>${hedef.toUpperCase()}</code>`);
           } else {
-            await mesajiGuncelle(`🚀 <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} yayına alınıyor...</b>\nSeçili Kanallar: <code>${secili.join(", ").toUpperCase()}</code>`);
+            await mesajiGuncelle(`🚀 <b>${baslikEtiketi} yayına alınıyor...</b>\nSeçili Kanallar: <code>${hedef.toUpperCase()}</code>`);
           }
           await tetikleGitHub(env, "yayinla", {
             tur,
-            hedef: secili.join(","),
+            hedef,
+            id: icerikId,
             mesaj_id: messageId,
           });
           return new Response("OK");
@@ -486,7 +503,18 @@ export default {
         if (data === "iptal" || data.startsWith("reddet:")) {
           await cevapVer("Bu tur atlandı, konu havuza iade edildi");
           await mesajiGuncelle(`❌ <b>Bu içerik atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
-          await tetikleGitHub(env, "yayinla", { hedef: "iptal", mesaj_id: messageId });
+          let tur = "haber";
+          let refId = "";
+          if (data.startsWith("reddet:")) {
+            const parts = data.split(":");
+            if (parts.length >= 3) {
+              tur = parts[1];
+              refId = parts[2];
+            } else if (parts.length === 2) {
+              refId = parts[1];
+            }
+          }
+          await tetikleGitHub(env, "yayinla", { tur, id: refId, hedef: "iptal", mesaj_id: messageId });
           return new Response("OK");
         }
 
