@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -112,6 +113,19 @@ def sifirlanma_saatlik() -> str:
 # Veri Toplayıcı Fonksiyonlar
 # -----------------------------------------------------------------------------
 
+def _github_token_al(token: Optional[str] = None) -> Optional[str]:
+    """Sistem ortamından veya gh CLI üzerinden geçerli GitHub PAT tokenını alır."""
+    sec_token = token or config.env_al("GITHUB_TOKEN") or config.env_al("GH_TOKEN") or config.env_al("GITHUB_PAT")
+    if not sec_token:
+        try:
+            p = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=3)
+            if p.returncode == 0 and p.stdout.strip():
+                sec_token = p.stdout.strip()
+        except Exception:
+            pass
+    return sec_token
+
+
 def github_actions_kullanimi(
     token: Optional[str] = None,
     repo: str = "edmyapigayrimenkul/postedm"
@@ -119,7 +133,7 @@ def github_actions_kullanimi(
     """GitHub API üzerinden bu ayki Actions koşularını ve faturalanan dakikayı hesaplar."""
     now = datetime.now(timezone.utc)
     bu_ay_basi = datetime(now.year, now.month, 1, tzinfo=timezone.utc).isoformat()
-    sec_token = token or config.env_al("GITHUB_TOKEN") or config.env_al("GH_TOKEN") or config.env_al("GITHUB_PAT")
+    sec_token = _github_token_al(token)
 
     kota_toplam = 2000
 
@@ -254,6 +268,27 @@ def cloudflare_kullanimi() -> Dict[str, Any]:
 
 def github_rest_api_kullanimi() -> Dict[str, Any]:
     """GitHub REST API saatlik 5.000 istek limitini ve sıfırlanma süresini döner."""
+    sec_token = _github_token_al()
+    if sec_token:
+        try:
+            r = requests.get(
+                "https://api.github.com/rate_limit",
+                headers={"Authorization": f"Bearer {sec_token}", "User-Agent": "postedm-reporter"},
+                timeout=4,
+            )
+            if r.status_code == 200:
+                core = r.json().get("resources", {}).get("core", {})
+                kalan = core.get("remaining", 4985)
+                limit = core.get("limit", 5000)
+                reset_ts = core.get("reset", 0)
+                if reset_ts:
+                    kalan_dk = max(1, int((datetime.fromtimestamp(reset_ts, timezone.utc) - datetime.now(timezone.utc)).total_seconds() // 60))
+                    sifirlanma = f"Saatlik ({kalan_dk}d)"
+                else:
+                    sifirlanma = sifirlanma_saatlik()
+                return {"istek": f"{kalan:,} / {limit:,}", "sifirlanma": sifirlanma}
+        except Exception:
+            pass
     return {
         "istek": "4.985 / 5.000",
         "sifirlanma": sifirlanma_saatlik(),
