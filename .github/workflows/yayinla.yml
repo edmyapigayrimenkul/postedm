@@ -2,7 +2,7 @@ name: Paylaşım Yayınla (EDM)
 
 on:
   repository_dispatch:
-    types: [yayinla, bot_yonetim]
+    types: [yayinla, bot_yonetim, metin_duzenle]
   workflow_dispatch:
     inputs:
       tur:
@@ -84,29 +84,38 @@ jobs:
           MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
           python scripts/yayinla.py --tur "$TUR" ${ID:+--id "$ID"} --hedef "$HEDEF" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
 
+      - name: Metin Düzenle (Telegram Reply)
+        if: github.event.action == 'metin_duzenle'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+        run: |
+          MESAJ_ID="${{ github.event.client_payload.mesaj_id }}"
+          METIN="${{ github.event.client_payload.metin }}"
+          BASAN="${{ github.event.client_payload.gonderen || '' }}"
+          python scripts/metin_duzenle.py --mesaj-id "$MESAJ_ID" --metin "$METIN" --gonderen "$BASAN"
+
       - name: Veritabanını Kaydet
         if: always()
         run: |
           python scripts/db_kaydet.py "db: yayin durumlari guncellendi"
 
-      # Job patlarsa sessiz kalmasın. 8-11 Eylül 2026 arasında bu workflow
-      # yedi kez üst üste patladı ve kimse bilmedi — lxml eksikliği ancak
-      # elle log okununca bulundu.
+      # Job patlarsa sessiz kalmasın; akıllı hata analizi ve interaktif kurtarma butonları üret
       - name: Hata bildir
         if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python - <<'PY'
-          import os, requests
-          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
-          if not (t and c):
-              raise SystemExit(0)
-          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
-              "chat_id": c, "parse_mode": "HTML",
-              "text": f"🔴 <b>{'Yayınla'} BAŞARISIZ</b>\n\n"
-                      f'<a href="{url}">Log</a>',
-          })
-          PY
+          TUR="${{ github.event.client_payload.tur || inputs.tur || 'haber' }}"
+          ID="${{ github.event.client_payload.id || inputs.id || '' }}"
+          HEDEF="${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}"
+          MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          python -m src.hata_bildir --islem "Yayınla" --tur "$TUR" --id "$ID" --hedef "$HEDEF" --mesaj-id "$MESAJ_ID" --run-url "$RUN_URL"

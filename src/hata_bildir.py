@@ -241,22 +241,46 @@ def tani(hata: Any) -> Dict[str, Any]:
     return hatayi_analiz_et(str(hata))
 
 
-def _butonlar(eylem: str, nerede: str = "", mesaj_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def _butonlar(
+    eylem: str,
+    nerede: str = "",
+    mesaj_id: Optional[str] = None,
+    tur: str = "",
+    ref_id: str = "",
+    hedef: str = "",
+    run_url: str = "",
+) -> Optional[Dict[str, Any]]:
     """Hataya uygun tek tıkla kurtarma inline butonları üretir."""
     inline_keyboard: List[List[Dict[str, str]]] = []
     m_id = str(mesaj_id or "")
 
-    if eylem == "yeniden_yayinla":
-        cb = f"onayla:{m_id}" if m_id else "onayla:haber:hepsi:son"
-        inline_keyboard.append([{"text": "🔄 Tekrar Yayınla", "callback_data": cb}])
-    elif eylem == "tur_tekrar":
-        cb = f"yenile:{m_id}" if m_id else "ilan_menu_yenile"
-        inline_keyboard.append([{"text": "🔄 Yeniden Hazırla", "callback_data": cb}])
+    # 1. Tekrar Yayınla / Yeniden Hazırla Butonu
+    if tur and ref_id:
+        h_param = hedef or "hepsi"
+        yayinla_cb = f"onayla:{tur}:{h_param}:{ref_id}"
+        iptal_cb = f"reddet:{tur}:{ref_id}"
+    elif m_id:
+        yayinla_cb = f"onayla:{m_id}"
+        iptal_cb = "iptal"
+    else:
+        yayinla_cb = "yayinla"
+        iptal_cb = "iptal"
 
+    satir_1 = [{"text": "🔄 Tekrar Yayınla", "callback_data": yayinla_cb}]
+    if eylem == "tur_tekrar":
+        satir_1 = [{"text": "🔄 Yeniden Hazırla", "callback_data": f"yenile:{ref_id}" if ref_id else "ilan_menu_yenile"}]
+    satir_1.append({"text": "❌ Bu Turu Atla", "callback_data": iptal_cb})
+    inline_keyboard.append(satir_1)
+
+    # 2. Hata İnceleme ve Durum Butonları
     inline_keyboard.append([
-        {"text": "🔍 Sistem Durumu", "callback_data": "durum"},
-        {"text": "📋 İlan Menüsü", "callback_data": "ilan_menu_yenile"},
+        {"text": "🔍 Ham Hata Göster", "callback_data": "hata_ayrinti"},
+        {"text": "📊 Sistem Durumu", "callback_data": "durum"},
     ])
+
+    # 3. GitHub Log Linki
+    if run_url and run_url.startswith("http"):
+        inline_keyboard.append([{"text": "🌐 GitHub Logunu Aç", "url": run_url}])
 
     return {"inline_keyboard": inline_keyboard}
 
@@ -291,6 +315,10 @@ def telegrama_hata_bildir(
     istisna: Optional[Exception] = None,
     ek_bilgi: str = "",
     mesaj_id: Optional[str] = None,
+    tur: str = "",
+    ref_id: str = "",
+    hedef: str = "",
+    run_url: str = "",
 ) -> bool:
     """Hatayı analiz eder, kalıcı loga yazar ve Telegram grubuna interaktif kart gönderir."""
     hata_str = str(istisna) if istisna else ek_bilgi
@@ -299,9 +327,18 @@ def telegrama_hata_bildir(
 
     teshis = hatayi_analiz_et(tum_hata)
     hata_kaydet(islem_adi, islem_adi, tum_hata, teshis)
+    son_ham_hata_kaydet(tum_hata)
 
     mesaj = mesaji_kur(islem_adi, teshis, islem_adi)
-    reply_markup = _butonlar(teshis["eylem"], islem_adi, mesaj_id=mesaj_id)
+    reply_markup = _butonlar(
+        teshis["eylem"],
+        islem_adi,
+        mesaj_id=mesaj_id,
+        tur=tur,
+        ref_id=ref_id,
+        hedef=hedef,
+        run_url=run_url,
+    )
 
     try:
         telegram_bot.mesaj_gonder(mesaj, reply_markup=reply_markup)
@@ -329,3 +366,27 @@ def son_ham_hata_kaydet(metin: str) -> None:
             f.write(_sadelestir(metin)[:3000])
     except Exception as e:
         log.warning("Ham hata kaydedilemedi: %s", e)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="EDM Telegram Akıllı Hata Bildirimi")
+    parser.add_argument("--islem", default="Yayınla", help="İşlem veya workflow adı")
+    parser.add_argument("--hata", default="", help="Hata metni veya istisna özeti")
+    parser.add_argument("--tur", default="", help="İçerik türü (haber/reels/ilan)")
+    parser.add_argument("--id", default="", help="İçerik referans ID")
+    parser.add_argument("--hedef", default="hepsi", help="Hedef platformlar")
+    parser.add_argument("--mesaj-id", default="", help="Telegram mesaj ID")
+    parser.add_argument("--run-url", default="", help="GitHub Actions run URL")
+    args = parser.parse_args()
+
+    telegrama_hata_bildir(
+        islem_adi=args.islem,
+        ek_bilgi=args.hata or "İşlem sırasında beklenmeyen bir hata meydana geldi.",
+        tur=args.tur,
+        ref_id=args.id,
+        hedef=args.hedef,
+        mesaj_id=args.mesaj_id,
+        run_url=args.run_url,
+    )

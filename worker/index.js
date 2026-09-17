@@ -360,6 +360,21 @@ export default {
           return new Response("OK");
         }
 
+        if (data === "hata_ayrinti" || data === "hata:ayrinti") {
+          await cevapVer("Hata detayı getiriliyor...");
+          const ham = await hamHataOku(env);
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: ham ? `🔍 <b>HAM HATA METNİ</b>\n\n<pre><code>${ham.slice(0, 3500)}</code></pre>` : "ℹ️ Kayıtlı ham hata metni bulunamadı.",
+              parse_mode: "HTML",
+            }),
+          });
+          return new Response("OK");
+        }
+
         // C. HIZLI İÇERİK ÜRETİMİ
         if (data.startsWith("hizli_uret:")) {
           const format = data.split(":")[1];
@@ -416,7 +431,14 @@ export default {
         // E. YAYINLA AKSİYONU
         if (data === "yayinla" || data.startsWith("yayinla_sonra:") || data.startsWith("onayla:")) {
           const klavye = cb.message?.reply_markup?.inline_keyboard || [];
-          const secili = seciliKanallariCikar(klavye) || ["ig", "threads"];
+          const secili = seciliKanallariCikar(klavye);
+
+          // Sıfır kanal seçimi koruması
+          if (secili && secili.length === 0 && (data === "yayinla" || data.startsWith("yayinla_sonra:"))) {
+            await cevapVer("⚠️ En az bir yayın kanalı seçmelisin!");
+            return new Response("OK");
+          }
+
           let isReels = secili.includes("reels");
           let tur = isReels ? "reels" : "haber";
           let hedef = secili.join(",");
@@ -562,6 +584,23 @@ export default {
             body: JSON.stringify(body),
           });
         };
+
+        // --- Yanıtlanan Mesajlar (Reply): Doğrudan başlık/metin düzenleme ---
+        if (update.message.reply_to_message) {
+          const replyId = update.message.reply_to_message.message_id;
+          const replyMetin = rawText;
+          const gonderen = update.message.from ? `${update.message.from.first_name || ""} ${update.message.from.username ? "@" + update.message.from.username : ""}`.trim() : "";
+
+          if (!replyMetin.startsWith("/")) {
+            await mesajGonder("✍️ Yeni metin işleniyor, slaytlar yeniden çiziliyor...");
+            await tetikleGitHub(env, "metin_duzenle", {
+              mesaj_id: replyId,
+              metin: replyMetin,
+              gonderen: gonderen,
+            });
+            return new Response("OK");
+          }
+        }
 
         if (text === "/panel" || text === "/menu" || text === "panel" || text === "menu") {
           await mesajGonder(
@@ -922,3 +961,23 @@ async function tetikleGitHub(env, eventType, clientPayload) {
 
   return resp.status === 204;
 }
+
+async function hamHataOku(env) {
+  const repo = env.GITHUB_REPOSITORY || "edmyapigayrimenkul/postedm";
+  const url = `https://api.github.com/repos/${repo}/contents/data/son_hata.txt`;
+  try {
+    const cevap = await fetch(url, {
+      headers: {
+        authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        accept: "application/vnd.github+json",
+        "user-agent": "EDM-Cloudflare-Worker",
+      },
+    });
+    if (!cevap.ok) return null;
+    const veri = await cevap.json();
+    return decodeURIComponent(escape(atob((veri.content || "").replace(/\n/g, ""))));
+  } catch (e) {
+    return null;
+  }
+}
+
