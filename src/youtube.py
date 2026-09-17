@@ -67,9 +67,9 @@ def youtube_icin_sesli_video_hazirla(video_yolu: Path | str) -> Path:
 
 def access_token_al() -> Optional[str]:
     """YOUTUBE_REFRESH_TOKEN ile yeni bir Google OAuth2 Access Token alır."""
-    client_id = config.env_al("YOUTUBE_CLIENT_ID")
-    client_secret = config.env_al("YOUTUBE_CLIENT_SECRET")
-    refresh_token = config.env_al("YOUTUBE_REFRESH_TOKEN")
+    client_id = (config.env_al("YOUTUBE_CLIENT_ID") or "").strip().strip("'\"")
+    client_secret = (config.env_al("YOUTUBE_CLIENT_SECRET") or "").strip().strip("'\"")
+    refresh_token = (config.env_al("YOUTUBE_REFRESH_TOKEN") or "").strip().strip("'\"")
 
     if not client_id or not client_secret or not refresh_token:
         log.warning("YouTube API kimlik bilgileri eksik (CLIENT_ID / SECRET / REFRESH_TOKEN).")
@@ -89,8 +89,12 @@ def access_token_al() -> Optional[str]:
         cevap_metni = res.text
         if "invalid_grant" in cevap_metni:
             log.error(
-                "YouTube refresh token geçersiz (invalid_grant). Google Cloud Console OAuth Consent Screen "
-                "'Testing' modunda ise jeton 7 günde iptal edilir; 'Publish App' (In production) yapılmalıdır."
+                "YouTube refresh token geçersiz (invalid_grant: %s). CID=%s*** (Uzunluk=%d), Token=***%s (Uzunluk=%d)",
+                cevap_metni[:150],
+                client_id[:6] if client_id else "",
+                len(client_id),
+                refresh_token[-4:] if refresh_token else "",
+                len(refresh_token),
             )
         else:
             log.warning("YouTube token yenileme başarısız (%s): %s", res.status_code, cevap_metni[:200])
