@@ -107,6 +107,8 @@ def baslik_kur(baslik: str, etiketler: Optional[List[str]] = None) -> str:
 
     secilen_etiketler: List[str] = []
     for et in tum_etiketler:
+        if len(secilen_etiketler) >= 5:
+            break
         aday = f"{temiz_baslik} {' '.join(secilen_etiketler + [et])}".strip()
         if len(aday) <= 150:
             secilen_etiketler.append(et)

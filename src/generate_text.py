@@ -186,11 +186,12 @@ CAPTION KURALLARI (HER PLATFORM İÇİN ZORUNLU 4 BLOK):
 3. KAPANIS CÜMLESİ - ETKİLEŞİM SORUSU (?):
    - Metnin son cümlesi mutlaka okuyucuya doğrudan hitap eden, yoruma ve kendi deneyimini paylaşmaya teşvik eden samimi bir soru olmalıdır.
    - Örn: "Siz daha önce mülk alımında veya hisseli tapuda benzer bir durumla karşılaştınız mı? Yorumlarda buluşalım." veya "Sizce bölgenizde arsa yatırımı mı yoksa konut mu daha avantajlı? Fikirlerinizi paylaşın."
-4. HASHTAG BLOĞU:
-   - Sorunun ardından 1 satır boşluk bırakılarak 5-8 adet temiz, konu ve bölge odaklı hashtag eklenir.
-   - Örn: #EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım #Tapu
+4. HASHTAG BLOĞU (EN FAZLA 5 ADET):
+   - Çoğu sosyal medya platformu en fazla 5 etiketi kabul eder veya verimli görür. Bu yüzden ASLA 5'ten fazla hashtag yazma (en fazla 3-5 adet).
+   - Sorunun ardından 1 satır boşluk bırakılarak eklenir.
+   - Örn: #EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım
 - Threads: Karakter sınırı katıdır (%(threads)d karakter altı). Hook + kısa özet + etkileşim sorusu + 3-4 hashtag şeklinde tek nefeslik yaz.
-- Facebook: Instagram metninin biraz daha detaylı ve açıklayıcı hali.
+- Facebook: Instagram metninin biraz daha detaylı ve açıklayıcı hali (en fazla 5 hashtag).
 - Hiçbir caption'da "link bio'da" yazma; hesapta henüz yönlendirme yok.
 """ % BUTCE
 
@@ -262,8 +263,8 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 9,
-  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf çözüm anlat, etkileşim sorusu (?) ile bitir ve 5-8 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım #Tapu).",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + hashtagler.",
+  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf çözüm anlat, etkileşim sorusu (?) ile bitir ve en fazla 5 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + en fazla 5 hashtag.",
   "caption_threads": "≤%(threads)d karakter. Hook + kısa gövde + soru (?) + 3-4 hashtag."
 }""" % BUTCE
 
@@ -303,8 +304,8 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı"
   },
   "onem_puani": 8,
-  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf karşılaştırmayı ve stratejiyi anlat, soru (?) ile bitir ve 5-8 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + hashtagler.",
+  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf karşılaştırmayı ve stratejiyi anlat, soru (?) ile bitir ve en fazla 5 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + en fazla 5 hashtag.",
   "caption_threads": "≤%(threads)d karakter. Hook + kısa karşılaştırma + soru (?) + 3-4 hashtag."
 }
 Ölçüt başlıkları ≤24, değerler ≤26 karakter olsun; kolona sığması gerekiyor.
@@ -354,8 +355,8 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 7,
-  "caption_instagram": "Hook ile başla, net cevabı ve yasal çerçeveyi 2-3 kısa paragrafta açıkla, soru (?) ile bitir ve 5-8 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Tapu #Yatırım).",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + net cevap ve çözüm + soru (?) + hashtagler.",
+  "caption_instagram": "Hook ile başla, net cevabı ve yasal çerçeveyi 2-3 kısa paragrafta açıkla, soru (?) ile bitir ve en fazla 5 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + net cevap ve çözüm + soru (?) + en fazla 5 hashtag.",
   "caption_threads": "≤%(threads)d karakter. Hook + net cevap + soru (?) + 3-4 hashtag."
 }
 kart_1 sık yapılan yanlışı, kart_2 doğru yasal çerçeveyi anlatır.
@@ -736,24 +737,32 @@ def caption_zenginlestir(
         "#Gayrimenkul",
         "#Arsa",
         "#Yatırım",
-        "#Tapu",
     ]
     sabit_liste = sabitler_ayar if (sabitler_ayar and isinstance(sabitler_ayar, list)) else varsayilan_sabitler
 
     konu_etiketleri: List[str] = []
-    govde_kucuk = govde.lower()
-    if any(w in govde_kucuk for w in ["tapu", "şufa", "hisseli", "miras", "hisse"]):
-        konu_etiketleri.extend(["#TapuRehberi", "#HisseliTapu"])
-    if any(w in govde_kucuk for w in ["arsa", "tarla", "parsel", "imar", "tiny house"]):
-        konu_etiketleri.extend(["#SilivriArsa", "#TrakyaArsa", "#İmar"])
-    if any(w in govde_kucuk for w in ["kira", "kiracı", "tahliye", "ev sahibi"]):
-        konu_etiketleri.extend(["#KiraSözleşmesi", "#EvSahibiKiracı"])
-    if any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "finans"]):
+    kategori_ust = (kategori_kodu or "").upper()
+    govde_kucuk = (ham or govde).lower()
+    if soru and soru.lower() in govde_kucuk:
+        govde_kucuk = govde_kucuk.replace(soru.lower(), "")
+
+    if "FINANS" in kategori_ust or any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "finans", "bddk"]):
         konu_etiketleri.extend(["#KonutKredisi", "#EmlakYatırımı"])
+    if "TAPU" in kategori_ust or any(w in govde_kucuk for w in ["tapu", "şufa", "hisseli", "miras", "hisse", "paydaş"]):
+        konu_etiketleri.extend(["#TapuRehberi", "#HisseliTapu"])
+    if "EV_SAHIBI" in kategori_ust or "KIRA" in kategori_ust or any(w in govde_kucuk for w in ["kira", "kiracı", "tahliye", "ev sahibi"]):
+        konu_etiketleri.extend(["#KiraSözleşmesi", "#EvSahibiKiracı"])
+    if "ARSA" in kategori_ust or "IMAR" in kategori_ust or any(w in govde_kucuk for w in ["arsa", "tarla", "parsel", "imar", "tiny house"]):
+        konu_etiketleri.extend(["#SilivriArsa", "#TrakyaArsa", "#İmar"])
+
+    # Marka ve bölgeyi her zaman önceliklendir (sabit listenin ilk 2'si), ardından konu ve mevcut etiketler, sonra kalan sabitler
+    oncelikli_sabitler = sabit_liste[:2] if len(sabit_liste) >= 2 else sabit_liste
+    kalan_sabitler = sabit_liste[2:] if len(sabit_liste) >= 2 else []
+    tum_adaylar = oncelikli_sabitler + mevcut_etiketler + konu_etiketleri + kalan_sabitler
 
     gorulen = set()
     nihai_etiketler: List[str] = []
-    for tag in (mevcut_etiketler + konu_etiketleri + sabit_liste):
+    for tag in tum_adaylar:
         t = tag.strip()
         if not t.startswith("#"):
             t = f"#{t}"
@@ -803,7 +812,7 @@ def caption_zenginlestir(
         else:
             return f"{govde[:475].strip()}..."
 
-    secilen_etiketler = nihai_etiketler[:8]
+    secilen_etiketler = nihai_etiketler[:5]
     tag_str = " ".join(secilen_etiketler)
     return f"{govde}\n\n{tag_str}".strip()
 

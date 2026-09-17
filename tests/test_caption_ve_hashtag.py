@@ -26,11 +26,13 @@ class TestCaptionVeHashtag(unittest.TestCase):
         self.assertIn("?", zengin)
         self.assertTrue(any("?" in s for s in satirlar))
 
-        # 3. Hashtag bloğu ve marka etiketleri bulunmalı
+        # 3. Hashtag bloğu ve marka etiketleri bulunmalı (azami 5 adet)
+        import re
+        etiketler = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", zengin)
+        self.assertLessEqual(len(etiketler), 5)
         self.assertIn("#EDMYapıGayrimenkul", zengin)
         self.assertIn("#Silivri", zengin)
         self.assertIn("#Gayrimenkul", zengin)
-        self.assertIn("#Tapu", zengin)
 
     def test_caption_zenginlestir_idempotent(self):
         """Zaten zenginleştirilmiş bir metin tekrar işlendiğinde mükerrer soru ve etiket oluşmamalı."""
@@ -38,7 +40,7 @@ class TestCaptionVeHashtag(unittest.TestCase):
             "Tapuda bu imzayı atlarsanız mülkünüz elinizden gidebilir.\n\n"
             "Tüm hissedarlardan noter onaylı feragatname almayı unutmayın.\n\n"
             "Siz daha önce hisseli tapu alımında benzer bir durum yaşadınız mı? Yorumlarda buluşalım.\n\n"
-            "#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım #Tapu"
+            "#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım"
         )
         tekrar = generate_text.caption_zenginlestir(metin, kategori_kodu="TAPU_VE_HUKUK", platform="instagram")
 
@@ -115,6 +117,38 @@ class TestCaptionVeHashtag(unittest.TestCase):
         # Threads <= 480 olmalı
         self.assertLessEqual(len(zengin_veri["caption_threads"]), 480)
         self.assertIn("#", zengin_veri["caption_threads"])
+
+    def test_tum_platformlarda_azami_bes_hashtag(self):
+        """Instagram, Facebook, Threads, TikTok ve YouTube'da azami hashtag sayısı 5'i geçemez."""
+        import re
+        from src import tiktok, youtube
+
+        metin = "Silivri Çanta bölgesinde 500 m² müstakil parsel satılık arsa fırsatı."
+
+        # 1. Instagram
+        ig = generate_text.caption_zenginlestir(metin, kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE", platform="instagram")
+        ig_tags = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", ig)
+        self.assertLessEqual(len(ig_tags), 5, f"Instagram'da 5'ten fazla etiket var: {ig_tags}")
+
+        # 2. Facebook
+        fb = generate_text.caption_zenginlestir(metin, kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE", platform="facebook")
+        fb_tags = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", fb)
+        self.assertLessEqual(len(fb_tags), 5, f"Facebook'ta 5'ten fazla etiket var: {fb_tags}")
+
+        # 3. Threads
+        th = generate_text.caption_zenginlestir(metin, kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE", platform="threads")
+        th_tags = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", th)
+        self.assertLessEqual(len(th_tags), 5, f"Threads'te 5'ten fazla etiket var: {th_tags}")
+
+        # 4. TikTok
+        tt = tiktok.baslik_kur("Silivri Satılık Arsa", ["#arsa", "#tarla", "#yatırım", "#silivri", "#emlak", "#fırsat", "#keşfet"])
+        tt_tags = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", tt)
+        self.assertLessEqual(len(tt_tags), 5, f"TikTok'ta 5'ten fazla etiket var: {tt_tags}")
+
+        # 5. YouTube Shorts İmzası
+        yt_imza = "\n\n#Shorts #Emlak #Gayrimenkul #Silivri #Yatırım"
+        yt_tags = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", yt_imza)
+        self.assertLessEqual(len(yt_tags), 5, f"YouTube'da 5'ten fazla etiket var: {yt_tags}")
 
 
 if __name__ == "__main__":

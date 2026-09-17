@@ -140,11 +140,10 @@ sosyal:
   sabit_hashtagler:
     instagram:
       - "#EDMYapıGayrimenkul"
-      - "#YatırımOrtağınız"
-      - "#SilivriEmlak"
-      - "#SilivriSatılık"
-      - "#TrakyaArsa"
-      - "#GayrimenkulYatırımı"
+      - "#Silivri"
+      - "#Gayrimenkul"
+      - "#Arsa"
+      - "#Yatırım"
     threads:
       - "#EDMYapıGayrimenkul"
       - "#Silivri"
@@ -155,9 +154,9 @@ sosyal:
       - "#Emlak"
       - "#Gayrimenkul"
       - "#Silivri"
+      - "#Yatırım"
     tiktok:
       - "#keşfet"
-      - "#fyp"
       - "#emlak"
       - "#silivri"
       - "#arsa"
