@@ -132,17 +132,44 @@ def shorts_yukle(
     if not token:
         return {"durum": False, "hata": "YouTube erişim jetonu alınamadı."}
 
-    # Shorts Başlık & Açıklama Optimizasyonu
+    # Shorts Başlık & Açıklama Optimizasyonu (Emlak Ofisi Kimliği)
+    # Hukuk bürosu jargonu yerine gayrimenkul & tapu & emlak odaklı dil
     temiz_baslik = baslik.strip()
+    hukuk_degisimleri = {
+        "Hukuk Bürosu": "Emlak Ofisi",
+        "hukuk bürosu": "emlak ofisi",
+        "Hukuki Danışmanlık": "Gayrimenkul Danışmanlığı",
+        "hukuki danışmanlık": "gayrimenkul danışmanlığı",
+        "Hukuk Bülteni": "Emlak Bülteni",
+        "hukuk bülteni": "emlak bülteni",
+        "Hukuk Rehberi": "Tapu & Emlak Rehberi",
+        "hukuk rehberi": "tapu & emlak rehberi",
+        "Hukuki Vaka": "Saha & Tapu Analizi",
+        "hukuki vaka": "saha & tapu analizi",
+    }
+    for eski, yeni in hukuk_degisimleri.items():
+        temiz_baslik = temiz_baslik.replace(eski, yeni)
+
     if "#Shorts" not in temiz_baslik and "#shorts" not in temiz_baslik:
         if len(temiz_baslik) <= 90:
             temiz_baslik = f"{temiz_baslik} #Shorts"
 
+    imza = "\n\nEDM Yapı & Gayrimenkul · Güvenilir Emlak & Yatırım Danışmanlığı\n0536 343 41 97 · edmyapigayrimenkul.com\n\n#Shorts #Emlak #Gayrimenkul #Silivri #Arsa #Yatırım"
     if not aciklama:
-        aciklama = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0536 343 41 97 · edmyapigayrimenkul.com\n\n#Shorts #Emlak #Gayrimenkul #Silivri"
+        aciklama = f"{temiz_baslik}{imza}"
+    else:
+        for eski, yeni in hukuk_degisimleri.items():
+            aciklama = aciklama.replace(eski, yeni)
+        if "edmyapigayrimenkul.com" not in aciklama:
+            aciklama = f"{aciklama.strip()}{imza}"
 
-    sabit_etiketler = ["Shorts", "Emlak", "Gayrimenkul", "Silivri", "Arsa", "Yatırım", "EDM Yapı"]
-    tags = list(set((etiketler or []) + sabit_etiketler))
+    sabit_etiketler = ["Shorts", "Emlak", "Gayrimenkul", "Silivri", "Arsa", "Konut", "Yatırım", "EDM Yapı", "Tapu", "İmar"]
+    # Hukuk bürosu algısı oluşturabilecek etiketleri filtrele
+    filtrelenmis_etiketler = [
+        t for t in (etiketler or [])
+        if not any(yasak in t.lower() for yasak in ["hukuk", "avukat", "dava", "adliye", "baro"])
+    ]
+    tags = list(set(filtrelenmis_etiketler + sabit_etiketler))
 
     meta_payload = {
         "snippet": {

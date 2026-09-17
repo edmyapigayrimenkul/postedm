@@ -412,9 +412,12 @@ def main() -> None:
     # -------------------------------------------------------------
     if hedef_mi("tt", "tiktok"):
         if reels_modu:
-            if sesli_video_yolu and sesli_video_yolu.exists():
+            # TikTok için arkaplan müziksiz (sessiz stereo AAC kanallı) video kullanılır;
+            # trend sesler TikTok uygulamasından eklenir.
+            tt_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
+            if tt_video and tt_video.exists():
                 try:
-                    tt_res = tiktok.video_yukle(sesli_video_yolu, baslik=baslik)
+                    tt_res = tiktok.video_yukle(tt_video, baslik=baslik)
                     if tt_res.get("durum"):
                         if tt_res.get("taslak_mi"):
                             rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Taslak Olarak Yüklendi ✓")
@@ -448,12 +451,15 @@ def main() -> None:
     # -------------------------------------------------------------
     if hedef_mi("ig", "instagram", "reels"):
         if reels_modu:
-            if sesli_video_yolu and sesli_video_yolu.exists():
+            # Instagram Reels için Telegram'a iletilen video:
+            # Kullanıcı Instagram uygulamasından trend müzik ekleyeceği için arkaplan sesi olmamalıdır!
+            ig_reels_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
+            if ig_reels_video and ig_reels_video.exists():
                 try:
                     import html as html_lib
                     temiz_metin = html_lib.escape(caption.strip())
                     telegram_bot.video_gonder(
-                        sesli_video_yolu,
+                        ig_reels_video,
                         aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
                                  f"📌 <b>Konu:</b> {baslik}\n\n"
                                  f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",

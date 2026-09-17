@@ -289,7 +289,7 @@ def metinleri_slaytlara_dagit(
     cta = (detay.get("slayt_4_cta") or {}).get("cagri_metni") if isinstance(detay.get("slayt_4_cta"), dict) else ""
     kapanis_metin = (
         f"🤝 {cta}\n\n"
-        "EDM Yapı & Gayrimenkul · Yatırım ve Hukuk Danışmanlığı\n"
+        "EDM Yapı & Gayrimenkul · Gayrimenkul & Yatırım Danışmanlığı\n"
         "📞 0536 343 41 97 · Silivri / İstanbul"
     ).strip()
     parcalar.append(kapanis_metin)
