@@ -176,11 +176,21 @@ kelimelerinle aynı biçimi kur.
 
 manset_vurgu her zaman BİLGİ taşır — kalıp söz değil.
 
-CAPTION KURALLARI:
-- Instagram: ilk satır kancayı tekrar etmez, genişletir. 3-5 kısa paragraf.
-  Sonunda tek bir soru sor (yorum motoru). Hashtag'leri sistem ekler, sen ekleme.
-- Threads: %(threads)d karakterin altında, tek nefeslik, daha konuşkan.
-- Facebook: Instagram metninin biraz daha açıklayıcı hâli.
+CAPTION KURALLARI (HER PLATFORM İÇİN ZORUNLU 4 BLOK):
+1. İLK SATIR - HOOK (KANCA METNİ):
+   - Açıklamanın ilk satırı akışta kaydırmayı anında durduran, merak veya farkındalık uyandıran güçlü bir kanca cümlesiyle başlar.
+   - Örn: "Tapuda bu tek bir imzayı atlarsanız, satın aldığınız mülk iki yıl sonra elinizden gidebilir." veya "Tarla veya arsa bakarken imar durumunda çoğu kişinin atladığı büyük bir risk var."
+   - Asla "DİKKAT!", "ŞOK!", "ÖNEMLİ DUYURU" gibi ucuz ve tıklama tuzağı ifadeler kullanma. Sakin otoriteyle doğrudan gerçeği söyle.
+2. GÖVDE:
+   - Konuyu halk dilinde, akıcı, kısa ve net cümlelerle (6-10 kelime) 2-3 kısa paragrafta açıkla.
+3. KAPANIS CÜMLESİ - ETKİLEŞİM SORUSU (?):
+   - Metnin son cümlesi mutlaka okuyucuya doğrudan hitap eden, yoruma ve kendi deneyimini paylaşmaya teşvik eden samimi bir soru olmalıdır.
+   - Örn: "Siz daha önce mülk alımında veya hisseli tapuda benzer bir durumla karşılaştınız mı? Yorumlarda buluşalım." veya "Sizce bölgenizde arsa yatırımı mı yoksa konut mu daha avantajlı? Fikirlerinizi paylaşın."
+4. HASHTAG BLOĞU:
+   - Sorunun ardından 1 satır boşluk bırakılarak 5-8 adet temiz, konu ve bölge odaklı hashtag eklenir.
+   - Örn: #EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım #Tapu
+- Threads: Karakter sınırı katıdır (%(threads)d karakter altı). Hook + kısa özet + etkileşim sorusu + 3-4 hashtag şeklinde tek nefeslik yaz.
+- Facebook: Instagram metninin biraz daha detaylı ve açıklayıcı hali.
 - Hiçbir caption'da "link bio'da" yazma; hesapta henüz yönlendirme yok.
 """ % BUTCE
 
@@ -252,9 +262,9 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 9,
-  "caption_instagram": "...",
-  "caption_facebook": "...",
-  "caption_threads": "≤%(threads)d karakter"
+  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf çözüm anlat, etkileşim sorusu (?) ile bitir ve 5-8 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım #Tapu).",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + hashtagler.",
+  "caption_threads": "≤%(threads)d karakter. Hook + kısa gövde + soru (?) + 3-4 hashtag."
 }""" % BUTCE
 
 _SEMA_B2 = """BİÇİM: B2 — KARŞILAŞTIRMA (3 slayt)
@@ -293,9 +303,9 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı"
   },
   "onem_puani": 8,
-  "caption_instagram": "...",
-  "caption_facebook": "...",
-  "caption_threads": "≤%(threads)d karakter"
+  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf karşılaştırmayı ve stratejiyi anlat, soru (?) ile bitir ve 5-8 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + hashtagler.",
+  "caption_threads": "≤%(threads)d karakter. Hook + kısa karşılaştırma + soru (?) + 3-4 hashtag."
 }
 Ölçüt başlıkları ≤24, değerler ≤26 karakter olsun; kolona sığması gerekiyor.
 
@@ -344,9 +354,9 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 7,
-  "caption_instagram": "...",
-  "caption_facebook": "...",
-  "caption_threads": "≤%(threads)d karakter"
+  "caption_instagram": "Hook ile başla, net cevabı ve yasal çerçeveyi 2-3 kısa paragrafta açıkla, soru (?) ile bitir ve 5-8 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Tapu #Yatırım).",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + net cevap ve çözüm + soru (?) + hashtagler.",
+  "caption_threads": "≤%(threads)d karakter. Hook + net cevap + soru (?) + 3-4 hashtag."
 }
 kart_1 sık yapılan yanlışı, kart_2 doğru yasal çerçeveyi anlatır.
 slayt_3_cozum maddeleri atılması gereken somut adımları listeler.""" % BUTCE
@@ -634,6 +644,199 @@ def _temizle(veri: Dict[str, Any]) -> Dict[str, Any]:
         return [_temizle(v) for v in veri]
     if isinstance(veri, str):
         return _unlemleri_kaldir(filtre.markdown_temizle(veri))
+def manset_birlestir(veri: Dict[str, Any]) -> str:
+    """Üç parçalı manşeti tek metne çevirir (veritabanı ve Telegram önizlemesi için)."""
+    if not isinstance(veri, dict):
+        return ""
+    if veri.get("manset"):
+        return str(veri["manset"]).strip()
+    return " ".join(
+        p.strip() for p in (
+            veri.get("manset_parca_1"), veri.get("manset_vurgu"), veri.get("manset_parca_2")
+        ) if p
+    ).strip()
+
+
+def caption_zenginlestir(
+    caption: str,
+    kategori_kodu: Optional[str] = None,
+    konu_kodu: Optional[str] = None,
+    platform: str = "instagram",
+    manset: Optional[str] = None,
+) -> str:
+    """
+    Açıklama metnini (caption) kurumsal EDM 4 bloklu standart mimarisine dönüştürür:
+    1. Blok: Hook (Kaydırmayı anında durduran kanca)
+    2. Blok: Gövde (Halk dilinde, akıcı kısa paragraflar)
+    3. Blok: Etkileşim Sorusu (Yorum ve tartışmayı teşvik eden samimi soru (?))
+    4. Blok: Hashtag Bloğu (Marka, bölge ve konuya özel temiz etiketler)
+
+    İdempotenttir: Zaten zenginleştirilmiş bir metne tekrar uygulandığında soru veya hashtag tekrarlamaz.
+    """
+    ham = filtre.markdown_temizle(caption or "").strip()
+    ham = _unlemleri_kaldir(ham).strip()
+    if not ham and manset:
+        ham = _unlemleri_kaldir(filtre.markdown_temizle(manset)).strip()
+    if not ham:
+        return ""
+
+    # 1. Mevcut hashtag'leri ayıkla ve metnin sonundaki hashtag bloğunu gövdeden ayır
+    mevcut_etiketler = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", ham)
+    govde = re.sub(r"(?:[\s\n]*#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+)+$", "", ham).strip()
+    govde = re.sub(r"^(?:Açıklama|Instagram|Facebook|Threads|Caption|Metin|Post)\s*:\s*", "", govde, flags=re.IGNORECASE).strip()
+
+    if not govde:
+        govde = manset or ham
+
+    # 2. Hook Kontrolü: Eğer ilk satır çok kısaysa (<25 karakter) ve manşet varsa manşetle zenginleştir
+    satirlar = [s.strip() for s in govde.split("\n") if s.strip()]
+    if satirlar and len(satirlar[0]) < 25 and manset and manset.strip() not in satirlar[0]:
+        govde = f"{manset.strip()}\n\n{govde}"
+
+    # 3. Kapanış Sorusu (?) Kontrolü
+    soru = ""
+    son_kisim = govde[-250:] if len(govde) > 250 else govde
+    if "?" not in son_kisim:
+        kategori_ust = (kategori_kodu or "").upper()
+        govde_kucuk = govde.lower()
+
+        if any(w in govde_kucuk for w in ["şufa", "hisseli", "hisse", "tapu", "miras", "paydaş", "intikal", "ferağ"]):
+            soru = "Siz tapu işlemlerinizde veya hisseli mülk alımında benzer bir durumla karşılaştınız mı? Yorumlarda buluşalım."
+        elif any(w in govde_kucuk for w in ["kira", "kiracı", "ev sahibi", "tahliye", "kontrat", "depozito"]):
+            soru = "Sizce kira ve tahliye süreçlerinde en çok nelere dikkat edilmeli? Deneyimlerinizi yorumlarda paylaşın."
+        elif any(w in govde_kucuk for w in ["arsa", "tarla", "imar", "ifraz", "parsel", "tiny house", "ruhsat"]):
+            soru = "Silivri veya Trakya genelinde arsa bakarken imar durumunda en çok neye dikkat ediyorsunuz? Fikirlerinizi yazın."
+        elif any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "mevduat", "bddk", "enflasyon", "ekspertiz"]):
+            soru = "Sizce şu anki piyasa şartlarında arsa yatırımı mı yoksa mevduat veya konut mu daha avantajlı? Ne düşünüyorsunuz?"
+        elif "ILAN" in kategori_ust or any(w in govde_kucuk for w in ["satılık", "kiralık", "portföy", "m²"]):
+            soru = "Bu portföyümüz hakkında detaylı bilgi ve yerinde inceleme için bize hemen ulaşabilirsiniz. Ne düşünüyorsunuz?"
+        elif "ARSA" in kategori_ust:
+            soru = "Silivri ve Trakya'da arsa alırken en çok hangi bölgeyi tercih ediyorsunuz? Yorumlarda paylaşın."
+        elif "EV_SAHIBI" in kategori_ust:
+            soru = "Sizce kiracı ve ev sahibi ilişkilerinde en sağlıklı çözüm nedir? Yorumlarda buluşalım."
+        elif "FINANS" in kategori_ust:
+            soru = "Siz birikiminizi değerlendirirken gayrimenkulü hangi sırada tutuyorsunuz? Yorumlarda buluşalım."
+        else:
+            soru = "Siz bu konuda ne düşünüyorsunuz? Görüş ve tecrübelerinizi yorumlarda bekliyoruz."
+
+        govde = f"{govde}\n\n{soru}"
+    else:
+        for p in reversed(govde.split("\n")):
+            p_strip = p.strip()
+            if "?" in p_strip:
+                soru = p_strip
+                break
+
+    # 4. Hashtag Bloğunu Hazırla
+    platform_key = platform.lower()
+    sabitler_ayar = config.ayar_al(f"sosyal.sabit_hashtagler.{platform_key}") or config.ayar_al("sosyal.sabit_hashtagler.instagram")
+    varsayilan_sabitler = [
+        "#EDMYapıGayrimenkul",
+        "#Silivri",
+        "#Gayrimenkul",
+        "#Arsa",
+        "#Yatırım",
+        "#Tapu",
+    ]
+    sabit_liste = sabitler_ayar if (sabitler_ayar and isinstance(sabitler_ayar, list)) else varsayilan_sabitler
+
+    konu_etiketleri: List[str] = []
+    govde_kucuk = govde.lower()
+    if any(w in govde_kucuk for w in ["tapu", "şufa", "hisseli", "miras", "hisse"]):
+        konu_etiketleri.extend(["#TapuRehberi", "#HisseliTapu"])
+    if any(w in govde_kucuk for w in ["arsa", "tarla", "parsel", "imar", "tiny house"]):
+        konu_etiketleri.extend(["#SilivriArsa", "#TrakyaArsa", "#İmar"])
+    if any(w in govde_kucuk for w in ["kira", "kiracı", "tahliye", "ev sahibi"]):
+        konu_etiketleri.extend(["#KiraSözleşmesi", "#EvSahibiKiracı"])
+    if any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "finans"]):
+        konu_etiketleri.extend(["#KonutKredisi", "#EmlakYatırımı"])
+
+    gorulen = set()
+    nihai_etiketler: List[str] = []
+    for tag in (mevcut_etiketler + konu_etiketleri + sabit_liste):
+        t = tag.strip()
+        if not t.startswith("#"):
+            t = f"#{t}"
+        k = t.lower().replace("I", "ı").replace("İ", "i")
+        if k not in gorulen and len(t) > 2:
+            gorulen.add(k)
+            nihai_etiketler.append(t)
+
+    # 5. Platform Uyarlaması
+    if platform_key == "tiktok":
+        from . import tiktok
+        kanca_baslik = satirlar[0] if satirlar else (manset or govde)
+        return tiktok.baslik_kur(kanca_baslik, nihai_etiketler)
+
+    if platform_key == "threads":
+        th_etiketler = nihai_etiketler[:4]
+        tag_str = " ".join(th_etiketler)
+
+        if len(govde) + len(tag_str) + 2 <= 480:
+            return f"{govde}\n\n{tag_str}".strip()
+
+        th_etiketler = nihai_etiketler[:2]
+        tag_str = " ".join(th_etiketler)
+        if len(govde) + len(tag_str) + 2 <= 480:
+            return f"{govde}\n\n{tag_str}".strip()
+
+        # Metin çok uzunsa: soruyu ve etiketleri koruyarak ana gövdeyi kısalt
+        if soru and soru in govde:
+            ana_metin = govde.rsplit(soru, 1)[0].strip()
+            kalan_yer = 480 - len(soru) - len(tag_str) - 8
+            if kalan_yer > 40:
+                kirpilmis = ana_metin[:kalan_yer]
+                son_bosluk = kirpilmis.rfind(" ")
+                if son_bosluk > 30:
+                    kirpilmis = kirpilmis[:son_bosluk]
+                govde = f"{kirpilmis.strip()}...\n\n{soru}"
+                return f"{govde}\n\n{tag_str}".strip()
+
+        kalan_yer = 480 - len(tag_str) - 6
+        if kalan_yer > 80:
+            kirpilmis = govde[:kalan_yer]
+            son_bosluk = kirpilmis.rfind(" ")
+            if son_bosluk > 60:
+                kirpilmis = kirpilmis[:son_bosluk]
+            govde = kirpilmis.strip() + "..."
+            return f"{govde}\n\n{tag_str}".strip()
+        else:
+            return f"{govde[:475].strip()}..."
+
+    secilen_etiketler = nihai_etiketler[:8]
+    tag_str = " ".join(secilen_etiketler)
+    return f"{govde}\n\n{tag_str}".strip()
+
+
+def _captionlari_zenginlestir(veri: Dict[str, Any]) -> Dict[str, Any]:
+    """Sözlükteki caption alanlarını hook, soru ve hashtag ile zenginleştirir."""
+    if not isinstance(veri, dict):
+        return veri
+    kat = veri.get("kategori_kodu")
+    man = manset_birlestir(veri)
+
+    if veri.get("caption_instagram"):
+        veri["caption_instagram"] = caption_zenginlestir(
+            veri["caption_instagram"], kategori_kodu=kat, platform="instagram", manset=man
+        )
+
+    if veri.get("caption_facebook"):
+        veri["caption_facebook"] = caption_zenginlestir(
+            veri["caption_facebook"], kategori_kodu=kat, platform="facebook", manset=man
+        )
+    elif veri.get("caption_instagram"):
+        veri["caption_facebook"] = caption_zenginlestir(
+            veri["caption_instagram"], kategori_kodu=kat, platform="facebook", manset=man
+        )
+
+    if veri.get("caption_threads"):
+        veri["caption_threads"] = caption_zenginlestir(
+            veri["caption_threads"], kategori_kodu=kat, platform="threads", manset=man
+        )
+    elif veri.get("caption_instagram"):
+        veri["caption_threads"] = caption_zenginlestir(
+            veri["caption_instagram"], kategori_kodu=kat, platform="threads", manset=man
+        )
     return veri
 
 
@@ -662,6 +865,7 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
     if ayrisik is None:
         return None
     veri = _temizle(ayrisik)
+    _captionlari_zenginlestir(veri)
 
     ihlaller = butce_ihlalleri(veri)
     if not ihlaller:
@@ -682,22 +886,12 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
         log.warning("Onarım turu başarısız, taşan metinle devam ediliyor")
         return veri
     veri2 = _temizle(ayrisik2)
+    _captionlari_zenginlestir(veri2)
 
     kalan = butce_ihlalleri(veri2)
     if kalan:
         log.warning("Onarım sonrası hâlâ taşan alan var: %s", "; ".join(kalan))
     return veri2
-
-
-def manset_birlestir(veri: Dict[str, Any]) -> str:
-    """Üç parçalı manşeti tek metne çevirir (veritabanı ve Telegram önizlemesi için)."""
-    if veri.get("manset"):
-        return veri["manset"]
-    return " ".join(
-        p.strip() for p in (
-            veri.get("manset_parca_1"), veri.get("manset_vurgu"), veri.get("manset_parca_2")
-        ) if p
-    ).strip()
 
 
 def konudan_uret(konu: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -796,7 +990,15 @@ def ilan_metinleri_uret(ilan: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not ham:
         return None
     try:
-        return _temizle(json.loads(ham))
+        sonuc = _temizle(json.loads(ham))
+        baslik = ilan.get("baslik")
+        if "ig_caption" in sonuc and sonuc["ig_caption"]:
+            sonuc["ig_caption"] = caption_zenginlestir(sonuc["ig_caption"], kategori_kodu="ILAN", platform="instagram", manset=baslik)
+        if "fb_caption" in sonuc and sonuc["fb_caption"]:
+            sonuc["fb_caption"] = caption_zenginlestir(sonuc["fb_caption"], kategori_kodu="ILAN", platform="facebook", manset=baslik)
+        if "threads_metin" in sonuc and sonuc["threads_metin"]:
+            sonuc["threads_metin"] = caption_zenginlestir(sonuc["threads_metin"], kategori_kodu="ILAN", platform="threads", manset=baslik)
+        return sonuc
     except Exception as e:
         log.error("İlan JSON ayrıştırma hatası: %s", e)
         return None

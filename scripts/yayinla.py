@@ -17,7 +17,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, facebook, hata_bildir, instagram, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
+from src import db, facebook, generate_text, hata_bildir, instagram, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -118,7 +118,13 @@ def main() -> None:
                 log.error("Manuel paket için haber bulunamadı: #%s", ref_id)
                 db.wal_bosalt()
                 return
-            caption = haber.get("ig_caption") or haber.get("manset") or haber.get("orijinal_baslik") or ""
+            raw_caption = haber.get("ig_caption") or haber.get("manset") or haber.get("orijinal_baslik") or ""
+            caption = generate_text.caption_zenginlestir(
+                raw_caption,
+                kategori_kodu=haber.get("kategori"),
+                platform="instagram",
+                manset=haber.get("manset") or haber.get("orijinal_baslik"),
+            )
             import html as html_lib
             temiz_caption = html_lib.escape(caption.strip())
             butonlar = {
@@ -213,7 +219,6 @@ def main() -> None:
                 log.error("Yenilenecek haber bulunamadı: #%s", ref_id)
                 db.wal_bosalt()
                 return
-            from src import generate_text
             generate_text.haber_metinleri_uret(haber)
             db.haber_guncelle(int(ref_id), slayt_yollari=None, slayt_urlleri=None)
             telegram_bot.haber_onayina_sun(int(ref_id))
@@ -233,7 +238,6 @@ def main() -> None:
                 db_senkron.uzaktan_tazele()
                 haber = db.haber_getir(int(ref_id))
             if haber:
-                from src import generate_text
                 ek_talimat = "Metinleri daha vurucu, kısa ve özet olarak hazırla." if hedef == "metin_ozetle" else "İçeriğe daha fazla hukuki derinlik, kanun maddeleri ve hak arama yolları ekle."
                 log.info("Metin eylemi (%s) uygulanıyor: #%s", hedef, ref_id)
                 generate_text.haber_metinleri_uret(haber, ek_talimat=ek_talimat)
@@ -287,7 +291,13 @@ def main() -> None:
             raise RuntimeError(f"Haber bulunamadı: #{ref_id}")
 
         baslik = haber.get("manset") or haber.get("orijinal_baslik")
-        caption = haber.get("ig_caption") or baslik
+        raw_caption = haber.get("ig_caption") or baslik
+        caption = generate_text.caption_zenginlestir(
+            raw_caption,
+            kategori_kodu=haber.get("kategori"),
+            platform="instagram",
+            manset=baslik,
+        )
 
         # 1. Önceden yüklenmiş Public URL'leri kontrol et
         urller_json = haber.get("slayt_urlleri")
@@ -589,6 +599,12 @@ def main() -> None:
         try:
             if tek_sayfa:
                 th_metin = (haber.get("threads_metin") if haber and tur in ("haber", "reels") else "") or caption
+                th_metin = generate_text.caption_zenginlestir(
+                    th_metin,
+                    kategori_kodu=haber.get("kategori") if haber else None,
+                    platform="threads",
+                    manset=baslik,
+                )
                 threads_id = threads.paylas(th_metin, [public_urller[0]])
                 if threads_id:
                     rapor_satirlari.append("🧵 <b>Threads (Tekil Görsel):</b> Paylaşıldı ✓")
@@ -604,6 +620,12 @@ def main() -> None:
                         rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
                 else:
                     th_metin = (haber.get("threads_metin") if haber and tur in ("haber", "reels") else "") or caption
+                    th_metin = generate_text.caption_zenginlestir(
+                        th_metin,
+                        kategori_kodu=haber.get("kategori") if haber else None,
+                        platform="threads",
+                        manset=baslik,
+                    )
                     threads_id = threads.paylas(th_metin, public_urller)
                     if threads_id:
                         rapor_satirlari.append("🧵 <b>Threads:</b> Paylaşıldı ✓")
@@ -617,11 +639,18 @@ def main() -> None:
     # KANAL 5: FACEBOOK (Kullanıcı Kuralı: Standart gönderide Albüm/Fotoğraf, Reels seçildiyse Reels videosu)
     # -------------------------------------------------------------
     if hedef_mi("fb", "facebook"):
+        fb_caption = (detay.get("caption_facebook") if isinstance(detay, dict) else "") or caption
+        fb_caption = generate_text.caption_zenginlestir(
+            fb_caption,
+            kategori_kodu=haber.get("kategori") if haber else None,
+            platform="facebook",
+            manset=baslik,
+        )
         if reels_modu:
             log.info("Facebook Reels yükleniyor (Arkaplan sesli)...")
             if sesli_video_yolu and sesli_video_yolu.exists():
                 try:
-                    fb_id = facebook.video_yayinla(sesli_video_yolu, description=caption)
+                    fb_id = facebook.video_yayinla(sesli_video_yolu, description=fb_caption)
                     if fb_id:
                         rapor_satirlari.append("📘 <b>Facebook (Reels):</b> Paylaşıldı ✓")
                     else:
@@ -634,7 +663,7 @@ def main() -> None:
         else:
             log.info("Facebook'ta standart gönderi paylaşılıyor (Albüm/Görsel)...")
             try:
-                fb_id = facebook.paylas(caption, public_urller)
+                fb_id = facebook.paylas(fb_caption, public_urller)
                 if fb_id:
                     rapor_satirlari.append("📘 <b>Facebook (Standart Gönderi):</b> Paylaşıldı ✓")
                 else:

@@ -287,10 +287,13 @@ def metinleri_slaytlara_dagit(
 
     # 4. Kapanış / CTA
     cta = (detay.get("slayt_4_cta") or {}).get("cagri_metni") if isinstance(detay.get("slayt_4_cta"), dict) else ""
+    if not cta:
+        cta = (detay.get("slayt_4_cta") or {}).get("kaydet_metni") or "Bu bilgiyi daha sonra kullanmak üzere kaydedebilirsiniz."
     kapanis_metin = (
         f"🤝 {cta}\n\n"
-        "EDM Yapı & Gayrimenkul · Gayrimenkul & Yatırım Danışmanlığı\n"
-        "📞 0536 343 41 97 · Silivri / İstanbul"
+        "Siz bu konuda ne düşünüyorsunuz? Yorumlarda buluşalım.\n\n"
+        "EDM Yapı & Gayrimenkul · 0536 343 41 97 · Silivri\n"
+        "#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Yatırım"
     ).strip()
     parcalar.append(kapanis_metin)
 

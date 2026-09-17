@@ -911,7 +911,13 @@ def haber_onayina_sun(haber_id: int) -> bool:
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
     import html as html_lib
-    caption_metin = (haber.get("ig_caption") or "").strip()
+    ham_caption = (haber.get("ig_caption") or haber.get("manset") or "").strip()
+    caption_metin = generate_text.caption_zenginlestir(
+        ham_caption,
+        kategori_kodu=haber.get("kategori"),
+        platform="instagram",
+        manset=haber.get("manset"),
+    )
     temiz_caption = html_lib.escape(caption_metin) if caption_metin else ""
 
     mesaj_metni = (
@@ -1166,7 +1172,13 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
 
     # 2. Kopyalanabilir Caption ve Onay Menüsünü Gönder (Görüntülerin altına düşer)
     import html as html_lib
-    caption_metin = veri.get("caption_instagram") or konu["baslik"]
+    raw_caption = veri.get("caption_instagram") or konu["baslik"]
+    caption_metin = generate_text.caption_zenginlestir(
+        raw_caption,
+        kategori_kodu="REELS",
+        platform="instagram",
+        manset=konu["baslik"],
+    )
     temiz_caption = html_lib.escape(caption_metin.strip())
     mesaj_metni = (
         f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR</b>\n\n"
@@ -1291,11 +1303,17 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
 
     slayt_yollari = [str(k1), str(k2), str(k3)]
 
-    caption = (metinler.get("ig_caption") if metinler else "") or (
+    raw_caption = (metinler.get("ig_caption") if metinler else "") or (
         f"{ilan.get('baslik')}\n\n"
         f"📍 Konum: {ilan.get('ilce')} / {ilan.get('mahalle')}\n"
         f"💰 Fiyat: {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n\n"
         f"EDM Yapı & Gayrimenkul · 0536 343 41 97\nedmyapigayrimenkul.com"
+    )
+    caption = generate_text.caption_zenginlestir(
+        raw_caption,
+        kategori_kodu="ILAN",
+        platform="instagram",
+        manset=ilan.get("baslik"),
     )
 
     onizleme_metni = (
