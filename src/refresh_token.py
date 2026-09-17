@@ -143,6 +143,36 @@ def meta_token_durumu() -> Dict[str, Any]:
         return {"gecerli": False, "mesaj": str(e)}
 
 
+def youtube_token_durumu() -> Dict[str, Any]:
+    """YouTube OAuth2 ve kanal bağlantısının geçerliliğini doğrular."""
+    from . import youtube
+    token = youtube.access_token_al()
+    if not token:
+        return {"gecerli": False, "mesaj": "YouTube erişim jetonu alınamadı (invalid_grant veya eksik anahtar)"}
+    try:
+        res = requests.get(
+            "https://www.googleapis.com/youtube/v3/channels",
+            params={"part": "snippet", "mine": "true"},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        if res.status_code == 200:
+            items = res.json().get("items", [])
+            if items:
+                baslik = items[0].get("snippet", {}).get("title")
+                kanal_id = items[0].get("id")
+                return {
+                    "gecerli": True,
+                    "kanal": baslik,
+                    "kanal_id": kanal_id,
+                    "mesaj": f"Aktif (@{baslik})",
+                }
+            return {"gecerli": True, "mesaj": "Aktif (Kanal bilgisi alınamadı)"}
+        return {"gecerli": False, "kod": res.status_code, "mesaj": res.text[:200]}
+    except Exception as e:
+        return {"gecerli": False, "mesaj": str(e)}
+
+
 def github_secret_guncelle(yeni: str, ad: str, repo: Optional[str] = None) -> bool:
     """
     Yeni tokenı GitHub Actions Secrets'a yazar.
