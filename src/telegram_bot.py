@@ -722,22 +722,32 @@ def durum_raporu_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, An
 
 
 def komut_menusu_kaydet() -> bool:
-    """Telegram komut açılır menüsünü (setMyCommands) 3 kapsama birden kaydeder."""
+    """Telegram komut açılır menüsünü (setMyCommands) tüm kapsamlara ve gruba kaydeder."""
+    token, chat_id = _bot_bilgileri()
+    if not token:
+        return False
+
     kapsamlar = [
         None,
         {"type": "all_private_chats"},
         {"type": "all_group_chats"},
     ]
-    basarili = 0
-    token, _ = _bot_bilgileri()
-    if not token:
-        return False
+    if chat_id:
+        try:
+            cid = int(str(chat_id).strip())
+            kapsamlar.extend([
+                {"type": "chat", "chat_id": cid},
+                {"type": "chat_administrators", "chat_id": cid},
+            ])
+        except Exception:
+            pass
 
+    basarili = 0
     url = TELEGRAM_API_URL.format(token=token, method="setMyCommands")
     for kapsam in kapsamlar:
         payload: Dict[str, Any] = {"commands": komutlar.KOMUT_MENUSU}
         if kapsam:
-            payload["scope"] = json.dumps(kapsam)
+            payload["scope"] = kapsam
         try:
             r = requests.post(url, json=payload, timeout=15)
             res = r.json() if r.content else {}
