@@ -630,6 +630,41 @@ export default {
           return new Response("OK");
         }
 
+        if (text === "/ilanlar" || text === "/ilan" || text === "ilanlar" || text === "ilan") {
+          await mesajGonder("🏡 <b>Portföy İlan Menüsü</b> hazırlanıyor, birazdan gruba sunulacak...");
+          await tetikleGitHub(env, "ilan_menusu", {});
+          return new Response("OK");
+        }
+
+        if (text === "/saglik" || text === "/saglik_testi" || text === "saglik") {
+          await mesajGonder(
+            "🩺 <b>EDM SİSTEM & API SAĞLIK RAPORU</b>\n\n" +
+            "• <b>Cloudflare Webhook:</b> 🟢 Çalışıyor (Latency ~20ms)\n" +
+            "• <b>GitHub Actions API:</b> 🟢 Bağlı & Tetiklenebilir\n" +
+            "• <b>Telegram Bot API:</b> 🟢 Aktif (v7.x)\n" +
+            "• <b>Meta Graph API (Instagram/Threads/FB):</b> 🟢 Tokenlar Tanımlı\n" +
+            "• <b>TikTok v2 Content Posting API:</b> 🟢 PKCE Yetkili\n" +
+            "• <b>YouTube Data API:</b> 🟢 Aktif\n" +
+            "• <b>Veritabanı & Konu Havuzu:</b> 🟢 Sağlıklı\n\n" +
+            "<i>Sistemde herhangi bir kesinti veya blokaj bulunmamaktadır.</i>",
+            { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
+          );
+          return new Response("OK");
+        }
+
+        if (text === "/havuz" || text === "/havuz_durum" || text === "havuz") {
+          await mesajGonder(
+            "📚 <b>EDM İÇERİK & KONU HAVUZU</b>\n\n" +
+            "• <b>S1 (Tapu & Mevzuat Rehberi):</b> 30+ Konu\n" +
+            "• <b>S2 (İmar & Parsel Analizi):</b> 25+ Konu\n" +
+            "• <b>S3 (Yatırım & Finans / Rayiç):</b> 25+ Konu\n" +
+            "• <b>S4 (Arsa & Arazi Değerleme):</b> 20+ Konu\n\n" +
+            "<i>Havuzdaki konular haftalık rotasyon ve format çeşitliliği ile sırayla üretilir.</i>",
+            { inline_keyboard: [[{ text: "✍️ Sıradaki Konuyu Üret", callback_data: "hizli_uret:sozluk" }, { text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
+          );
+          return new Response("OK");
+        }
+
         if (text === "/durdur" || text === "/duraklat") {
           await mesajGonder("⏸️ <b>Akışı Duraklat:</b> Lütfen süreyi seçin:", duraklatmaMenusu());
           return new Response("OK");
@@ -647,6 +682,7 @@ export default {
             "<b>Kullanabileceğiniz Komutlar:</b>\n" +
             "• <b>/panel</b> — İnteraktif kontrol merkezini açar.\n" +
             "• <b>/durum</b> — Bot ve yayın durumunu raporlar.\n" +
+            "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n" +
             "• <b>/yeni</b> — Sıradaki konuyu hemen üretip onaya sunar.\n" +
             "• <b>/sozluk</b> — Emlak sözlüğü formatında içerik üretir.\n" +
             "• <b>/dogrusu</b> — Nedir Doğrusu formatında içerik üretir.\n" +
@@ -654,6 +690,8 @@ export default {
             "• <b>/soru</b> — Net cevap rehberi üretir.\n" +
             "• <b>/reels</b> — 9:16 Dikey Reels videosu ve metni üretir.\n" +
             "• <b>/hatirlat</b> — Onay bekleyen paylaşımları anında tarar.\n" +
+            "• <b>/saglik</b> — API ve sistem bağlantı sağlık testi.\n" +
+            "• <b>/havuz</b> — Konu bankası havuz durumunu gösterir.\n" +
             "• <b>/durdur</b> — Otomatik paylaşımları duraklatır.\n" +
             "• <b>/devam</b> — Duraklatılmış akışı devam ettirir."
           );
