@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Kodu çek
@@ -90,6 +90,11 @@ jobs:
           else
             python scripts/site_kuyrugunu_isle.py
           fi
+
+      - name: Veritabanını Kaydet
+        if: always()
+        run: |
+          python scripts/db_kaydet.py "db: site ilan kuyrugu guncellendi"
 
       - name: Hata bildir
         if: failure()

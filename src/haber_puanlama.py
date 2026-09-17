@@ -30,6 +30,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import filtre
+
 log = logging.getLogger(__name__)
 
 
@@ -86,21 +88,22 @@ _DESEN_ONBELLEK: Dict[str, re.Pattern] = {}
 
 def terim_gecer(metin: str, kok: str) -> bool:
     """Kökün metinde (ekleriyle birlikte) geçip geçmediğini söyler."""
-    kok = kok.lower().strip()
+    kok = filtre.kucult(kok).strip()
+    metin_k = filtre.kucult(metin)
     if kok in KISA_KOKLER and " " not in kok:
         # "ev" gibi kökler yalnızca tam kelime olarak sayılır; "evrak", "evlilik"
         # gibi kelimeler yanlış pozitif üretiyordu.
-        return re.search(r"(?:^|[^a-zçğıöşü])" + re.escape(kok) + r"(?=\b|[^a-zçğıöşü])", metin, re.IGNORECASE) is not None
+        return re.search(r"(?:^|[^a-zçğıöşü])" + re.escape(kok) + r"(?=\b|[^a-zçğıöşü])", metin_k) is not None
 
     if kok not in _DESEN_ONBELLEK:
         _DESEN_ONBELLEK[kok] = _desen(kok)
-    if not _DESEN_ONBELLEK[kok].search(metin):
+    if not _DESEN_ONBELLEK[kok].search(metin_k):
         return False
 
     for yanlis in YANLIS_ESLESME.get(kok, []):
-        if yanlis in metin.lower():
+        if yanlis in metin_k:
             # Yanlış eşleşme kelimesi dışında gerçek bir geçiş var mı
-            temiz = re.sub(re.escape(yanlis) + r"[a-zçğıöşü']*", " ", metin, flags=re.IGNORECASE)
+            temiz = re.sub(re.escape(yanlis) + r"[a-zçğıöşü']*", " ", metin_k)
             if not _DESEN_ONBELLEK[kok].search(temiz):
                 return False
     return True
@@ -221,16 +224,17 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         d.red_sebebi = "boş içerik"
         return d
 
-    baslik_l = baslik.lower()
+    baslik_k = filtre.kucult(baslik)
+    metin_k = filtre.kucult(metin)
 
     # --- Kesin elemeler ---
-    if any(t in metin.lower() for t in DISLANAN):
+    if any(t in metin_k for t in DISLANAN):
         d.red_sebebi = "konu dışı"
         return d
 
-    reklam_isaretleri = [r for r in REKLAM if r in metin.lower()]
+    reklam_isaretleri = [r for r in REKLAM if r in metin_k]
     # Başlıkta hem reklam kalıbı hem fiyat varsa bu bir ilandır, haber değil
-    fiyat_var = bool(re.search(r"\d[\d.,]*\s*(?:milyon|bin|tl|₺)", baslik_l))
+    fiyat_var = bool(re.search(r"\d[\d.,]*\s*(?:milyon|bin|tl|₺)", baslik_k))
     if reklam_isaretleri and (fiyat_var or len(reklam_isaretleri) >= 2):
         d.red_sebebi = f"proje tanıtımı ({reklam_isaretleri[0]})"
         return d

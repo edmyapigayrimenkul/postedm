@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from . import config, db
+from . import config, db, filtre
 
 log = logging.getLogger(__name__)
 
@@ -167,7 +167,7 @@ def shorts_yukle(
     # Hukuk bürosu algısı oluşturabilecek etiketleri filtrele
     filtrelenmis_etiketler = [
         t for t in (etiketler or [])
-        if not any(yasak in t.lower() for yasak in ["hukuk", "avukat", "dava", "adliye", "baro"])
+        if not any(yasak in filtre.kucult(t) for yasak in ["hukuk", "avukat", "dava", "adliye", "baro"])
     ]
     tags = list(set(filtrelenmis_etiketler + sabit_etiketler))
 

@@ -12,7 +12,16 @@ Görevleri:
 from __future__ import annotations
 
 import re
-from typing import List, Optional
+def kucult(metin: str) -> str:
+    """
+    Türkçe İ ve I harflerini gözeterek güvenli küçük harfe dönüştürür.
+    Python'un standart metin.lower() fonksiyonu 'İ' için noktalı i (U+0069 U+0307)
+    üretir ve 'kira' in 'KİRA'.lower() gibi sorgular sessizce False döner.
+    Bu fonksiyon bu tuzağı engelleyerek doğru eşleşme sağlar.
+    """
+    if not metin or not isinstance(metin, str):
+        return ""
+    return metin.replace("İ", "i").replace("I", "ı").lower()
 
 
 def kacislari_coz(metin: str) -> str:

@@ -699,7 +699,7 @@ def caption_zenginlestir(
     son_kisim = govde[-250:] if len(govde) > 250 else govde
     if "?" not in son_kisim:
         kategori_ust = (kategori_kodu or "").upper()
-        govde_kucuk = govde.lower()
+        govde_kucuk = filtre.kucult(govde)
 
         if any(w in govde_kucuk for w in ["şufa", "hisseli", "hisse", "tapu", "miras", "paydaş", "intikal", "ferağ"]):
             soru = "Siz tapu işlemlerinizde veya hisseli mülk alımında benzer bir durumla karşılaştınız mı? Yorumlarda buluşalım."
@@ -742,9 +742,9 @@ def caption_zenginlestir(
 
     konu_etiketleri: List[str] = []
     kategori_ust = (kategori_kodu or "").upper()
-    govde_kucuk = (ham or govde).lower()
-    if soru and soru.lower() in govde_kucuk:
-        govde_kucuk = govde_kucuk.replace(soru.lower(), "")
+    govde_kucuk = filtre.kucult(ham or govde)
+    if soru and filtre.kucult(soru) in govde_kucuk:
+        govde_kucuk = govde_kucuk.replace(filtre.kucult(soru), "")
 
     if "FINANS" in kategori_ust or any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "finans", "bddk"]):
         konu_etiketleri.extend(["#KonutKredisi", "#EmlakYatırımı"])
@@ -766,7 +766,7 @@ def caption_zenginlestir(
         t = tag.strip()
         if not t.startswith("#"):
             t = f"#{t}"
-        k = t.lower().replace("I", "ı").replace("İ", "i")
+        k = filtre.kucult(t)
         if k not in gorulen and len(t) > 2:
             gorulen.add(k)
             nihai_etiketler.append(t)
@@ -947,6 +947,13 @@ def otorite_icerigi_uret(
             or konu_veya_haber.get("ozet", "")
         )
         girdi = f"KAYNAK: {kaynak}\nHAM BAŞLIK: {baslik}\nHAM İÇERİK: {ozet}\n"
+        if len((ozet or "").strip()) < 200:
+            girdi += (
+                "\n⚠️ DİKKAT: Kaynakta bu haber hakkında çok az bilgi var. "
+                "Bilgiyi genişletme, olmayan detay/olay/sebep UYDURMA, yalnızca verilen "
+                "somut olguları yaz. Bilgi yetersizse genel geçer cümlelerle doldurma, "
+                "kısa ve net bırak.\n"
+            )
         bicim = "B5"
     else:
         girdi = f"İŞLENECEK KONU: {konu_veya_haber}\n"

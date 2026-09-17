@@ -28,15 +28,13 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-log = logging.getLogger(__name__)
+from . import filtre
 
-# Türkçe'ye özel küçültme: I→ı, İ→i. Python'un varsayılan lower()'ı
-# "İ" için noktalı i (U+0069 U+0307) üretiyor ve eşleşmeyi bozuyor.
-_KUCUK = str.maketrans("IİÇĞÖŞÜ", "içğöşü".rjust(7, "ı")[:7])
+log = logging.getLogger(__name__)
 
 
 def _kucult(metin: str) -> str:
-    return metin.replace("I", "ı").replace("İ", "i").lower()
+    return filtre.kucult(metin)
 
 
 # Metinde kanun maddesi arayan desenler
@@ -159,14 +157,6 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     bos = [k for k in _ICI_BOS_KALIPLAR if k in manset]
     if bos:
         uyarilar.append(f"⚠️ İÇİ BOŞ MANŞET: \"{bos[0]}\" — konuyu duyuruyor ama sonucu saklıyor.")
-
-    # --- 6. HUKUKİ İÇERİKTE SORUMLULUK NOTU ---
-    kategori = str(veri.get("kategori_kodu") or "")
-    if kategori in ("TAPU_VE_HUKUK", "EV_SAHIBI_VE_KIRACI", "ARSA_IMAR_VE_TINY_HOUSE"):
-        if "avukat" not in kucuk and "hukuki görüş" not in kucuk:
-            uyarilar.append(
-                "ℹ️ Hukuk içerikli kategori; kapanışta sorumluluk notu görünmüyor."
-            )
 
     return uyarilar
 

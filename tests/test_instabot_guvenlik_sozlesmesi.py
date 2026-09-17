@@ -163,6 +163,161 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
         for s in satirlar:
             self.assertFalse(s.strip().startswith("₺"), f"Satır tek başına ₺ ile başladı: {satirlar}")
 
+    def test_09_db_yazan_workflowlar_commit_ve_yetki_sozlesmesi(self):
+        """
+        Instabot sözleşmesi (test_db_yazan_workflow_commit_ediyor):
+        data/edm.db'ye yazan veya değiştiren her workflow MUTLAKA:
+        1. 'contents: write' iznine sahip olmalı.
+        2. 'python scripts/db_kaydet.py' adımını if: always() ile çalıştırmalı.
+        """
+        workflows_dir = KOK / ".github" / "workflows"
+        db_yazan_scriptler = ["hazirla.py", "yayinla.py", "site_kuyrugunu_isle.py", "hatirlat.py"]
+
+        for yml_yol in workflows_dir.glob("*.yml"):
+            icerik = yml_yol.read_text(encoding="utf-8")
+            db_yaziyor_mu = any(s in icerik for s in db_yazan_scriptler)
+            if db_yaziyor_mu:
+                self.assertIn(
+                    "contents: write", icerik,
+                    f"{yml_yol.name} veritabanına yazıyor ama 'contents: write' yetkisi yok!"
+                )
+                self.assertIn(
+                    "scripts/db_kaydet.py", icerik,
+                    f"{yml_yol.name} veritabanına yazıyor ama 'scripts/db_kaydet.py' adımı yok!"
+                )
+                self.assertIn(
+                    "if: always()", icerik,
+                    f"{yml_yol.name} içinde db_kaydet adımı 'if: always()' güvencesinde değil!"
+                )
+
+    def test_10_turkce_noktali_i_kucultme_ve_filtre_sozlesmesi(self):
+        """
+        Türkçe 'İ' ve 'I' harfleri Python'un standart lower() fonksiyonunda noktalı i (U+0069 U+0307)
+        tuzağı oluşturur. filtre.kucult bu tuzağı aşmalı ve büyük harfli filtreleri çalıştırmalıdır.
+        """
+        from src import filtre, haber_puanlama, generate_text
+
+        # 1. Doğrudan kucult testi
+        self.assertEqual(filtre.kucult("KİRA"), "kira")
+        self.assertEqual(filtre.kucult("İMAR"), "imar")
+        self.assertEqual(filtre.kucult("CİNAYET"), "cinayet")
+        self.assertEqual(filtre.kucult("FİYAT"), "fiyat")
+
+        # 2. haber_puanlama.py DISLANAN ve REKLAM büyük harfle yazılsa da elenmeli
+        d1 = haber_puanlama.degerlendir("CİNAYET İŞLENEN EVDE ŞOK DETAY", "")
+        self.assertFalse(d1.gecti, "CİNAYET içeren haber elenmedi!")
+
+        d2 = haber_puanlama.degerlendir("YENİ PROJEDE FİYAT LİSTESİ AÇIKLANDI", "")
+        self.assertFalse(d2.gecti, "FİYAT LİSTESİ içeren haber elenmedi!")
+
+        # 3. generate_text.caption_zenginlestir büyük harfli metinde doğru soruyu ve hashtag'i seçmeli
+        cap = generate_text.caption_zenginlestir("KİRA VE TAHLİYE SÖZLEŞMESİ", kategori_kodu="EV_SAHIBI")
+        self.assertIn("kira", cap.lower())
+        self.assertIn("?", cap)
+
+    def test_11_fetch_article_capa_yontemi_kurtarma(self):
+        """
+        Instabot sözleşmesi (test_govde_cekiminde_reddedilen_aday_zinciri_bitirmiyor):
+        Sayfada uzun bir yasal uyarı / feragatname olsa dahi, h1/h2 altındaki gerçek haber
+        gövdesi _capadan_topla yöntemiyle kurtarılmalıdır.
+        """
+        from bs4 import BeautifulSoup
+        from src import fetch_article as fa
+
+        BASLIK = "Silivri'de 500 Dönümlük Yeni Tarım ve İmar Alanı Açıklandı"
+        GOVDE = (
+            "Silivri Belediyesi ve Çevre Şehircilik Bakanlığı ortak çalışmasıyla "
+            "ilçede tarım ve imar dengesini koruyacak yeni 500 dönümlük plan açıklandı. "
+            "Belediye Başkanı yaptığı açıklamada çiftçilerin ve arsa yatırımcılarının "
+            "tüm haklarının güvenceye alındığını ve parselasyon işlemlerinin başladığını duyurdu."
+        )
+        YASAL_UYARI = ("Burada yer alan yatırım bilgi, yorum ve tavsiyeleri yatırım danışmanlığı kapsamında değildir. "
+                       "Telif hakları saklıdır. Hiçbir içerik izinsiz kopyalanamaz. ") * 5
+
+        html_icerik = (
+            f"<html><body><h1>{BASLIK}</h1>"
+            f"<div id='makale'><p>{GOVDE}</p></div>"
+            f"<div id='feragatname'><p>{YASAL_UYARI}</p></div>"
+            f"</body></html>"
+        )
+        soup = BeautifulSoup(html_icerik, "html.parser")
+        capa_sonuc = fa._capadan_topla(soup, BASLIK)
+        self.assertIsNotNone(capa_sonuc)
+        self.assertIn("Silivri Belediyesi", capa_sonuc)
+
+    def test_12_kisa_ozet_az_bilgi_uyarisi(self):
+        """
+        Gövde veya özet < 200 karakter ise, modelin halüsinasyon üretmesini engellemek için
+        AZ_BILGI_UYARISI prompt'a enjekte edilmelidir.
+        """
+        from unittest.mock import patch
+        from src import generate_text
+
+        yakalanan_girdiler = []
+        def sahte_uret(girdi, bicim):
+            yakalanan_girdiler.append(girdi)
+            return {"manset": "Kısa Haber", "kategori_kodu": "ARSA"}
+
+        with patch.object(generate_text, "_uret", side_effect=sahte_uret):
+            # Kısa özetli haber
+            generate_text.otorite_icerigi_uret({
+                "kaynak": "Test",
+                "baslik": "Kısa Başlık",
+                "ozet": "Kısa 50 karakterlik özet metni burada yer alıyor.",
+            })
+            self.assertTrue(len(yakalanan_girdiler) > 0)
+            self.assertIn("çok az bilgi var", yakalanan_girdiler[0])
+            self.assertIn("UYDURMA", yakalanan_girdiler[0])
+
+    def test_13_hukuk_burosu_degiliz_dogrula_uyumu(self):
+        """
+        Kullanıcı kuralı: 'biz hukuk bürosu değiliz emlak ofisiyiz'.
+        dogrula.py 'avukat' veya 'hukuki görüş' kelimesini zorunlu tutarak uyarı ÜRETMEMELİDİR.
+        """
+        from src import dogrula
+        veri = {
+            "manset": "Hisseli Tapuda Şufa Tuzağına Dikkat Edin",
+            "kategori_kodu": "TAPU_VE_HUKUK",
+            "detay": "Tapuda hisseli pay alırken noterden feragatname alın.",
+        }
+        uyarilar = dogrula.denetle(veri)
+        # Sorumluluk notunda avukat eksik uyarısı olmamalı
+        self.assertFalse(any("avukat" in u.lower() for u in uyarilar))
+
+    def test_14_video_gonder_entity_fallback_html_temizler(self):
+        """
+        video_gonder Telegram HTML entity parse hatası aldığında, parse_mode kaldırılırken
+        caption içindeki HTML etiketleri temizlenmeli ve unescape edilmelidir.
+        """
+        from src import telegram_bot
+        yakalanan_postlar = []
+
+        class FakeResponse:
+            def __init__(self, ok, desc):
+                self.status_code = 200 if ok else 400
+                self.content = b'{"ok": true}' if ok else b'{"ok": false}'
+                self._data = {"ok": ok, "description": desc, "result": {"message_id": 8888}}
+            def json(self):
+                return self._data
+
+        def sahte_post(url, data=None, files=None, timeout=None):
+            yakalanan_postlar.append(dict(data or {}))
+            if len(yakalanan_postlar) == 1:
+                return FakeResponse(False, "Bad Request: can't parse entities")
+            return FakeResponse(True, "")
+
+        with patch("requests.post", side_effect=sahte_post), \
+             patch("src.telegram_bot._bot_bilgileri", return_value=("token123", "chat123")), \
+             patch("pathlib.Path.exists", return_value=True), \
+             patch("pathlib.Path.is_file", return_value=True), \
+             patch("builtins.open", MagicMock()):
+            mid = telegram_bot.video_gonder("/tmp/sahte.mp4", aciklama="<b>Video:</b> Fiyat &lt; 500 ₺")
+            self.assertEqual(mid, 8888)
+            self.assertEqual(len(yakalanan_postlar), 2)
+            # İkinci çağrıda parse_mode olmamalı ve caption temiz düz metin olmalı
+            self.assertNotIn("parse_mode", yakalanan_postlar[1])
+            self.assertEqual(yakalanan_postlar[1]["caption"], "Video: Fiyat < 500 ₺")
+
 
 if __name__ == "__main__":
     unittest.main()

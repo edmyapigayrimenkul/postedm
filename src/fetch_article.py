@@ -119,9 +119,12 @@ def _paragraflardan_topla(soup: BeautifulSoup) -> Optional[str]:
     return metin.strip() if len(metin) >= ASGARI_UZUNLUK else None
 
 
+from . import filtre
+
+
 def _kucult(metin: str) -> str:
     """Türkçe İ ve I harflerini gözeterek küçültür."""
-    return metin.replace("İ", "i").replace("I", "ı").lower()
+    return filtre.kucult(metin)
 
 
 def _baslikla_ilgili_mi(metin: str, baslik: str) -> bool:
@@ -134,6 +137,33 @@ def _baslikla_ilgili_mi(metin: str, baslik: str) -> bool:
         return True
     gecen = sum(1 for k in kelimeler if k in govde)
     return gecen >= max(2, len(kelimeler) // 3)
+
+
+def _capadan_topla(soup: BeautifulSoup, baslik: Optional[str] = None) -> Optional[str]:
+    """
+    Haberin kendi başlığını (h1/h2) çapa alıp gövdeyi bulur.
+    _paragraflardan_topla yöntemi sayfanın altındaki yasal uyarı/feragatnameyi
+    seçip alaka kapısından elendiğinde, bu yöntem başlığın hemen ardından gelen
+    paragrafları toplayarak gövdeyi kurtarır.
+    """
+    h1 = soup.find(["h1", "h2"])
+    if h1 is None:
+        return None
+
+    for p in h1.find_all_next("p"):
+        metin_p = p.get_text(" ", strip=True)
+        if len(metin_p) < 35:
+            continue
+        kutu = p.parent
+        if kutu is None:
+            return None
+        metin = _paragraf_metni(kutu)
+        if len(metin) < ASGARI_UZUNLUK and kutu.parent is not None:
+            ustu = _paragraf_metni(kutu.parent)
+            if len(ustu) > len(metin):
+                metin = ustu
+        return metin.strip() if len(metin) >= ASGARI_UZUNLUK else None
+    return None
 
 
 def makale_metni_cek(link: str, baslik: Optional[str] = None, zaman_asimi: int = 15) -> Optional[str]:
@@ -154,7 +184,7 @@ def makale_metni_cek(link: str, baslik: Optional[str] = None, zaman_asimi: int =
     for etiket in soup.find_all(GEREKSIZ_ETIKETLER):
         etiket.decompose()
 
-    for uretici in (_jsonld_articlebody, _paragraflardan_topla):
+    for uretici in (_jsonld_articlebody, _paragraflardan_topla, _capadan_topla):
         try:
             aday = uretici(soup)
             if aday and len(aday) >= ASGARI_UZUNLUK:

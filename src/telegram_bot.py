@@ -227,6 +227,8 @@ def video_gonder(
             if not veri.get("ok"):
                 if "can't parse entities" in (veri.get("description") or "").lower():
                     data.pop("parse_mode", None)
+                    if data.get("caption"):
+                        data["caption"] = html.unescape(re.sub(r"<[^>]+>", "", data["caption"]))
                     with open(p, "rb") as f2:
                         r2 = requests.post(url, data=data, files={"video": f2}, timeout=180)
                     veri2 = r2.json() if r2.content else {}
