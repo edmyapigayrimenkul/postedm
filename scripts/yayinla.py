@@ -400,9 +400,10 @@ def main() -> None:
                 log.warning("Facebook yayını hatası: %s", yayin_hatasi)
                 rapor_satirlari.append(f"📘 <b>Facebook:</b> Hata ({yayin_hatasi}) ✗")
 
-    # 5. Video (Sadece REELS için: YouTube Shorts, TikTok, Instagram Reels & Facebook Reels)
+    # 5. Video (REELS, Shorts, TikTok, FB Reels)
     reels_id = None
-    if tur == "reels" and hedef_mi("video", "reels", "youtube", "tiktok", "fb", "threads"):
+    video_hedefi_var = (tur == "reels") or hedef_mi("reels", "shorts", "fb_reels", "tiktok", "video")
+    if video_hedefi_var:
         log.info("Dikey video (Reels/Shorts) hazırlanıyor...")
         video_yolu = None
         if haber and haber.get("video_yolu"):
@@ -413,13 +414,12 @@ def main() -> None:
         detay = json.loads(haber.get("detay_metni", "{}")) if haber and haber.get("detay_metni") else {}
 
         if not video_yolu or not video_yolu.exists():
-            if not slayt_yollari or not any(Path(p).exists() for p in slayt_yollari):
-                from src import make_image
-                slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
-                slayt_yollari = [str(p) for p in slayt_listesi]
-            video_girdisi = slayt_yollari if (slayt_yollari and all(Path(p).exists() for p in slayt_yollari)) else public_urller
+            from src import make_image
+            # Her zaman 9:16 story/reels ölçüsünde dikey slaytlar üret
+            dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
+            dikey_yollar = [str(p) for p in dikey_slaytlar]
             try:
-                video_yolu = video.slaytlardan_reels_uret(video_girdisi)
+                video_yolu = video.slaytlardan_reels_uret(dikey_yollar)
             except Exception as video_hatasi:
                 log.warning("Dikey video üretim hatası: %s", video_hatasi)
                 video_yolu = None
@@ -432,14 +432,15 @@ def main() -> None:
                     temiz_metin = html_lib.escape(caption.strip())
                     telegram_bot.video_gonder(
                         video_yolu,
-                        aciklama="🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
-                                 "💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
+                        aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
+                                 f"📌 <b>Konu:</b> {baslik}\n\n"
+                                 f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
                     )
                     telegram_bot.mesaj_gonder(
                         "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
-                        f"<pre>{temiz_metin}</pre>"
+                        f"<pre><code>{temiz_metin}</code></pre>"
                     )
-                    rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve metin Telegram'a iletildi (Müzikli paylaşıma hazır) ✓")
+                    rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve açıklama Telegram'a iletildi (Müzikli paylaşıma hazır) ✓")
                 except Exception as re:
                     log.warning("Instagram Reels teslim hatası: %s", re)
                     rapor_satirlari.append(f"🎬 <b>Instagram Reels:</b> Hata ({re}) ✗")

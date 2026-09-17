@@ -2667,12 +2667,6 @@ def _slayt_plani(veri: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     plan: List[Dict[str, Any]] = [{"tur": "kapak"}]
 
-    # B3 TEK KARE CEVAP tek görseldir (ICERIK-SISTEMI.md §4). Kaydırma olmadığı
-    # için tamamlanma oranı %100 — bunu carousel'e çevirmek biçimin amacını bozar.
-    # Cevap kapak manşetinin kırmızı parçasında zaten duruyor.
-    if veri.get("bicim") == "B3":
-        return plan
-
     detay = veri.get("slayt_2_detay") or {}
     kartlar = detay.get("kartlar")
     if isinstance(kartlar, (list, tuple)) and kartlar:

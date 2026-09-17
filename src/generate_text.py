@@ -300,11 +300,11 @@ VERİ KAYNAĞI VERİLMEMİŞSE: kolon değerleri SAYISAL OLMAZ. "%%40-55", "18.0
 yok denecek kadar az", "Hızlı nakde çevrilir", "Alıcı bulması zaman alır".
 Manşetteki vurgu da rakam içermez; farkın YÖNÜNÜ söyler.""" % BUTCE
 
-_SEMA_B3 = """BİÇİM: B3 — TEK KARE CEVAP (1 slayt)
-Yaygın bir soru ve net cevabı. Kaydırma yok, tamamlanma oranı %%100.
+_SEMA_B3 = """BİÇİM: B3 — NET CEVAP VE ÇÖZÜM REHBERİ (4-5 slayt carousel)
+Yaygın bir soru, net cevabı, analiz kartları ve çözüm adımları.
 
 Cevap ilk kelimeden belli olsun: "Hayır.", "Evet, ama...", "En fazla üç aylık kira."
-Kaçamak cevap bu biçimi öldürür. Gerekçe tek paragraf, kaynağı belirtilmiş.
+Kaçamak cevap bu biçimi öldürür. Gerekçe net, kaynağı belirtilmiş.
 
 JSON:
 {
@@ -323,13 +323,28 @@ JSON:
     "kart_1": {"etiket": "≤%(rozet)d karakter", "renk": "kirmizi", "baslik": "≤%(kart_baslik)d karakter", "aciklama": "≤%(kart_aciklama)d karakter"},
     "kart_2": {"etiket": "≤%(rozet)d karakter", "renk": "yesil", "baslik": "≤%(kart_baslik)d karakter", "aciklama": "≤%(kart_aciklama)d karakter"}
   },
+  "slayt_3_cozum": {
+    "tip": "adim_adim_rehber",
+    "baslik_ust": "≤%(manset_satir)d karakter",
+    "baslik_vurgu": "≤%(manset_satir)d karakter",
+    "maddeler": [
+      {"no": "01", "baslik": "≤%(adim_baslik)d karakter", "aciklama": "≤%(adim_aciklama)d karakter"},
+      {"no": "02", "baslik": "≤%(adim_baslik)d karakter", "aciklama": "≤%(adim_aciklama)d karakter"}
+    ]
+  },
+  "slayt_4_cta": {
+    "slogan_parca_1": "≤%(manset_satir)d karakter",
+    "slogan_vurgu": "≤%(manset_satir)d karakter",
+    "aciklama": "≤%(spot)d karakter",
+    "kaydet_metni": "Kaydetme çağrısı, tek cümle"
+  },
   "onem_puani": 7,
   "caption_instagram": "...",
   "caption_facebook": "...",
   "caption_threads": "≤%(threads)d karakter"
 }
-slayt_2_detay tek kare paylaşımda kullanılmaz ama arşiv için doldurulur:
-kart_1 sık yapılan yanlışı, kart_2 doğrusunu anlatır.""" % BUTCE
+kart_1 sık yapılan yanlışı, kart_2 doğru yasal çerçeveyi anlatır.
+slayt_3_cozum maddeleri atılması gereken somut adımları listeler.""" % BUTCE
 
 _SEMA_B5 = """BİÇİM: B5 — HABER YORUMU (2 slayt)
 Ne oldu ve bu Silivri/Trakya'da ne anlama geliyor.

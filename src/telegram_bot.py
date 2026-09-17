@@ -847,21 +847,31 @@ def haber_onayina_sun(haber_id: int) -> bool:
         except Exception as e:
             log.warning("Denetim çalıştırılamadı: %s", e)
 
-    onizleme_metni = (
+    # 3. Medya albümü gönder (HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER)
+    medya_grubu_gonder(slayt_yollari, caption=f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}")
+
+    # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
+    import html as html_lib
+    caption_metin = (haber.get("ig_caption") or "").strip()
+    temiz_caption = html_lib.escape(caption_metin) if caption_metin else ""
+
+    mesaj_metni = (
         denetim_basligi
         + f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR</b>\n\n"
         f"<b>Kategori:</b> {rozet}\n"
         f"<b>Dayanak:</b> {dayanak}\n"
         f"<b>Manşet:</b> {haber['manset']}\n"
         f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n\n"
-        f"<b>Açıklama (Instagram/Facebook):</b>\n{caption_ozeti}..."
     )
+    if temiz_caption:
+        mesaj_metni += (
+            f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+            f"<pre><code>{temiz_caption}</code></pre>\n\n"
+        )
+    mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
 
-    medya_grubu_gonder(slayt_yollari, caption=onizleme_metni)
-
-    # 4. İnteraktif Onay Menüsü (Kanal Toggle, Format Değiştirme, Yenileme, Erteleme)
     butonlar = onay_menusu(haber_id)
-    res = mesaj_gonder("Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:", reply_markup=butonlar)
+    res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
         _, chat_id = _bot_bilgileri()
         try:
@@ -1043,7 +1053,7 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         mesaj_gonder("❌ Gemini metin üretemedi.")
         return False
 
-    from . import make_image, video
+    from . import make_image
     # EDM Otorite Tasarım Sistemi (1080x1920 Story / Reels Ölçüsü)
     slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(
         veri, cikti_onek=f"reels_{konu['kod']}", olcu="story"
@@ -1052,20 +1062,21 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         mesaj_gonder("❌ Reels için slayt görselleri üretilemedi.")
         return False
 
-    # 1080x1920 MP4 Dikey Video Üret (Her slayt 2.8 sn, 0.4 sn yumuşak geçiş)
-    video_yolu = video.slaytlardan_reels_uret(slayt_yollari, fps=30, slayt_suresi=2.8, gecis_suresi=0.4)
-    if not video_yolu or not Path(video_yolu).exists():
-        mesaj_gonder("❌ 1080x1920 MP4 Reels videosu üretilemedi.")
-        return False
+    # CDN'e yükle (Runner bağımsızlığı için)
+    slayt_urlleri = []
+    try:
+        slayt_urlleri = upload_image.coklu_gorsel_yukle(slayt_yollari)
+    except Exception as e:
+        log.warning("Reels slaytları CDN'e yüklenemedi: %s", e)
 
-    # Veritabanına kaydet
+    # Veritabanına kaydet (Önizleme aşamasında video henüz derlenmez; 'Yayınla' dendiğinde üretilir)
     orijinal_url = f"edm://reels/{konu['kod']}/{int(time.time())}"
     simdi = datetime.now(timezone.utc).isoformat()
     with db._baglanti_al() as conn:
         cur = conn.execute(
             """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
                                      eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
-                                     ig_caption, threads_metin, durum, slayt_yollari, video_yolu)
+                                     ig_caption, threads_metin, durum, slayt_yollari, slayt_urlleri)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?, ?)""",
             (
                 f"EDM Reels // {konu['kod']}",
@@ -1080,7 +1091,7 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
                 veri.get("caption_instagram", ""),
                 veri.get("caption_threads", ""),
                 json.dumps([str(p) for p in slayt_yollari], ensure_ascii=False),
-                str(video_yolu),
+                json.dumps(slayt_urlleri) if slayt_urlleri else None,
             ),
         )
         haber_id = cur.lastrowid
@@ -1088,23 +1099,25 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
 
     konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
 
-    # 1. MP4 Videosunu Gönder
-    video_gonder(
-        video_yolu,
-        aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
-                 f"📌 <b>Konu:</b> {konu['baslik']}\n\n"
-                 f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzikle kolayca paylaşabilirsiniz.</i>",
+    # 1. HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER: 9:16 Dikey Carousel albümünü gönder
+    medya_grubu_gonder(
+        slayt_yollari,
+        caption=f"🎬 <b>EDM REELS SLAYTLARI (9:16 Dikey)</b>\n📌 {konu['baslik']}",
     )
 
-    # 2. Kopyalanabilir Caption'ı Gönder
+    # 2. Kopyalanabilir Caption ve Onay Menüsünü Gönder (Görüntülerin altına düşer)
     import html as html_lib
     caption_metin = veri.get("caption_instagram") or konu["baslik"]
     temiz_caption = html_lib.escape(caption_metin.strip())
-    res = mesaj_gonder(
-        "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
-        f"<pre><code>{temiz_caption}</code></pre>",
-        reply_markup=reels_onay_menusu(haber_id),
+    mesaj_metni = (
+        f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR</b>\n\n"
+        f"📌 <b>Başlık:</b> {konu['baslik']}\n"
+        f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n\n"
+        f"📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+        f"<pre><code>{temiz_caption}</code></pre>\n\n"
+        f"💡 <i>'🚀 Seçili Kanallarda Yayınla' butonuna bastığınızda 1080x1920 MP4 dikey videosu derlenip gruba iletilecektir.</i>"
     )
+    res = mesaj_gonder(mesaj_metni, reply_markup=reels_onay_menusu(haber_id))
     if res and isinstance(res, dict) and "message_id" in res:
         _, chat_id = _bot_bilgileri()
         try:

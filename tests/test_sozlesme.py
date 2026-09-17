@@ -800,6 +800,33 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             self.assertIn("name: Veritabanını Kaydet", icerik)
             self.assertIn("if: always()", icerik, f"{wf_adi} içinde Veritabanını Kaydet adımı 'if: always()' taşımalı!")
 
+    def test_b3_bicimi_tek_sayfa_degil_carousel_olur(self) -> None:
+        """B3 biçimi asla tek sayfa (01 / 01) üretmemeli; en az 3-4 slaytlık carousel planlamalı."""
+        from src import make_image, generate_text
+        b3_ornek = {
+            "bicim": "B3",
+            "kategori_kodu": "TAPU_VE_HUKUK",
+            "manset_parca_1": "Ev Alırken",
+            "manset_vurgu": "EK MALİYETLER",
+            "manset_parca_2": "Bütçeyi Sarsar",
+            "spot": "Tapu harcı ve döner sermaye alıcıyı hazırlıksız yakalar.",
+            "slayt_2_detay": {
+                "kart_1": {"etiket": "RİSK", "renk": "kirmizi", "baslik": "Gizli Masraflar", "aciklama": "Beklenmeyen tapu ve harç bedelleri."},
+                "kart_2": {"etiket": "ÇÖZÜM", "renk": "yesil", "baslik": "Bütçe Planlama", "aciklama": "Yüzde 4 tapu harcını peşinen ayırın."},
+            },
+            "slayt_3_cozum": {
+                "tip": "adim_adim_rehber",
+                "maddeler": [
+                    {"no": "01", "baslik": "Harcı Hesaplayın", "aciklama": "Belediye rayici ve gerçek satış bedelini kıyaslayın."},
+                ]
+            }
+        }
+        plan = make_image._slayt_plani(b3_ornek)
+        self.assertGreaterEqual(len(plan), 3, "B3 biçimi tek sayfa kalmamalı; en az 3-4 slaytlık akış üretmeli!")
+        self.assertEqual(plan[0]["tur"], "kapak")
+        self.assertEqual(plan[-1]["tur"], "kapanis")
+        self.assertIn("slayt_3_cozum", generate_text._SEMA_B3)
+
 
 if __name__ == "__main__":
     unittest.main()
