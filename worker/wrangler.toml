@@ -18,10 +18,8 @@ workers_dev = true
 # (11 Eyl 2026'da kuruldu; öncesinde Worker HİÇ dağıtılmamıştı ve
 #  Telegram webhook'u boştu — onay butonları hiçbir şey yapmıyordu.)
 
-routes = [
-  { pattern = "edmyapigayrimenkul.com", custom_domain = true },
-  { pattern = "www.edmyapigayrimenkul.com", custom_domain = true }
-]
+# Custom domain kaldırıldı — edmyapigayrimenkul.com ana siteye aittir (edm-yapi-gayrimenkul).
+# Bu Worker yalnızca edm-telegram-dispatcher.ezanplus.workers.dev üzerinde çalışır.
 
 [vars]
 GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
