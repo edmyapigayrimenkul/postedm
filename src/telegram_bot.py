@@ -1418,6 +1418,15 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     if not oto_yayin:
         return haber_onayina_sun(haber_id)
 
+    # Önce slayt görsellerini Telegram grubuna ilet
+    try:
+        medya_grubu_gonder(
+            slayt_yollari,
+            caption=f"📊 <b>GÜNLÜK FİNANS & BANKACILIK POSTU</b>\n📌 {veri.get('manset') or konu['baslik']}"
+        )
+    except Exception as me:
+        log.warning("Finans albümü Telegram'a iletilemedi: %s", me)
+
     # Otomatik Yayın Akışı (Bana sormadan paylaşılsın)
     # Hedefler: ig,threads,story,tiktok,facebook,youtube
     # reels_modu = False olduğu için YouTube video alır, Facebook dahil diğer tüm kanallar standart post alır.
@@ -1430,16 +1439,16 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     ]
     log.info("Finans bülteni otomatik yayınlanıyor: %s", komut)
     calisma = subprocess.run(komut, cwd=KOK, capture_output=True, text=True, timeout=15 * 60)
-    if calisma.returncode == 0:
-        log.info("Finans bülteni başarıyla otomatik yayınlandı.")
-        # Telegram grubuna görselleri de albüm olarak at
-        try:
-            medya_grubu_gonder(slayt_yollari)
-        except Exception as me:
-            log.warning("Albüm gönderilemedi: %s", me)
+    
+    # yayinla.py kendi içinde rapor gönderir ve DB'yi günceller
+    if calisma.returncode == 0 or "POSTEDM_SONUC=" in calisma.stdout:
+        log.info("Finans bülteni otomatik yayını tamamlandı.")
         return True
     else:
         log.error("Finans bülteni otomatik yayınlanamadı: %s\n%s", calisma.stdout, calisma.stderr)
-        mesaj_gonder(f"⚠️ <b>Finans bülteni otomatik yayınlanırken hata oluştu:</b>\n<pre>{calisma.stderr[-1000:]}</pre>")
+        mesaj_gonder(
+            f"⚠️ <b>Finans bülteni otomatik yayınlanırken hata oluştu:</b>\n"
+            f"<pre>{html.escape(calisma.stderr[-1000:])}</pre>"
+        )
         return False
 
