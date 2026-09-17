@@ -240,104 +240,131 @@ def icerik_ve_rezerv_durumu() -> Dict[str, Any]:
     }
 
 
-def detayli_rapor_metni_uret() -> str:
-    """Kullanıcıya gönderilecek insan okur, tablolu tam sistem raporunu üretir."""
+def format_kompakt_kutu(
+    baslik: str,
+    tarih_str: str,
+    bolumler: List[Tuple[str, List[Tuple[str, str]]]],
+    w_k: int = 15,
+    w_v: int = 14,
+) -> str:
+    """Telegram monospace bloğu (<pre>) için tek parça, kenarlıklı, kompakt kart üretir."""
+    w_inner = w_k + 2 + w_v  # 15 + 2 + 14 = 31
+    cizgi_ust = "┌" + "─" * (w_inner + 2) + "┐"
+    cizgi_orta = "├" + "─" * (w_inner + 2) + "┤"
+    cizgi_alt = "└" + "─" * (w_inner + 2) + "┘"
+
+    satirlar = [
+        "<pre>",
+        cizgi_ust,
+        f"│ {baslik[:w_inner]:<{w_inner}} │",
+        f"│ {tarih_str[:w_inner]:<{w_inner}} │",
+    ]
+
+    for bolum_baslik, veriler in bolumler:
+        satirlar.append(cizgi_orta)
+        satirlar.append(f"│ {bolum_baslik[:w_inner]:<{w_inner}} │")
+        satirlar.append(cizgi_orta)
+        for k, v in veriler:
+            k_kirp = str(k)[:w_k]
+            v_kirp = str(v)[:w_v]
+            satirlar.append(f"│ {k_kirp:<{w_k}}: {v_kirp:>{w_v}} │")
+
+    satirlar.append(cizgi_alt)
+    satirlar.append("</pre>")
+    return "\n".join(satirlar)
+
+
+def kota_metni_uret() -> str:
+    """Kullanıcıya gönderilecek insan okur, kompakt ve kusursuz hizalı kota tablosunu üretir."""
     now = datetime.now(timezone.utc)
     tarih_str = now.strftime("%d.%m.%Y %H:%M UTC")
 
     # 1. GitHub Actions
     gh = github_actions_kullanimi()
-    t1 = format_tablo(("Metrik", "Değer"), [
-        ("Aylik Dahil Kota", "2.000 dk"),
-        ("Harcanan Sure", f"{gh['harcanan_dk']:,} dk"),
-        ("Kalan Sure", f"{gh['kalan_dk']:,} dk"),
-        ("Kullanim Orani", f"%{gh['yuzde']:.1f}"),
-        ("Toplam Kosu", f"{gh['toplam_kosu']} is"),
-    ])
     gh_bar = cizgi_bar(gh["yuzde"])
 
-    # En çok tüketen iş akışları
-    top_wf_satirlar: List[str] = []
+    gh_satirlar: List[Tuple[str, str]] = [
+        ("Harcanan Sure", f"{gh['harcanan_dk']:,} dk (%{gh['yuzde']:.1f})"),
+        ("Kalan Sure", f"{gh['kalan_dk']:,} dk"),
+        ("Kosu Sayisi", f"{gh['toplam_kosu']} is"),
+        ("Ilerleme", f"[{gh_bar}]"),
+    ]
     if gh.get("is_akislari"):
         sirali_wf = sorted(gh["is_akislari"].items(), key=lambda x: x[1], reverse=True)[:5]
         for adi, dk in sirali_wf:
-            temiz_ad = adi.replace(" (EDM)", "").replace("Site İlan Paylaşım Kuyruğu", "Site İlan Kuyruğu")[:24]
-            top_wf_satirlar.append(f"• <i>{temiz_ad}:</i> <b>{dk} dk</b>")
+            temiz_ad = adi.replace(" (EDM)", "").replace("Site İlan Paylaşım Kuyruğu", "Site Ilan").replace("Paylaşım ", "")[:12]
+            gh_satirlar.append((f"• {temiz_ad}", f"{dk} dk"))
 
     # 2. Yapay Zeka (Gemini AI)
     ai = yapay_zeka_kullanimi()
-    t2 = format_tablo(("Metrik", "Değer"), [
-        ("Bugun Uretilen", f"{ai['bugun_haber']} adet"),
-        ("Bu Ay Uretilen", f"{ai['bu_ay_haber']} adet"),
-        ("Tuketilen Token", f"~{ai['tahmini_token']:,}"),
-        ("Gunluk Cagri/Kota", f"{ai['gunluk_cagri']}/1.500"),
-        ("Model Katmani", "3.x Flash"),
-    ])
     ai_bar = cizgi_bar(ai["gunluk_yuzde"])
+    ai_satirlar: List[Tuple[str, str]] = [
+        ("Bugun / Bu Ay", f"{ai['bugun_haber']} / {ai['bu_ay_haber']} adet"),
+        ("Token Tuketim", f"~{ai['tahmini_token']:,}"),
+        ("Gunluk Cagri", f"{ai['gunluk_cagri']} / 1.500"),
+        ("Kalan Cagri", f"{ai['kalan_cagri']} (%{ai['gunluk_yuzde']:.1f})"),
+        ("Ilerleme", f"[{ai_bar}]"),
+        ("Model Katmani", "3.x Flash"),
+    ]
 
     # 3. Sosyal Medya & API Sağlığı
     sm_list = sosyal_medya_ve_api_sagligi()
-    t3 = format_tablo(("Platform / API", "Durum"), sm_list, w1=20, w2=12)
+    sm_satirlar: List[Tuple[str, str]] = [
+        (k.replace(" (Graph)", "").replace(" Sayfasi", " Sayfa").replace(" Content v2", " v2").replace("Cloudflare R2/CDN", "Cloudflare CDN"), v)
+        for k, v in sm_list
+    ]
 
     # 4. İçerik ve Konu Rezervi
     ic = icerik_ve_rezerv_durumu()
-    t4 = format_tablo(("Metrik", "Değer"), [
-        ("Yayinlanan (Bu Ay)", f"{ic['yayinlanan_ay']} post"),
-        ("Onay Bekleyen", f"{ic['bekleyen']} post"),
-        ("Havuzda Bekleyen", f"{ic['havuz']} haber"),
-        ("Kalan Bakir Konu", f"{ic['bakir']} adet"),
-        ("Rezerv Guvencesi", f"~{ic['kalan_hafta']} hf"),
-    ])
-
     sutunlar = ic.get("sutun_dagilimi", {})
-    sutun_str = " · ".join([f"{k}:{sutunlar.get(k, 0)}" for k in ("S1", "S2", "S3", "S4", "S5") if k in sutunlar])
+    sutun_str = "·".join([str(sutunlar.get(k, 0)) for k in ("S1", "S2", "S3", "S4", "S5") if k in sutunlar])
+    ic_satirlar: List[Tuple[str, str]] = [
+        ("Yayinlanan", f"{ic['yayinlanan_ay']} post (ay)"),
+        ("Onay Bekleyen", f"{ic['bekleyen']} post"),
+        ("Havuz", f"{ic['havuz']} haber"),
+        ("Bakir Konu", f"{ic['bakir']} adet"),
+        ("Rezerv", f"~{ic['kalan_hafta']} hafta"),
+        ("Sutun (S1-S5)", sutun_str if sutun_str else "Dolu"),
+    ]
 
     # 5. Hata Kontrolü
     from . import hata_bildir
     son_hatalar = hata_bildir.son_hatalari_ozetle(saat=24)
-    hata_metni = (
-        "• <i>Son 24 saatte teknik hata kaydedilmedi ✓</i>"
-        if not son_hatalar
-        else f"• ⚠️ <i>Son 24 saatte {len(son_hatalar)} teknik hata kaydedildi.</i>"
-    )
-
-    metin_parcalari = [
-        "📊 <b>EDM SİSTEM, KOTA & PERFORMANS RAPORU</b>",
-        f"📅 <i>{tarih_str}</i>\n",
-        "⚡️ <b>GITHUB ACTIONS KULLANIMI</b>",
-        t1,
-        f"Kota İlerlemesi: <code>[{gh_bar}] %{gh['yuzde']:.1f}</code> ({gh['kalan_dk']:,} dk serbest)",
+    hata_durumu = "0 Hata [✓]" if not son_hatalar else f"{len(son_hatalar)} Hata [!]"
+    sistem_satirlar: List[Tuple[str, str]] = [
+        ("Son 24 Saat", hata_durumu),
     ]
 
-    if top_wf_satirlar:
-        metin_parcalari.append("<b>Kullanım Kırılımı:</b>\n" + "\n".join(top_wf_satirlar))
+    bolumler = [
+        ("GITHUB ACTIONS (2.000 dk)", gh_satirlar),
+        ("YAPAY ZEKA (Gemini AI)", ai_satirlar),
+        ("SOSYAL MEDYA & API", sm_satirlar),
+        ("ICERIK & KONU REZERVI", ic_satirlar),
+        ("SISTEM SAGLIGI", sistem_satirlar),
+    ]
 
-    metin_parcalari.extend([
-        "\n🧠 <b>YAPAY ZEKA (GEMINI AI) KULLANIMI</b>",
-        t2,
-        f"Günlük Çağrı: <code>[{ai_bar}] %{ai['gunluk_yuzde']:.1f}</code> ({ai['kalan_cagri']} çağrı serbest)",
-        "\n🌐 <b>SOSYAL MEDYA & API SAĞLIĞI</b>",
-        t3,
-        "\n📦 <b>İÇERİK & KONU BANKASI HAVUZU</b>",
-        t4,
-        f"Sütun Dağılımı: <code>{sutun_str}</code>" if sutun_str else "",
-        "\n🩺 <b>TEKNİK SİSTEM SAĞLIĞI</b>",
-        hata_metni,
-        "\n━━━━━━━━━━━━━━━━━━━━",
-        "✨ <i>Tüm otomasyonlar, webhook ve API kotaları sağlıklı çalışıyor.</i>",
-    ])
+    kutu_metni = format_kompakt_kutu(
+        baslik="EDM KOTA & SISTEM DURUMU",
+        tarih_str=tarih_str,
+        bolumler=bolumler,
+    )
 
-    return "\n".join([p for p in metin_parcalari if p])
+    mesaj = [
+        "📊 <b>EDM SİSTEM & KOTA RAPORU</b>\n",
+        kutu_metni,
+        "\n✨ <i>Tüm kotalar, API servisleri ve otomasyonlar sağlıklı çalışıyor.</i>",
+    ]
+    return "\n".join(mesaj)
 
 
-def detayli_rapor_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
-    """Detaylı raporu oluşturur ve Telegram'a butonlarıyla birlikte gönderir/günceller."""
+def kota_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Kompakt kota ve sistem raporunu Telegram'a butonlarıyla birlikte gönderir/günceller."""
     from . import telegram_bot
-    metin = detayli_rapor_metni_uret()
+    metin = kota_metni_uret()
     butonlar = {
         "inline_keyboard": [
             [
-                {"text": "🔄 Raporu Tazele", "callback_data": "rapor_tazele"},
+                {"text": "🔄 Kotayı Tazele", "callback_data": "kota_tazele"},
                 {"text": "🎛 Kontrol Paneli", "callback_data": "panel"},
             ],
             [
@@ -350,3 +377,10 @@ def detayli_rapor_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, A
     if mesaj_id:
         return telegram_bot.mesaji_guncelle(mesaj_id, metin, reply_markup=butonlar)
     return telegram_bot.mesaj_gonder(metin, reply_markup=butonlar)
+
+
+# Fonksiyon adı "rapor" yerine "kota" olsun kuralı ve geriye dönük takma adlar (aliases)
+kota = kota_gonder
+kota_metni = kota_metni_uret
+detayli_rapor_gonder = kota_gonder
+detayli_rapor_metni_uret = kota_metni_uret

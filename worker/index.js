@@ -610,10 +610,13 @@ export default {
           return new Response("OK");
         }
 
-        if (data === "kota_raporu" || data === "rapor_goster" || data === "rapor_tazele") {
+        if (
+          data === "kota_raporu" || data === "kota_goster" || data === "kota_tazele" ||
+          data === "rapor_goster" || data === "rapor_tazele"
+        ) {
           await cevapVer("Detaylı kota ve sistem raporu hazırlanıyor...");
-          if (data === "rapor_tazele" && messageId) {
-            await mesajiGuncelle("🔄 <b>Rapor güncelleniyor...</b>\n<i>GitHub Actions dakikaları, yapay zeka tokenları ve sistem durumları alınıyor...</i>");
+          if ((data === "rapor_tazele" || data === "kota_tazele") && messageId) {
+            await mesajiGuncelle("🔄 <b>Kota güncelleniyor...</b>\n<i>GitHub Actions dakikaları, yapay zeka tokenları ve sistem durumları alınıyor...</i>");
           }
           await tetikleGitHub(env, "rapor", { mesaj_id: messageId });
           return new Response("OK");
@@ -877,7 +880,7 @@ function kontrolMerkeziMenusu() {
         { text: "⏸️ Akışı Duraklat", callback_data: "duraklat_menu" },
       ],
       [
-        { text: "📈 Detaylı Kota Raporu", callback_data: "rapor_goster" },
+        { text: "📈 Detaylı Kota Raporu", callback_data: "kota_goster" },
         { text: "🩺 Sistem Sağlık Testi", callback_data: "saglik_testi" },
       ],
       [

@@ -125,7 +125,7 @@ def main() -> int:
         baslik = "☀️ <b>GÜNLÜK RAPOR</b>" + ("  ⚠️" if uyari else "")
         rapor = f"{baslik}\n\n{govde}"
     else:
-        rapor = rapor_uretici.detayli_rapor_metni_uret()
+        rapor = rapor_uretici.kota_metni_uret()
 
     print(
         rapor.replace("<b>", "")
@@ -148,7 +148,7 @@ def main() -> int:
                 butonlar = {
                     "inline_keyboard": [
                         [
-                            {"text": "🔄 Raporu Tazele", "callback_data": "rapor_tazele"},
+                            {"text": "🔄 Kotayı Tazele", "callback_data": "kota_tazele"},
                             {"text": "🎛 Kontrol Paneli", "callback_data": "panel"},
                         ]
                     ]
@@ -158,7 +158,7 @@ def main() -> int:
                 else:
                     telegram_bot.mesaj_gonder(rapor, reply_markup=butonlar)
             else:
-                telegram_bot.detayli_rapor_gonder(mesaj_id=m_id)
+                telegram_bot.kota_gonder(mesaj_id=m_id)
 
             # Kendini onaran komut menüsü: her sabah açılır menüyü Telegram'a tazeler
             telegram_bot.komut_menusu_kaydet()

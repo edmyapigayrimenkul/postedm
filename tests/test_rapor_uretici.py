@@ -102,26 +102,50 @@ class TestRaporUretici(unittest.TestCase):
         self.assertIn("bakir", ic)
         self.assertIn("kalan_hafta", ic)
 
-    def test_detayli_rapor_metni_uret(self):
-        metin = rapor_uretici.detayli_rapor_metni_uret()
-        self.assertIn("EDM SİSTEM, KOTA & PERFORMANS RAPORU", metin)
-        self.assertIn("GITHUB ACTIONS KULLANIMI", metin)
-        self.assertIn("YAPAY ZEKA (GEMINI AI) KULLANIMI", metin)
-        self.assertIn("SOSYAL MEDYA & API SAĞLIĞI", metin)
-        self.assertIn("İÇERİK & KONU BANKASI HAVUZU", metin)
+    def test_format_kompakt_kutu(self):
+        bolumler = [
+            ("BOLUM 1", [("Anahtar 1", "Deger 1"), ("Anahtar 2", "Deger 2")]),
+            ("BOLUM 2", [("Anahtar 3", "Deger 3")]),
+        ]
+        kutu = rapor_uretici.format_kompakt_kutu("BASLIK", "18.09.2026", bolumler)
+        self.assertTrue(kutu.startswith("<pre>"))
+        self.assertTrue(kutu.endswith("</pre>"))
+        self.assertIn("┌", kutu)
+        self.assertIn("└", kutu)
+        self.assertIn("BOLUM 1", kutu)
+        self.assertIn("Anahtar 1", kutu)
+        self.assertIn("Deger 1", kutu)
+
+    def test_kota_metni_uret(self):
+        metin = rapor_uretici.kota_metni_uret()
+        self.assertIn("EDM SİSTEM & KOTA RAPORU", metin)
+        self.assertIn("GITHUB ACTIONS (2.000 dk)", metin)
+        self.assertIn("YAPAY ZEKA (Gemini AI)", metin)
+        self.assertIn("SOSYAL MEDYA & API", metin)
+        self.assertIn("ICERIK & KONU REZERVI", metin)
+        self.assertIn("SISTEM SAGLIGI", metin)
         self.assertIn("<pre>", metin)
         self.assertIn("</pre>", metin)
 
-    def test_detayli_rapor_gonder(self):
+        # Geriye dönük uyumluluk takma adı testi
+        self.assertEqual(rapor_uretici.detayli_rapor_metni_uret(), metin)
+
+    def test_kota_gonder(self):
         with patch("src.telegram_bot.mesaj_gonder") as mock_gonder, \
              patch("src.telegram_bot.mesaji_guncelle") as mock_guncelle:
-            rapor_uretici.detayli_rapor_gonder(mesaj_id=None)
+            rapor_uretici.kota_gonder(mesaj_id=None)
             mock_gonder.assert_called_once()
 
-            rapor_uretici.detayli_rapor_gonder(mesaj_id=12345)
+            rapor_uretici.kota_gonder(mesaj_id=12345)
             mock_guncelle.assert_called_once()
             args, kwargs = mock_guncelle.call_args
             self.assertEqual(args[0], 12345)
+
+            # Geriye dönük takma adlar
+            rapor_uretici.detayli_rapor_gonder(mesaj_id=None)
+            self.assertEqual(mock_gonder.call_count, 2)
+            rapor_uretici.kota(mesaj_id=None)
+            self.assertEqual(mock_gonder.call_count, 3)
 
 
 if __name__ == "__main__":

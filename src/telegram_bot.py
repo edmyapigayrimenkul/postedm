@@ -733,7 +733,7 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
                 duraklat_butonu,
             ],
             [
-                {"text": "📈 Detaylı Kota Raporu", "callback_data": "rapor_goster"},
+                {"text": "📈 Detaylı Kota Raporu", "callback_data": "kota_goster"},
                 {"text": "🩺 Sistem Sağlık Testi", "callback_data": "saglik_testi"},
             ],
             [
@@ -820,10 +820,14 @@ def durum_raporu_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, An
     return mesaj_gonder(metin, reply_markup=geri_menu)
 
 
-def detayli_rapor_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
-    """Detaylı GitHub Actions, yapay zeka ve sistem performansı raporu gönderir."""
+def kota_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Detaylı GitHub Actions, yapay zeka ve sistem kota tablosu gönderir."""
     from . import rapor_uretici
-    return rapor_uretici.detayli_rapor_gonder(mesaj_id=mesaj_id)
+    return rapor_uretici.kota_gonder(mesaj_id=mesaj_id)
+
+
+kota = kota_gonder
+detayli_rapor_gonder = kota_gonder
 
 
 def komut_menusu_kaydet() -> bool:
