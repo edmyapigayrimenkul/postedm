@@ -17,7 +17,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, facebook, hata_bildir, instagram, telegram_bot, threads, tiktok, upload_image, video, youtube
+from src import db, facebook, hata_bildir, instagram, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -270,6 +270,8 @@ def main() -> None:
         db.wal_bosalt()
         return
 
+    haber = None
+    ilan = None
     slayt_yollari = []
     public_urller = []
     caption = ""
@@ -303,8 +305,8 @@ def main() -> None:
             except Exception:
                 slayt_yollari = []
 
-        # 3. Eğer yerel dosyalar bu runner'da yoksa ve detay_metni varsa slaytları yeniden çiz
-        if not slayt_yollari or not all(Path(p).exists() for p in slayt_yollari):
+        # 3. Eğer yerel dosyalar bu runner'da yoksa ve henüz CDN URL'leri de yoksa detay_metni'nden slaytları çiz
+        if (not public_urller) and (not slayt_yollari or not all(Path(p).exists() for p in slayt_yollari)):
             detay_str = haber.get("detay_metni")
             if detay_str:
                 from src import yeni_formatlar, make_image
@@ -351,95 +353,72 @@ def main() -> None:
     fb_id = None
     rapor_satirlari = []
 
-    # 4. Görselleri imgbb / catbox'a yükle (Sadece görsel gönderileri için)
-    if tur in ("haber", "ilan"):
-        if not public_urller:
-            if slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
-                log.info("%d adet slayt görseli CDN'e yükleniyor...", len(slayt_yollari))
-                public_urller = upload_image.coklu_gorsel_yukle(slayt_yollari)
+    detay = json.loads(haber.get("detay_metni", "{}")) if (tur in ("haber", "reels") and haber and haber.get("detay_metni")) else {}
+    reels_modu = ("reels" in hedefler) or (tur == "reels")
 
-        if not public_urller and not slayt_yollari:
-            raise RuntimeError("Paylaşılacak slayt görseli bulunamadı.")
+    # 1. Görselleri Hazırla ve CDN'e Yükle (Instagram, TikTok, Threads, Story için)
+    if not public_urller:
+        if slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
+            log.info("%d adet slayt görseli CDN'e yükleniyor...", len(slayt_yollari))
+            public_urller = upload_image.coklu_gorsel_yukle(slayt_yollari)
 
-        if not public_urller:
-            raise RuntimeError("Görseller public URL'e yüklenemedi.")
+    if not public_urller and not slayt_yollari:
+        raise RuntimeError("Paylaşılacak slayt görseli veya video bulunamadı.")
 
-        # 2. Instagram Yayını (Carousel)
-        if hedef_mi("ig", "instagram"):
-            log.info("Instagram'da Carousel paylaşılıyor...")
-            try:
-                ig_id = instagram.carousel_yayinla(public_urller, caption)
-                if ig_id:
-                    rapor_satirlari.append("📸 <b>Instagram:</b> Paylaşıldı ✓")
-                else:
-                    rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
-            except Exception as yayin_hatasi:
-                log.warning("Instagram yayını hatası: %s", yayin_hatasi)
-                rapor_satirlari.append(f"📸 <b>Instagram:</b> Hata ({yayin_hatasi}) ✗")
+    tek_sayfa = (len(public_urller) <= 1) if public_urller else (len(slayt_yollari) <= 1)
 
-        # 3. Threads Yayını (4:5 Zincir veya Çoklu Gönderi)
-        if hedef_mi("threads"):
-            log.info("Threads'te paylaşılıyor...")
-            try:
-                sayfalar = threads.metinleri_slaytlara_dagit(haber if tur == "haber" else {"manset": baslik, "spot": caption}, public_urller)
-                if len(sayfalar) > 1:
-                    threads_id = threads.zincir_paylas(sayfalar)
-                else:
-                    th_metin = (haber.get("threads_metin") if tur in ("haber", "reels") else "") or caption
-                    threads_id = threads.paylas(th_metin, public_urller)
-                if threads_id:
-                    rapor_satirlari.append("🧵 <b>Threads:</b> Paylaşıldı ✓")
-                else:
-                    rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
-            except Exception as yayin_hatasi:
-                log.warning("Threads yayını hatası: %s", yayin_hatasi)
-                rapor_satirlari.append(f"🧵 <b>Threads:</b> Hata ({yayin_hatasi}) ✗")
-
-        # 4. Facebook Yayını (Carousel / Albüm)
-        if hedef_mi("fb", "facebook"):
-            log.info("Facebook sayfasında paylaşılıyor...")
-            try:
-                fb_id = facebook.paylas(caption, public_urller)
-                if fb_id:
-                    rapor_satirlari.append("📘 <b>Facebook:</b> Paylaşıldı ✓")
-                else:
-                    rapor_satirlari.append("📘 <b>Facebook:</b> Hata oluştu ✗")
-            except Exception as yayin_hatasi:
-                log.warning("Facebook yayını hatası: %s", yayin_hatasi)
-                rapor_satirlari.append(f"📘 <b>Facebook:</b> Hata ({yayin_hatasi}) ✗")
-
-    # 5. Video (REELS, Shorts, TikTok, FB Reels)
-    reels_id = None
-    video_hedefi_var = (tur == "reels") or hedef_mi("reels", "shorts", "fb_reels", "tiktok", "video")
-    if video_hedefi_var:
-        log.info("Dikey video (Reels/Shorts) hazırlanıyor...")
-        video_yolu = None
+    # 2. Dikey Video & Arkaplan Sesi Hazırlığı (Facebook Reels, YouTube Shorts, TT/IG Reels için)
+    # Kullanıcı Kuralı: Facebook her zaman Reels, YouTube her zaman Shorts (ikisi de özel fon sesli)
+    video_lazim = (
+        reels_modu
+        or hedef_mi("fb", "facebook")
+        or hedef_mi("yt", "youtube", "shorts")
+        or (reels_modu and hedef_mi("tt", "tiktok"))
+    )
+    sesli_video_yolu = None
+    if video_lazim:
+        log.info("Dikey video ve fon müziği hazırlanıyor (FB/YT standart video kuralı)...")
+        v_yolu = None
         if haber and haber.get("video_yolu"):
             vy = Path(haber["video_yolu"])
             if vy.exists():
-                video_yolu = vy
+                v_yolu = vy
 
-        detay = json.loads(haber.get("detay_metni", "{}")) if haber and haber.get("detay_metni") else {}
-
-        if not video_yolu or not video_yolu.exists():
+        if not v_yolu or not v_yolu.exists():
             from src import make_image
-            # Her zaman 9:16 story/reels ölçüsünde dikey slaytlar üret
-            dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
-            dikey_yollar = [str(p) for p in dikey_slaytlar]
-            try:
-                video_yolu = video.slaytlardan_reels_uret(dikey_yollar)
-            except Exception as video_hatasi:
-                log.warning("Dikey video üretim hatası: %s", video_hatasi)
-                video_yolu = None
+            # Önce varsa 9:16 dikey slaytları dene
+            if detay:
+                try:
+                    dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
+                    dikey_yollar = [str(p) for p in dikey_slaytlar]
+                    v_yolu = video.slaytlardan_reels_uret(dikey_yollar)
+                except Exception as ve:
+                    log.warning("Dikey otorite slaytlarından video üretilemedi: %s", ve)
 
-        if video_yolu and video_yolu.exists():
-            # A. Instagram Reels (Manuel Trend Müzik Modu)
-            if hedef_mi("reels", "ig", "instagram"):
+            # Yedek: Normal slayt yollarından video üret (tek sayfa ise 6.5 sn sinematik zoom otomatik uygulanır)
+            if (not v_yolu or not v_yolu.exists()) and slayt_yollari:
+                try:
+                    v_yolu = video.slaytlardan_reels_uret(slayt_yollari)
+                except Exception as ve:
+                    log.warning("Slayt yollarından video üretilemedi: %s", ve)
+
+        if v_yolu and v_yolu.exists():
+            # YouTube ve Facebook'a özel telifsiz kurumsal emlak fon müziği miksle
+            sesli_video_yolu = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20)
+        else:
+            log.error("Video üretimi başarısız oldu!")
+
+    # -------------------------------------------------------------
+    # KANAL 1: INSTAGRAM (Kullanıcı Kuralı: Reels seçilmediği sürece Carousel, tek sayfaysa Resim)
+    # -------------------------------------------------------------
+    if hedef_mi("ig", "instagram", "reels"):
+        if reels_modu:
+            if sesli_video_yolu and sesli_video_yolu.exists():
                 try:
                     import html as html_lib
                     temiz_metin = html_lib.escape(caption.strip())
                     telegram_bot.video_gonder(
-                        video_yolu,
+                        sesli_video_yolu,
                         aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
                                  f"📌 <b>Konu:</b> {baslik}\n\n"
                                  f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
@@ -448,78 +427,179 @@ def main() -> None:
                         "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
                         f"<pre><code>{temiz_metin}</code></pre>"
                     )
-                    rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve açıklama Telegram'a iletildi (Müzikli paylaşıma hazır) ✓")
+                    rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve açıklama Telegram'a iletildi ✓")
                 except Exception as re:
                     log.warning("Instagram Reels teslim hatası: %s", re)
                     rapor_satirlari.append(f"🎬 <b>Instagram Reels:</b> Hata ({re}) ✗")
-
-            # B. Facebook Reels (Sayfaya Video/Reels Olarak Yükle)
-            if hedef_mi("reels", "fb", "facebook"):
-                log.info("Facebook Reels yükleniyor...")
-                try:
-                    fb_vid_id = facebook.video_yayinla(video_yolu, description=caption)
-                    if fb_vid_id:
-                        rapor_satirlari.append("📘 <b>Facebook Reels:</b> Paylaşıldı ✓")
+            else:
+                rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video üretilemedi ✗")
+        else:
+            log.info("Instagram'da görsel post paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
+            try:
+                if tek_sayfa:
+                    ig_id = instagram.tekil_gorsel_yayinla(public_urller[0], caption)
+                    if ig_id:
+                        rapor_satirlari.append("📸 <b>Instagram (Tekil Resim):</b> Paylaşıldı ✓")
                     else:
-                        rapor_satirlari.append("📘 <b>Facebook Reels:</b> Hata oluştu ✗")
-                except Exception as fe:
-                    log.warning("Facebook Reels yayını hatası: %s", fe)
-                    rapor_satirlari.append(f"📘 <b>Facebook Reels:</b> Hata ({fe}) ✗")
-
-            # C. YouTube Shorts (Sadece YouTube'a özel telifsiz ambiyans emlak fon müziği ile)
-            if hedef_mi("video", "youtube"):
-                try:
-                    yt_res = youtube.shorts_yukle(video_yolu, baslik=baslik, aciklama=caption)
-                    if yt_res.get("durum"):
-                        rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> <a href='{yt_res.get('url')}'>İzle</a> ✓")
+                        rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
+                else:
+                    ig_id = instagram.carousel_yayinla(public_urller, caption)
+                    if ig_id:
+                        rapor_satirlari.append("📸 <b>Instagram (Carousel):</b> Paylaşıldı ✓")
                     else:
-                        rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> {yt_res.get('hata') or 'Hata oluştu'} ✗")
-                except Exception as yayin_hatasi:
-                    log.warning("YouTube Shorts yayını hatası: %s", yayin_hatasi)
-                    rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> Hata ({yayin_hatasi}) ✗")
+                        rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
+            except Exception as yayin_hatasi:
+                log.warning("Instagram yayını hatası: %s", yayin_hatasi)
+                rapor_satirlari.append(f"📸 <b>Instagram:</b> Hata ({yayin_hatasi}) ✗")
 
-            # D. TikTok (Sandbox / Inbox Draft Modu)
-            if hedef_mi("video", "tiktok"):
+    # -------------------------------------------------------------
+    # KANAL 2: TIKTOK (Kullanıcı Kuralı: Reels seçilmediği sürece Carousel/Foto, tek sayfaysa Resim)
+    # -------------------------------------------------------------
+    if hedef_mi("tt", "tiktok"):
+        if reels_modu:
+            if sesli_video_yolu and sesli_video_yolu.exists():
                 try:
-                    tt_res = tiktok.video_yukle(video_yolu, baslik=baslik)
+                    tt_res = tiktok.video_yukle(sesli_video_yolu, baslik=baslik)
                     if tt_res.get("durum"):
                         if tt_res.get("taslak_mi"):
-                            rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi (Uygulamadan Onaylayın) ✓")
+                            rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Taslak Olarak Yüklendi ✓")
                         else:
-                            rapor_satirlari.append("🎵 <b>TikTok:</b> Yüklendi ✓")
+                            rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Paylaşıldı ✓")
                     else:
-                        rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata oluştu'} ✗")
-                except Exception as yayin_hatasi:
-                    log.warning("TikTok yayını hatası: %s", yayin_hatasi)
-                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({yayin_hatasi}) ✗")
-
-            # E. Threads (Kullanıcı Kuralı: Reels dahi olsa Threads'e 4:5 boyutunda zincir olarak parça parça atılır)
-            if hedef_mi("threads"):
-                log.info("Reels için Threads'e 4:5 formatında zincir hazırlanıyor...")
-                try:
-                    from src import make_image
-                    slayt_4x5_listesi = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"threads_4x5_{ref_id}", olcu="besleme")
-                    slayt_4x5_yollari = [str(p) for p in slayt_4x5_listesi]
-                    urller_4x5 = upload_image.coklu_gorsel_yukle(slayt_4x5_yollari)
-                    if urller_4x5:
-                        sayfalar = threads.metinleri_slaytlara_dagit(detay or haber, urller_4x5)
-                        threads_id = threads.zincir_paylas(sayfalar)
-                        if threads_id:
-                            rapor_satirlari.append(f"🧵 <b>Threads:</b> {len(sayfalar)} parçalı 4:5 zincir paylaşıldı ✓")
-                        else:
-                            rapor_satirlari.append("🧵 <b>Threads:</b> Zincir paylaşılamadı ✗")
-                    else:
-                        rapor_satirlari.append("🧵 <b>Threads:</b> 4:5 slaytlar CDN'e yüklenemedi ✗")
-                except Exception as th_e:
-                    log.warning("Reels Threads zincir hatası: %s", th_e)
-                    rapor_satirlari.append(f"🧵 <b>Threads:</b> Hata ({th_e}) ✗")
+                        rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata'} ✗")
+                except Exception as tt_e:
+                    log.warning("TikTok video yükleme hatası: %s", tt_e)
+                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
+            else:
+                rapor_satirlari.append("🎵 <b>TikTok:</b> Video üretilemedi ✗")
         else:
-            if hedef_mi("reels"):
-                rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Dikey video üretilemedi ✗")
-            if hedef_mi("video", "youtube"):
-                rapor_satirlari.append("▶️ <b>YouTube Shorts:</b> Dikey video üretilemedi ✗")
-            if hedef_mi("video", "tiktok"):
-                rapor_satirlari.append("🎵 <b>TikTok:</b> Dikey video üretilemedi ✗")
+            log.info("TikTok'ta fotoğraf/carousel paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
+            try:
+                tt_res = tiktok.foto_yayinla(public_urller, baslik=baslik)
+                if tt_res.get("durum"):
+                    if tt_res.get("taslak_mi"):
+                        rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi ✓")
+                    else:
+                        tur_etiket = "Tekil Resim" if tek_sayfa else "Carousel"
+                        rapor_satirlari.append(f"🎵 <b>TikTok ({tur_etiket}):</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata'} ✗")
+            except Exception as tt_e:
+                log.warning("TikTok fotoğraf paylaşım hatası: %s", tt_e)
+                rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
+
+    # -------------------------------------------------------------
+    # KANAL 3: STORY (Instagram & Facebook Story — 9:16 Dikey Format)
+    # -------------------------------------------------------------
+    if hedef_mi("story"):
+        log.info("Instagram ve Facebook Story paylaşılıyor...")
+        story_url = None
+        try:
+            from PIL import Image
+            story_dosya = KOK / f"data/output/story_{ref_id}.jpg"
+            story_dosya.parent.mkdir(parents=True, exist_ok=True)
+            ilk_slayt = slayt_yollari[0] if slayt_yollari else None
+            if ilk_slayt and Path(ilk_slayt).exists():
+                with Image.open(ilk_slayt) as im:
+                    s_img = video._cercevele_9_16(im)
+                    s_img.save(story_dosya, "JPEG", quality=95, optimize=True)
+                story_url = upload_image.gorsel_yukle(story_dosya)
+        except Exception as se:
+            log.warning("Story görseli hazırlanamadı: %s", se)
+
+        if story_url:
+            # A. Instagram Story
+            try:
+                ig_story_id = instagram.story_yayinla(story_url)
+                if ig_story_id:
+                    rapor_satirlari.append("📱 <b>Instagram Story:</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("📱 <b>Instagram Story:</b> Hata oluştu ✗")
+            except Exception as ise:
+                log.warning("Instagram Story hatası: %s", ise)
+                rapor_satirlari.append(f"📱 <b>Instagram Story:</b> Hata ({ise}) ✗")
+
+            # B. Facebook Story
+            try:
+                fb_story_id = facebook.story_yayinla(story_url)
+                if fb_story_id:
+                    rapor_satirlari.append("📘 <b>Facebook Story:</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("📘 <b>Facebook Story:</b> Hata oluştu ✗")
+            except Exception as fse:
+                log.warning("Facebook Story hatası: %s", fse)
+                rapor_satirlari.append(f"📘 <b>Facebook Story:</b> Hata ({fse}) ✗")
+        else:
+            rapor_satirlari.append("📱 <b>Story:</b> Görsel hazırlanamadı ✗")
+
+    # -------------------------------------------------------------
+    # KANAL 4: THREADS (Kullanıcı Kuralı: Her zaman 4:5 Fotoğraf ve Zincir yapısında)
+    # -------------------------------------------------------------
+    if hedef_mi("threads"):
+        log.info("Threads'te paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
+        try:
+            if tek_sayfa:
+                th_metin = (haber.get("threads_metin") if haber and tur in ("haber", "reels") else "") or caption
+                threads_id = threads.paylas(th_metin, [public_urller[0]])
+                if threads_id:
+                    rapor_satirlari.append("🧵 <b>Threads (Tekil Görsel):</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
+            else:
+                sayfalar = threads.metinleri_slaytlara_dagit(haber if tur == "haber" else {"manset": baslik, "spot": caption}, public_urller)
+                if len(sayfalar) > 1:
+                    threads_id = threads.zincir_paylas(sayfalar)
+                    if threads_id:
+                        rapor_satirlari.append(f"🧵 <b>Threads:</b> {len(sayfalar)} parçalı 4:5 zincir paylaşıldı ✓")
+                    else:
+                        rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
+                else:
+                    th_metin = (haber.get("threads_metin") if haber and tur in ("haber", "reels") else "") or caption
+                    threads_id = threads.paylas(th_metin, public_urller)
+                    if threads_id:
+                        rapor_satirlari.append("🧵 <b>Threads:</b> Paylaşıldı ✓")
+                    else:
+                        rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
+        except Exception as yayin_hatasi:
+            log.warning("Threads yayını hatası: %s", yayin_hatasi)
+            rapor_satirlari.append(f"🧵 <b>Threads:</b> Hata ({yayin_hatasi}) ✗")
+
+    # -------------------------------------------------------------
+    # KANAL 5: FACEBOOK (Kullanıcı Kuralı: Facebook HER ZAMAN REELS ve arkaplan sesli)
+    # -------------------------------------------------------------
+    if hedef_mi("fb", "facebook"):
+        log.info("Facebook Reels yükleniyor (Arkaplan sesli)...")
+        if sesli_video_yolu and sesli_video_yolu.exists():
+            try:
+                fb_id = facebook.video_yayinla(sesli_video_yolu, description=caption)
+                if fb_id:
+                    rapor_satirlari.append("📘 <b>Facebook (Reels):</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("📘 <b>Facebook Reels:</b> Hata oluştu ✗")
+            except Exception as fe:
+                log.warning("Facebook Reels yayını hatası: %s", fe)
+                rapor_satirlari.append(f"📘 <b>Facebook Reels:</b> Hata ({fe}) ✗")
+        else:
+            rapor_satirlari.append("📘 <b>Facebook Reels:</b> Dikey video üretilemedi ✗")
+
+    # -------------------------------------------------------------
+    # KANAL 6: YOUTUBE (Kullanıcı Kuralı: YouTube Shorts HER ZAMAN paylaşılır ve arkaplan sesli)
+    # -------------------------------------------------------------
+    if hedef_mi("yt", "youtube", "shorts", "video"):
+        log.info("YouTube Shorts yükleniyor (Arkaplan sesli)...")
+        if sesli_video_yolu and sesli_video_yolu.exists():
+            try:
+                yt_res = youtube.shorts_yukle(sesli_video_yolu, baslik=baslik, aciklama=caption)
+                if yt_res.get("durum"):
+                    rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> <a href='{yt_res.get('url')}'>İzle</a> ✓")
+                else:
+                    rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> {yt_res.get('hata') or 'Hata oluştu'} ✗")
+            except Exception as yayin_hatasi:
+                log.warning("YouTube Shorts yayını hatası: %s", yayin_hatasi)
+                rapor_satirlari.append(f"▶️ <b>YouTube Shorts:</b> Hata ({yayin_hatasi}) ✗")
+        else:
+            rapor_satirlari.append("▶️ <b>YouTube Shorts:</b> Dikey video üretilemedi ✗")
+
 
     # 6. Veritabanını güncelle
     herhangi_biri_basarili = any("✓" in satir for satir in rapor_satirlari)

@@ -734,15 +734,15 @@ function duraklatmaMenusu() {
 }
 
 function seciliKanallariCikar(klavye) {
-  if (!klavye || !klavye.length) return ["ig", "story", "threads", "facebook"];
+  if (!klavye || !klavye.length) return ["ig", "story", "threads", "facebook", "youtube", "tiktok"];
   const kanalButonlari = klavye.flat().filter(b => String(b.callback_data || "").startsWith("kanal:"));
-  if (kanalButonlari.length === 0) return ["ig", "story", "threads", "facebook"];
+  if (kanalButonlari.length === 0) return ["ig", "story", "threads", "facebook", "youtube", "tiktok"];
   return kanalButonlari
     .filter(b => String(b.text || "").startsWith("✅"))
     .map(b => b.callback_data.replace(/^kanal:/, ""));
 }
 
-function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook"]) {
+function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook", "youtube", "tiktok"]) {
   const varMi = (k) => Array.isArray(secili) ? secili.includes(k) : Boolean(secili && secili[k]);
   return [
     [
@@ -759,7 +759,7 @@ function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook"]
   ];
 }
 
-function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
+function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook", "youtube", "tiktok"]) {
   return {
     inline_keyboard: [
       ...kanalButonlariSatirlari(seciliKanallar),

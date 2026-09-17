@@ -384,3 +384,57 @@ def reels_yayinla(
 
     return _yayina_al(creation_id, hesap_id, token)
 
+
+def story_yayinla(gorsel_url: str) -> Optional[str]:
+    """
+    Instagram Story olarak 9:16 dikey görsel yayınlar.
+    Instagram Graph API media_type="STORIES" kullanır.
+    """
+    hesap_id, token = _hesap_bilgileri()
+    if not hesap_id or not token:
+        log.warning("Instagram hesap bilgileri eksik.")
+        return None
+
+    url = f"{GRAPH_TABAN}/{hesap_id}/media"
+    payload = {
+        "image_url": gorsel_url,
+        "media_type": "STORIES",
+        "access_token": token,
+    }
+
+    creation_id = None
+    for deneme in range(1, MEDYA_AZAMI_DENEME + 1):
+        try:
+            resp = requests.post(url, data=payload, timeout=30)
+            if resp.status_code == 200:
+                creation_id = resp.json().get("id")
+                break
+
+            subcode = _alt_kod(resp)
+            if subcode in GECICI_ALT_KODLAR:
+                log.warning(
+                    "Instagram Story indirme gecikmesi (subcode %s, %s sn bekleniyor): %s",
+                    subcode, MEDYA_BEKLEME_SANIYE, gorsel_url,
+                )
+                time.sleep(MEDYA_BEKLEME_SANIYE)
+                continue
+
+            if resp.status_code in GECICI_HATALAR:
+                time.sleep(3 * deneme)
+                continue
+
+            log.error("Instagram story konteyner hatası [%d]: %s", resp.status_code, resp.text)
+            break
+        except Exception as e:
+            log.warning("Instagram story konteyner hatası (deneme %d/%d): %s", deneme, MEDYA_AZAMI_DENEME, e)
+            time.sleep(3 * deneme)
+
+    if not creation_id:
+        return None
+
+    if not _konteyner_durumu_bekle(creation_id, token, max_bekleme=60):
+        return None
+
+    return _yayina_al(creation_id, hesap_id, token)
+
+

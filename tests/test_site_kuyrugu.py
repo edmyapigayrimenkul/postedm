@@ -169,6 +169,8 @@ class TestSiteKuyrugu(unittest.TestCase):
                 yol.write_bytes(b"test")
                 yollar.append(yol)
             ilan = {"id": "elle-kismi", "baslik": "Kısmi yayın testi", "kaynak_url": "https://example.com/ilan"}
+            dummy_video = Path(gecici) / "video.mp4"
+            dummy_video.write_bytes(b"dummy video")
             with (
                 patch.object(yayinla.sys, "argv", ["yayinla.py", "--tur", "ilan", "--id", "elle-kismi", "--hedef", "ig,facebook", "--yeniden-ciz"]),
                 patch.object(yayinla.db, "ilan_getir", return_value=ilan),
@@ -177,13 +179,15 @@ class TestSiteKuyrugu(unittest.TestCase):
                 patch("src.make_image.ilan_kapanis_slayti_ciz", return_value=yollar[2]),
                 patch.object(yayinla.upload_image, "coklu_gorsel_yukle", return_value=["https://cdn.example.com/1.jpg"]),
                 patch.object(yayinla.instagram, "carousel_yayinla", side_effect=RuntimeError("Instagram kapalı")),
-                patch.object(yayinla.facebook, "paylas", return_value="fb-123") as facebook,
+                patch.object(yayinla.video, "slaytlardan_reels_uret", return_value=dummy_video),
+                patch.object(yayinla.ses, "sesli_video_hazirla", return_value=dummy_video),
+                patch.object(yayinla.facebook, "video_yayinla", return_value="fb-123") as facebook_video,
                 patch.object(yayinla.telegram_bot, "mesaj_gonder"),
                 patch.object(yayinla.db, "ilan_paylasildi_isaretle") as isaretle,
             ):
                 with self.assertRaisesRegex(RuntimeError, "Bir veya daha fazla"):
                     yayinla.main()
-            facebook.assert_called_once()
+            facebook_video.assert_called_once()
             isaretle.assert_called_once_with("elle-kismi")
 
 

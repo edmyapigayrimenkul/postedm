@@ -236,3 +236,78 @@ def video_yukle(
     except Exception as e:
         log.error("TikTok video yükleme istisnası: %s", e)
         return {"durum": False, "hata": str(e)}
+
+
+TIKTOK_CONTENT_INIT_URL = "https://open.tiktokapis.com/v2/post/publish/content/init/"
+
+
+def foto_yayinla(
+    gorsel_urlleri: List[str],
+    baslik: str,
+    etiketler: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    TikTok Content Posting API v2 ile fotoğraf veya kaydırmalı (Carousel) post yayınlar.
+    Eğer TikTok hesabı unaudited veya fotoğraf API'si kapalıysa otomatik olarak
+    slaytlardan dikey video üreterek yükleme yapar (sıfır kayıp garantisi).
+    """
+    if not gorsel_urlleri:
+        return {"durum": False, "hata": "Fotoğraf URL'si bulunamadı."}
+
+    token = config.env_al("TIKTOK_ACCESS_TOKEN") or db.ayar_oku("tiktok_access_token") or token_yenile()
+    if not token:
+        return {"durum": False, "hata": "TikTok erişim jetonu alınamadı."}
+
+    tam_baslik = baslik_kur(baslik, etiketler)
+
+    # 1. TikTok Photo Content Init Dene (PULL_FROM_URL)
+    payload = {
+        "post_info": {
+            "title": tam_baslik,
+            "privacy_level": "PUBLIC_TO_EVERYONE",
+            "disable_comment": False,
+            "auto_add_music": True,
+        },
+        "source_info": {
+            "source": "PULL_FROM_URL",
+            "photo_cover_index": 1,
+            "photo_images": gorsel_urlleri[:35],
+        },
+        "post_mode": "DIRECT_POST",
+        "media_type": "PHOTO",
+    }
+
+    try:
+        r = requests.post(
+            TIKTOK_CONTENT_INIT_URL,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json; charset=UTF-8",
+            },
+            data=json.dumps(payload),
+            timeout=25,
+        )
+
+        if r.status_code == 200:
+            veri = r.json()
+            if veri.get("error", {}).get("code") == "ok":
+                pub_id = veri.get("data", {}).get("publish_id")
+                log.info("TikTok fotoğraf/carousel yayını başarılı! Publish ID: %s", pub_id)
+                return {"durum": True, "publish_id": pub_id, "mod": "photo", "taslak_mi": False}
+
+        log.warning("TikTok fotoğraf API yanıtı başarısız veya kısıtlı [HTTP %d]: %s", r.status_code, r.text[:200])
+    except Exception as e:
+        log.warning("TikTok fotoğraf API çağrısı hatası: %s", e)
+
+    # 2. Fallback: Fotoğraflardan dikey slayt videosu üretip video olarak yükle
+    log.info("TikTok için fotoğraflardan dikey video üretilerek fallback yükleme yapılıyor...")
+    try:
+        from . import video
+        v_yolu = video.slaytlardan_reels_uret(gorsel_urlleri)
+        if v_yolu and v_yolu.exists():
+            return video_yukle(v_yolu, baslik=baslik, etiketler=etiketler)
+    except Exception as fallback_hatasi:
+        log.error("TikTok fallback video üretimi hatası: %s", fallback_hatasi)
+
+    return {"durum": False, "hata": "TikTok fotoğraf ve video yayını tamamlanamadı."}
+

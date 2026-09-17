@@ -474,16 +474,16 @@ def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dic
     """
     Yayın kanallarını açıp kapamak için 2 satırlı kompakt toggle butonları üretir.
     Satır 1: [✅ IG] [⬜ Reels] [✅ Story] [✅ Threads]
-    Satır 2: [✅ FB] [⬜ YT] [⬜ TT]
+    Satır 2: [✅ FB] [✅ YT] [✅ TT]
     """
     if kanallar is None:
         kanallar = {
             "ig": True, "reels": False, "story": True, "threads": True,
-            "facebook": True, "youtube": False, "tiktok": False,
+            "facebook": True, "youtube": True, "tiktok": True,
         }
 
     def _simge(k: str) -> str:
-        varsayilan_kapali = k in ("reels", "youtube", "tiktok")
+        varsayilan_kapali = k in ("reels",)
         return "✅" if kanallar.get(k, False if varsayilan_kapali else True) else "⬜"
 
     return [
@@ -499,6 +499,7 @@ def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dic
             {"text": f"{_simge('tiktok')} TT", "callback_data": "kanal:tiktok"},
         ],
     ]
+
 
 
 def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:

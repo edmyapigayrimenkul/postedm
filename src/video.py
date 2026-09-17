@@ -183,25 +183,41 @@ def slaytlardan_video_uret(
         )
 
         toplam_slayt = len(np_kareler)
-        for idx in range(toplam_slayt):
-            arr_simdiki = np_kareler[idx]
-            arr_sonraki = np_kareler[(idx + 1) % toplam_slayt] if toplam_slayt > 1 else None
+        if toplam_slayt == 1:
+            # Tek sayfalık görsel için YouTube Shorts ve Facebook Reels'e uygun 6.5 saniyelik sinematik yavaş zoom
+            tek_img = kareler_ham[0]
+            w_img, h_img = tek_img.size
+            toplam_kare_tek = int(fps * 6.5)
+            for k in range(toplam_kare_tek):
+                scale = 1.0 + 0.035 * (k / float(toplam_kare_tek))
+                new_w = int(w_img * scale)
+                new_h = int(h_img * scale)
+                img_zoomed = tek_img.resize((new_w, new_h), Image.Resampling.BILINEAR)
+                sol = (new_w - w_img) // 2
+                ust = (new_h - h_img) // 2
+                img_kirp = img_zoomed.crop((sol, ust, sol + w_img, ust + h_img))
+                writer.append_data(np.array(img_kirp, dtype=np.uint8))
+        else:
+            for idx in range(toplam_slayt):
+                arr_simdiki = np_kareler[idx]
+                arr_sonraki = np_kareler[(idx + 1) % toplam_slayt] if toplam_slayt > 1 else None
 
-            # Kapak slaytında (idx == 0) başlığın rahat okunması için +1.0 saniye kanca beklemesi
-            bu_slayt_sabit_kare = sabit_kare_sayisi + (int(fps * 1.0) if idx == 0 else 0)
+                # Kapak slaytında (idx == 0) başlığın rahat okunması için +1.0 saniye kanca beklemesi
+                bu_slayt_sabit_kare = sabit_kare_sayisi + (int(fps * 1.0) if idx == 0 else 0)
 
-            # A. Sabit Görsel Aşaması
-            arr_uint8 = np.clip(arr_simdiki, 0, 255).astype(np.uint8)
-            for _ in range(bu_slayt_sabit_kare):
-                writer.append_data(arr_uint8)
+                # A. Sabit Görsel Aşaması
+                arr_uint8 = np.clip(arr_simdiki, 0, 255).astype(np.uint8)
+                for _ in range(bu_slayt_sabit_kare):
+                    writer.append_data(arr_uint8)
 
-            # B. Cosine S-Curve Crossfade Geçiş Aşaması (Yumuşak akıcı geçiş)
-            if gecis_kare_sayisi > 0 and arr_sonraki is not None and idx < toplam_slayt - 1:
-                for k in range(gecis_kare_sayisi):
-                    t = (k + 1) / float(gecis_kare_sayisi)
-                    alpha = 0.5 * (1.0 - math.cos(math.pi * t))
-                    gecis_arr = (1.0 - alpha) * arr_simdiki + alpha * arr_sonraki
-                    writer.append_data(np.clip(gecis_arr, 0, 255).astype(np.uint8))
+                # B. Cosine S-Curve Crossfade Geçiş Aşaması (Yumuşak akıcı geçiş)
+                if gecis_kare_sayisi > 0 and arr_sonraki is not None and idx < toplam_slayt - 1:
+                    for k in range(gecis_kare_sayisi):
+                        t = (k + 1) / float(gecis_kare_sayisi)
+                        alpha = 0.5 * (1.0 - math.cos(math.pi * t))
+                        gecis_arr = (1.0 - alpha) * arr_simdiki + alpha * arr_sonraki
+                        writer.append_data(np.clip(gecis_arr, 0, 255).astype(np.uint8))
+
 
         writer.close()
 
