@@ -25,6 +25,7 @@ import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 # Proje kökünü sys.path'e ekle
 KOK = Path(__file__).resolve().parent.parent
@@ -826,6 +827,29 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         self.assertEqual(plan[0]["tur"], "kapak")
         self.assertEqual(plan[-1]["tur"], "kapanis")
         self.assertIn("slayt_3_cozum", generate_text._SEMA_B3)
+
+    def test_test_izolasyonu_ve_guvenlik_kilidi(self) -> None:
+        """Testlerin asla canlı Telegram'a mesaj atmamasını ve git commit/push yapmamasını denetler."""
+        from src import db_senkron
+        import os
+
+        # 1. POSTEDM_TEST_MODU etkinken hemen_kaydet git komutlarını çalıştırmadan True dönmeli
+        with patch.dict(os.environ, {"POSTEDM_TEST_MODU": "1"}):
+            with patch.object(db_senkron, "_calistir") as mock_calistir:
+                sonuc = db_senkron.hemen_kaydet("test commit")
+                self.assertTrue(sonuc)
+                mock_calistir.assert_not_called()
+
+        # 2. test_ozel_icerik_ve_slayt_islem.py dosyasında DB izolasyonu ve mock koruması var mı
+        kod_ozel = (KOK / "tests" / "test_ozel_icerik_ve_slayt_islem.py").read_text(encoding="utf-8")
+        self.assertIn("src.db.DB_YOLU", kod_ozel)
+        self.assertIn("db_senkron.hemen_kaydet", kod_ozel)
+        self.assertIn("telegram_bot.mesaj_gonder", kod_ozel)
+
+        # 3. test_finans_ve_oto_yayin.py dosyasında DB izolasyonu var mı
+        kod_finans = (KOK / "tests" / "test_finans_ve_oto_yayin.py").read_text(encoding="utf-8")
+        self.assertIn("src.db.DB_YOLU", kod_finans)
+        self.assertIn("konu_bankasi.kullanildi_isaretle", kod_finans)
 
 
 if __name__ == "__main__":

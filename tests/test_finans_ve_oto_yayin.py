@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -14,10 +15,23 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import konu_bankasi, telegram_bot
+from src import db, konu_bankasi, telegram_bot
 
 
 class TestFinansVeOtoYayin(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.tmp_db = Path(self.tmpdir.name) / "test_finans.db"
+        self.db_patcher = patch("src.db.DB_YOLU", self.tmp_db)
+        self.db_patcher.start()
+        db.tablolari_olustur()
+        self.kullanildi_patcher = patch("src.konu_bankasi.kullanildi_isaretle")
+        self.kullanildi_patcher.start()
+
+    def tearDown(self):
+        self.kullanildi_patcher.stop()
+        self.db_patcher.stop()
+        self.tmpdir.cleanup()
 
     def test_s5_sutunu_havuzda_mevcut_ve_secilebiliyor(self):
         """Konu bankasında S5 (Finans/Bankacılık) sütunu bulunmalı ve seçilebilmelidir."""

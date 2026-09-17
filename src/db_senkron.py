@@ -9,6 +9,7 @@ WAL dosyalarını ana db'ye boşaltır ve runner'ların detached HEAD'de kilitle
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -76,6 +77,10 @@ def hemen_kaydet(mesaj: str, ek_yollar: Optional[List[str]] = None) -> bool:
     data/edm.db'yi commit edip push eder.
     GitHub Actions runner'larında ve yerelde güvenle çalışır.
     """
+    if os.environ.get("POSTEDM_TEST_MODU") == "1":
+        log.info("[TEST MODU] db_senkron.hemen_kaydet atlandı: %s", mesaj)
+        return True
+
     _calistir("git", "config", "user.name", "github-actions[bot]")
     _calistir("git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
 
@@ -111,6 +116,10 @@ def hemen_kaydet(mesaj: str, ek_yollar: Optional[List[str]] = None) -> bool:
 
 def uzaktan_tazele() -> bool:
     """Uzaktaki en güncel veritabanını çeker."""
+    if os.environ.get("POSTEDM_TEST_MODU") == "1":
+        log.info("[TEST MODU] db_senkron.uzaktan_tazele atlandı")
+        return True
+
     _calistir("git", "stash", "push", "--", "data/edm.db")
     tamam, cikti = _calistir("git", "fetch", "origin", "main", saniye=90)
     if not tamam:

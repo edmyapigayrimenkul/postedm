@@ -3,13 +3,25 @@ tests/test_ozel_icerik_ve_slayt_islem.py — Özel İçerik Üretimi ve Slayt Op
 """
 
 import json
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src import db, ozel_icerik, telegram_bot
 
 
 class TestOzelIcerikVeSlaytIslem(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.tmp_db = Path(self.tmpdir.name) / "test_ozel.db"
+        self.db_patcher = patch("src.db.DB_YOLU", self.tmp_db)
+        self.db_patcher.start()
+        db.tablolari_olustur()
+
+    def tearDown(self):
+        self.db_patcher.stop()
+        self.tmpdir.cleanup()
     def test_01_slayt_islem_menusu_butonlari(self):
         menu = telegram_bot.slayt_islem_menusu(sira=2, adet=4)
         self.assertIn("inline_keyboard", menu)
@@ -76,7 +88,9 @@ class TestOzelIcerikVeSlaytIslem(unittest.TestCase):
 
     @patch("src.ozel_icerik.generate_text.konudan_uret")
     @patch("src.ozel_icerik.telegram_bot.haber_onayina_sun")
-    def test_05_konudan_ozel_icerik_uret(self, mock_onay, mock_uret):
+    @patch("src.ozel_icerik.telegram_bot.mesaj_gonder")
+    @patch("src.ozel_icerik.db_senkron.hemen_kaydet")
+    def test_05_konudan_ozel_icerik_uret(self, mock_kaydet, mock_mesaj, mock_onay, mock_uret):
         mock_uret.return_value = {
             "manset_parca_1": "Tarla Alırken Şufa Hakkı",
             "manset_vurgu": "Ön Alım",
@@ -97,7 +111,9 @@ class TestOzelIcerikVeSlaytIslem(unittest.TestCase):
     @patch("src.ozel_icerik._url_bilgisi_al")
     @patch("src.ozel_icerik.generate_text.konudan_uret")
     @patch("src.ozel_icerik.telegram_bot.haber_onayina_sun")
-    def test_06_linkten_icerik_uret(self, mock_onay, mock_uret, mock_url):
+    @patch("src.ozel_icerik.telegram_bot.mesaj_gonder")
+    @patch("src.ozel_icerik.db_senkron.hemen_kaydet")
+    def test_06_linkten_icerik_uret(self, mock_kaydet, mock_mesaj, mock_onay, mock_uret, mock_url):
         mock_url.return_value = (
             "Resmi Gazete Tapu Tebliği Yayınlandı",
             "Tapu ve Kadastro Genel Müdürlüğü yeni bir genelge yayınladı...",
