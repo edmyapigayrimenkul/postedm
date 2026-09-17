@@ -10,6 +10,8 @@ import html
 import json
 import logging
 import re
+import subprocess
+import sys
 import time
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
@@ -21,6 +23,7 @@ from . import config, db, fetch_listings, generate_text, komutlar, konu_bankasi,
 
 log = logging.getLogger(__name__)
 
+KOK = Path(__file__).resolve().parent.parent
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/{method}"
 
 
@@ -1326,3 +1329,117 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     }
     mesaj_gonder("Bu portföy ilanını sosyal medyada yayınlayalım mı?", reply_markup=butonlar)
     return True
+
+
+def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
+    """Finans, bankacılık, faiz, konut kredisi veya yakın sektörleri ele alan bülteni hazırlar.
+    
+    Kullanıcı Kuralı:
+      - oto_yayin=True ise Telegram onayına takılmadan doğrudan canlı yayınlanır.
+      - YouTube: Her zaman Shorts (Sesli dikey video).
+      - YouTube dışındaki tüm kanallar (IG, FB, Threads, Story, TT): Standart gönderi!
+    """
+    konu = konu_bankasi.sonraki_finans_konusu()
+    if not konu:
+        mesaj_gonder("⚠️ Konu bankasında uygun finans / bankacılık konusu bulunamadı.")
+        return False
+
+    bilgi_baslik = "🚀 <b>GÜNLÜK FİNANS & EMLAK BÜLTENİ (OTOMATİK YAYIN)</b>" if oto_yayin else "⏳ <b>GÜNLÜK FİNANS & EMLAK BÜLTENİ</b>"
+    mesaj_gonder(
+        f"{bilgi_baslik}\n\n"
+        f"📌 <b>{konu['kod']}</b> · {konu['sutun']} · {konu['bicim']}\n"
+        f"<i>{konu['baslik']}</i>\n\n"
+        f"İçerik, görseller ve video hazırlanıyor..."
+    )
+
+    veri = generate_text.konudan_uret(konu)
+    if not veri:
+        mesaj_gonder("❌ Finans içeriği üretilemedi. Gemini API yanıt vermedi.")
+        return False
+
+    orijinal_url = f"edm://finans/{konu['kod']}/{int(time.time())}"
+    simdi = datetime.now(timezone.utc).isoformat()
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'yeni')""",
+            (
+                f"EDM Finans // {konu['kod']}",
+                konu["baslik"],
+                orijinal_url,
+                veri.get("spot", ""),
+                simdi,
+                veri.get("onem_puani", 9),
+                "FINANS_VE_BANKACILIK",
+                generate_text.manset_birlestir(veri) or konu["baslik"],
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+
+    # 1. 4:5 Slaytları Üret (Instagram, Facebook, Threads, TikTok için)
+    from . import make_image, video, ses
+    slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=f"haber_{haber_id}")
+    slayt_str_yollari = [str(p) for p in slayt_yollari]
+
+    # CDN yükleme
+    slayt_urlleri = []
+    try:
+        slayt_urlleri = upload_image.coklu_gorsel_yukle(slayt_yollari)
+    except Exception as ue:
+        log.warning("Finans slaytları CDN'e yüklenemedi: %s", ue)
+
+    # 2. YouTube Shorts için dikey 9:16 video ve fon müziği hazırla
+    v_yolu = None
+    try:
+        dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=f"reels_{haber_id}", olcu="story")
+        v_yolu = video.slaytlardan_reels_uret([str(p) for p in dikey_slaytlar])
+        if v_yolu and v_yolu.exists():
+            sesli_v = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20)
+            if sesli_v and sesli_v.exists():
+                v_yolu = sesli_v
+    except Exception as ve:
+        log.warning("YouTube Shorts dikey videosu üretilemedi: %s", ve)
+
+    db.haber_guncelle(
+        haber_id,
+        slayt_yollari=json.dumps(slayt_str_yollari, ensure_ascii=False),
+        slayt_urlleri=json.dumps(slayt_urlleri) if slayt_urlleri else None,
+        video_yolu=str(v_yolu) if v_yolu else None,
+    )
+
+    if not oto_yayin:
+        return haber_onayina_sun(haber_id)
+
+    # Otomatik Yayın Akışı (Bana sormadan paylaşılsın)
+    # Hedefler: ig,threads,story,tiktok,facebook,youtube
+    # reels_modu = False olduğu için YouTube video alır, Facebook dahil diğer tüm kanallar standart post alır.
+    komut = [
+        sys.executable,
+        str(KOK / "scripts/yayinla.py"),
+        "--tur", "haber",
+        "--id", str(haber_id),
+        "--hedef", "ig,threads,story,tiktok,facebook,youtube",
+    ]
+    log.info("Finans bülteni otomatik yayınlanıyor: %s", komut)
+    calisma = subprocess.run(komut, cwd=KOK, capture_output=True, text=True, timeout=15 * 60)
+    if calisma.returncode == 0:
+        log.info("Finans bülteni başarıyla otomatik yayınlandı.")
+        # Telegram grubuna görselleri de albüm olarak at
+        try:
+            medya_grubu_gonder(slayt_yollari)
+        except Exception as me:
+            log.warning("Albüm gönderilemedi: %s", me)
+        return True
+    else:
+        log.error("Finans bülteni otomatik yayınlanamadı: %s\n%s", calisma.stdout, calisma.stderr)
+        mesaj_gonder(f"⚠️ <b>Finans bülteni otomatik yayınlanırken hata oluştu:</b>\n<pre>{calisma.stderr[-1000:]}</pre>")
+        return False
+

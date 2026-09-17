@@ -223,7 +223,7 @@ def sonraki_konu(
 
     # Eğer sütun özellikle belirtilmemişse, son kullanılan sütunları dışlayarak çeşitlilik sağla
     if sutun is None:
-        tum_sutunlar = ["S1", "S2", "S3", "S4"]
+        tum_sutunlar = ["S1", "S2", "S3", "S4", "S5"]
         tercih_sutunlar = [s for s in tum_sutunlar if not son_sutunlar or s != son_sutunlar[0]]
         if gun is not None and gun in TAKVIM:
             p_sutun = TAKVIM[gun]["sutun"]
@@ -257,6 +257,32 @@ def sonraki_konu(
     secim = max(uygun, key=lambda t: t[1])[0]
     log.info("Konu tekrar dolaşımda: %s — %s", secim["kod"], secim["baslik"])
     return secim
+
+
+def sonraki_finans_konusu(bekleme_gun: int = 120) -> Optional[Dict[str, Any]]:
+    """Finans, bankacılık, faiz, konut kredisi veya yakın sektörleri ele alan konuyu seçer.
+    
+    Önce S5 sütunundaki bakir konulara bakar; bulamazsa havuzdaki finans/banka/kredi
+    anahtar kelimeleri taşıyan diğer konuları da tarar.
+    """
+    konu = sonraki_konu(sutun="S5", bekleme_gun=bekleme_gun)
+    if konu:
+        return konu
+
+    ham_havuz = havuzu_yukle()
+    engelliler = _engellenen_konular()
+    gecmis = _kullanim_gecmisi()
+    finans_anahtarlar = ("kredi", "banka", "faiz", "ipotek", "enflasyon", "finans", "bddk", "tcmb", "ekspertiz")
+    adaylar = [
+        k for k in ham_havuz
+        if k["kod"] not in engelliler
+        and k["kod"] not in gecmis
+        and any(a in (k.get("baslik", "") + " " + k.get("aci", "")).lower() for a in finans_anahtarlar)
+    ]
+    if adaylar:
+        return random.choice(adaylar)
+    return sonraki_konu(sutun="S5", bekleme_gun=30)
+
 
 
 def kullanildi_isaretle(konu_kodu: str, haber_id: Optional[int] = None, sonuc: str = "uretildi") -> None:

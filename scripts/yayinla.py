@@ -367,12 +367,11 @@ def main() -> None:
 
     tek_sayfa = (len(public_urller) <= 1) if public_urller else (len(slayt_yollari) <= 1)
 
-    # 2. Dikey Video & Arkaplan Sesi Hazırlığı (Facebook Reels, YouTube Shorts, TT/IG Reels için)
-    # Kullanıcı Kuralı: Facebook her zaman Reels, YouTube her zaman Shorts (ikisi de özel fon sesli)
+    # 2. Dikey Video & Arkaplan Sesi Hazırlığı (YouTube Shorts her zaman, FB/TT/IG ise Reels modunda)
     video_lazim = (
         reels_modu
-        or hedef_mi("fb", "facebook")
         or hedef_mi("yt", "youtube", "shorts")
+        or (reels_modu and hedef_mi("fb", "facebook"))
         or (reels_modu and hedef_mi("tt", "tiktok"))
     )
     sesli_video_yolu = None
@@ -565,22 +564,34 @@ def main() -> None:
             rapor_satirlari.append(f"🧵 <b>Threads:</b> Hata ({yayin_hatasi}) ✗")
 
     # -------------------------------------------------------------
-    # KANAL 5: FACEBOOK (Kullanıcı Kuralı: Facebook HER ZAMAN REELS ve arkaplan sesli)
+    # KANAL 5: FACEBOOK (Kullanıcı Kuralı: Standart gönderide Albüm/Fotoğraf, Reels seçildiyse Reels videosu)
     # -------------------------------------------------------------
     if hedef_mi("fb", "facebook"):
-        log.info("Facebook Reels yükleniyor (Arkaplan sesli)...")
-        if sesli_video_yolu and sesli_video_yolu.exists():
-            try:
-                fb_id = facebook.video_yayinla(sesli_video_yolu, description=caption)
-                if fb_id:
-                    rapor_satirlari.append("📘 <b>Facebook (Reels):</b> Paylaşıldı ✓")
-                else:
-                    rapor_satirlari.append("📘 <b>Facebook Reels:</b> Hata oluştu ✗")
-            except Exception as fe:
-                log.warning("Facebook Reels yayını hatası: %s", fe)
-                rapor_satirlari.append(f"📘 <b>Facebook Reels:</b> Hata ({fe}) ✗")
+        if reels_modu:
+            log.info("Facebook Reels yükleniyor (Arkaplan sesli)...")
+            if sesli_video_yolu and sesli_video_yolu.exists():
+                try:
+                    fb_id = facebook.video_yayinla(sesli_video_yolu, description=caption)
+                    if fb_id:
+                        rapor_satirlari.append("📘 <b>Facebook (Reels):</b> Paylaşıldı ✓")
+                    else:
+                        rapor_satirlari.append("📘 <b>Facebook Reels:</b> Hata oluştu ✗")
+                except Exception as fe:
+                    log.warning("Facebook Reels yayını hatası: %s", fe)
+                    rapor_satirlari.append(f"📘 <b>Facebook Reels:</b> Hata ({fe}) ✗")
+            else:
+                rapor_satirlari.append("📘 <b>Facebook Reels:</b> Dikey video üretilemedi ✗")
         else:
-            rapor_satirlari.append("📘 <b>Facebook Reels:</b> Dikey video üretilemedi ✗")
+            log.info("Facebook'ta standart gönderi paylaşılıyor (Albüm/Görsel)...")
+            try:
+                fb_id = facebook.paylas(caption, public_urller)
+                if fb_id:
+                    rapor_satirlari.append("📘 <b>Facebook (Standart Gönderi):</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("📘 <b>Facebook:</b> Hata oluştu ✗")
+            except Exception as fe:
+                log.warning("Facebook standart paylaşım hatası: %s", fe)
+                rapor_satirlari.append(f"📘 <b>Facebook:</b> Hata ({fe}) ✗")
 
     # -------------------------------------------------------------
     # KANAL 6: YOUTUBE (Kullanıcı Kuralı: YouTube Shorts HER ZAMAN paylaşılır ve arkaplan sesli)

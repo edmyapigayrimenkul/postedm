@@ -871,3 +871,143 @@ konular:
     kanca_kalip: rakam
     mevzuat: "Katma Değer Vergisi Kanunu Genel Uygulama Tebliği"
     yerel: null
+
+  # ---------------------------------------------------------
+  # S5 — BANKACILIK, FİNANS & GAYRİMENKUL (yakın sektörler & piyasa)
+  # ---------------------------------------------------------
+
+  - kod: S5-001
+    sutun: S5
+    bicim: B1
+    baslik: "Konut kredisi çekerken bankaların dayattığı sigortalar"
+    aci: "Bankalar yasal olarak yalnızca DASK'ı zorunlu tutabilir. Hayat, konut veya ferdi kaza sigortalarını kendi bankalarından alma zorunluluğunuz yoktur; dışarıdan uygun poliçe getirme hakkı mevcuttur."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "6502 sayılı Tüketicinin Korunması Hakkında Kanun md. 29"
+    yerel: null
+
+  - kod: S5-002
+    sutun: S5
+    bicim: B2
+    baslik: "BDDK kredi değer oranı (LTV) ve ekspertiz makası"
+    aci: "Banka krediyi satıcının belirlediği satış fiyatına değil, SPK lisanslı eksperin değerine ve BDDK'nın belirlediği enerji sınıfı/fiyat tavanı yüzdelerine göre verir. Aradaki peşinat farkı planı bozar."
+    kanca_kalip: rakam
+    mevzuat: "BDDK Konut Kredileri Makro İhtiyati Tedbir Kararları"
+    yerel: null
+
+  - kod: S5-003
+    sutun: S5
+    bicim: B1
+    baslik: "Tapudaki eski banka ipoteği ve fek yazısı süreci"
+    aci: "Yıllar önce ödenip biten konut kredisinin ipoteği tapudan kendiliğinden düşmez. Bankadan 'ipotek fek yazısı' alınıp tapu harcı ödenmezse mülk temizlenmez ve satış günü kilitlenir."
+    kanca_kalip: belge
+    mevzuat: "Türk Medeni Kanunu md. 883"
+    yerel: null
+
+  - kod: S5-004
+    sutun: S5
+    bicim: B3
+    baslik: "Konut kredisinde erken kapama cezası yasal tavanı"
+    aci: "Kredinizi erken kapatmak veya ara ödeme yapmak istediğinizde bankanın talep edebileceği erken ödeme tazminatı kanunen kalan vadesi 36 ayı aşmayanlarda %1, aşanlarda en fazla %2 olabilir."
+    kanca_kalip: rakam
+    mevzuat: "6502 sayılı Kanun md. 37"
+    yerel: null
+
+  - kod: S5-005
+    sutun: S5
+    bicim: B2
+    baslik: "Mevduat faizi mi gayrimenkul yatırımı mı"
+    aci: "Yüksek faiz döneminde mevduat kısa vadeli cazip nakit akışı sunar; ancak enflasyon ana parayı eritirken gayrimenkul hem arsa/bina değer artışı hem kira ile uzun vadede reel serveti korur."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Silivri - Çorlu hattı değer artış eğrisi"
+
+  - kod: S5-006
+    sutun: S5
+    bicim: B1
+    baslik: "TCMB faiz kararlarının konut ve arsa piyasasına etkisi"
+    aci: "Merkez Bankası politika faizini artırdığında kredili konut satışları yavaşlar ve peşin nakit alıcılar için pazarlık marjı genişler; faiz indirim döngüsünde ise ertelenen talep fiyatları hızla yukarı çeker."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: null
+
+  - kod: S5-007
+    sutun: S5
+    bicim: B1
+    baslik: "Tapu harcı matrahı ve Maliye'nin banka transferi denetimi"
+    aci: "Belediye asgari rayici üzerinden tapu tescili yapıp kalan parayı bankadan göndermek MASAK ve Vergi Denetim Kurulu radarına takılır. 5 yıl geriye dönük vergi ziyaı cezası doğar."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Vergi Usul Kanunu md. 359 ve 213"
+    yerel: null
+
+  - kod: S5-008
+    sutun: S5
+    bicim: B1
+    baslik: "Kentsel dönüşümde devlet faiz destekli banka kredisi"
+    aci: "Riskli yapı tespiti yapılan binalarda malikler Çevre ve Şehircilik Bakanlığı'nın faiz desteği sağladığı dönüşüm kredisinden yararlanabilir. Standart konut kredisinden çok daha avantajlı maliyet şartları vardır."
+    kanca_kalip: belge
+    mevzuat: "6306 sayılı Afet Riski Altındaki Alanların Dönüştürülmesi Hakkında Kanun"
+    yerel: "İstanbul kentsel dönüşüm teşvikleri"
+
+  - kod: S5-009
+    sutun: S5
+    bicim: B2
+    baslik: "Arsa ve tarla alımında banka kredisi şartları"
+    aci: "Bankalar imarsız tarım arazilerine konut kredisi vermez; sınırlı oranda ticari/arsa kredisi kullandırır. İmarı olmayan tarlayı alırken banka finansmanına güvenmek en büyük kaparo tuzağıdır."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Bankacılık Kanunu ve Kredilerin Sınıflandırılması Yönetmeliği"
+    yerel: "Trakya tarım ve bağ arazileri"
+
+  - kod: S5-010
+    sutun: S5
+    bicim: B1
+    baslik: "İpotekli konutun satışı: Kredisi devam eden ev nasıl devredilir"
+    aci: "Üzerinde banka ipoteği olan ev satılabilir. Ya alıcı bankadan yeni kredi çekip eski krediyi kapatır ya da blokeli takas sistemiyle tapuda eşzamanlı borç nakli yapılır."
+    kanca_kalip: belge
+    mevzuat: "Türk Medeni Kanunu md. 888 (İpotekli Borcun Nakli)"
+    yerel: null
+
+  - kod: S5-011
+    sutun: S5
+    bicim: B3
+    baslik: "Banka konut ekspertiz raporu nelere bakar, nelere bakmaz"
+    aci: "Banka eksperi evin lüks tadilatına veya mobilyasına değil; belediye projesine uygunluğuna, kaçak çıkıntılarına, iskân durumuna ve brüt/net alanına bakar. Eksper projeye aykırılık bulursa kredi yanar."
+    kanca_kalip: belge
+    mevzuat: "SPK Gayrimenkul Değerleme Standartları"
+    yerel: null
+
+  - kod: S5-012
+    sutun: S5
+    bicim: B2
+    baslik: "İlk evim kredisi avantajları ve ikinci ev kısıtlaması"
+    aci: "BDDK kurallarına göre tapuda kendi adına veya eşine ait bir konut bulunan kişilerin alacağı ikinci ev için kredi tutarı %75 oranında kısıtlanır. İlk ev alıcıları ise maksimum LTV oranından faydalanır."
+    kanca_kalip: rakam
+    mevzuat: "BDDK Konut Kredisi Sınırlandırma Kararı"
+    yerel: null
+
+  - kod: S5-013
+    sutun: S5
+    bicim: B2
+    baslik: "Gayrimenkul Yatırım Fonları (GYF) ile küçük tasarrufla gayrimenkul ortaklığı"
+    aci: "Tam bir daire veya arsa almaya bütçesi yetmeyen yatırımcılar SPK onaylı GYF ve GYO payları alarak gayrimenkul getirisinden pay alabilir. Tapu masrafı olmadan kurumsal gayrimenkul yatırımı modeli."
+    kanca_kalip: rakam
+    mevzuat: "SPK Gayrimenkul Yatırım Fonlarına İlişkin Esaslar Tebliği"
+    yerel: null
+
+  - kod: S5-014
+    sutun: S5
+    bicim: B3
+    baslik: "Konut kredisinde 14 günlük yasal cayma hakkı"
+    aci: "Kredi sözleşmesini imzaladıktan sonra 14 gün içinde hiçbir gerekçe göstermeden ve cezai şart ödemeden cayma hakkınız vardır. Yalnızca kullanılan süreye ait faiz ve kamuya ödenen harçlar tahsil edilir."
+    kanca_kalip: sure
+    mevzuat: "6502 sayılı Kanun md. 24"
+    yerel: null
+
+  - kod: S5-015
+    sutun: S5
+    bicim: B2
+    baslik: "Enflasyon ortamında gayrimenkul: Değer koruma mı nakit akışı mı"
+    aci: "Konutta kira artışları yasal veya fiili sınırlarla enflasyonun gerisinde kalabilir; ancak arsa ve konutun çıplak varlık değeri inşaat maliyet endeksiyle paralel katlanarak reel sermayeyi korur."
+    kanca_kalip: rakam
+    mevzuat: null
+    yerel: "Trakya gelişim aksı"
+

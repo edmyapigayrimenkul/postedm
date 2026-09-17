@@ -64,7 +64,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.threads, "zincir_paylas", return_value="th-z123") as th_zincir,
             patch.object(yayinla.video, "slaytlardan_reels_uret", return_value=self.dummy_video),
             patch.object(yayinla.ses, "sesli_video_hazirla", return_value=self.dummy_video) as ses_hazirla,
-            patch.object(yayinla.facebook, "video_yayinla", return_value="fb-v123") as fb_video,
+            patch.object(yayinla.facebook, "paylas", return_value="fb-p123") as fb_paylas,
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s123") as fb_story,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/x"}) as yt_shorts,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
@@ -85,8 +85,8 @@ class TestKanalStandartlari(unittest.TestCase):
             ig_story.assert_called_once()
             fb_story.assert_called_once()
 
-            # 5. Facebook her zaman Reels (video) gitmeli
-            fb_video.assert_called_once()
+            # 5. Facebook standart gönderi gitmeli (Reels seçilmediği için)
+            fb_paylas.assert_called_once()
 
             # 6. YouTube Shorts her zaman gitmeli
             yt_shorts.assert_called_once()
@@ -95,7 +95,7 @@ class TestKanalStandartlari(unittest.TestCase):
             ses_hazirla.assert_called()
 
     def test_tek_sayfa_standart_akis(self):
-        """Tek sayfa olduğunda: IG ve TT tekil resim, FB ve YT yine video(sesli)."""
+        """Tek sayfa olduğunda: IG, TT ve FB standart resim/albüm, YT video(sesli)."""
         haber = {
             "id": 889,
             "manset": "Test Tek Sayfa",
@@ -117,7 +117,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.threads, "paylas", return_value="th-tek-123") as th_paylas,
             patch.object(yayinla.video, "slaytlardan_reels_uret", return_value=self.dummy_video),
             patch.object(yayinla.ses, "sesli_video_hazirla", return_value=self.dummy_video),
-            patch.object(yayinla.facebook, "video_yayinla", return_value="fb-v-tek") as fb_video,
+            patch.object(yayinla.facebook, "paylas", return_value="fb-p-tek") as fb_paylas,
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s-tek") as fb_story,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/y"}) as yt_shorts,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
@@ -138,8 +138,8 @@ class TestKanalStandartlari(unittest.TestCase):
             ig_story.assert_called_once()
             fb_story.assert_called_once()
 
-            # FB ve YT tek sayfada da video olarak devam etmeli
-            fb_video.assert_called_once()
+            # FB standart gönderi, YT Shorts video olarak devam etmeli
+            fb_paylas.assert_called_once()
             yt_shorts.assert_called_once()
 
     def test_reels_secildiginde_ig_ve_tt_video_olur(self):
