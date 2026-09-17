@@ -60,10 +60,10 @@ def _cercevele_9_16(kart_img: Image.Image) -> Image.Image:
     # 2. 4:5 Görseli Merkeze Yerleştir — Soft Degrade Fade ile
     card_y = max(0, (HEDEF_H - h) // 2)
 
-    # Alfa Maskesi: Dikeyde ortası %100 opak, üst ve alt kenarlar yumuşak degrade
+    # Alfa Maskesi: Dikeyde kartın metin ve logolarına dokunmayan yumuşak kenar yumuşatma (14px)
     mask = Image.new("L", (w, h), 255)
     m_draw = ImageDraw.Draw(mask)
-    fade_h = min(140, max(10, h // 4))
+    fade_h = min(14, max(4, h // 60))
     for i in range(fade_h):
         alpha = int(255 * ((i / max(1, fade_h)) ** 1.3))
         m_draw.line([(0, i), (w, i)], fill=alpha)

@@ -495,13 +495,57 @@ def main() -> None:
         story_url = None
         try:
             from PIL import Image
+            from src import make_image
             story_dosya = KOK / f"data/output/story_{ref_id}.jpg"
             story_dosya.parent.mkdir(parents=True, exist_ok=True)
-            ilk_slayt = slayt_yollari[0] if slayt_yollari else None
-            if ilk_slayt and Path(ilk_slayt).exists():
-                with Image.open(ilk_slayt) as im:
-                    s_img = video._cercevele_9_16(im)
-                    s_img.save(story_dosya, "JPEG", quality=95, optimize=True)
+
+            hazir_yol = None
+
+            # 1. Eğer bu oturumda dikey_slaytlar üretildiyse (Reels modunda), ilk slayt tam 1080x1920'dir
+            if "dikey_slaytlar" in locals() and dikey_slaytlar and Path(dikey_slaytlar[0]).exists():
+                hazir_yol = Path(dikey_slaytlar[0])
+
+            # 2. Eğer detay (içerik sözlüğü) varsa, doğrudan native 9:16 Story kapağı üret (en kaliteli & hatasız yol)
+            elif detay:
+                try:
+                    with make_image.tuval("story"):
+                        hazir_yol = Path(make_image.otorite_slayt_1_kapak(detay, str(story_dosya)))
+                except Exception as de:
+                    log.warning("Story native 9:16 üretim hatası: %s", de)
+
+            # 3. Eğer ilan ise, ilan kapak slaytı üret
+            elif tur == "ilan" and ilan:
+                try:
+                    ilan_kapak = make_image.ilan_kapak_slayti_ciz(ilan)
+                    if ilan_kapak and Path(ilan_kapak).exists():
+                        hazir_yol = Path(ilan_kapak)
+                except Exception as ie:
+                    log.warning("İlan story kapak hatası: %s", ie)
+
+            # 4. Yerel ilk slayt dosyası diskte varsa
+            elif slayt_yollari and Path(slayt_yollari[0]).exists():
+                hazir_yol = Path(slayt_yollari[0])
+
+            # 5. Disk boş ama CDN/public URL varsa indir
+            elif public_urller:
+                try:
+                    import requests
+                    resp = requests.get(public_urller[0], timeout=15)
+                    if resp.status_code == 200:
+                        with open(story_dosya, "wb") as f:
+                            f.write(resp.content)
+                        hazir_yol = story_dosya
+                except Exception as ue:
+                    log.warning("Story public URL indirme hatası: %s", ue)
+
+            # Son dokunuş: Görsel varsa ve (1080, 1920) değilse 9:16'ya orantılı uyarla
+            if hazir_yol and hazir_yol.exists():
+                with Image.open(hazir_yol) as im:
+                    if im.size == (1080, 1920):
+                        im.save(story_dosya, "JPEG", quality=95, optimize=True)
+                    else:
+                        s_img = video._cercevele_9_16(im)
+                        s_img.save(story_dosya, "JPEG", quality=95, optimize=True)
                 story_url = upload_image.gorsel_yukle(story_dosya)
         except Exception as se:
             log.warning("Story görseli hazırlanamadı: %s", se)
