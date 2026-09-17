@@ -27,7 +27,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import config, db, konu_bankasi
+from src import config, db, konu_bankasi, rapor_uretici
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -115,20 +115,51 @@ def rapor_uret() -> tuple[str, bool]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="EDM günlük durum raporu")
+    ap = argparse.ArgumentParser(description="EDM günlük durum ve kota raporu")
     ap.add_argument("--sessiz", action="store_true", help="Telegram'a gönderme")
+    ap.add_argument("--sade", action="store_true", help="Eski sade formatta rapor üret")
     args = ap.parse_args()
 
-    govde, uyari = rapor_uret()
-    baslik = "☀️ <b>GÜNLÜK RAPOR</b>" + ("  ⚠️" if uyari else "")
-    rapor = f"{baslik}\n\n{govde}"
+    if args.sade:
+        govde, uyari = rapor_uret()
+        baslik = "☀️ <b>GÜNLÜK RAPOR</b>" + ("  ⚠️" if uyari else "")
+        rapor = f"{baslik}\n\n{govde}"
+    else:
+        rapor = rapor_uretici.detayli_rapor_metni_uret()
 
-    print(rapor.replace("<b>", "").replace("</b>", ""))
+    print(
+        rapor.replace("<b>", "")
+        .replace("</b>", "")
+        .replace("<pre>", "")
+        .replace("</pre>", "")
+        .replace("<code>", "")
+        .replace("</code>", "")
+        .replace("<i>", "")
+        .replace("</i>", "")
+    )
 
     if not args.sessiz:
         try:
             from src import telegram_bot
-            telegram_bot.mesaj_gonder(rapor)
+            m_id_env = config.env_al("MESAJ_ID")
+            m_id = int(m_id_env) if m_id_env and str(m_id_env).isdigit() else None
+
+            if args.sade:
+                butonlar = {
+                    "inline_keyboard": [
+                        [
+                            {"text": "🔄 Raporu Tazele", "callback_data": "rapor_tazele"},
+                            {"text": "🎛 Kontrol Paneli", "callback_data": "panel"},
+                        ]
+                    ]
+                }
+                if m_id:
+                    telegram_bot.mesaji_guncelle(m_id, rapor, reply_markup=butonlar)
+                else:
+                    telegram_bot.mesaj_gonder(rapor, reply_markup=butonlar)
+            else:
+                telegram_bot.detayli_rapor_gonder(mesaj_id=m_id)
+
             # Kendini onaran komut menüsü: her sabah açılır menüyü Telegram'a tazeler
             telegram_bot.komut_menusu_kaydet()
         except Exception as e:

@@ -24,6 +24,9 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "saglik_testi",
     "havuz_durum",
     "hatirlat",
+    "rapor",
+    "kullanim",
+    "kota",
 
     # Hızlı İçerik Üretimi
     "yeni",
@@ -49,7 +52,8 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
 KOMUT_MENUSU: List[Dict[str, str]] = [
     # ── 🎛 YÖNETİM & KONTROL MERKEZİ ─────────────────────────────────
     {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
-    {"command": "durum", "description": "📊 Bot sağlığı, sıradaki post ve kota"},
+    {"command": "rapor", "description": "📈 GitHub Actions, Yapay Zeka ve Sistem Raporu"},
+    {"command": "durum", "description": "📊 Bot sağlığı, sıradaki post ve durum"},
     {"command": "ilanlar", "description": "🏡 Portföyden tek tıkla ilan seçip paylaş"},
     {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},
     {"command": "saglik", "description": "🩺 Sistem ve API sağlık testi"},

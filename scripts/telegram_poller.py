@@ -205,6 +205,9 @@ def main() -> None:
                     elif data == "durum":
                         telegram_bot.durum_raporu_gonder(msg_id)
 
+                    elif data in ("rapor_goster", "rapor_tazele", "kota_raporu"):
+                        telegram_bot.detayli_rapor_gonder(msg_id)
+
                     elif data == "saglik_testi":
                         saglik_testi_gonder()
 
@@ -402,6 +405,10 @@ def main() -> None:
                     elif komut_parca in ("/durum", "/status"):
                         log.info("/durum komutu alındı.")
                         telegram_bot.durum_raporu_gonder()
+
+                    elif komut_parca in ("/rapor", "/kullanim", "/kota"):
+                        log.info("/rapor komutu alındı.")
+                        telegram_bot.detayli_rapor_gonder()
 
                     elif komut_parca in ("/yardim", "/help", "/start"):
                         log.info("/yardim komutu alındı.")

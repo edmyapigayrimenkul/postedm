@@ -21,6 +21,8 @@ on:
   schedule:
     - cron: "40 5 * * *"
   workflow_dispatch:
+  repository_dispatch:
+    types: [rapor]
 
 concurrency:
   group: gunluk-rapor
@@ -42,6 +44,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESAJ_ID: ${{ github.event.client_payload.mesaj_id }}
         run: python scripts/gunluk_rapor.py
 
       - name: Hata bildir

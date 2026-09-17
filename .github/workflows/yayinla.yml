@@ -46,6 +46,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESAJ_ID: ${{ github.event.client_payload.mesaj_id }}
           EYLEM: ${{ github.event.client_payload.eylem }}
           SAAT: ${{ github.event.client_payload.saat }}
         run: |
@@ -55,8 +57,8 @@ jobs:
             python -c "from src.telegram_bot import bot_devam_et; bot_devam_et()"
           elif [ "$EYLEM" = "tur_temizle" ]; then
             python -c "from src import db, telegram_bot; adet = db.askidaki_onaylari_temizle(); telegram_bot.mesaj_gonder(f'🧹 <b>Askıdaki Onaylar Temizlendi:</b> {adet} adet bekleyen onay iptal edildi.')"
-          elif [ "$EYLEM" = "kota_raporu" ]; then
-            python -c "from src import db, telegram_bot; o = db.gunluk_yayin_ozeti(); telegram_bot.mesaj_gonder(f'📊 <b>EDM GÜNLÜK YAYIN & SİSTEM ÖZETİ</b>\n\n• Bugün Yayınlanan: {o[\"bugun_yayinlanan\"]}\n• Onay Bekleyen: {o[\"bekleyen_onay\"]}\n• Toplam Arşiv Haber: {o[\"toplam_haber\"]}\n• Toplam Portföy İlanı: {o[\"toplam_ilan\"]}')"
+          elif [ "$EYLEM" = "kota_raporu" ] || [ "$EYLEM" = "rapor" ]; then
+            python scripts/gunluk_rapor.py
           fi
 
       - name: Yayınla

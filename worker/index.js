@@ -610,9 +610,12 @@ export default {
           return new Response("OK");
         }
 
-        if (data === "kota_raporu") {
-          await cevapVer("Kota raporu hazırlanıyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "kota_raporu" });
+        if (data === "kota_raporu" || data === "rapor_goster" || data === "rapor_tazele") {
+          await cevapVer("Detaylı kota ve sistem raporu hazırlanıyor...");
+          if (data === "rapor_tazele" && messageId) {
+            await mesajiGuncelle("🔄 <b>Rapor güncelleniyor...</b>\n<i>GitHub Actions dakikaları, yapay zeka tokenları ve sistem durumları alınıyor...</i>");
+          }
+          await tetikleGitHub(env, "rapor", { mesaj_id: messageId });
           return new Response("OK");
         }
       }
@@ -723,10 +726,14 @@ export default {
           return new Response("OK");
         }
 
-        // /kota — Günlük yayın karnesi ve sistem özeti
-        if (text === "/kota" || text === "kota") {
-          await mesajGonder("📊 Günlük kota ve yayın özeti hazırlanıyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "kota_raporu" });
+        // /rapor, /kullanim, /kota — Detaylı sistem, GitHub Actions ve yapay zeka kota tablosu
+        if (
+          text === "/rapor" || text === "rapor" ||
+          text === "/kullanim" || text === "kullanim" ||
+          text === "/kota" || text === "kota"
+        ) {
+          await mesajGonder("📈 <b>Detaylı Kota ve Sistem Raporu hazırlanıyor...</b>\nGitHub Actions süresi, yapay zeka token kullanımı ve sistem tabloları taranıyor...");
+          await tetikleGitHub(env, "rapor", {});
           return new Response("OK");
         }
 
@@ -817,6 +824,7 @@ export default {
             "🏢 <b>EDM Yapı & Gayrimenkul Sosyal Medya Botu</b>\n\n" +
             "<b>Kullanabileceğiniz Komutlar:</b>\n" +
             "• <b>/panel</b> — İnteraktif kontrol merkezini açar.\n" +
+            "• <b>/rapor</b> — GitHub Actions, yapay zeka ve sistem kota tablosu.\n" +
             "• <b>/durum</b> — Bot ve yayın durumunu raporlar.\n" +
             "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n" +
             "• <b>/yeni</b> — Sıradaki konuyu hemen üretip onaya sunar.\n" +
@@ -865,15 +873,16 @@ function kontrolMerkeziMenusu() {
         { text: "🏡 Portföy İlanları", callback_data: "ilan_menu_yenile" },
       ],
       [
-        { text: "🧹 Askıdaki Onayları Temizle", callback_data: "tur_temizle" },
-        { text: "📊 Kota & Sistem Özeti", callback_data: "kota_raporu" },
-      ],
-      [
-        { text: "🩺 Durum & Sağlık", callback_data: "durum" },
-        { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" },
-      ],
-      [
+        { text: "📊 Sıradaki Post & Durum", callback_data: "durum" },
         { text: "⏸️ Akışı Duraklat", callback_data: "duraklat_menu" },
+      ],
+      [
+        { text: "📈 Detaylı Kota Raporu", callback_data: "rapor_goster" },
+        { text: "🩺 Sistem Sağlık Testi", callback_data: "saglik_testi" },
+      ],
+      [
+        { text: "🧹 Askıdaki Onayları Temizle", callback_data: "tur_temizle" },
+        { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" },
       ],
     ],
   };
