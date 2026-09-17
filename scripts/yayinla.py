@@ -408,7 +408,43 @@ def main() -> None:
             log.error("Video üretimi başarısız oldu!")
 
     # -------------------------------------------------------------
-    # KANAL 1: INSTAGRAM (Kullanıcı Kuralı: Reels seçilmediği sürece Carousel, tek sayfaysa Resim)
+    # KANAL 1: TIKTOK (Öncelikli Kanal: Reels seçilmediği sürece Carousel/Foto, tek sayfaysa Resim)
+    # -------------------------------------------------------------
+    if hedef_mi("tt", "tiktok"):
+        if reels_modu:
+            if sesli_video_yolu and sesli_video_yolu.exists():
+                try:
+                    tt_res = tiktok.video_yukle(sesli_video_yolu, baslik=baslik)
+                    if tt_res.get("durum"):
+                        if tt_res.get("taslak_mi"):
+                            rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Taslak Olarak Yüklendi ✓")
+                        else:
+                            rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Paylaşıldı ✓")
+                    else:
+                        rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata'} ✗")
+                except Exception as tt_e:
+                    log.warning("TikTok video yükleme hatası: %s", tt_e)
+                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
+            else:
+                rapor_satirlari.append("🎵 <b>TikTok:</b> Video üretilemedi ✗")
+        else:
+            log.info("TikTok'ta fotoğraf/carousel paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
+            try:
+                tt_res = tiktok.foto_yayinla(public_urller, baslik=baslik)
+                if tt_res.get("durum"):
+                    if tt_res.get("taslak_mi"):
+                        rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi ✓")
+                    else:
+                        tur_etiket = "Tekil Resim" if tek_sayfa else "Carousel"
+                        rapor_satirlari.append(f"🎵 <b>TikTok ({tur_etiket}):</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata'} ✗")
+            except Exception as tt_e:
+                log.warning("TikTok fotoğraf paylaşım hatası: %s", tt_e)
+                rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
+
+    # -------------------------------------------------------------
+    # KANAL 2: INSTAGRAM (Kullanıcı Kuralı: Reels seçilmediği sürece Carousel, tek sayfaysa Resim)
     # -------------------------------------------------------------
     if hedef_mi("ig", "instagram", "reels"):
         if reels_modu:
@@ -450,42 +486,6 @@ def main() -> None:
             except Exception as yayin_hatasi:
                 log.warning("Instagram yayını hatası: %s", yayin_hatasi)
                 rapor_satirlari.append(f"📸 <b>Instagram:</b> Hata ({yayin_hatasi}) ✗")
-
-    # -------------------------------------------------------------
-    # KANAL 2: TIKTOK (Kullanıcı Kuralı: Reels seçilmediği sürece Carousel/Foto, tek sayfaysa Resim)
-    # -------------------------------------------------------------
-    if hedef_mi("tt", "tiktok"):
-        if reels_modu:
-            if sesli_video_yolu and sesli_video_yolu.exists():
-                try:
-                    tt_res = tiktok.video_yukle(sesli_video_yolu, baslik=baslik)
-                    if tt_res.get("durum"):
-                        if tt_res.get("taslak_mi"):
-                            rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Taslak Olarak Yüklendi ✓")
-                        else:
-                            rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Paylaşıldı ✓")
-                    else:
-                        rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata'} ✗")
-                except Exception as tt_e:
-                    log.warning("TikTok video yükleme hatası: %s", tt_e)
-                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
-            else:
-                rapor_satirlari.append("🎵 <b>TikTok:</b> Video üretilemedi ✗")
-        else:
-            log.info("TikTok'ta fotoğraf/carousel paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
-            try:
-                tt_res = tiktok.foto_yayinla(public_urller, baslik=baslik)
-                if tt_res.get("durum"):
-                    if tt_res.get("taslak_mi"):
-                        rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi ✓")
-                    else:
-                        tur_etiket = "Tekil Resim" if tek_sayfa else "Carousel"
-                        rapor_satirlari.append(f"🎵 <b>TikTok ({tur_etiket}):</b> Paylaşıldı ✓")
-                else:
-                    rapor_satirlari.append(f"🎵 <b>TikTok:</b> {tt_res.get('hata') or 'Hata'} ✗")
-            except Exception as tt_e:
-                log.warning("TikTok fotoğraf paylaşım hatası: %s", tt_e)
-                rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
 
     # -------------------------------------------------------------
     # KANAL 3: STORY (Instagram & Facebook Story — 9:16 Dikey Format)

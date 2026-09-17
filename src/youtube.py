@@ -89,7 +89,7 @@ def access_token_al() -> Optional[str]:
         cevap_metni = res.text
         if "invalid_grant" in cevap_metni:
             log.error(
-                "YouTube refresh token geçersiz (invalid_grant: %s). CID=%s*** (Uzunluk=%d), Token=***%s (Uzunluk=%d)",
+                "YouTube refresh token geçersiz (invalid_grant: %s). Google Cloud Console OAuth Consent Screen 'Testing' modunda ise jeton 7 günde iptal edilir; 'Publish App' (In production) yapılmalıdır. CID=%s*** (Uzunluk=%d), Token=***%s (Uzunluk=%d)",
                 cevap_metni[:150],
                 client_id[:6] if client_id else "",
                 len(client_id),
