@@ -11,7 +11,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from . import config
 
@@ -450,6 +450,30 @@ def onay_istegi_ertele(tur: str, referans_id: str, dakika: int = 60) -> bool:
             )
         conn.commit()
     return True
+
+
+def mesajdan_icerik_bul(mesaj_id: Optional[int] = None) -> Optional[Tuple[str, int, Dict[str, Any]]]:
+    """telegram_mesaj_id üzerinden ilgili haber/reels kaydını döner. (tur, haber_id, haber_dict)"""
+    with _baglanti_al() as conn:
+        if mesaj_id:
+            row = conn.execute(
+                "SELECT tur, referans_id FROM onay_istekleri WHERE telegram_mesaj_id = ? ORDER BY id DESC LIMIT 1",
+                (mesaj_id,),
+            ).fetchone()
+            if row:
+                tur = row["tur"]
+                ref_id = int(row["referans_id"])
+                h = conn.execute("SELECT * FROM haberler WHERE id = ?", (ref_id,)).fetchone()
+                if h:
+                    return (tur, ref_id, dict(h))
+        # Yedek: son onay bekleyen kaydı al
+        son = conn.execute(
+            "SELECT * FROM haberler WHERE durum = 'onay_bekliyor' ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        if son:
+            tur = "reels" if son.get("kategori") == "REELS" else "haber"
+            return (tur, son["id"], dict(son))
+    return None
 
 
 # Başlangıçta tabloları hazırla

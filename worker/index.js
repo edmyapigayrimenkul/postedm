@@ -250,41 +250,36 @@ export default {
         };
 
         // A. KANAL TOGGLE BUTONLARI (ANINDA ARAYÜZ GÜNCELLEMESİ)
-        if (data.startsWith("kanal_toggle:")) {
+        if (data.startsWith("kanal:") || data.startsWith("kanal_toggle:")) {
+          const hedefKanal = data.replace(/^(kanal:|kanal_toggle:)/, "");
           const keyboard = cb.message?.reply_markup?.inline_keyboard || [];
-          let aktifKanallar = [];
+          let hedefSuAnSecili = false;
+          for (let row of keyboard) {
+            for (let btn of row) {
+              if (btn.callback_data === `kanal:${hedefKanal}` || btn.callback_data === `kanal_toggle:${hedefKanal}`) {
+                hedefSuAnSecili = btn.text.startsWith("✅");
+              }
+            }
+          }
+          const hedefYeniSecili = !hedefSuAnSecili;
 
           for (let row of keyboard) {
             for (let btn of row) {
-              if (btn.callback_data === data) {
-                const acik = btn.text.startsWith("✅");
-                const yeniSimge = acik ? "⬜" : "✅";
-                const kanalAdi = btn.text.replace(/^[✅⬜]\s*/, "");
-                btn.text = `${yeniSimge} ${kanalAdi}`;
-              }
-              if (btn.callback_data?.startsWith("kanal_toggle:")) {
-                const k = btn.callback_data.split(":")[1];
-                if (btn.text.startsWith("✅")) {
-                  aktifKanallar.push(k);
+              const buKanal = (btn.callback_data || "").replace(/^(kanal:|kanal_toggle:)/, "");
+              if (btn.callback_data?.startsWith("kanal:") || btn.callback_data?.startsWith("kanal_toggle:")) {
+                if (buKanal === hedefKanal) {
+                  const label = btn.text.replace(/^[✅⬜]\s*/, "");
+                  btn.text = `${hedefYeniSecili ? "✅" : "⬜"} ${label}`;
+                } else if (hedefKanal === "reels" && hedefYeniSecili && buKanal === "ig") {
+                  btn.text = "⬜ IG";
+                } else if (hedefKanal === "ig" && hedefYeniSecili && buKanal === "reels") {
+                  btn.text = "⬜ Reels";
                 }
               }
             }
           }
-
-          // Yayınla butonunun hedef parametresini güncelle
-          const hedefStr = aktifKanallar.length > 0 ? aktifKanallar.join(",") : "ig,threads";
-          for (let row of keyboard) {
-            for (let btn of row) {
-              if (btn.callback_data?.startsWith("onayla:")) {
-                const parts = btn.callback_data.split(":");
-                parts[2] = hedefStr;
-                btn.callback_data = parts.join(":");
-              }
-            }
-          }
-
           await butonlariGuncelle(keyboard);
-          await cevapVer(`Kanal tercihi güncellendi: ${hedefStr.toUpperCase()}`);
+          await cevapVer();
           return new Response("OK");
         }
 
@@ -387,142 +382,123 @@ export default {
           return new Response("OK");
         }
 
-        // D. FORMAT DEĞİŞTİRME MENÜSÜ
-        if (data.startsWith("format_menu:")) {
-          const id = data.split(":")[1];
-          await cevapVer();
-          await butonlariGuncelle(formatSecimMenusu(id));
-          return new Response("OK");
-        }
-
-        // METİN SEÇİM MENÜSÜ (İnstabot Standardı)
-        if (data.startsWith("metin_menu:")) {
+        // D. MENÜ GEZİNMELERİ (ANINDA WORKER TARAFINDAN YÖNETİLİR)
+        if (
+          data.startsWith("yayin_menu:") || data.startsWith("yayin_geri:") ||
+          data.startsWith("foto_menu:") || data.startsWith("foto_geri:") ||
+          data.startsWith("metin_menu:") || data.startsWith("metin_geri:") ||
+          data.startsWith("slayt_menu:") || data.startsWith("geri:") ||
+          data.startsWith("format_menu:") || data.startsWith("onay_menu_don:")
+        ) {
           const parts = data.split(":");
-          const tur = parts[1] || "haber";
-          const id = parts[2] || "";
-          await cevapVer("Metin seçenekleri");
-          await butonlariGuncelle(metinSecimMenusu(id, tur));
-          return new Response("OK");
-        }
+          const kok = parts[0];
+          const adet = parseInt(parts[1] || "2", 10) || 2;
+          const klavye = cb.message?.reply_markup?.inline_keyboard || [];
+          const seciliKanallar = seciliKanallariCikar(klavye);
 
-        // FOTOĞRAF / GÖRSEL MENÜSÜ (İnstabot Standardı)
-        if (data.startsWith("foto_menu:")) {
-          const parts = data.split(":");
-          const tur = parts[1] || "haber";
-          const id = parts[2] || "";
-          await cevapVer("Görsel seçenekleri");
-          await butonlariGuncelle(fotoSecimMenusu(id, tur));
-          return new Response("OK");
-        }
-
-        // METİN EYLEMLERİ (ÖZETLE / DETAYLANDIR)
-        if (data.startsWith("metin_eylem:")) {
-          const [, eylem, tur, id] = data.split(":");
-          await cevapVer("Metin düzenleniyor...");
-          await mesajiGuncelle(`✍️ <b>${tur === "reels" ? "Reels" : "Haber"} #${id} için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "yayinla", { tur, hedef: `metin_${eylem}`, id });
-          return new Response("OK");
-        }
-
-        // FOTOĞRAF EYLEMLERİ (DEĞİŞTİR / EDİTORYAL)
-        if (data.startsWith("foto_eylem:")) {
-          const [, eylem, tur, id] = data.split(":");
-          await cevapVer("Görsel güncelleniyor...");
-          await mesajiGuncelle(`🖼️ <b>${tur === "reels" ? "Reels" : "Haber"} #${id} görseli güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "yayinla", { tur, hedef: `foto_${eylem}`, id });
-          return new Response("OK");
-        }
-
-        // ÇÖPE AT (DÖNMESİN - KALICI ENGELLEME)
-        if (data.startsWith("cope_at:")) {
-          const [, tur, id] = data.split(":");
-          await cevapVer("İçerik çöpe atıldı, bu konu havuza bir daha dönmeyecek.");
-          await mesajiGuncelle(`🗑️ <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} #${id} çöpe atıldı.</b>\n<i>Bu konu kalıcı olarak engellendi ve havuza bir daha dönmeyecek.</i>`);
-          await tetikleGitHub(env, "yayinla", { tur, hedef: "cope_at", id });
-          return new Response("OK");
-        }
-
-        if (data.startsWith("onay_menu_don:")) {
-          const parts = data.split(":");
-          const tur = parts.length > 2 ? parts[1] : "haber";
-          const id = parts.length > 2 ? parts[2] : parts[1];
-          await cevapVer();
-          if (tur === "reels") {
-            await butonlariGuncelle(reelsOnayMenusu(id));
+          let yeniMenu;
+          if (kok === "yayin_menu") {
+            yeniMenu = yayinZamaniMenusu(adet, seciliKanallar);
+          } else if (kok === "foto_menu") {
+            yeniMenu = fotoMenusu(adet, seciliKanallar);
+          } else if (kok === "metin_menu") {
+            yeniMenu = metinMenusu(adet, seciliKanallar);
+          } else if (kok === "slayt_menu" || kok === "format_menu") {
+            yeniMenu = slaytSecimMenusu(adet, seciliKanallar);
           } else {
-            await butonlariGuncelle(standartOnayMenusu(id));
+            yeniMenu = anaMenu(adet, seciliKanallar);
           }
+          await butonlariGuncelle(yeniMenu);
+          await cevapVer();
           return new Response("OK");
         }
 
-        if (data.startsWith("format_uygula:")) {
-          const [, format, id] = data.split(":");
-          await cevapVer("Format dönüştürülüyor");
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: `🎨 Haber #${id} <b>${format.toUpperCase()}</b> formatına dönüştürülüyor...`, parse_mode: "HTML" }),
-          });
-          await tetikleGitHub(env, "format_donustur", { haber_id: id, format_turu: format });
-          return new Response("OK");
-        }
+        // E. YAYINLA AKSİYONU
+        if (data === "yayinla" || data.startsWith("yayinla_sonra:") || data.startsWith("onayla:")) {
+          const klavye = cb.message?.reply_markup?.inline_keyboard || [];
+          const secili = seciliKanallariCikar(klavye) || ["ig", "threads"];
+          const isReels = secili.includes("reels");
+          const tur = isReels ? "reels" : "haber";
+          const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1] : null;
 
-        // E. ERTELEME
-        if (data.startsWith("ertele:")) {
-          const parts = data.split(":");
-          const id = parts.length > 2 ? parts[2] : (parts[1] || "");
-          const tur = parts.length > 2 ? parts[1] : "haber";
-          await cevapVer("Yayın 1 saat ertelendi");
-          await tetikleGitHub(env, "yayinla", { tur, hedef: "ertele", id });
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: `⏰ ${tur === "reels" ? "Reels" : "Post"} #${id} yayını 1 saat ertelendi.` }),
+          await cevapVer("Yayın süreci başlatıldı");
+          if (gecikme) {
+            await mesajiGuncelle(`⏰ <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} ${gecikme} dakika sonra yayınlanacak şekilde planlandı.</b>\nSeçili Kanallar: <code>${secili.join(", ").toUpperCase()}</code>`);
+          } else {
+            await mesajiGuncelle(`🚀 <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} yayına alınıyor...</b>\nSeçili Kanallar: <code>${secili.join(", ").toUpperCase()}</code>`);
+          }
+          await tetikleGitHub(env, "yayinla", {
+            tur,
+            hedef: secili.join(","),
+            mesaj_id: messageId,
           });
           return new Response("OK");
         }
 
         // F. MANUEL PAYLAŞIM PAKETİ
-        if (data.startsWith("manuel_paket:")) {
-          const id = data.split(":")[1];
+        if (data === "manuel_paket" || data.startsWith("manuel_paket:")) {
           await cevapVer("Manuel paket hazırlanıyor...");
-          await tetikleGitHub(env, "yayinla", { tur: "haber", hedef: "manuel_paket", id });
-          await mesajiGuncelle(`📲 <b>Haber #${id} için Manuel Paylaşım Paketi hazırlanıyor...</b>\nAçıklama metni ve yönlendirme butonları birazdan iletilecek.`);
+          await mesajiGuncelle(`📲 <b>Manuel Paylaşım Paketi hazırlanıyor...</b>\nAçıklama metni ve yönlendirme butonları birazdan iletilecek.`);
+          await tetikleGitHub(env, "yayinla", { tur: "haber", hedef: "manuel_paket", mesaj_id: messageId });
           return new Response("OK");
         }
 
-        // F. YAYIN ONAYI VEYA TAMAMLANDI
-        if (data.startsWith("onayla:")) {
-          const [, tur, hedef, id] = data.split(":");
-          await cevapVer(hedef === "tamamla" || hedef === "manuel_tamam" ? "Tamamlandı olarak işaretleniyor..." : "Yayın süreci başlatıldı");
-          await tetikleGitHub(env, "yayinla", { tur, hedef, id });
-          if (hedef === "tamamla" || hedef === "manuel_tamam") {
-            await mesajiGuncelle(`✅ <b>${tur === "reels" ? "Reels Videosu" : "İçerik"} #${id} tamamlandı olarak kaydediliyor...</b>`);
-          } else {
-            await mesajiGuncelle(`🚀 <b>${tur.toUpperCase()} #${id} yayına alınıyor...</b>\nSeçili kanallar: <code>${hedef}</code>`);
-          }
+        // G. METİN DÜZENLEME EYLEMLERİ
+        if (data === "metin_ozetle" || data === "metin_detaylandir" || data === "metin_yenile" || data.startsWith("metin_eylem:") || data.startsWith("yenile:")) {
+          const eylem = data.startsWith("metin_eylem:") ? data.split(":")[1] : (data.startsWith("yenile:") ? "yenile" : data);
+          await cevapVer("Metin düzenleniyor...");
+          await mesajiGuncelle(`✍️ <b>İçerik için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await tetikleGitHub(env, "yayinla", { hedef: eylem, mesaj_id: messageId });
           return new Response("OK");
         }
 
-        // G. REDDET
-        if (data.startsWith("reddet:")) {
-          await cevapVer("İçerik reddedildi");
-          const [, tur, id] = data.split(":");
-          await tetikleGitHub(env, "yayinla", { tur, hedef: "reddet", id });
-          await mesajiGuncelle(`❌ <b>${tur.toUpperCase()} #${id} reddedildi ve arşive kaldırıldı.</b>`);
+        // H. FOTOĞRAF EYLEMLERİ
+        if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data.startsWith("foto_eylem:")) {
+          const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
+          await cevapVer("Görsel güncelleniyor...");
+          await mesajiGuncelle(`🖼️ <b>Görsel güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await tetikleGitHub(env, "yayinla", { hedef: eylem, mesaj_id: messageId });
           return new Response("OK");
         }
 
-        // H. YENİLE
-        if (data.startsWith("yenile:")) {
-          await cevapVer("Yeniden hazırlanıyor");
-          const [, tur, id] = data.split(":");
-          await tetikleGitHub(env, "yayinla", { tur, hedef: "yenile", id });
-          await mesajiGuncelle(`🔄 <b>${tur.toUpperCase()} #${id} için metin ve görseller yeniden üretiliyor...</b>`);
+        // I. FORMAT DÖNÜŞTÜRME
+        if (data.startsWith("format_uygula:")) {
+          const format = data.split(":")[1];
+          await cevapVer("Format dönüştürülüyor");
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: `🎨 İçerik <b>${format.toUpperCase()}</b> formatına dönüştürülüyor...`, parse_mode: "HTML" }),
+          });
+          await tetikleGitHub(env, "format_donustur", { format_turu: format, mesaj_id: messageId });
           return new Response("OK");
         }
 
-        // İ. ESKİ İLAN MENÜSÜ CALLBACKLERİ
+        // J. ERTELEME
+        if (data === "ertele" || data.startsWith("ertele:")) {
+          await cevapVer("Yayın 1 saat ertelendi");
+          await mesajiGuncelle(`⏰ <b>Yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>`);
+          await tetikleGitHub(env, "yayinla", { hedef: "ertele", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        // K. İPTAL / ATLA (HAVUZA DÖNER)
+        if (data === "iptal" || data.startsWith("reddet:")) {
+          await cevapVer("Bu tur atlandı, konu havuza iade edildi");
+          await mesajiGuncelle(`❌ <b>Bu içerik atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
+          await tetikleGitHub(env, "yayinla", { hedef: "iptal", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        // L. ÇÖPE AT (TASLAK ÇÖPE ATILIR, KULLANICI İSTEĞİYLE KONU KİLİTLENMEZ)
+        if (data === "cope_at" || data.startsWith("cope_at:")) {
+          await cevapVer("Taslak çöpe atıldı, konu havuza iade edildi");
+          await mesajiGuncelle(`🗑️ <b>Taslak çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
+          await tetikleGitHub(env, "yayinla", { hedef: "cope_at", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        // M. İLAN İŞLEMLERİ
         if (data.startsWith("ilan_sec:")) {
           const ilanId = data.split(":")[1];
           await cevapVer();
@@ -757,118 +733,147 @@ function duraklatmaMenusu() {
   };
 }
 
-function formatSecimMenusu(id) {
+function seciliKanallariCikar(klavye) {
+  if (!klavye || !klavye.length) return ["ig", "story", "threads", "facebook"];
+  const kanalButonlari = klavye.flat().filter(b => String(b.callback_data || "").startsWith("kanal:"));
+  if (kanalButonlari.length === 0) return ["ig", "story", "threads", "facebook"];
+  return kanalButonlari
+    .filter(b => String(b.text || "").startsWith("✅"))
+    .map(b => b.callback_data.replace(/^kanal:/, ""));
+}
+
+function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook"]) {
+  const varMi = (k) => Array.isArray(secili) ? secili.includes(k) : Boolean(secili && secili[k]);
+  return [
+    [
+      { text: `${varMi('ig') ? '✅' : '⬜'} IG`, callback_data: "kanal:ig" },
+      { text: `${varMi('reels') ? '✅' : '⬜'} Reels`, callback_data: "kanal:reels" },
+      { text: `${varMi('story') ? '✅' : '⬜'} Story`, callback_data: "kanal:story" },
+      { text: `${varMi('threads') ? '✅' : '⬜'} Threads`, callback_data: "kanal:threads" },
+    ],
+    [
+      { text: `${varMi('facebook') ? '✅' : '⬜'} FB`, callback_data: "kanal:facebook" },
+      { text: `${varMi('youtube') ? '✅' : '⬜'} YT`, callback_data: "kanal:youtube" },
+      { text: `${varMi('tiktok') ? '✅' : '⬜'} TT`, callback_data: "kanal:tiktok" },
+    ],
+  ];
+}
+
+function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
   return {
     inline_keyboard: [
+      ...kanalButonlariSatirlari(seciliKanallar),
       [
-        { text: "📖 EDM Sözlük", callback_data: `format_uygula:sozluk:${id}` },
-        { text: "⚖️ Nedir Doğrusu?", callback_data: `format_uygula:nedir_dogrusu:${id}` },
+        { text: "✅ Yayınla", callback_data: `yayin_menu:${adet}` },
+        { text: "📲 Manuel Paylaşım Paketi", callback_data: "manuel_paket" },
       ],
       [
-        { text: "📂 Vaka Analizi", callback_data: `format_uygula:vaka:${id}` },
-        { text: "❓ Net Cevap", callback_data: `format_uygula:net_cevap:${id}` },
+        { text: "🔄 Başka Fotoğraf Bul", callback_data: `foto_menu:${adet}` },
+        { text: "✍️ Metinleri Yenile", callback_data: `metin_menu:${adet}` },
       ],
       [
-        { text: "← Onay Menüsüne Dön", callback_data: `onay_menu_don:${id}` },
+        { text: `🎨 Slayt düzenle (${adet} slayt)`, callback_data: `slayt_menu:${adet}` },
+      ],
+      [
+        { text: "⏰ 1 saat ertele", callback_data: "ertele" },
+      ],
+      [
+        { text: "❌ Bu turu atla (Havuza döner)", callback_data: "iptal" },
+        { text: "🗑️ Çöpe At", callback_data: "cope_at" },
       ],
     ],
   };
 }
 
-function standartOnayMenusu(id, kanallar = { ig: true, threads: true, fb: false }) {
-  const simge = (k) => kanallar[k] ? "✅" : "⬜";
-  const aktif = Object.keys(kanallar).filter(k => kanallar[k]).join(",") || "ig,threads";
+function yayinZamaniMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
   return {
     inline_keyboard: [
+      ...kanalButonlariSatirlari(seciliKanallar),
       [
-        { text: `${simge('ig')} Instagram`, callback_data: "kanal_toggle:ig" },
-        { text: `${simge('threads')} Threads`, callback_data: "kanal_toggle:threads" },
-        { text: `${simge('fb')} Facebook`, callback_data: "kanal_toggle:fb" },
+        { text: "▶️ Şimdi", callback_data: "yayinla" },
+        { text: "30 dk", callback_data: "yayinla_sonra:30" },
       ],
       [
-        { text: "🚀 Seçili Kanallarda Yayınla", callback_data: `onayla:haber:${aktif}:${id}` },
-        { text: "📲 Manuel Paket", callback_data: `manuel_paket:haber:${id}` },
+        { text: "1 saat", callback_data: "yayinla_sonra:60" },
+        { text: "2 saat", callback_data: "yayinla_sonra:120" },
       ],
       [
-        { text: "✍️ Metinleri Yenile", callback_data: `metin_menu:haber:${id}` },
-        { text: "🖼️ Fotoğrafı Değiştir", callback_data: `foto_menu:haber:${id}` },
+        { text: "3 saat", callback_data: "yayinla_sonra:180" },
+        { text: "4 saat", callback_data: "yayinla_sonra:240" },
       ],
       [
-        { text: "🎨 Formatı Değiştir", callback_data: `format_menu:${id}` },
-        { text: "⏰ 1 Saat Ertele", callback_data: `ertele:haber:${id}` },
-      ],
-      [
-        { text: "❌ İptal Et (Havuza Döner)", callback_data: `reddet:haber:${id}` },
-        { text: "🗑️ Çöpe At (Dönmesin)", callback_data: `cope_at:haber:${id}` },
+        { text: "← Geri", callback_data: `yayin_geri:${adet}` },
       ],
     ],
   };
 }
 
-function reelsOnayMenusu(id, kanallar = { reels: true, shorts: true, fb_reels: true, threads: true, tiktok: false }) {
-  const simge = (k) => kanallar[k] ? "✅" : "⬜";
-  const aktif = Object.keys(kanallar).filter(k => kanallar[k]).join(",") || "reels,shorts,fb_reels,threads";
+function fotoMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
   return {
     inline_keyboard: [
+      ...kanalButonlariSatirlari(seciliKanallar),
       [
-        { text: `${simge('reels')} Reels`, callback_data: "kanal_toggle:reels" },
-        { text: `${simge('shorts')} Shorts`, callback_data: "kanal_toggle:shorts" },
-        { text: `${simge('fb_reels')} FB Reels`, callback_data: "kanal_toggle:fb_reels" },
+        { text: "📸 Gerçek Fotoğraf Ara", callback_data: "foto_gercek" },
+        { text: "🖼️ Stok Fotoğraf (Pexels)", callback_data: "foto_stok" },
       ],
       [
-        { text: `${simge('threads')} Threads`, callback_data: "kanal_toggle:threads" },
-        { text: `${simge('tiktok')} TikTok`, callback_data: "kanal_toggle:tiktok" },
+        { text: "🎨 Yapay Zeka ile Üret", callback_data: "foto_ai" },
+        { text: "🏛️ Saf Editoryal Zemin", callback_data: "foto_editoryal" },
       ],
       [
-        { text: "🚀 Seçili Kanallarda Yayınla", callback_data: `onayla:reels:${aktif}:${id}` },
-        { text: "📲 Manuel Paket", callback_data: `manuel_paket:reels:${id}` },
-      ],
-      [
-        { text: "✍️ Metinleri Yenile", callback_data: `metin_menu:reels:${id}` },
-        { text: "🖼️ Kapak Foto Değiştir", callback_data: `foto_menu:reels:${id}` },
-      ],
-      [
-        { text: "✅ Manuel Paylaştım", callback_data: `onayla:reels:tamamla:${id}` },
-        { text: "🔄 Sıfırdan Yeniden Üret", callback_data: `yenile:reels:${id}` },
-      ],
-      [
-        { text: "❌ İptal Et (Havuza Döner)", callback_data: `reddet:reels:${id}` },
-        { text: "🗑️ Çöpe At (Dönmesin)", callback_data: `cope_at:reels:${id}` },
+        { text: "← Ana Menü", callback_data: `foto_geri:${adet}` },
       ],
     ],
   };
 }
 
-function metinSecimMenusu(id, tur = "haber") {
+function metinMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
   return {
     inline_keyboard: [
+      ...kanalButonlariSatirlari(seciliKanallar),
       [
-        { text: "✂️ Daha da Özetle", callback_data: `metin_eylem:ozetle:${tur}:${id}` },
-        { text: "📖 Hukuki Detay Ekle", callback_data: `metin_eylem:detaylandir:${tur}:${id}` },
+        { text: "✂️ Haberi Daha da Özetle", callback_data: "metin_ozetle" },
+        { text: "📖 Hukuki Detay Ekle", callback_data: "metin_detaylandir" },
       ],
       [
-        { text: "🔄 Standart Yeniden Yaz", callback_data: `yenile:${tur}:${id}` },
+        { text: "🔄 Standart Yeniden Yaz", callback_data: "metin_yenile" },
       ],
       [
-        { text: "← Onay Menüsüne Dön", callback_data: `onay_menu_don:${tur}:${id}` },
+        { text: "← Ana Menü", callback_data: `metin_geri:${adet}` },
       ],
     ],
   };
 }
 
-function fotoSecimMenusu(id, tur = "haber") {
-  return {
-    inline_keyboard: [
-      [
-        { text: "🖼️ Başka Fotoğraf Seç", callback_data: `foto_eylem:degistir:${tur}:${id}` },
-        { text: "🏛️ Saf Editoryal Zemin Yap", callback_data: `foto_eylem:editoryal:${tur}:${id}` },
-      ],
-      [
-        { text: "← Onay Menüsüne Dön", callback_data: `onay_menu_don:${tur}:${id}` },
-      ],
-    ],
-  };
+function slaytSecimMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
+  const tuslar = [];
+  if (adet > 1) {
+    const satir = [];
+    for (let i = 1; i <= Math.min(adet, 5); i++) {
+      satir.push({ text: String(i), callback_data: `slayt:${i}:${adet}` });
+    }
+    tuslar.push(satir);
+  }
+  tuslar.push([
+    { text: "📖 Sözlük Formatı", callback_data: "format_uygula:sozluk" },
+    { text: "⚖️ Nedir Doğrusu?", callback_data: "format_uygula:nedir_dogrusu" },
+  ]);
+  tuslar.push([
+    { text: "📂 Vaka Analizi", callback_data: "format_uygula:vaka" },
+    { text: "❓ Net Cevap", callback_data: "format_uygula:net_cevap" },
+  ]);
+  tuslar.push([
+    { text: "← Geri", callback_data: `geri:${adet}` },
+  ]);
+  return { inline_keyboard: tuslar };
 }
+
+// Geriye dönük uyumluluk takma adları
+const standartOnayMenusu = (id, kanallar) => anaMenu(2, ["ig", "story", "threads", "facebook"]);
+const reelsOnayMenusu = (id, kanallar) => anaMenu(2, ["reels", "story", "threads", "facebook", "youtube", "tiktok"]);
+const formatSecimMenusu = (id) => slaytSecimMenusu(2);
+const metinSecimMenusu = (id, tur) => metinMenusu(2);
+const fotoSecimMenusu = (id, tur) => fotoMenusu(2);
 
 async function tetikleGitHub(env, eventType, clientPayload) {
   const repo = env.GITHUB_REPOSITORY || "edmyapigayrimenkul/postedm";

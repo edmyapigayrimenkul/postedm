@@ -73,10 +73,11 @@ jobs:
           TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
         run: |
-          TUR="${{ github.event.client_payload.tur || inputs.tur }}"
-          ID="${{ github.event.client_payload.id || inputs.id }}"
-          HEDEF="${{ github.event.client_payload.hedef || inputs.hedef }}"
-          python scripts/yayinla.py --tur "$TUR" --id "$ID" --hedef "$HEDEF"
+          TUR="${{ github.event.client_payload.tur || inputs.tur || 'haber' }}"
+          ID="${{ github.event.client_payload.id || inputs.id || '' }}"
+          HEDEF="${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}"
+          MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
+          python scripts/yayinla.py --tur "$TUR" ${ID:+--id "$ID"} --hedef "$HEDEF" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
 
       - name: Veritabanını Kaydet
         if: always()

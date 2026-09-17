@@ -471,126 +471,171 @@ def kanal_ayarla(kanal: str, aktif: bool) -> Dict[str, bool]:
 
 
 def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dict[str, str]]]:
-    """Tek tıkla açılıp kapanabilen kompakt kanal toggle butonları döner."""
+    """
+    Yayın kanallarını açıp kapamak için 2 satırlı kompakt toggle butonları üretir.
+    Satır 1: [✅ IG] [⬜ Reels] [✅ Story] [✅ Threads]
+    Satır 2: [✅ FB] [⬜ YT] [⬜ TT]
+    """
     if kanallar is None:
-        kanallar = varsayilan_kanallar()
+        kanallar = {
+            "ig": True, "reels": False, "story": True, "threads": True,
+            "facebook": True, "youtube": False, "tiktok": False,
+        }
 
     def _simge(k: str) -> str:
-        return "✅" if kanallar.get(k, False) else "⬜"
+        varsayilan_kapali = k in ("reels", "youtube", "tiktok")
+        return "✅" if kanallar.get(k, False if varsayilan_kapali else True) else "⬜"
 
     return [
         [
-            {"text": f"{_simge('ig')} Instagram", "callback_data": "kanal_toggle:ig"},
-            {"text": f"{_simge('threads')} Threads", "callback_data": "kanal_toggle:threads"},
-            {"text": f"{_simge('fb')} Facebook", "callback_data": "kanal_toggle:fb"},
-        ]
+            {"text": f"{_simge('ig')} IG", "callback_data": "kanal:ig"},
+            {"text": f"{_simge('reels')} Reels", "callback_data": "kanal:reels"},
+            {"text": f"{_simge('story')} Story", "callback_data": "kanal:story"},
+            {"text": f"{_simge('threads')} Threads", "callback_data": "kanal:threads"},
+        ],
+        [
+            {"text": f"{_simge('facebook')} FB", "callback_data": "kanal:facebook"},
+            {"text": f"{_simge('youtube')} YT", "callback_data": "kanal:youtube"},
+            {"text": f"{_simge('tiktok')} TT", "callback_data": "kanal:tiktok"},
+        ],
     ]
 
 
-def onay_menusu(haber_id: int, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
-    """İçerik onayına sunulduğunda gösterilen tam yetkili kontrol menüsü."""
-    if kanallar is None:
-        kanallar = varsayilan_kanallar()
-
-    aktif_list = [k for k, v in kanallar.items() if v]
-    hedef_param = ",".join(aktif_list) if aktif_list else "ig,threads"
-
+def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Onay mesajının ilk buton seti — Instabot ile birebir aynı."""
     return {
         "inline_keyboard": [
             *kanal_butonlari(kanallar),
             [
-                {"text": "🚀 Seçili Kanallarda Yayınla", "callback_data": f"onayla:haber:{hedef_param}:{haber_id}"},
-                {"text": "📲 Manuel Paket", "callback_data": f"manuel_paket:haber:{haber_id}"},
+                {"text": "✅ Yayınla", "callback_data": f"yayin_menu:{adet}"},
+                {"text": "📲 Manuel Paylaşım Paketi", "callback_data": "manuel_paket"},
             ],
             [
-                {"text": "✍️ Metinleri Yenile", "callback_data": f"metin_menu:haber:{haber_id}"},
-                {"text": "🖼️ Fotoğrafı Değiştir", "callback_data": f"foto_menu:haber:{haber_id}"},
+                {"text": "🔄 Başka Fotoğraf Bul", "callback_data": f"foto_menu:{adet}"},
+                {"text": "✍️ Metinleri Yenile", "callback_data": f"metin_menu:{adet}"},
             ],
             [
-                {"text": "🎨 Formatı Değiştir", "callback_data": f"format_menu:{haber_id}"},
-                {"text": "⏰ 1 Saat Ertele", "callback_data": f"ertele:haber:{haber_id}"},
+                {"text": f"🎨 Slayt düzenle ({adet} slayt)", "callback_data": f"slayt_menu:{adet}"},
             ],
             [
-                {"text": "❌ İptal Et (Havuza Döner)", "callback_data": f"reddet:haber:{haber_id}"},
-                {"text": "🗑️ Çöpe At (Dönmesin)", "callback_data": f"cope_at:haber:{haber_id}"},
+                {"text": "⏰ 1 saat ertele", "callback_data": "ertele"},
+            ],
+            [
+                {"text": "❌ Bu turu atla (Havuza döner)", "callback_data": "iptal"},
+                {"text": "🗑️ Çöpe At", "callback_data": "cope_at"},
             ],
         ]
     }
+
+
+def yayin_zamani_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Instabot yayın zamanı seçim alt menüsü."""
+    return {
+        "inline_keyboard": [
+            *kanal_butonlari(kanallar),
+            [
+                {"text": "▶️ Şimdi", "callback_data": "yayinla"},
+                {"text": "30 dk", "callback_data": "yayinla_sonra:30"},
+            ],
+            [
+                {"text": "1 saat", "callback_data": "yayinla_sonra:60"},
+                {"text": "2 saat", "callback_data": "yayinla_sonra:120"},
+            ],
+            [
+                {"text": "3 saat", "callback_data": "yayinla_sonra:180"},
+                {"text": "4 saat", "callback_data": "yayinla_sonra:240"},
+            ],
+            [
+                {"text": "← Geri", "callback_data": f"yayin_geri:{adet}"},
+            ],
+        ]
+    }
+
+
+def foto_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Instabot fotoğraf / görsel değiştirme alt menüsü."""
+    return {
+        "inline_keyboard": [
+            *kanal_butonlari(kanallar),
+            [
+                {"text": "📸 Gerçek Fotoğraf Ara", "callback_data": "foto_gercek"},
+                {"text": "🖼️ Stok Fotoğraf (Pexels)", "callback_data": "foto_stok"},
+            ],
+            [
+                {"text": "🎨 Yapay Zeka ile Üret", "callback_data": "foto_ai"},
+                {"text": "🏛️ Saf Editoryal Zemin", "callback_data": "foto_editoryal"},
+            ],
+            [
+                {"text": "← Ana Menü", "callback_data": f"foto_geri:{adet}"},
+            ],
+        ]
+    }
+
+
+def metin_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Instabot metin yenileme alt menüsü."""
+    return {
+        "inline_keyboard": [
+            *kanal_butonlari(kanallar),
+            [
+                {"text": "✂️ Haberi Daha da Özetle", "callback_data": "metin_ozetle"},
+                {"text": "📖 Hukuki Detay Ekle", "callback_data": "metin_detaylandir"},
+            ],
+            [
+                {"text": "🔄 Standart Yeniden Yaz", "callback_data": "metin_yenile"},
+            ],
+            [
+                {"text": "← Ana Menü", "callback_data": f"metin_geri:{adet}"},
+            ],
+        ]
+    }
+
+
+def slayt_secim_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Instabot slayt düzenleme ve format seçim alt menüsü."""
+    tuslar = []
+    if adet > 1:
+        satir = [{"text": str(i), "callback_data": f"slayt:{i}:{adet}"} for i in range(1, min(adet, 5) + 1)]
+        tuslar.append(satir)
+    tuslar.extend([
+        [
+            {"text": "📖 Sözlük Formatı", "callback_data": "format_uygula:sozluk"},
+            {"text": "⚖️ Nedir Doğrusu?", "callback_data": "format_uygula:nedir_dogrusu"},
+        ],
+        [
+            {"text": "📂 Vaka Analizi", "callback_data": "format_uygula:vaka"},
+            {"text": "❓ Net Cevap", "callback_data": "format_uygula:net_cevap"},
+        ],
+        [
+            {"text": "← Geri", "callback_data": f"geri:{adet}"},
+        ],
+    ])
+    return {"inline_keyboard": tuslar}
+
+
+def onay_menusu(haber_id: int, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Geriye dönük uyumluluk: ana_menu çağırır."""
+    return ana_menu(adet=2, kanallar=kanallar)
 
 
 def reels_onay_menusu(haber_id: int, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
-    """Instabot mimarisinde Reels ve Video içerikleri için toggle kanallı onay menüsü."""
+    """Geriye dönük uyumluluk: Reels varsayılan kanallarıyla ana_menu çağırır."""
     if kanallar is None:
-        kanallar = {"reels": True, "shorts": True, "fb_reels": True, "threads": True, "tiktok": False}
-
-    def _simge(k: str) -> str:
-        return "✅" if kanallar.get(k, False) else "⬜"
-
-    aktif_list = [k for k, v in kanallar.items() if v]
-    hedef_param = ",".join(aktif_list) if aktif_list else "reels,shorts,fb_reels,threads"
-
-    return {
-        "inline_keyboard": [
-            [
-                {"text": f"{_simge('reels')} Reels", "callback_data": "kanal_toggle:reels"},
-                {"text": f"{_simge('shorts')} Shorts", "callback_data": "kanal_toggle:shorts"},
-                {"text": f"{_simge('fb_reels')} FB Reels", "callback_data": "kanal_toggle:fb_reels"},
-            ],
-            [
-                {"text": f"{_simge('threads')} Threads", "callback_data": "kanal_toggle:threads"},
-                {"text": f"{_simge('tiktok')} TikTok", "callback_data": "kanal_toggle:tiktok"},
-            ],
-            [
-                {"text": "🚀 Seçili Kanallarda Yayınla", "callback_data": f"onayla:reels:{hedef_param}:{haber_id}"},
-                {"text": "📲 Manuel Paket", "callback_data": f"manuel_paket:reels:{haber_id}"},
-            ],
-            [
-                {"text": "✍️ Metinleri Yenile", "callback_data": f"metin_menu:reels:{haber_id}"},
-                {"text": "🖼️ Kapak Foto Değiştir", "callback_data": f"foto_menu:reels:{haber_id}"},
-            ],
-            [
-                {"text": "✅ Manuel Paylaştım", "callback_data": f"onayla:reels:tamamla:{haber_id}"},
-                {"text": "🔄 Sıfırdan Yeniden Üret", "callback_data": f"yenile:reels:{haber_id}"},
-            ],
-            [
-                {"text": "❌ İptal Et (Havuza Döner)", "callback_data": f"reddet:reels:{haber_id}"},
-                {"text": "🗑️ Çöpe At (Dönmesin)", "callback_data": f"cope_at:reels:{haber_id}"},
-            ],
-        ]
-    }
+        kanallar = {
+            "ig": False, "reels": True, "story": True, "threads": True,
+            "facebook": True, "youtube": True, "tiktok": True,
+        }
+    return ana_menu(adet=2, kanallar=kanallar)
 
 
 def metin_secim_menusu(haber_id: int, tur: str = "haber") -> Dict[str, Any]:
-    """Metin yenileme alt menüsü (instabot standardı)."""
-    return {
-        "inline_keyboard": [
-            [
-                {"text": "✂️ Daha da Özetle", "callback_data": f"metin_eylem:ozetle:{tur}:{haber_id}"},
-                {"text": "📖 Hukuki Detay Ekle", "callback_data": f"metin_eylem:detaylandir:{tur}:{haber_id}"},
-            ],
-            [
-                {"text": "🔄 Standart Yeniden Yaz", "callback_data": f"yenile:{tur}:{haber_id}"},
-            ],
-            [
-                {"text": "← Onay Menüsüne Dön", "callback_data": f"onay_menu_don:{tur}:{haber_id}"},
-            ],
-        ]
-    }
+    """Geriye dönük uyumluluk: metin_menusu çağırır."""
+    return metin_menusu(adet=2)
 
 
 def foto_secim_menusu(haber_id: int, tur: str = "haber") -> Dict[str, Any]:
-    """Arka plan / kapak görseli değiştirme menüsü (instabot standardı)."""
-    return {
-        "inline_keyboard": [
-            [
-                {"text": "🖼️ Başka Fotoğraf Seç", "callback_data": f"foto_eylem:degistir:{tur}:{haber_id}"},
-                {"text": "🏛️ Saf Editoryal Zemin Yap", "callback_data": f"foto_eylem:editoryal:{tur}:{haber_id}"},
-            ],
-            [
-                {"text": "← Onay Menüsüne Dön", "callback_data": f"onay_menu_don:{tur}:{haber_id}"},
-            ],
-        ]
-    }
+    """Geriye dönük uyumluluk: foto_menusu çağırır."""
+    return foto_menusu(adet=2)
 
 
 def format_secim_menusu(haber_id: int) -> Dict[str, Any]:
@@ -880,7 +925,7 @@ def haber_onayina_sun(haber_id: int) -> bool:
         )
     mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
 
-    butonlar = onay_menusu(haber_id)
+    butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2)
     res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
         _, chat_id = _bot_bilgileri()
@@ -1127,7 +1172,8 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         f"<pre><code>{temiz_caption}</code></pre>\n\n"
         f"💡 <i>'🚀 Seçili Kanallarda Yayınla' butonuna bastığınızda 1080x1920 MP4 dikey videosu derlenip gruba iletilecektir.</i>"
     )
-    res = mesaj_gonder(mesaj_metni, reply_markup=reels_onay_menusu(haber_id))
+    reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True}
+    res = mesaj_gonder(mesaj_metni, reply_markup=ana_menu(adet=len(slayt_yollari) if slayt_yollari else 7, kanallar=reels_kanallari))
     if res and isinstance(res, dict) and "message_id" in res:
         _, chat_id = _bot_bilgileri()
         try:

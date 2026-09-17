@@ -25,14 +25,30 @@ log = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="EDM Paylaşım Yayınlayıcı")
-    parser.add_argument("--tur", required=True, choices=["haber", "ilan", "reels"], help="İçerik türü")
-    parser.add_argument("--id", required=True, help="Haber ID veya İlan ID")
-    parser.add_argument("--hedef", default="hepsi", help="Hedef platform veya işlem (hepsi, ig, threads, video, reels, fb, reddet, iptal, yenile, manuel_paket, tamamla)")
+    parser.add_argument("--tur", default="haber", choices=["haber", "ilan", "reels"], help="İçerik türü")
+    parser.add_argument("--id", default=None, help="Haber ID veya İlan ID")
+    parser.add_argument("--mesaj-id", default=None, type=int, help="Telegram mesaj ID")
+    parser.add_argument("--hedef", default="hepsi", help="Hedef platform veya işlem")
     parser.add_argument("--yeniden-ciz", action="store_true", help="İlan kartlarını güncel site verisiyle yeniden üret")
     args = parser.parse_args()
 
     tur = args.tur
     ref_id = args.id
+    if (not ref_id or ref_id == "None") and args.mesaj_id:
+        bulunan = db.mesajdan_icerik_bul(args.mesaj_id)
+        if bulunan:
+            tur, ref_id_int, _ = bulunan
+            ref_id = str(ref_id_int)
+    elif not ref_id or ref_id == "None":
+        bulunan = db.mesajdan_icerik_bul(None)
+        if bulunan:
+            tur, ref_id_int, _ = bulunan
+            ref_id = str(ref_id_int)
+
+    if not ref_id:
+        log.error("İşlem yapılacak içerik ID'si bulunamadı.")
+        return
+
     hedef = args.hedef.lower()
     hedefler = {parca.strip() for parca in hedef.split(",") if parca.strip()}
 
@@ -41,15 +57,14 @@ def main() -> None:
 
     log.info("Yayın süreci başlatılıyor: Tür=%s, ID=%s, Hedef=%s", tur, ref_id, hedef)
 
-    # 0. Reddet / İptal Aksiyonu
+    # 0. Reddet / İptal Aksiyonu (Havuza döner)
     if hedef in ("reddet", "iptal"):
         if tur in ("haber", "reels"):
-            db.haber_guncelle(int(ref_id), durum="reddedildi")
-            db.onay_istegi_sonuclandir(tur, str(ref_id), "reddedildi")
-            tur_adi = "Reels Videosu" if tur == "reels" else "Haber"
-            log.info("%s #%s reddedildi olarak işaretlendi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"❌ <b>{tur_adi} #{ref_id} reddedildi ve arşive kaldırıldı.</b>\n<i>Sıradaki içerik hazırlanıyor...</i>")
-            # Instabot standardı: İptal edildiğinde boşta kalınmaz, sıradaki konu derhal onaya sunulur
+            db.haber_guncelle(int(ref_id), durum="iptal")
+            db.onay_istegi_sonuclandir(tur, str(ref_id), "iptal")
+            tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
+            log.info("%s #%s atlandı, konu havuza iade edildi.", tur_adi, ref_id)
+            telegram_bot.mesaj_gonder(f"❌ <b>{tur_adi} #{ref_id} atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>")
             if tur == "reels":
                 telegram_bot.reels_hazirla_ve_sun()
             else:
@@ -62,31 +77,14 @@ def main() -> None:
         db.wal_bosalt()
         return
 
-    # 0.1 Çöpe At Aksiyonu (Havuza asla geri dönmez, kalıcı kilitlenir)
+    # 0.1 Çöpe At Aksiyonu (Taslak atılır, kullanıcı isteğiyle KONU ASLA KİLİTLENMEZ, havuza iade edilir)
     if hedef == "cope_at":
-        import re
         if tur in ("haber", "reels"):
-            haber = db.haber_getir(int(ref_id))
-            db.haber_guncelle(int(ref_id), durum="engellendi")
-            konu_kodu = None
-            if haber:
-                kaynak_str = haber.get("kaynak") or ""
-                m = re.search(r"(S\d-\w+)", kaynak_str)
-                if m:
-                    konu_kodu = m.group(1)
-                elif haber.get("orijinal_url"):
-                    m2 = re.search(r"edm://(?:konu|reels)/([^/]+)", haber["orijinal_url"])
-                    if m2:
-                        konu_kodu = m2.group(1)
-            if konu_kodu:
-                from src import konu_bankasi
-                konu_bankasi.kullanildi_isaretle(konu_kodu, haber_id=int(ref_id), sonuc="cope_at")
-                log.info("Konu %s kalıcı olarak engellendi (cope_at).", konu_kodu)
-            db.onay_istegi_sonuclandir(tur, str(ref_id), "engellendi")
+            db.haber_guncelle(int(ref_id), durum="iptal")
+            db.onay_istegi_sonuclandir(tur, str(ref_id), "iptal")
             tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
-            log.info("%s #%s çöpe atıldı ve kalıcı olarak engellendi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"🗑️ <b>{tur_adi} #{ref_id} kalıcı olarak çöpe atıldı.</b>\n<i>Bu konu havuza bir daha dönmeyecek şekilde kilitlendi. Sıradaki içerik hazırlanıyor...</i>")
-            # Instabot standardı: Çöpe atıldığında sıradaki konu derhal onaya sunulur
+            log.info("%s #%s taslağı çöpe atıldı, konu havuza iade edildi.", tur_adi, ref_id)
+            telegram_bot.mesaj_gonder(f"🗑️ <b>{tur_adi} #{ref_id} taslağı çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>")
             if tur == "reels":
                 telegram_bot.reels_hazirla_ve_sun()
             else:
