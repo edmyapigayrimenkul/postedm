@@ -118,14 +118,17 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="EDM günlük durum ve kota raporu")
     ap.add_argument("--sessiz", action="store_true", help="Telegram'a gönderme")
     ap.add_argument("--sade", action="store_true", help="Eski sade formatta rapor üret")
+    ap.add_argument("--kategori", default=None, help="Kategori (1: Bulut/API, 2: Sosyal/Yayın, menu: Seçim kartı)")
     args = ap.parse_args()
+
+    kat_secimi = args.kategori or config.env_al("KATEGORI") or "menu"
 
     if args.sade:
         govde, uyari = rapor_uret()
         baslik = "☀️ <b>GÜNLÜK RAPOR</b>" + ("  ⚠️" if uyari else "")
         rapor = f"{baslik}\n\n{govde}"
     else:
-        rapor = rapor_uretici.kota_metni_uret()
+        rapor = rapor_uretici.kota_metni_uret(kategori=1 if kat_secimi == "menu" else kat_secimi)
 
     print(
         rapor.replace("<b>", "")
@@ -158,7 +161,7 @@ def main() -> int:
                 else:
                     telegram_bot.mesaj_gonder(rapor, reply_markup=butonlar)
             else:
-                telegram_bot.kota_gonder(mesaj_id=m_id)
+                telegram_bot.kota_gonder(mesaj_id=m_id, kategori=kat_secimi)
 
             # Kendini onaran komut menüsü: her sabah açılır menüyü Telegram'a tazeler
             telegram_bot.komut_menusu_kaydet()

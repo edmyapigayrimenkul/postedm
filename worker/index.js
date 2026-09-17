@@ -612,13 +612,18 @@ export default {
 
         if (
           data === "kota_raporu" || data === "kota_goster" || data === "kota_tazele" ||
-          data === "rapor_goster" || data === "rapor_tazele"
+          data === "rapor_goster" || data === "rapor_tazele" || data === "kota_menu" ||
+          data.startsWith("kota_kat:")
         ) {
-          await cevapVer("Detaylı kota ve sistem raporu hazırlanıyor...");
-          if ((data === "rapor_tazele" || data === "kota_tazele") && messageId) {
-            await mesajiGuncelle("🔄 <b>Kota güncelleniyor...</b>\n<i>GitHub Actions dakikaları, yapay zeka tokenları ve sistem durumları alınıyor...</i>");
+          let kategori = "menu";
+          if (data.startsWith("kota_kat:")) {
+            kategori = data.split(":")[1];
           }
-          await tetikleGitHub(env, "rapor", { mesaj_id: messageId });
+          await cevapVer("Kota bilgisi hazırlanıyor...");
+          if (messageId) {
+            await mesajiGuncelle("🔄 <b>Kota güncelleniyor...</b>\n<i>Bulut, yapay zeka ve sosyal medya kotaları taranıyor...</i>");
+          }
+          await tetikleGitHub(env, "rapor", { mesaj_id: messageId, kategori: kategori });
           return new Response("OK");
         }
       }
@@ -731,12 +736,19 @@ export default {
 
         // /rapor, /kullanim, /kota — Detaylı sistem, GitHub Actions ve yapay zeka kota tablosu
         if (
-          text === "/rapor" || text === "rapor" ||
-          text === "/kullanim" || text === "kullanim" ||
-          text === "/kota" || text === "kota"
+          text.startsWith("/rapor") || text.startsWith("rapor") ||
+          text.startsWith("/kullanim") || text.startsWith("kullanim") ||
+          text.startsWith("/kota") || text.startsWith("kota")
         ) {
-          await mesajGonder("📈 <b>Detaylı Kota ve Sistem Raporu hazırlanıyor...</b>\nGitHub Actions süresi, yapay zeka token kullanımı ve sistem tabloları taranıyor...");
-          await tetikleGitHub(env, "rapor", {});
+          const parcalar = text.split(/\s+/);
+          let kategori = "menu";
+          if (parcalar.length > 1) {
+            const p = parcalar[1];
+            if (p === "1" || p === "bulut" || p === "api") kategori = "1";
+            else if (p === "2" || p === "sosyal" || p === "yayin") kategori = "2";
+          }
+          await mesajGonder("📈 <b>Kota ve Sistem Durumu taranıyor...</b>\nBulut altyapısı, yapay zeka tokenları ve yayın limitleri alınıyor...");
+          await tetikleGitHub(env, "rapor", { kategori: kategori });
           return new Response("OK");
         }
 

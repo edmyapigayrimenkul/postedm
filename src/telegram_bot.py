@@ -820,10 +820,10 @@ def durum_raporu_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, An
     return mesaj_gonder(metin, reply_markup=geri_menu)
 
 
-def kota_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+def kota_gonder(mesaj_id: Optional[int] = None, kategori: int | str = "menu") -> Optional[Dict[str, Any]]:
     """Detaylı GitHub Actions, yapay zeka ve sistem kota tablosu gönderir."""
     from . import rapor_uretici
-    return rapor_uretici.kota_gonder(mesaj_id=mesaj_id)
+    return rapor_uretici.kota_gonder(mesaj_id=mesaj_id, kategori=kategori)
 
 
 kota = kota_gonder

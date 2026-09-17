@@ -46,6 +46,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MESAJ_ID: ${{ github.event.client_payload.mesaj_id }}
+          KATEGORI: ${{ github.event.client_payload.kategori }}
         run: python scripts/gunluk_rapor.py
 
       - name: Hata bildir

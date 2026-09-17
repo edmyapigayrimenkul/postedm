@@ -205,8 +205,12 @@ def main() -> None:
                     elif data == "durum":
                         telegram_bot.durum_raporu_gonder(msg_id)
 
-                    elif data in ("kota_goster", "kota_tazele", "rapor_goster", "rapor_tazele", "kota_raporu"):
-                        telegram_bot.kota_gonder(msg_id)
+                    elif data in ("kota_goster", "kota_tazele", "rapor_goster", "rapor_tazele", "kota_raporu", "kota_menu"):
+                        telegram_bot.kota_gonder(msg_id, kategori="menu")
+
+                    elif data.startswith("kota_kat:"):
+                        kat_secim = data.split(":", 1)[1]
+                        telegram_bot.kota_gonder(msg_id, kategori=kat_secim)
 
                     elif data == "saglik_testi":
                         saglik_testi_gonder()
@@ -408,7 +412,9 @@ def main() -> None:
 
                     elif komut_parca in ("/kota", "/rapor", "/kullanim"):
                         log.info("/kota komutu alındı.")
-                        telegram_bot.kota_gonder()
+                        parcalar = text.split()
+                        kat_secim = parcalar[1].lower() if len(parcalar) > 1 else "menu"
+                        telegram_bot.kota_gonder(kategori=kat_secim)
 
                     elif komut_parca in ("/yardim", "/help", "/start"):
                         log.info("/yardim komutu alındı.")
