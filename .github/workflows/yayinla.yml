@@ -18,7 +18,7 @@ on:
         default: 'hepsi'
 
 concurrency:
-  group: edm-veritabani
+  group: edm-veritabani-yayin
   cancel-in-progress: false
 
 jobs:
@@ -163,3 +163,12 @@ jobs:
           MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -m src.hata_bildir --islem "Yayınla" --tur "$TUR" --id "$ID" --hedef "$HEDEF" --mesaj-id "$MESAJ_ID" --run-url "$RUN_URL"
+
+      - name: İptal Bildirimi
+        if: cancelled()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "from src import telegram_bot; telegram_bot.mesaj_gonder('⚠️ <b>Yayın İşlemi İptal Edildi:</b> GitHub Actions kuyruğunda bekleyen işlem başka bir istek tarafından kesildi veya iptal edildi. Lütfen butona tekrar basarak deneyin.')"
+

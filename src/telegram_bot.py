@@ -51,6 +51,20 @@ def _istek(metot: str, **parametreler: Any) -> Optional[Dict[str, Any]]:
     if "caption" in parametreler and isinstance(parametreler["caption"], str) and len(parametreler["caption"]) > 1024:
         parametreler["caption"] = parametreler["caption"][:1021] + "..."
 
+    # Buton 64-bayt koruması (BUTTON_DATA_INVALID önlemi)
+    if "reply_markup" in parametreler and isinstance(parametreler["reply_markup"], dict):
+        klavye = parametreler["reply_markup"].get("inline_keyboard")
+        if isinstance(klavye, list):
+            for satir in klavye:
+                if isinstance(satir, list):
+                    for btn in satir:
+                        if isinstance(btn, dict) and "callback_data" in btn:
+                            cb = str(btn["callback_data"])
+                            cb_b = cb.encode("utf-8")
+                            if len(cb_b) > 64:
+                                log.warning("Telegram callback_data 64 bayt sınırını aştı (%d bayt): %s", len(cb_b), cb)
+                                btn["callback_data"] = cb_b[:64].decode("utf-8", errors="ignore")
+
     for deneme in range(1, 4):
         try:
             cevap = requests.post(url, json=parametreler, timeout=25)
@@ -91,9 +105,9 @@ def _istek(metot: str, **parametreler: Any) -> Optional[Dict[str, Any]]:
                 log.warning("Telegram HTML parse hatası (%s), düz metinle kurtarılıyor: %s", metot, veri.get("description"))
                 parametreler.pop("parse_mode", None)
                 if "text" in parametreler and isinstance(parametreler["text"], str):
-                    parametreler["text"] = re.sub(r"<[^>]+>", "", parametreler["text"])
+                    parametreler["text"] = html.unescape(re.sub(r"<[^>]+>", "", parametreler["text"]))
                 if "caption" in parametreler and isinstance(parametreler["caption"], str):
-                    parametreler["caption"] = re.sub(r"<[^>]+>", "", parametreler["caption"])
+                    parametreler["caption"] = html.unescape(re.sub(r"<[^>]+>", "", parametreler["caption"]))
                 continue
 
         # 5. Önemsiz/beklenen durum hataları
@@ -114,8 +128,9 @@ def mesaj_gonder(
 ) -> Optional[Dict[str, Any]]:
     """Telegram grubuna metin mesajı gönderir (HTML parse hatası ve karakter taşma korumalı)."""
     markup = reply_markup or butonlar
+    guvenli_metin = metin[:4096] if isinstance(metin, str) else str(metin)[:4096]
     payload: Dict[str, Any] = {
-        "text": metin,
+        "text": guvenli_metin,
         "disable_web_page_preview": True,
     }
     if html:

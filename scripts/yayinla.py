@@ -431,6 +431,13 @@ def main() -> None:
                     if tt_res.get("durum"):
                         if tt_res.get("taslak_mi"):
                             rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Taslak Olarak Yüklendi ✓")
+                            tt_baslik = tiktok.baslik_kur(baslik)
+                            import html as html_lib
+                            telegram_bot.mesaj_gonder(
+                                f"🎵 <b>TikTok Taslağı Gelen Kutusuna Yüklendi</b>\n\n"
+                                f"📝 <i>Uygulamadan paylaşırken kullanabileceğiniz metin (kopyalamak için dokunun):</i>\n"
+                                f"<pre><code>{html_lib.escape(tt_baslik)}</code></pre>"
+                            )
                         else:
                             rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Paylaşıldı ✓")
                     else:
@@ -447,6 +454,13 @@ def main() -> None:
                 if tt_res.get("durum"):
                     if tt_res.get("taslak_mi"):
                         rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi ✓")
+                        tt_baslik = tiktok.baslik_kur(baslik)
+                        import html as html_lib
+                        telegram_bot.mesaj_gonder(
+                            f"🎵 <b>TikTok Taslağı Gelen Kutusuna Yüklendi</b>\n\n"
+                            f"📝 <i>Uygulamadan paylaşırken kullanabileceğiniz metin (kopyalamak için dokunun):</i>\n"
+                            f"<pre><code>{html_lib.escape(tt_baslik)}</code></pre>"
+                        )
                     else:
                         tur_etiket = "Tekil Resim" if tek_sayfa else "Carousel"
                         rapor_satirlari.append(f"🎵 <b>TikTok ({tur_etiket}):</b> Paylaşıldı ✓")

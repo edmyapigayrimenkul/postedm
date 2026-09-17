@@ -37,11 +37,18 @@ def _baglanti_al() -> Iterator[sqlite3.Connection]:
 
 def wal_bosalt() -> None:
     """WAL dosyasındaki değişiklikleri ana veritabanına yazar (git commit öncesi zorunludur)."""
+    conn = None
     try:
-        with sqlite3.connect(DB_YOLU, timeout=30) as conn:
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        conn = sqlite3.connect(DB_YOLU, timeout=30)
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     except Exception as e:
         log.warning("WAL boşaltılamadı: %s", e)
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def tablolari_olustur() -> None:
