@@ -2,7 +2,7 @@ name: Paylaşım Yayınla (EDM)
 
 on:
   repository_dispatch:
-    types: [yayinla, bot_yonetim, metin_duzenle]
+    types: [yayinla, bot_yonetim, metin_duzenle, ozel_uret, slayt_islem]
   workflow_dispatch:
     inputs:
       tur:
@@ -41,7 +41,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Bot Yönetimi (Duraklat / Devam Et)
+      - name: Bot Yönetimi (Duraklat / Devam Et / Temizle / Kota)
         if: github.event.action == 'bot_yonetim'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -53,6 +53,10 @@ jobs:
             python -c "import os; from src.telegram_bot import bot_duraklat; s = os.environ.get('SAAT', ''); bot_duraklat(saat=int(s) if s.isdigit() else 24)"
           elif [ "$EYLEM" = "devam_et" ]; then
             python -c "from src.telegram_bot import bot_devam_et; bot_devam_et()"
+          elif [ "$EYLEM" = "tur_temizle" ]; then
+            python -c "from src import db, telegram_bot; adet = db.askidaki_onaylari_temizle(); telegram_bot.mesaj_gonder(f'🧹 <b>Askıdaki Onaylar Temizlendi:</b> {adet} adet bekleyen onay iptal edildi.')"
+          elif [ "$EYLEM" = "kota_raporu" ]; then
+            python -c "from src import db, telegram_bot; o = db.gunluk_yayin_ozeti(); telegram_bot.mesaj_gonder(f'📊 <b>EDM GÜNLÜK YAYIN & SİSTEM ÖZETİ</b>\n\n• Bugün Yayınlanan: {o[\"bugun_yayinlanan\"]}\n• Onay Bekleyen: {o[\"bekleyen_onay\"]}\n• Toplam Arşiv Haber: {o[\"toplam_haber\"]}\n• Toplam Portföy İlanı: {o[\"toplam_ilan\"]}')"
           fi
 
       - name: Yayınla
@@ -100,6 +104,46 @@ jobs:
           METIN="${{ github.event.client_payload.metin }}"
           BASAN="${{ github.event.client_payload.gonderen || '' }}"
           python scripts/metin_duzenle.py --mesaj-id "$MESAJ_ID" --metin "$METIN" --gonderen "$BASAN"
+
+      - name: Özel İçerik Üretimi (/link veya /ozel)
+        if: github.event.action == 'ozel_uret'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_YEDEK: ${{ secrets.GEMINI_API_KEY_YEDEK }}
+          GEMINI_API_KEY_YEDEK2: ${{ secrets.GEMINI_API_KEY_YEDEK2 }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+        run: |
+          TUR="${{ github.event.client_payload.tur }}"
+          URL="${{ github.event.client_payload.url || '' }}"
+          METIN="${{ github.event.client_payload.metin || '' }}"
+          python scripts/ozel_uret.py --tur "$TUR" ${URL:+--url "$URL"} ${METIN:+--metin "$METIN"}
+
+      - name: Slayt Operasyonu (Taşıma / Silme / AI Başlık)
+        if: github.event.action == 'slayt_islem'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_YEDEK: ${{ secrets.GEMINI_API_KEY_YEDEK }}
+          GEMINI_API_KEY_YEDEK2: ${{ secrets.GEMINI_API_KEY_YEDEK2 }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+        run: |
+          EYLEM="${{ github.event.client_payload.eylem }}"
+          SIRA="${{ github.event.client_payload.sira }}"
+          MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
+          python scripts/slayt_islem.py --eylem "$EYLEM" --sira "$SIRA" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
 
       - name: Veritabanını Kaydet
         if: always()

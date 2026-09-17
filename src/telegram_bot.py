@@ -617,6 +617,35 @@ def slayt_secim_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None
     return {"inline_keyboard": tuslar}
 
 
+def slayt_islem_menusu(sira: int, adet: int, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Seçilen slayt için yapılabilecekler (sıralama, silme, metin ve başlık aksiyonları)."""
+    tuslar: List[List[Dict[str, str]]] = []
+    if adet > 1:
+        if sira > 1:
+            tuslar.append([{"text": f"🔝 {sira}. Slaytı EN BAŞA Al (Manşet Yap)", "callback_data": f"slayt_basa:{sira}"}])
+        sira_satiri = []
+        if sira > 1:
+            sira_satiri.append({"text": "⬆️ 1 Yukarı Taşı", "callback_data": f"slayt_yukari:{sira}"})
+        if sira < adet:
+            sira_satiri.append({"text": "⬇️ 1 Aşağı Taşı", "callback_data": f"slayt_asagi:{sira}"})
+        if sira_satiri:
+            tuslar.append(sira_satiri)
+
+    tuslar.extend([
+        [{"text": f"🔥 {sira}. Slayt: Başlığı Daha Çarpıcı Yap", "callback_data": f"slayt_carpici:{sira}"}],
+        [{"text": f"✍️ {sira}. Slayt: Başlığı Elle Düzenle (Reply)", "callback_data": f"slayt_elle:{sira}"}],
+        [
+            {"text": f"➕ {sira}. Slayt: Metni Uzat", "callback_data": f"slayt_uzat:{sira}"},
+            {"text": f"➖ {sira}. Slayt: Metni Kısalt", "callback_data": f"slayt_kisalt:{sira}"},
+        ],
+    ])
+    if adet > 2:
+        tuslar.append([{"text": f"🗑 {sira}. Slaytı Çıkar", "callback_data": f"slayt_sil:{sira}"}])
+
+    tuslar.append([{"text": "← Slayt Seçimine Dön", "callback_data": f"slayt_menu:{adet}"}])
+    return {"inline_keyboard": tuslar}
+
+
 def onay_menusu(haber_id: int, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
     """Geriye dönük uyumluluk: ana_menu çağırır."""
     return ana_menu(adet=2, kanallar=kanallar)

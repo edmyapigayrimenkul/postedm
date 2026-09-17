@@ -403,16 +403,20 @@ export default {
           data.startsWith("foto_menu:") || data.startsWith("foto_geri:") ||
           data.startsWith("metin_menu:") || data.startsWith("metin_geri:") ||
           data.startsWith("slayt_menu:") || data.startsWith("geri:") ||
-          data.startsWith("format_menu:") || data.startsWith("onay_menu_don:")
+          data.startsWith("format_menu:") || data.startsWith("onay_menu_don:") ||
+          data.startsWith("slayt:")
         ) {
           const parts = data.split(":");
           const kok = parts[0];
-          const adet = parseInt(parts[1] || "2", 10) || 2;
+          const adet = parseInt(parts[parts.length - 1] || "2", 10) || 2;
           const klavye = cb.message?.reply_markup?.inline_keyboard || [];
           const seciliKanallar = seciliKanallariCikar(klavye);
 
           let yeniMenu;
-          if (kok === "yayin_menu") {
+          if (kok === "slayt") {
+            const sira = parseInt(parts[1] || "1", 10) || 1;
+            yeniMenu = slaytIslemMenusu(sira, adet, seciliKanallar);
+          } else if (kok === "yayin_menu") {
             yeniMenu = yayinZamaniMenusu(adet, seciliKanallar);
           } else if (kok === "foto_menu") {
             yeniMenu = fotoMenusu(adet, seciliKanallar);
@@ -560,6 +564,57 @@ export default {
           await tetikleGitHub(env, "ilan_menusu", {});
           return new Response("OK");
         }
+
+        // N. SLAYT DETAY VE SIRALAMA EYLEMLERİ
+        if (
+          data.startsWith("slayt_basa:") || data.startsWith("slayt_yukari:") ||
+          data.startsWith("slayt_asagi:") || data.startsWith("slayt_sil:") ||
+          data.startsWith("slayt_carpici:") || data.startsWith("slayt_uzat:") ||
+          data.startsWith("slayt_kisalt:")
+        ) {
+          const [eylem, sira] = data.split(":");
+          await cevapVer("Slayt işlemi başlatıldı...");
+          await mesajiGuncelle(`⏳ <b>Slayt güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await tetikleGitHub(env, "slayt_islem", {
+            eylem,
+            sira: parseInt(sira, 10),
+            mesaj_id: messageId,
+          });
+          return new Response("OK");
+        }
+
+        if (data.startsWith("slayt_elle:")) {
+          const sira = data.split(":")[1];
+          await cevapVer();
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: `✍️ <b>${sira}. slaytın başlığını düzenlemek için</b> bu mesaja yanıt (reply) vererek yeni başlığı yazın:\n\n<code>${sira}: Yeni Başlık Metni</code>\n\n<i>Başlık ve açıklamayı birlikte girmek için:</i>\n<code>${sira}: Yeni Başlık | Yeni Açıklama</code>`,
+              parse_mode: "HTML",
+            }),
+          });
+          return new Response("OK");
+        }
+
+        // O. YÖNETİM AKSİYONLARI (TEMİZLEME VE KOTA)
+        if (data === "tur_temizle") {
+          await cevapVer("Onaylar temizleniyor...");
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: "🧹 Askıda bekleyen onaylar taranıp temizleniyor...", parse_mode: "HTML" }),
+          });
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "tur_temizle" });
+          return new Response("OK");
+        }
+
+        if (data === "kota_raporu") {
+          await cevapVer("Kota raporu hazırlanıyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "kota_raporu" });
+          return new Response("OK");
+        }
       }
 
       // =====================================================================
@@ -634,6 +689,44 @@ export default {
         if (text === "/hatirlat" || text === "hatirlat") {
           await mesajGonder("⏰ Bekleyen onaylar taranıyor, onay bekleyen varsa hatırlatılacak...");
           await tetikleGitHub(env, "hatirlat", { zorla: true });
+          return new Response("OK");
+        }
+
+        // /link <URL> — Web linkinden otorite postu üretir
+        if (rawText.startsWith("/link")) {
+          const url = rawText.slice(5).trim();
+          if (!url.startsWith("http")) {
+            await mesajGonder("⚠️ Lütfen geçerli bir web linki girin:\n<code>/link https://...</code>");
+            return new Response("OK");
+          }
+          await mesajGonder(`🌐 <b>Link taranıyor ve özel içerik hazırlanıyor...</b>\n<code>${url.slice(0, 70)}...</code>`);
+          await tetikleGitHub(env, "ozel_uret", { tur: "link", url });
+          return new Response("OK");
+        }
+
+        // /ozel <metin> veya /konu <metin> — Serbest konudan içerik üretir
+        if (rawText.startsWith("/ozel") || rawText.startsWith("/konu")) {
+          const metin = rawText.replace(/^\/(ozel|konu)\s*/i, "").trim();
+          if (metin.length < 5) {
+            await mesajGonder("⚠️ Lütfen üretmek istediğiniz konuyu yazın:\n<code>/ozel Hisseli tapuda şufa hakkı...</code>");
+            return new Response("OK");
+          }
+          await mesajGonder(`✍️ <b>Özel konu için içerik hazırlanıyor...</b>\n<i>"${metin.slice(0, 100)}..."</i>`);
+          await tetikleGitHub(env, "ozel_uret", { tur: "ozel", metin });
+          return new Response("OK");
+        }
+
+        // /temizle — Askıda bekleyen onayları temizler
+        if (text === "/temizle" || text === "temizle") {
+          await mesajGonder("🧹 Askıda bekleyen onaylar temizleniyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "tur_temizle" });
+          return new Response("OK");
+        }
+
+        // /kota — Günlük yayın karnesi ve sistem özeti
+        if (text === "/kota" || text === "kota") {
+          await mesajGonder("📊 Günlük kota ve yayın özeti hazırlanıyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "kota_raporu" });
           return new Response("OK");
         }
 
@@ -772,7 +865,11 @@ function kontrolMerkeziMenusu() {
         { text: "🏡 Portföy İlanları", callback_data: "ilan_menu_yenile" },
       ],
       [
-        { text: "📊 Durum & Sağlık", callback_data: "durum" },
+        { text: "🧹 Askıdaki Onayları Temizle", callback_data: "tur_temizle" },
+        { text: "📊 Kota & Sistem Özeti", callback_data: "kota_raporu" },
+      ],
+      [
+        { text: "🩺 Durum & Sağlık", callback_data: "durum" },
         { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" },
       ],
       [
@@ -932,6 +1029,39 @@ function slaytSecimMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", 
   tuslar.push([
     { text: "← Geri", callback_data: `geri:${adet}` },
   ]);
+  return { inline_keyboard: tuslar };
+}
+
+function slaytIslemMenusu(sira, adet, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
+  const tuslar = [];
+  if (adet > 1) {
+    if (sira > 1) {
+      tuslar.push([{ text: `🔝 ${sira}. Slaytı EN BAŞA Al (Manşet)`, callback_data: `slayt_basa:${sira}` }]);
+    }
+    const siraSatiri = [];
+    if (sira > 1) {
+      siraSatiri.push({ text: "⬆️ 1 Yukarı Taşı", callback_data: `slayt_yukari:${sira}` });
+    }
+    if (sira < adet) {
+      siraSatiri.push({ text: "⬇️ 1 Aşağı Taşı", callback_data: `slayt_asagi:${sira}` });
+    }
+    if (siraSatiri.length) {
+      tuslar.push(siraSatiri);
+    }
+  }
+
+  tuslar.push(
+    [{ text: `🔥 ${sira}. Slayt: Başlığı Daha Çarpıcı Yap`, callback_data: `slayt_carpici:${sira}` }],
+    [{ text: `✍️ ${sira}. Slayt: Başlığı Elle Düzenle (Reply)`, callback_data: `slayt_elle:${sira}` }],
+    [
+      { text: `➕ ${sira}. Slayt: Metni Uzat`, callback_data: `slayt_uzat:${sira}` },
+      { text: `➖ ${sira}. Slayt: Metni Kısalt`, callback_data: `slayt_kisalt:${sira}` },
+    ]
+  );
+  if (adet > 2) {
+    tuslar.push([{ text: `🗑 ${sira}. Slaytı Çıkar`, callback_data: `slayt_sil:${sira}` }]);
+  }
+  tuslar.push([{ text: "← Slayt Seçimine Dön", callback_data: `slayt_menu:${adet}` }]);
   return { inline_keyboard: tuslar };
 }
 

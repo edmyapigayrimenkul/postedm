@@ -493,5 +493,38 @@ def mesajdan_icerik_bul(mesaj_id: Optional[int] = None) -> Optional[Tuple[str, A
     return None
 
 
+def askidaki_onaylari_temizle() -> int:
+    """Askıda 'onay_bekliyor' durumundaki haber ve ilan onaylarını iptal eder."""
+    adet = 0
+    with _baglanti_al() as conn:
+        c1 = conn.execute("UPDATE haberler SET durum = 'iptal' WHERE durum = 'onay_bekliyor'")
+        adet += c1.rowcount
+        c2 = conn.execute("UPDATE ilanlar SET durum = 'aktif' WHERE durum = 'onay_bekliyor'")
+        adet += c2.rowcount
+        conn.commit()
+    return adet
+
+
+def gunluk_yayin_ozeti() -> Dict[str, Any]:
+    """Bugün yayınlanan içeriklerin ve bekleyen onayların özetini döner."""
+    bugun_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with _baglanti_al() as conn:
+        yayinlananlar = conn.execute(
+            "SELECT COUNT(*) FROM haberler WHERE durum IN ('yayinda', 'yayinlandi', 'tamamlandi') AND yayin_zamani LIKE ?",
+            (f"{bugun_str}%",)
+        ).fetchone()[0]
+        bekleyenler = conn.execute(
+            "SELECT COUNT(*) FROM haberler WHERE durum = 'onay_bekliyor'"
+        ).fetchone()[0]
+        toplam_haber = conn.execute("SELECT COUNT(*) FROM haberler").fetchone()[0]
+        toplam_ilan = conn.execute("SELECT COUNT(*) FROM ilanlar").fetchone()[0]
+    return {
+        "bugun_yayinlanan": yayinlananlar,
+        "bekleyen_onay": bekleyenler,
+        "toplam_haber": toplam_haber,
+        "toplam_ilan": toplam_ilan,
+    }
+
+
 # Başlangıçta tabloları hazırla
 tablolari_olustur()
