@@ -294,7 +294,7 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         d.bilesenler["taze"] = 1
 
     # --- Olumsuzlar ---
-    if any(p in baslik_l for p in PR_DEMEC):
+    if any(p in baslik_k for p in PR_DEMEC):
         d.bilesenler["pr"] = -3
         d.isaretler.append("demeç/PR dili")
     if reklam_isaretleri:
@@ -310,7 +310,7 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
             d.isaretler.append(f"bölge dışı: {uzak_sehirler[0]}")
 
     # --- Rehber/açıklayıcı içerik: haber değil, konu önerisi ---
-    if any(k in baslik_l for k in REHBER_KALIPLARI):
+    if any(k in baslik_k for k in REHBER_KALIPLARI):
         d.rehber_mi = True
         d.isaretler.append("rehber içerik — konu bankası adayı")
 

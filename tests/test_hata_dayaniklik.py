@@ -444,6 +444,24 @@ class TestHataDayaniklik(unittest.TestCase):
                 self.assertEqual(i_id, "ilan-xyz-123")
                 self.assertEqual(i_veri["baslik"], "Silivri Çanta Satılık Arsa")
 
+    def test_14_haber_puanlama_ve_kaynak_dogrulama(self):
+        """Haber puanlama ve kaynak doğrulama algoritmaları NameError vermeden kusursuz çalışmalı."""
+        from src import haber_puanlama
+
+        # 1. Normal haber
+        d1 = haber_puanlama.degerlendir("Silivri'de Yeni Tapu Düzenlemesi Yürürlüğe Girdi", "Resmi Gazete'de yayımlandı.")
+        self.assertTrue(d1.gecti)
+        self.assertGreater(d1.puan, 0)
+
+        # 2. PR / Demeç dili (PR_DEMEC tetiklemesi)
+        d2 = haber_puanlama.degerlendir("Bakan Açıkladı: Konut Kredisi Faiz Oranları", "Ayrıntılar belli oldu.")
+        self.assertIn("demeç/PR dili", d2.isaretler)
+
+        # 3. Rehber / Açıklayıcı içerik (REHBER_KALIPLARI tetiklemesi)
+        d3 = haber_puanlama.degerlendir("Tapu Devri Nasıl Yapılır ve Masraflar Nelerdir?", "Tüm detaylar.")
+        self.assertTrue(d3.rehber_mi)
+        self.assertIn("rehber içerik — konu bankası adayı", d3.isaretler)
+
 
 if __name__ == "__main__":
     unittest.main()

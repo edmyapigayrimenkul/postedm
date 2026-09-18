@@ -32,11 +32,13 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
+import warnings
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 
 from src import config, fetch_news, haber_puanlama
 
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
