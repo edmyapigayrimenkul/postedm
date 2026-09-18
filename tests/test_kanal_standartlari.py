@@ -183,6 +183,67 @@ class TestKanalStandartlari(unittest.TestCase):
             fb_video.assert_called_once()
             yt_shorts.assert_called_once()
 
+    def test_reels_modunda_threads_onceden_yuklenmis_4_5_kullanir(self):
+        """Reels modunda (9:16) Threads'e önceden üretilmiş 4:5 slayt URL'leri iletilmeli."""
+        haber = {
+            "id": 891,
+            "manset": "Test Reels Threads 4:5",
+            "ig_caption": "Reels açıklama",
+            "detay_metni": json.dumps({
+                "giris": "reels",
+                "slayt_4x5_urlleri": ["https://cdn.com/feed_4x5_1.jpg", "https://cdn.com/feed_4x5_2.jpg"],
+            }),
+            "slayt_yollari": json.dumps(["data/output/reels_9x16_1.jpg", "data/output/reels_9x16_2.jpg"]),
+            "slayt_urlleri": json.dumps(["https://cdn.com/reels_9x16_1.jpg", "https://cdn.com/reels_9x16_2.jpg"]),
+        }
+        with (
+            patch.object(yayinla.sys, "argv", ["yayinla.py", "--tur", "reels", "--id", "891", "--hedef", "threads"]),
+            patch.object(yayinla.db, "haber_getir", return_value=haber),
+            patch.object(yayinla.db, "haber_guncelle"),
+            patch.object(yayinla.db, "onay_istegi_sonuclandir"),
+            patch.object(yayinla.threads, "zincir_paylas", return_value="th-chain-45") as th_zincir,
+            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+        ):
+            yayinla.main()
+
+            th_zincir.assert_called_once()
+            gonderilen_sayfalar = th_zincir.call_args[0][0]
+            gonderilen_urller = [s["gorsel_url"] for s in gonderilen_sayfalar]
+            # 9:16 URL'ler DEĞİL, 4:5 URL'ler gitmiş olmalı
+            self.assertEqual(gonderilen_urller, ["https://cdn.com/feed_4x5_1.jpg", "https://cdn.com/feed_4x5_2.jpg"])
+
+    def test_reels_modunda_4_5_yoksa_native_besleme_uretir(self):
+        """Reels modunda 4:5 URL yoksa make_image olcu='besleme' ile 4:5 üretilip Threads'e iletilmeli."""
+        haber = {
+            "id": 892,
+            "manset": "Test Native Besleme 4:5",
+            "ig_caption": "Reels açıklama",
+            "detay_metni": json.dumps({"manset": "Test", "spot": "Spot"}),
+            "slayt_yollari": json.dumps(["data/output/reels_9x16_1.jpg", "data/output/reels_9x16_2.jpg"]),
+            "slayt_urlleri": json.dumps(["https://cdn.com/reels_9x16_1.jpg", "https://cdn.com/reels_9x16_2.jpg"]),
+        }
+        mock_besleme_yollari = [Path("data/output/threads_4x5_1.jpg"), Path("data/output/threads_4x5_2.jpg")]
+        with (
+            patch.object(yayinla.sys, "argv", ["yayinla.py", "--tur", "reels", "--id", "892", "--hedef", "threads"]),
+            patch.object(yayinla.db, "haber_getir", return_value=haber),
+            patch.object(yayinla.db, "haber_guncelle"),
+            patch.object(yayinla.db, "onay_istegi_sonuclandir"),
+            patch("src.make_image.otorite_gonderi_slaytlari_uret", return_value=mock_besleme_yollari) as mock_make_image,
+            patch.object(yayinla.upload_image, "coklu_gorsel_yukle", return_value=["https://cdn.com/yeni_4x5_1.jpg", "https://cdn.com/yeni_4x5_2.jpg"]),
+            patch.object(yayinla.threads, "zincir_paylas", return_value="th-chain-native") as th_zincir,
+            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+        ):
+            yayinla.main()
+
+            # make_image Threads için olcu="besleme" (4:5) ile çağrılmış olmalı
+            mock_make_image.assert_any_call({"manset": "Test", "spot": "Spot"}, cikti_onek="threads_4x5_892", olcu="besleme")
+
+            # Threads 4:5 URL'leri iletilmiş olmalı
+            th_zincir.assert_called_once()
+            gonderilen_sayfalar = th_zincir.call_args[0][0]
+            gonderilen_urller = [s["gorsel_url"] for s in gonderilen_sayfalar]
+            self.assertEqual(gonderilen_urller, ["https://cdn.com/yeni_4x5_1.jpg", "https://cdn.com/yeni_4x5_2.jpg"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1194,6 +1194,19 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     except Exception as e:
         log.warning("Reels slaytları CDN'e yüklenemedi: %s", e)
 
+    # 4:5 Besleme Slaytları (Threads ve Akış paylaşımları için)
+    try:
+        slayt_4x5_yollari = make_image.otorite_gonderi_slaytlari_uret(
+            veri, cikti_onek=f"reels_4x5_{konu['kod']}", olcu="besleme"
+        )
+        if slayt_4x5_yollari:
+            slayt_4x5_urlleri = upload_image.coklu_gorsel_yukle(slayt_4x5_yollari)
+            if slayt_4x5_urlleri:
+                veri["slayt_4x5_urlleri"] = slayt_4x5_urlleri
+            veri["slayt_4x5_yollari"] = [str(p) for p in slayt_4x5_yollari]
+    except Exception as e45:
+        log.warning("Reels 4:5 slaytları hazırlanamadı: %s", e45)
+
     # Veritabanına kaydet (Önizleme aşamasında video henüz derlenmez; 'Yayınla' dendiğinde üretilir)
     orijinal_url = f"edm://reels/{konu['kod']}/{int(time.time())}"
     simdi = datetime.now(timezone.utc).isoformat()

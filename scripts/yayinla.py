@@ -609,9 +609,42 @@ def main() -> None:
     # KANAL 4: THREADS (Kullanıcı Kuralı: Her zaman 4:5 Fotoğraf ve Zincir yapısında)
     # -------------------------------------------------------------
     if hedef_mi("threads"):
-        log.info("Threads'te paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
         try:
-            if tek_sayfa:
+            threads_urller = None
+
+            # 1. Eğer detay içinde önceden üretilmiş 4:5 URL'ler varsa doğrudan kullan
+            if detay and isinstance(detay, dict) and detay.get("slayt_4x5_urlleri"):
+                threads_urller = detay["slayt_4x5_urlleri"]
+
+            # 2. Eğer Reels modundaysa (veya tur == "reels") slaytlar 9:16 dikey üretilmiştir;
+            # Threads için detay metninden native 4:5 (1080x1350) besleme slaytları üret ve CDN'e yükle
+            if not threads_urller and (reels_modu or tur == "reels") and detay:
+                try:
+                    from src import make_image
+                    besleme_slaytlar = make_image.otorite_gonderi_slaytlari_uret(
+                        detay, cikti_onek=f"threads_4x5_{ref_id}", olcu="besleme"
+                    )
+                    if besleme_slaytlar:
+                        threads_urller = upload_image.coklu_gorsel_yukle([str(p) for p in besleme_slaytlar])
+                        log.info("Threads için native 4:5 slaytlar üretildi ve yüklendi (%d adet)", len(threads_urller))
+                except Exception as b_err:
+                    log.warning("Threads native 4:5 slayt üretim hatası: %s", b_err)
+
+            # 3. Eğer yerel slayt yolları varsa ve dikey 9:16 ise 4:5'e kırpıp yükle
+            if not threads_urller and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
+                try:
+                    threads_urller = instagram.gorselleri_4_5_yap(slayt_yollari)
+                except Exception as c_err:
+                    log.warning("Threads yerel dosya 4:5 kırpma hatası: %s", c_err)
+
+            # 4. Standart haber / ilan durumunda veya yedek olarak public_urller'i kullan
+            if not threads_urller:
+                threads_urller = public_urller
+
+            th_tek_sayfa = (len(threads_urller) <= 1) if threads_urller else tek_sayfa
+            log.info("Threads'te paylaşılıyor (Tek sayfa: %s, Görsel sayısı: %d, 4:5 formatında)...", th_tek_sayfa, len(threads_urller) if threads_urller else 0)
+
+            if th_tek_sayfa:
                 th_metin = (haber.get("threads_metin") if haber and tur in ("haber", "reels") else "") or caption
                 th_metin = generate_text.caption_zenginlestir(
                     th_metin,
@@ -619,13 +652,13 @@ def main() -> None:
                     platform="threads",
                     manset=baslik,
                 )
-                threads_id = threads.paylas(th_metin, [public_urller[0]])
+                threads_id = threads.paylas(th_metin, [threads_urller[0]] if threads_urller else None)
                 if threads_id:
-                    rapor_satirlari.append("🧵 <b>Threads (Tekil Görsel):</b> Paylaşıldı ✓")
+                    rapor_satirlari.append("🧵 <b>Threads (Tekil Görsel):</b> 4:5 paylaşıldı ✓")
                 else:
                     rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
             else:
-                sayfalar = threads.metinleri_slaytlara_dagit(haber if tur == "haber" else {"manset": baslik, "spot": caption}, public_urller)
+                sayfalar = threads.metinleri_slaytlara_dagit(haber if tur in ("haber", "reels") else {"manset": baslik, "spot": caption}, threads_urller)
                 if len(sayfalar) > 1:
                     threads_id = threads.zincir_paylas(sayfalar)
                     if threads_id:
@@ -640,9 +673,9 @@ def main() -> None:
                         platform="threads",
                         manset=baslik,
                     )
-                    threads_id = threads.paylas(th_metin, public_urller)
+                    threads_id = threads.paylas(th_metin, threads_urller)
                     if threads_id:
-                        rapor_satirlari.append("🧵 <b>Threads:</b> Paylaşıldı ✓")
+                        rapor_satirlari.append("🧵 <b>Threads:</b> 4:5 paylaşıldı ✓")
                     else:
                         rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
         except Exception as yayin_hatasi:
