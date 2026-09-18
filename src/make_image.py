@@ -519,7 +519,7 @@ ARKA_PLAN_HAVUZU = {
         "arsa_suburban_parsel.jpg",
         "arsa_villa_land.jpg",
         "clean_land_aerial.jpg",
-        "bg_land_villa.jpg",
+        "bina_residential_balcony.jpg",
     ],
     "KONUT": [
         "villa_modern_pool.jpg",
@@ -528,29 +528,26 @@ ARKA_PLAN_HAVUZU = {
         "villa_estate_contemporary.jpg",
         "villa_estate_garden.jpg",
         "clean_modern_villa.jpg",
-        "bg_modern_villa.jpg",
     ],
     "BINA": [
         "bina_modern_glass.jpg",
         "bina_facade_dusk.jpg",
-        "bina_residential_balcony.jpg",
         "bina_architecture_highrise.jpg",
         "clean_architecture.jpg",
-        "bg_building_facade.jpg",
-        "bg_architecture.jpg",
+        "villa_estate_garden.jpg",
+        "clean_modern_villa.jpg",
     ],
     "ICMEKAN": [
         "icmekan_luxury_penthouse.jpg",
         "icmekan_modern_lounge.jpg",
         "icmekan_minimal_living.jpg",
         "clean_interior.jpg",
-        "bg_interior.jpg",
     ],
     "INSAAT": [
         "insaat_modern_structure.jpg",
         "bina_architecture_highrise.jpg",
         "bina_modern_glass.jpg",
-        "bg_architecture.jpg",
+        "clean_architecture.jpg",
     ],
 }
 
