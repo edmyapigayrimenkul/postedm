@@ -2,11 +2,11 @@ name: Paylaşım Hazırla (EDM)
 
 on:
   schedule:
-    # 1. Her gün sabah 10:00 TR (UTC 07:00): Otorite Postu (Görsel / Carousel - Onaylı)
+    # 1. Her gün sabah 10:00 TR (UTC 07:00): Slot 1 Bilgilendirici (Rotasyon: Nedir Doğrusu / Vaka / Net Cevap / B1)
     - cron: '0 7 * * *'
-    # 2. Her gün öğle 13:30 TR (UTC 10:30): Finans, Bankacılık & Gayrimenkul Postu (Otomatik Yayın)
+    # 2. Her gün öğle 13:30 TR (UTC 10:30): Slot 2 Sözlük (EDM Emlak Sözlüğü)
     - cron: '30 10 * * *'
-    # 3. Her gün akşam 18:30 TR (UTC 15:30): Dikey Reels Videosu (9:16 MP4 - Onaylı)
+    # 3. Her gün akşam 18:30 TR (UTC 15:30): Slot 3 Haber & Gündem (Haber yoksa otomatik Bilgilendiriciye fallback)
     - cron: '30 15 * * *'
     # Cumartesi 08:00 TR — beslemeden konu adayı madenciliği (paylaşım yapmaz)
     - cron: '0 5 * * 6'
@@ -15,17 +15,18 @@ on:
       hedef:
         description: 'Çalışma modu'
         required: true
-        default: 'gunluk'
+        default: 'slot_bilgilendirici'
         type: choice
         options:
-          - gunluk
-          - finans
+          - slot_bilgilendirici
+          - slot_sozluk
+          - slot_haber
           - reels
-          - haber
+          - finans
           - ilan_menusu
           - konu_madenle
   repository_dispatch:
-    types: [sabah_hazirla, finans_hazirla, reels_hazirla, ilan_menusu, hazirla_ilan, format_donustur]
+    types: [sabah_hazirla, slot_hazirla, finans_hazirla, reels_hazirla, ilan_menusu, hazirla_ilan, format_donustur]
 
 concurrency:
   group: edm-veritabani
@@ -80,12 +81,12 @@ jobs:
         run: |
           python scripts/hazirla.py --format-degistir "${{ github.event.client_payload.haber_id }}" --format "${{ github.event.client_payload.format_turu }}"
 
-      # Günlük içerik (Sabah Postu / Öğle Finans Postu / Akşam Reels Videosu)
+      # Günlük 3 Slot İçeriği (Slot 1 Bilgilendirici / Slot 2 Sözlük / Slot 3 Haber + Fallback)
       - name: Günlük İçerik Hazırla ve Paylaş
         if: >-
           (github.event_name == 'schedule' && (github.event.schedule == '0 7 * * *' || github.event.schedule == '30 10 * * *' || github.event.schedule == '30 15 * * *'))
-          || inputs.hedef == 'gunluk' || inputs.hedef == 'finans' || inputs.hedef == 'reels' || inputs.hedef == 'haber'
-          || github.event.action == 'sabah_hazirla' || github.event.action == 'finans_hazirla' || github.event.action == 'reels_hazirla'
+          || inputs.hedef == 'slot_bilgilendirici' || inputs.hedef == 'slot_sozluk' || inputs.hedef == 'slot_haber' || inputs.hedef == 'gunluk' || inputs.hedef == 'finans' || inputs.hedef == 'reels' || inputs.hedef == 'haber'
+          || github.event.action == 'sabah_hazirla' || github.event.action == 'slot_hazirla' || github.event.action == 'finans_hazirla' || github.event.action == 'reels_hazirla'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -108,17 +109,30 @@ jobs:
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
         run: |
+          SLOT="${{ github.event.client_payload.slot }}"
           FORMAT="${{ github.event.client_payload.format_turu }}"
-          IS_FINANS="${{ (github.event_name == 'schedule' && github.event.schedule == '30 10 * * *') || inputs.hedef == 'finans' || github.event.action == 'finans_hazirla' || github.event.client_payload.format_turu == 'finans' }}"
-          IS_REELS="${{ (github.event_name == 'schedule' && github.event.schedule == '30 15 * * *') || inputs.hedef == 'reels' || github.event.action == 'reels_hazirla' || github.event.client_payload.format_turu == 'reels' }}"
-          if [ "$IS_FINANS" = "true" ] || [ "$FORMAT" = "finans" ]; then
-            python scripts/hazirla.py --finans --oto-yayin
-          elif [ "$IS_REELS" = "true" ] || [ "$FORMAT" = "reels" ]; then
+          if [ -n "$SLOT" ]; then
+            python scripts/hazirla.py --slot "$SLOT"
+          elif [ "${{ github.event.schedule }}" = "0 7 * * *" ]; then
+            python scripts/hazirla.py --slot bilgilendirici
+          elif [ "${{ github.event.schedule }}" = "30 10 * * *" ]; then
+            python scripts/hazirla.py --slot sozluk
+          elif [ "${{ github.event.schedule }}" = "30 15 * * *" ]; then
+            python scripts/hazirla.py --slot haber
+          elif [ "${{ inputs.hedef }}" = "slot_bilgilendirici" ]; then
+            python scripts/hazirla.py --slot bilgilendirici
+          elif [ "${{ inputs.hedef }}" = "slot_sozluk" ]; then
+            python scripts/hazirla.py --slot sozluk
+          elif [ "${{ inputs.hedef }}" = "slot_haber" ] || [ "${{ inputs.hedef }}" = "haber" ]; then
+            python scripts/hazirla.py --slot haber
+          elif [ "${{ inputs.hedef }}" = "reels" ] || [ "$FORMAT" = "reels" ]; then
             python scripts/hazirla.py --reels
+          elif [ "${{ inputs.hedef }}" = "finans" ] || [ "$FORMAT" = "finans" ]; then
+            python scripts/hazirla.py --finans --oto-yayin
           elif [ -n "$FORMAT" ]; then
             python scripts/hazirla.py --format "$FORMAT"
           else
-            python scripts/hazirla.py
+            python scripts/hazirla.py --slot bilgilendirici
           fi
 
       # Haftalık konu madenciliği: beslemedeki rehber içerikten konu adayı çıkarır.

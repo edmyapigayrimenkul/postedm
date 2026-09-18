@@ -248,13 +248,15 @@ def main() -> None:
                         telegram_bot.tek_tikla_ilan_menusu_gonder()
 
                     # ---------------------------------------------------------
-                    # C. Hızlı İçerik Üretimi (Reels / Sözlük / Vaka vs.)
-                    # ---------------------------------------------------------
                     elif data.startswith("hizli_uret:"):
                         fmt = data.split(":")[1]
                         log.info("Hızlı içerik üretimi: %s", fmt)
                         if fmt == "reels":
                             telegram_bot.reels_hazirla_ve_sun()
+                        elif fmt == "rotasyon":
+                            telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
+                        elif fmt == "haber":
+                            telegram_bot.slot_icerigi_hazirla_ve_sun(slot="haber")
                         else:
                             telegram_bot.hizli_icerik_uret(fmt)
 
@@ -454,9 +456,9 @@ def main() -> None:
                         log.info("/reels komutu alındı.")
                         telegram_bot.reels_hazirla_ve_sun()
 
-                    elif komut_parca in ("/yeni", "/uret"):
-                        log.info("/yeni komutu alındı.")
-                        telegram_bot.konu_bankasindan_hazirla()
+                    elif komut_parca in ("/gonderi", "/yeni", "/uret"):
+                        log.info("/gonderi komutu alındı.")
+                        telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
 
                     elif komut_parca == "/sozluk":
                         log.info("/sozluk komutu alındı.")

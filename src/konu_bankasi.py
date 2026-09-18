@@ -45,6 +45,34 @@ GUN_FORMATLARI: Dict[int, str] = {
     6: "net_cevap",
 }
 
+# 3 Slot Günlük Plan - Slot 1 Bilgilendirici Rotasyon Formatları:
+# Her gün sırayla döner: nedir_dogrusu -> vaka -> net_cevap -> b1 -> nedir_dogrusu ...
+BILGILENDIRICI_FORMATLAR: List[str] = [
+    "nedir_dogrusu",
+    "vaka",
+    "net_cevap",
+    "b1",
+]
+
+
+def siradaki_bilgilendirici_format() -> str:
+    """Bilgilendirici format rotasyonundaki sıradaki formatı belirler.
+    nedir_dogrusu -> vaka -> net_cevap -> b1 -> nedir_dogrusu ...
+    """
+    son_format = db.ayar_oku("son_bilgilendirici_format")
+    if son_format in BILGILENDIRICI_FORMATLAR:
+        idx = BILGILENDIRICI_FORMATLAR.index(son_format)
+        siradaki = BILGILENDIRICI_FORMATLAR[(idx + 1) % len(BILGILENDIRICI_FORMATLAR)]
+    else:
+        siradaki = BILGILENDIRICI_FORMATLAR[0]
+    return siradaki
+
+
+def bilgilendirici_format_kaydet(format_turu: str) -> None:
+    """Kullanılan bilgilendirici formatı kaydeder."""
+    if format_turu in BILGILENDIRICI_FORMATLAR:
+        db.ayar_yaz("son_bilgilendirici_format", format_turu)
+
 
 def gun_icin_format(gun: Optional[int] = None) -> str:
     """Günün indeksine (0-6) göre aktif otorite format türünü döner."""

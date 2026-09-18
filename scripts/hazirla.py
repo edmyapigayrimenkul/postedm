@@ -85,7 +85,9 @@ def main() -> None:
     parser.add_argument("--durum", action="store_true", help="Konu bankası doluluk durumunu yazar ve çıkar")
     parser.add_argument("--konu-madenle", action="store_true",
                         help="Rehber haberleri konu bankası adaylarına çevirir")
-    parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap", "reels"],
+    parser.add_argument("--slot", choices=["bilgilendirici", "sozluk", "haber"],
+                        help="Günlük 3 slot akışından birini çalıştırır: bilgilendirici, sozluk, haber")
+    parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap", "b1", "reels"],
                         help="Belirli bir formatta otorite içeriği üretir")
     parser.add_argument("--reels", action="store_true", help="Günün konusundan dikey Reels videosu üretir")
     parser.add_argument("--finans", action="store_true", help="Finans, bankacılık, faiz ve konut kredisi konulu bülten üretir")
@@ -96,7 +98,7 @@ def main() -> None:
 
     # Bot duraklatma denetimi (Kullanıcı Telegram'dan duraklatmışsa atla)
     duraklatildi, kalan = telegram_bot.bot_duraklatildi_mi()
-    if duraklatildi and not args.durum and not args.format_turu and not args.format_degistir_id and not args.reels and not args.finans:
+    if duraklatildi and not args.durum and not args.slot and not args.format_turu and not args.format_degistir_id and not args.reels and not args.finans:
         log.info("Bot kullanıcı tarafından duraklatılmış (%s). Otomatik hazırlık atlanıyor.", kalan)
         return
 
@@ -118,6 +120,11 @@ def main() -> None:
         log.info("Onay bekleyen konu adayı: %d", len(bekleyen))
         for a in bekleyen[:8]:
             log.info("   [%s/%s] %s", a.get("sutun"), a.get("bicim"), (a.get("baslik") or "")[:64])
+        return
+
+    if args.slot:
+        log.info("Günlük slot çalıştırılıyor: '%s'...", args.slot)
+        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot)
         return
 
     if args.finans:
@@ -155,10 +162,10 @@ def main() -> None:
         telegram_bot.hizli_icerik_uret(format_turu=args.format_turu)
         return
 
-    # Varsayılan akış: Konu bankasından günün takvimine uygun otorite içeriği üret
+    # Varsayılan akış: Günlük bilgilendirici slot rotasyonu
     if not args.haber_tara:
-        log.info("Konu bankasından günün konusu hazırlanıyor...")
-        telegram_bot.konu_bankasindan_hazirla(gun=args.gun)
+        log.info("Günlük bilgilendirici rotasyon slotu hazırlanıyor...")
+        telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
         return
 
     # Yalnızca --haber-tara bayrağı verildiğinde RSS taranır

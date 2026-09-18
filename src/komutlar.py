@@ -29,8 +29,11 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "kota",
 
     # Hızlı İçerik Üretimi
+    "gonderi",
     "yeni",
     "uret",
+    "haber",
+    "sondakika",
     "sozluk",
     "dogrusu",
     "vaka",
@@ -60,8 +63,9 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
     {"command": "yardim", "description": "❓ Bot komutları ve kullanım kılavuzu"},
 
     # ── ✍️ OTORİTE İÇERİK ÜRETİMİ ─────────────────────────────────────
-    {"command": "yeni", "description": "✍️ Sıradaki konuyu hemen üretip onaya sun"},
+    {"command": "gonderi", "description": "📰 Günün konusundan onaylı post üret"},
     {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu üretip gruba sun"},
+    {"command": "haber", "description": "🌐 Taze sektörel haber tara ve post yap"},
     {"command": "sozluk", "description": "📖 EDM Gayrimenkul Sözlüğü postu üret"},
     {"command": "dogrusu", "description": "⚖️ Nedir Doğrusu? (Efsane vs Gerçek) üret"},
     {"command": "vaka", "description": "📂 Hukuki Vaka Analizi (2 Slayt Carousel) üret"},

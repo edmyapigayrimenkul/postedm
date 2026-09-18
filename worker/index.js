@@ -270,10 +270,6 @@ export default {
                 if (buKanal === hedefKanal) {
                   const label = btn.text.replace(/^[✅⬜]\s*/, "");
                   btn.text = `${hedefYeniSecili ? "✅" : "⬜"} ${label}`;
-                } else if (hedefKanal === "reels" && hedefYeniSecili && buKanal === "ig") {
-                  btn.text = "⬜ IG";
-                } else if (hedefKanal === "ig" && hedefYeniSecili && buKanal === "reels") {
-                  btn.text = "⬜ Reels";
                 }
               }
             }
@@ -386,6 +382,24 @@ export default {
               body: JSON.stringify({ chat_id: chatId, text: `🎬 <b>EDM Reels Videosu</b> hazırlanıyor, videonuz ve metniniz birazdan gruba iletilecek...`, parse_mode: "HTML" }),
             });
             await tetikleGitHub(env, "sabah_hazirla", { format_turu: "reels", kaynak: "hizli_uret_reels" });
+            return new Response("OK");
+          }
+          if (format === "rotasyon") {
+            await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: chatId, text: `⏳ <b>Günün Gönderisi (Bilgilendirici Rotasyon)</b> hazırlanıyor, onayınıza sunulacak...`, parse_mode: "HTML" }),
+            });
+            await tetikleGitHub(env, "sabah_hazirla", { slot: "bilgilendirici", kaynak: "hizli_uret_rotasyon" });
+            return new Response("OK");
+          }
+          if (format === "haber") {
+            await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: chatId, text: `🌐 <b>Taze Sektörel Haberler</b> taranıyor ve içerik hazırlanıyor...`, parse_mode: "HTML" }),
+            });
+            await tetikleGitHub(env, "sabah_hazirla", { slot: "haber", kaynak: "hizli_uret_haber" });
             return new Response("OK");
           }
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -752,9 +766,15 @@ export default {
           return new Response("OK");
         }
 
-        if (text === "/yeni" || text === "/uret" || text === "/haber" || text === "/hazirla") {
-          await mesajGonder("⏳ Sıradaki konu hazırlanıyor ve onayınıza sunulacak...");
-          await tetikleGitHub(env, "sabah_hazirla", { kaynak: "telegram_komut" });
+        if (text === "/gonderi" || text === "/yeni" || text === "/uret" || text === "/hazirla") {
+          await mesajGonder("⏳ Günün konusu hazırlanıyor ve onayınıza sunulacak...");
+          await tetikleGitHub(env, "sabah_hazirla", { slot: "bilgilendirici", kaynak: "telegram_komut" });
+          return new Response("OK");
+        }
+
+        if (text === "/haber" || text === "/sondakika") {
+          await mesajGonder("🌐 Taze sektörel haber taranıyor ve post hazırlanıyor...");
+          await tetikleGitHub(env, "sabah_hazirla", { slot: "haber", kaynak: "telegram_komut" });
           return new Response("OK");
         }
 
@@ -842,7 +862,8 @@ export default {
             "• <b>/rapor</b> — GitHub Actions, yapay zeka ve sistem kota tablosu.\n" +
             "• <b>/durum</b> — Bot ve yayın durumunu raporlar.\n" +
             "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n" +
-            "• <b>/yeni</b> — Sıradaki konuyu hemen üretip onaya sunar.\n" +
+            "• <b>/gonderi</b> — Günün konusundan onaylı post üretir (Rotasyon).\n" +
+            "• <b>/haber</b> — Taze sektörel haber tara ve post üret.\n" +
             "• <b>/sozluk</b> — Emlak sözlüğü formatında içerik üretir.\n" +
             "• <b>/dogrusu</b> — Nedir Doğrusu formatında içerik üretir.\n" +
             "• <b>/vaka</b> — 2 slaytlık vaka analizi carousel üretir.\n" +
@@ -876,6 +897,10 @@ function kontrolMerkeziMenusu() {
   return {
     inline_keyboard: [
       [
+        { text: "📰 Günün Gönderisi (Rotasyon)", callback_data: "hizli_uret:rotasyon" },
+        { text: "🎬 Reels Videosu (9:16)", callback_data: "hizli_uret:reels" },
+      ],
+      [
         { text: "📖 Sözlük Üret", callback_data: "hizli_uret:sozluk" },
         { text: "⚖️ Nedir Doğrusu?", callback_data: "hizli_uret:nedir_dogrusu" },
       ],
@@ -884,8 +909,8 @@ function kontrolMerkeziMenusu() {
         { text: "❓ Net Cevap", callback_data: "hizli_uret:net_cevap" },
       ],
       [
-        { text: "🎬 Reels Videosu Üret (9:16)", callback_data: "hizli_uret:reels" },
-        { text: "🏡 Portföy İlanları", callback_data: "ilan_menu_yenile" },
+        { text: "🌐 Taze Haber Tara & Post Yap", callback_data: "hizli_uret:haber" },
+        { text: "🏛️ Klasik Otorite (B1)", callback_data: "hizli_uret:b1" },
       ],
       [
         { text: "📊 Sıradaki Post & Durum", callback_data: "durum" },
@@ -896,7 +921,7 @@ function kontrolMerkeziMenusu() {
         { text: "🩺 Sistem Sağlık Testi", callback_data: "saglik_testi" },
       ],
       [
-        { text: "🧹 Askıdaki Onayları Temizle", callback_data: "tur_temizle" },
+        { text: "🔄 Konu Havuzu", callback_data: "havuz_durum" },
         { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" },
       ],
     ],
@@ -1049,6 +1074,10 @@ function slaytSecimMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", 
   tuslar.push([
     { text: "📂 Vaka Analizi", callback_data: "format_uygula:vaka" },
     { text: "❓ Net Cevap", callback_data: "format_uygula:net_cevap" },
+  ]);
+  tuslar.push([
+    { text: "🎬 9:16 Dikey Reels", callback_data: "format_uygula:reels" },
+    { text: "🏛️ Klasik Otorite (B1)", callback_data: "format_uygula:b1" },
   ]);
   tuslar.push([
     { text: "← Geri", callback_data: `geri:${adet}` },

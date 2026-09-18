@@ -378,8 +378,9 @@ def main() -> None:
     tek_sayfa = (len(public_urller) <= 1) if public_urller else (len(slayt_yollari) <= 1)
 
     # 2. Dikey Video & Arkaplan Sesi Hazırlığı (YouTube Shorts her zaman, FB/TT/IG ise Reels modunda)
+    paylas_reels = ("reels" in hedefler or ("hepsi" in hedefler and tur == "reels"))
     video_lazim = (
-        reels_modu
+        paylas_reels
         or hedef_mi("yt", "youtube", "shorts")
         or (reels_modu and hedef_mi("fb", "facebook"))
         or (reels_modu and hedef_mi("tt", "tiktok"))
@@ -471,51 +472,55 @@ def main() -> None:
                 rapor_satirlari.append(f"🎵 <b>TikTok:</b> Hata ({tt_e}) ✗")
 
     # -------------------------------------------------------------
-    # KANAL 2: INSTAGRAM (Kullanıcı Kuralı: Reels seçilmediği sürece Carousel, tek sayfaysa Resim)
+    # KANAL 2: INSTAGRAM GÖNDERİ (Feed - Carousel veya Tekil Resim)
     # -------------------------------------------------------------
-    if hedef_mi("ig", "instagram", "reels"):
-        if reels_modu:
-            # Instagram Reels için Telegram'a iletilen video:
-            # Kullanıcı Instagram uygulamasından trend müzik ekleyeceği için arkaplan sesi olmamalıdır!
-            ig_reels_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
-            if ig_reels_video and ig_reels_video.exists():
-                try:
-                    import html as html_lib
-                    temiz_metin = html_lib.escape(caption.strip())
-                    telegram_bot.video_gonder(
-                        ig_reels_video,
-                        aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
-                                 f"📌 <b>Konu:</b> {baslik}\n\n"
-                                 f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
-                    )
-                    telegram_bot.mesaj_gonder(
-                        "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
-                        f"<pre><code>{temiz_metin}</code></pre>"
-                    )
-                    rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve açıklama Telegram'a iletildi ✓")
-                except Exception as re:
-                    log.warning("Instagram Reels teslim hatası: %s", re)
-                    rapor_satirlari.append(f"🎬 <b>Instagram Reels:</b> Hata ({re}) ✗")
-            else:
-                rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video üretilemedi ✗")
-        else:
-            log.info("Instagram'da görsel post paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
-            try:
-                if tek_sayfa:
-                    ig_id = instagram.tekil_gorsel_yayinla(public_urller[0], caption)
-                    if ig_id:
-                        rapor_satirlari.append("📸 <b>Instagram (Tekil Resim):</b> Paylaşıldı ✓")
-                    else:
-                        rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
+    paylas_ig = ("ig" in hedefler or "instagram" in hedefler or ("hepsi" in hedefler and tur != "reels"))
+    if paylas_ig:
+        log.info("Instagram'da görsel post paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
+        try:
+            if tek_sayfa:
+                ig_id = instagram.tekil_gorsel_yayinla(public_urller[0], caption)
+                if ig_id:
+                    rapor_satirlari.append("📸 <b>Instagram (Tekil Resim):</b> Paylaşıldı ✓")
                 else:
-                    ig_id = instagram.carousel_yayinla(public_urller, caption)
-                    if ig_id:
-                        rapor_satirlari.append("📸 <b>Instagram (Carousel):</b> Paylaşıldı ✓")
-                    else:
-                        rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
-            except Exception as yayin_hatasi:
-                log.warning("Instagram yayını hatası: %s", yayin_hatasi)
-                rapor_satirlari.append(f"📸 <b>Instagram:</b> Hata ({yayin_hatasi}) ✗")
+                    rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
+            else:
+                ig_id = instagram.carousel_yayinla(public_urller, caption)
+                if ig_id:
+                    rapor_satirlari.append("📸 <b>Instagram (Carousel):</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("📸 <b>Instagram:</b> Hata oluştu ✗")
+        except Exception as yayin_hatasi:
+            log.warning("Instagram yayını hatası: %s", yayin_hatasi)
+            rapor_satirlari.append(f"📸 <b>Instagram:</b> Hata ({yayin_hatasi}) ✗")
+
+    # -------------------------------------------------------------
+    # KANAL 2.1: INSTAGRAM REELS (9:16 Dikey Video)
+    # -------------------------------------------------------------
+    if paylas_reels:
+        # Instagram Reels için Telegram'a iletilen video:
+        # Kullanıcı Instagram uygulamasından trend müzik ekleyeceği için arkaplan sesi olmamalıdır!
+        ig_reels_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
+        if ig_reels_video and ig_reels_video.exists():
+            try:
+                import html as html_lib
+                temiz_metin = html_lib.escape(caption.strip())
+                telegram_bot.video_gonder(
+                    ig_reels_video,
+                    aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
+                             f"📌 <b>Konu:</b> {baslik}\n\n"
+                             f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
+                )
+                telegram_bot.mesaj_gonder(
+                    "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+                    f"<pre><code>{temiz_metin}</code></pre>"
+                )
+                rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve açıklama Telegram'a iletildi ✓")
+            except Exception as re:
+                log.warning("Instagram Reels teslim hatası: %s", re)
+                rapor_satirlari.append(f"🎬 <b>Instagram Reels:</b> Hata ({re}) ✗")
+        else:
+            rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video üretilemedi ✗")
 
     # -------------------------------------------------------------
     # KANAL 3: STORY (Instagram & Facebook Story — 9:16 Dikey Format)

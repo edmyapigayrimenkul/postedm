@@ -628,6 +628,10 @@ def slayt_secim_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None
             {"text": "❓ Net Cevap", "callback_data": "format_uygula:net_cevap"},
         ],
         [
+            {"text": "🎬 9:16 Dikey Reels", "callback_data": "format_uygula:reels"},
+            {"text": "🏛️ Klasik Otorite (B1)", "callback_data": "format_uygula:b1"},
+        ],
+        [
             {"text": "← Geri", "callback_data": f"geri:{adet}"},
         ],
     ])
@@ -701,6 +705,10 @@ def format_secim_menusu(haber_id: int) -> Dict[str, Any]:
                 {"text": "❓ Net Cevap", "callback_data": f"format_uygula:net_cevap:{haber_id}"},
             ],
             [
+                {"text": "🎬 9:16 Dikey Reels", "callback_data": f"format_uygula:reels:{haber_id}"},
+                {"text": "🏛️ Klasik Otorite (B1)", "callback_data": f"format_uygula:b1:{haber_id}"},
+            ],
+            [
                 {"text": "← Onay Menüsüne Dön", "callback_data": f"onay_menu_don:haber:{haber_id}"},
             ],
         ]
@@ -717,6 +725,10 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
     return {
         "inline_keyboard": [
             [
+                {"text": "📰 Günün Gönderisi (Rotasyon)", "callback_data": "hizli_uret:rotasyon"},
+                {"text": "🎬 Reels Videosu (9:16)", "callback_data": "hizli_uret:reels"},
+            ],
+            [
                 {"text": "📖 Sözlük Üret", "callback_data": "hizli_uret:sozluk"},
                 {"text": "⚖️ Nedir Doğrusu?", "callback_data": "hizli_uret:nedir_dogrusu"},
             ],
@@ -725,8 +737,8 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
                 {"text": "❓ Net Cevap", "callback_data": "hizli_uret:net_cevap"},
             ],
             [
-                {"text": "🎬 Reels Videosu Üret (9:16)", "callback_data": "hizli_uret:reels"},
-                {"text": "🏡 Portföy İlanları", "callback_data": "ilan_menu_yenile"},
+                {"text": "🌐 Taze Haber Tara & Post Yap", "callback_data": "hizli_uret:haber"},
+                {"text": "🏛️ Klasik Otorite (B1)", "callback_data": "hizli_uret:b1"},
             ],
             [
                 {"text": "📊 Sıradaki Post & Durum", "callback_data": "durum"},
@@ -1099,10 +1111,71 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
     return haber_onayina_sun(haber_id)
 
 
+def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici") -> bool:
+    """Günlük 3 slot akışına göre içerik hazırlar ve onaya sunar:
+    - 'bilgilendirici' (Slot 1 - Sabah 10:00 TR): nedir_dogrusu -> vaka -> net_cevap -> b1 rotasyonu
+    - 'sozluk' (Slot 2 - Öğle 13:30 TR): EDM Emlak Sözlüğü
+    - 'haber' (Slot 3 - Akşam 18:30 TR): Taze sektörel haber; haber yoksa sıradaki bilgilendiriciye fallback
+    """
+    slot = (slot or "bilgilendirici").lower()
+
+    if slot == "sozluk":
+        log.info("Slot 2 (Sözlük) hazırlanıyor...")
+        return hizli_icerik_uret(format_turu="sozluk")
+
+    if slot == "haber":
+        log.info("Slot 3 (Haber & Gündem) taranıyor...")
+        from . import fetch_news, haber_triyaj
+        fetch_news.rss_tara()
+
+        adaylar = []
+        for h in db.bekleyen_haberleri_getir(limit=20):
+            if (h.get("kategori") or "") == "rehber":
+                continue
+            yas = fetch_news._saat_farki_saat(h.get("yayin_tarihi") or "")
+            if yas > 72:
+                db.haber_guncelle(h["id"], durum="elendi")
+                continue
+            if h.get("onem_puani", 0) < 9:
+                continue
+            adaylar.append(h)
+            if len(adaylar) >= 6:
+                break
+
+        for aday in adaylar:
+            brief = haber_triyaj.triyaj_et(aday, asgari_guven=7)
+            if brief:
+                log.info("Taze haber bulundu ve triyajı geçti: %s", aday["orijinal_baslik"][:60])
+                return haberden_icerik_hazirla(aday, brief)
+            else:
+                db.haber_guncelle(aday["id"], durum="elendi")
+
+        log.info("Triyajı geçen taze haber bulunamadı. Kullanıcı kuralı uyarınca sıradaki bilgilendirici formata fallback yapılıyor...")
+        return slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
+
+    # Slot 1: Bilgilendirici rotasyon (nedir_dogrusu -> vaka -> net_cevap -> b1)
+    secilen_format = konu_bankasi.siradaki_bilgilendirici_format()
+    log.info("Slot 1 (Bilgilendirici) rotasyon formatı: %s", secilen_format)
+    if secilen_format == "b1":
+        basarili = konu_bankasindan_hazirla()
+    else:
+        basarili = hizli_icerik_uret(format_turu=secilen_format)
+
+    if basarili:
+        konu_bankasi.bilgilendirici_format_kaydet(secilen_format)
+    return basarili
+
+
 def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
-    """Belirtilen formata (sozluk, nedir_dogrusu, vaka, net_cevap, reels) göre sıradaki konuyu üretir ve onaya sunar."""
+    """Belirtilen formata (sozluk, nedir_dogrusu, vaka, net_cevap, b1, reels, rotasyon, haber) göre konuyu üretir ve onaya sunar."""
     if format_turu == "reels":
         return reels_hazirla_ve_sun()
+    if format_turu == "rotasyon":
+        return slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
+    if format_turu == "haber":
+        return slot_icerigi_hazirla_ve_sun(slot="haber")
+    if format_turu == "b1":
+        return konu_bankasindan_hazirla()
 
     etiketler = {
         "sozluk": "📖 EDM Gayrimenkul Sözlüğü",
