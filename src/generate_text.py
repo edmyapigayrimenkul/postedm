@@ -926,7 +926,7 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GAYRİMENKUL SÖZLÜĞÜ' formatında üret. "
             "JSON nesnesinde 'format_turu': 'sozluk', "
             "'terim': (Konunun odaklandığı gayrimenkul/imar/tapu hukuku terimi - örn: ŞUFA, İFRAZ, vb.), "
-            "'tanim_metni': (Hukuki ve teknik tanımı), "
+            "'tanim_metni': (Terimin sadece sözlük karşılığını değil; gayrimenkul ve tapu pratiğinde ne anlama geldiğini, yasal dayanak maddesini ve taraflara etkisini 2-3 akıcı ve doyurucu cümleyle izah eden zengin hukuki açıklama), "
             "'puf_maddeleri': [(Yatırımcının bilmesi gereken 2-3 kritik kural ve risk)] alanlarını MUTLAKA doldur."
         )
     elif format_turu in ("vaka", "emsal_karar"):
