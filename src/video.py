@@ -35,42 +35,32 @@ LOGO_PIN = config.yol_al("assets/logos/pin-sembol.png")
 def _cercevele_9_16(kart_img: Image.Image) -> Image.Image:
     """1080x1350 slayt görselini 1080x1920 (9:16) formatına dönüştürür.
 
-    Kart görünümü ve yapay kenarlıklar yerine, dikeyde 140px yumuşak
-    degrade geçiş (soft vertical vignette fade) ile sinematik arka plana eritir.
+    Kullanıcı kuralı: Alt ve üst kısımlarda yapay geçiş, blur veya degrade
+    hissiyatı olmamalıdır. Kartın üst rengi en tepeye (y=0), alt rengi ise
+    en alta (y=1920) kesintisiz ve aynı tonda devam eder.
     """
     w, h = kart_img.size
     if (w, h) == (HEDEF_W, HEDEF_H):
         return kart_img.convert("RGB")
 
     kart_rgb = kart_img.convert("RGB")
-
-    # 1. Arka plan: Orantılı büyütüp sinematik blur ve karartma uygula
-    oran = max(HEDEF_W / max(1, w), HEDEF_H / max(1, h))
-    bg_w, bg_h = max(HEDEF_W, int(w * oran)), max(HEDEF_H, int(h * oran))
-    bg = kart_rgb.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
-    sol = max(0, (bg_w - HEDEF_W) // 2)
-    ust = max(0, (bg_h - HEDEF_H) // 2)
-    bg_kirp = bg.crop((sol, ust, sol + HEDEF_W, ust + HEDEF_H))
-    bg_blur = bg_kirp.filter(ImageFilter.GaussianBlur(radius=45))
-
-    # Koyu sinematik perde
-    karartma = Image.new("RGB", (HEDEF_W, HEDEF_H), (10, 12, 16))
-    tuval = Image.blend(bg_blur, karartma, 0.48)
-
-    # 2. 4:5 Görseli Merkeze Yerleştir — Soft Degrade Fade ile
     card_y = max(0, (HEDEF_H - h) // 2)
 
-    # Alfa Maskesi: Dikeyde kartın metin ve logolarına dokunmayan yumuşak kenar yumuşatma (14px)
-    mask = Image.new("L", (w, h), 255)
-    m_draw = ImageDraw.Draw(mask)
-    fade_h = min(14, max(4, h // 60))
-    for i in range(fade_h):
-        alpha = int(255 * ((i / max(1, fade_h)) ** 1.3))
-        m_draw.line([(0, i), (w, i)], fill=alpha)
-        m_draw.line([(0, h - 1 - i), (w, h - 1 - i)], fill=alpha)
+    tuval = Image.new("RGB", (HEDEF_W, HEDEF_H))
 
-    # Yumuşak geçişle tuvale yapıştır
-    tuval.paste(kart_rgb, (0, card_y), mask)
+    # 1. Üst kısım: Kartın en üst satırını yukarıya doğru kesintisiz uzat (0 .. card_y)
+    ust_serit = kart_rgb.crop((0, 0, w, 1)).resize((HEDEF_W, card_y), Image.Resampling.NEAREST)
+    tuval.paste(ust_serit, (0, 0))
+
+    # 2. Alt kısım: Kartın en alt satırını aşağıya doğru kesintisiz uzat (card_y + h .. 1920)
+    alt_y = card_y + h
+    alt_kalan = HEDEF_H - alt_y
+    if alt_kalan > 0:
+        alt_serit = kart_rgb.crop((0, h - 1, w, h)).resize((HEDEF_W, alt_kalan), Image.Resampling.NEAREST)
+        tuval.paste(alt_serit, (0, alt_y))
+
+    # 3. 4:5 Görseli Merkeze Sıfır Geçiş Maskesi ile Kesintisiz Yerleştir
+    tuval.paste(kart_rgb, (0, card_y))
 
     return tuval
 

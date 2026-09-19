@@ -213,3 +213,17 @@ def video_yayinla(video_yolu: Path | str, description: str = "") -> Optional[str
             time.sleep(deneme * 5)
 
     return None
+
+
+def post_baglantisi(post_id: str) -> str:
+    """Facebook post bağlantısı — Telegram sonucunda göstermek için."""
+    if not post_id:
+        return ""
+    return f"https://www.facebook.com/{post_id}"
+
+
+def reels_baglantisi(video_id: str) -> str:
+    """Facebook Reel doğrudan bağlantısı — Telegram sonucunda göstermek için."""
+    if not video_id:
+        return ""
+    return f"https://www.facebook.com/reel/{video_id}"

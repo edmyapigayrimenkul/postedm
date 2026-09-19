@@ -540,6 +540,11 @@ export default {
             }
           }
 
+          if (!icerikId && cb.message?.text) {
+            const match = cb.message.text.match(/#(\d+)/);
+            if (match) icerikId = match[1];
+          }
+
           const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1] : null;
 
           await cevapVer("Yayın süreci başlatıldı");

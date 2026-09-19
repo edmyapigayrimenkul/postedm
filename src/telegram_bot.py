@@ -405,20 +405,149 @@ def mesaji_guncelle(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, 
     return bool(res)
 
 
-def sonucu_yaz(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> bool:
-    """İşlem tamamlandığında butonları kaldırır veya sonucu yazar."""
-    return mesaji_guncelle(mesaj_id, metin, reply_markup=reply_markup)
+def menuyu_degistir(mesaj_id: int, reply_markup: Dict[str, Any]) -> bool:
+    """Mesaj metnine dokunmadan yalnızca butonları (inline_keyboard) günceller."""
+    res = _istek("editMessageReplyMarkup", message_id=mesaj_id, reply_markup=reply_markup)
+    return bool(res)
+
+
+def aciklama_metni_kutusu(metin: str) -> str:
+    """Telegram'da tek dokunuşla panoya kopyalanabilir HTML kod bloğu oluşturur."""
+    temiz = html.escape(metin.strip())
+    return (
+        f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+        f"<pre><code>{temiz}</code></pre>"
+    )
+
+
+KANAL_ETIKETLERI = {
+    "instagram": "Instagram Akış (4:5)",
+    "ig": "Instagram Akış (4:5)",
+    "instagram_story": "Instagram Story",
+    "story": "Instagram Story",
+    "facebook_story": "Facebook Story",
+    "reels": "Instagram Reels (9:16)",
+    "facebook_reels": "Facebook Reels",
+    "facebook": "Facebook (Gönderi)",
+    "threads": "Threads (@edmyapigayrimenkul)",
+    "youtube": "YouTube Shorts",
+    "shorts": "YouTube Shorts",
+    "tiktok": "TikTok (@edmyapigayrimenkul)",
+    "tt": "TikTok (@edmyapigayrimenkul)",
+}
+
+
+def yayin_durum_metni_olustur(
+    baslik: str,
+    adim: int,
+    toplam_adim: int,
+    durum_haritasi: Dict[str, str],
+    baslangic_ts: float = 0.0,
+    is_telafi: bool = False,
+) -> str:
+    """
+    Canlı paralel yayın ilerleme metnini ve platform durum listesini oluşturur.
+    Instabot standardında: Her kanalın durumunu (⏳ Yükleniyor... / ✅ Yayında / ❌ Hata / ⏱️ Sırada) ve
+    canlı ilerleme çubuğunu ([▰▰▱▱] %50) gösterir.
+    """
+    toplam = max(1, toplam_adim)
+    ad = max(0, min(adim, toplam))
+    dolu = "▰" * ad
+    bos = "▱" * (toplam - ad)
+    yuzde = int((ad / toplam) * 100)
+    bar = f"<code>[{dolu}{bos}] %{yuzde} ({ad}/{toplam})</code>"
+
+    tamamlandi = (ad == toplam and all(v not in ("⏱️ Sırada", "⏳ Yükleniyor...") for v in durum_haritasi.values()))
+
+    if is_telafi:
+        baslik_satiri = "⏳ <b>TELAFİ DAĞITIMI SÜRÜYOR...</b>"
+    elif tamamlandi:
+        baslik_satiri = "✅ <b>TÜM PLATFORMLARA AKTARIM TAMAMLANDI!</b>"
+    else:
+        baslik_satiri = "⏳ <b>YAYIN DAĞITIMI SÜRÜYOR (Paralel Motor)...</b>"
+
+    satirlar = [baslik_satiri]
+    if baslik:
+        satirlar.append(f"📌 <b>{html.escape(baslik[:100])}</b>")
+    satirlar.append("")
+    satirlar.append(bar)
+    satirlar.append("")
+    satirlar.append("📱 <b>Platform Durumları:</b>")
+
+    for k, durum in durum_haritasi.items():
+        isim = KANAL_ETIKETLERI.get(k, k.upper())
+        satirlar.append(f"• <b>{isim}:</b> {durum}")
+
+    if baslangic_ts > 0:
+        gecen = time.time() - baslangic_ts
+        if tamamlandi:
+            satirlar.append(f"\n⏱️ <i>Toplam Dağıtım Süresi: {gecen:.1f} sn • Tebrikler! 🎉</i>")
+        else:
+            satirlar.append(f"\n⏱️ <i>Geçen Süre: {gecen:.1f} sn</i>")
+
+    return "\n".join(satirlar)
+
+
+def canli_yayin_durumu_guncelle(
+    mesaj_id: Optional[int],
+    baslik: str,
+    adim: int,
+    toplam_adim: int,
+    durum_haritasi: Dict[str, str],
+    baslangic_ts: float = 0.0,
+    is_telafi: bool = False,
+) -> bool:
+    """Paralel dağıtım sırasında onay mesajını anlık platform durumları ve ilerleme çubuğuyla canlı günceller."""
+    if not mesaj_id:
+        return False
+    metin = yayin_durum_metni_olustur(
+        baslik=baslik,
+        adim=adim,
+        toplam_adim=toplam_adim,
+        durum_haritasi=durum_haritasi,
+        baslangic_ts=baslangic_ts,
+        is_telafi=is_telafi,
+    )
+    return mesaji_guncelle(mesaj_id, metin)
+
+
+def sonucu_yaz(
+    mesaj_id: Optional[int],
+    metin: str,
+    bildir: bool = False,
+    reply_markup: Optional[Dict[str, Any]] = None,
+    ek_dugmeler: Optional[List[List[Dict[str, str]]]] = None,
+) -> bool:
+    """
+    Onay mesajını sonuçla günceller, butonları canlı linkler veya telafi tuşlarıyla değiştirir.
+    bildir=True ise ayrıca grupta yeni bir mesaj olarak iletir.
+    """
+    duzenlendi = False
+    if mesaj_id:
+        duzenlendi = mesaji_guncelle(mesaj_id, metin, reply_markup=reply_markup)
+
+    if bildir:
+        try:
+            markup = reply_markup or ({"inline_keyboard": ek_dugmeler} if ek_dugmeler else None)
+            mesaj_gonder(metin, reply_markup=markup)
+        except Exception as e:
+            log.warning("Sonuç bildirimi gönderilemedi: %s", e)
+
+    return duzenlendi
 
 
 def durum_guncelle(mesaj_id: int, baslik: str, adim: int, toplam_adim: int = 4, detay: str = "") -> None:
     """İşlem sürerken Telegram'da görsel progress bar günceller."""
-    dolu = "█" * adim
-    bos = "░" * max(0, toplam_adim - adim)
+    if toplam_adim < 1:
+        toplam_adim = 1
+    adim = max(1, min(adim, toplam_adim))
+    dolu = "▰" * adim
+    bos = "▱" * max(0, toplam_adim - adim)
     yuzde = int((adim / max(1, toplam_adim)) * 100)
     metin = (
-        f"⏳ <b>{baslik}</b>\n\n"
-        f"<code>[{dolu}{bos}] %{yuzde}</code>\n"
-        f"<i>{detay}</i>"
+        f"⏳ <b>{html.escape(baslik)}</b>\n\n"
+        f"<code>[{dolu}{bos}] %{yuzde} ({adim}/{toplam_adim})</code>\n"
+        f"<i>{html.escape(detay)}</i>"
     )
     mesaji_guncelle(mesaj_id, metin)
 
@@ -520,6 +649,43 @@ def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dic
         ],
     ]
 
+
+def secili_kanallari_cikar(klavye: Optional[List[List[Dict[str, Any]]]]) -> List[str]:
+    """Inline keyboard'dan seçili kanalları (✅ ile başlayan) listeler."""
+    if not klavye:
+        return ["ig", "story", "threads", "facebook", "youtube", "tiktok"]
+    secili = []
+    bulundu = False
+    for satir in klavye:
+        for btn in satir:
+            cb = str(btn.get("callback_data", ""))
+            if cb.startswith("kanal:") or cb.startswith("kanal_toggle:"):
+                bulundu = True
+                if str(btn.get("text", "")).startswith("✅"):
+                    kanal_adi = cb.replace("kanal_toggle:", "").replace("kanal:", "")
+                    secili.append(kanal_adi)
+    if not bulundu:
+        return ["ig", "story", "threads", "facebook", "youtube", "tiktok"]
+    return secili
+
+
+def kanal_toggle(klavye: List[List[Dict[str, Any]]], hedef_kanal: str) -> List[List[Dict[str, Any]]]:
+    """Klavye içerisindeki hedef kanalın onay durumunu (✅ <-> ⬜) tersine çevirir."""
+    yeni_klavye = []
+    for satir in klavye:
+        yeni_satir = []
+        for btn in satir:
+            b = dict(btn)
+            cb = str(b.get("callback_data", ""))
+            if cb in (f"kanal:{hedef_kanal}", f"kanal_toggle:{hedef_kanal}"):
+                text = str(b.get("text", ""))
+                if text.startswith("✅"):
+                    b["text"] = "⬜ " + text[1:].strip()
+                elif text.startswith("⬜"):
+                    b["text"] = "✅ " + text[1:].strip()
+            yeni_satir.append(b)
+        yeni_klavye.append(yeni_satir)
+    return yeni_klavye
 
 
 def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
@@ -1440,15 +1606,23 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     except Exception as e45:
         log.warning("Reels 4:5 slaytları hazırlanamadı: %s", e45)
 
-    # Veritabanına kaydet (Önizleme aşamasında video henüz derlenmez; 'Yayınla' dendiğinde üretilir)
+    # Dikey 1080x1920 MP4 Reels Videosu Derle (Instabot standardı)
+    from . import video
+    v_yolu = None
+    try:
+        v_yolu = video.slaytlardan_reels_uret([str(p) for p in slayt_yollari])
+    except Exception as ve:
+        log.warning("Reels videosu üretilemedi: %s", ve)
+
+    # Veritabanına kaydet
     orijinal_url = f"edm://reels/{konu['kod']}/{int(time.time())}"
     simdi = datetime.now(timezone.utc).isoformat()
     with db._baglanti_al() as conn:
         cur = conn.execute(
             """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
                                      eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
-                                     ig_caption, threads_metin, durum, slayt_yollari, slayt_urlleri)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?, ?)""",
+                                     ig_caption, threads_metin, durum, slayt_yollari, slayt_urlleri, video_yolu)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?, ?, ?)""",
             (
                 f"EDM Reels // {konu['kod']}",
                 konu["baslik"],
@@ -1463,6 +1637,7 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
                 veri.get("caption_threads", ""),
                 json.dumps([str(p) for p in slayt_yollari], ensure_ascii=False),
                 json.dumps(slayt_urlleri) if slayt_urlleri else None,
+                str(v_yolu) if (v_yolu and v_yolu.exists()) else None,
             ),
         )
         haber_id = cur.lastrowid
@@ -1470,13 +1645,26 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
 
     konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
 
-    # 1. HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER: 9:16 Dikey Carousel albümünü gönder
-    medya_grubu_gonder(
-        slayt_yollari,
-        caption=f"🎬 <b>EDM REELS SLAYTLARI (9:16 Dikey)</b>\n📌 {konu['baslik']}",
-    )
+    # 1. HER ZAMAN ÖNCE VİDEO DÜŞER: 1080x1920 MP4 Dikey Video Gönder
+    video_gonderildi = False
+    if v_yolu and v_yolu.exists():
+        try:
+            video_gonder(
+                v_yolu,
+                aciklama=f"🎬 <b>EDM REELS VİDEOSU (1080x1920 MP4)</b>\n📌 {konu['baslik']}",
+            )
+            video_gonderildi = True
+        except Exception as ve:
+            log.warning("Telegram'a Reels videosu iletilemedi: %s", ve)
 
-    # 2. Kopyalanabilir Caption ve Onay Menüsünü Gönder (Görüntülerin altına düşer)
+    # Yedek / Tamamlayıcı: Slayt albümünü de ilet
+    if not video_gonderildi:
+        medya_grubu_gonder(
+            slayt_yollari,
+            caption=f"🎬 <b>EDM REELS SLAYTLARI (9:16 Dikey)</b>\n📌 {konu['baslik']}",
+        )
+
+    # 2. Kopyalanabilir Caption ve Onay Menüsünü Gönder (Videonun altına düşer)
     import html as html_lib
     raw_caption = veri.get("caption_instagram") or konu["baslik"]
     caption_metin = generate_text.caption_zenginlestir(
@@ -1492,7 +1680,7 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n\n"
         f"📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
         f"<pre><code>{temiz_caption}</code></pre>\n\n"
-        f"💡 <i>'🚀 Seçili Kanallarda Yayınla' butonuna bastığınızda 1080x1920 MP4 dikey videosu derlenip gruba iletilecektir.</i>"
+        f"💡 <i>Videoyu kaydedebilir veya '✅ Yayınla' -> '▶️ Şimdi' butonuna basarak doğrudan tüm platformlara otomatik yayınlayabilirsiniz.</i>"
     )
     reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True}
     res = mesaj_gonder(mesaj_metni, reply_markup=ana_menu(adet=len(slayt_yollari) if slayt_yollari else 7, kanallar=reels_kanallari))
@@ -1632,6 +1820,18 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
 
     medya_grubu_gonder(slayt_yollari, caption=onizleme_metni)
 
+    import html as html_lib
+    temiz_caption = html_lib.escape(caption.strip())
+    onay_metni = (
+        f"🏡 <b>İLAN PAYLAŞIM ONAYI</b>\n\n"
+        f"📌 <b>{ilan.get('baslik')}</b>\n"
+        f"💰 <b>Fiyat:</b> {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n"
+        f"📍 <b>Konum:</b> {ilan.get('ilce')} / {ilan.get('mahalle')}\n\n"
+        f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+        f"<pre><code>{temiz_caption}</code></pre>\n\n"
+        f"Bu portföy ilanını sosyal medyada yayınlayalım mı?"
+    )
+
     butonlar = {
         "inline_keyboard": [
             [
@@ -1651,7 +1851,7 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
             ],
         ]
     }
-    res = mesaj_gonder("Bu portföy ilanını sosyal medyada yayınlayalım mı?", reply_markup=butonlar)
+    res = mesaj_gonder(onay_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
         cid = config.env_al("TELEGRAM_CHAT_ID")
         db.onay_istegi_kaydet("ilan", str(ilan_id), res["message_id"], int(cid) if cid and cid.lstrip("-").isdigit() else None)

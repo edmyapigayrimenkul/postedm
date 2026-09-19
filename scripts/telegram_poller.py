@@ -261,133 +261,313 @@ def main() -> None:
                             telegram_bot.hizli_icerik_uret(fmt)
 
                     # ---------------------------------------------------------
-                    # D. Kanal Seçimi / Toggle
+                    # D. Kanal Seçimi / Toggle (Instabot Canlı Toggle)
                     # ---------------------------------------------------------
-                    elif data.startswith("kanal_toggle:"):
-                        kanal = data.split(":")[1]
-                        kanallar = telegram_bot.varsayilan_kanallar()
-                        aktif = not kanallar.get(kanal, True)
-                        guncel_kanallar = telegram_bot.kanal_ayarla(kanal, aktif)
-                        bekleyenler = db.bekleyen_haberleri_getir(limit=1)
-                        if bekleyenler and msg_id:
-                            h_id = bekleyenler[0]["id"]
-                            telegram_bot.mesaji_guncelle(
-                                msg_id,
-                                "Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:",
-                                reply_markup=telegram_bot.onay_menusu(h_id, guncel_kanallar),
-                            )
+                    elif data.startswith("kanal:") or data.startswith("kanal_toggle:"):
+                        hedef_kanal = data.split(":", 1)[1]
+                        klavye = msg_obj.get("reply_markup", {}).get("inline_keyboard", [])
+                        if klavye and msg_id:
+                            yeni_klavye = telegram_bot.kanal_toggle(klavye, hedef_kanal)
+                            telegram_bot.menuyu_degistir(msg_id, {"inline_keyboard": yeni_klavye})
 
                     # ---------------------------------------------------------
-                    # E. Format Değiştirme Menüsü
+                    # E. Menü Gezinmeleri (Yayın Zamanı, Foto, Metin, Slayt)
                     # ---------------------------------------------------------
-                    elif data.startswith("format_menu:"):
-                        h_id = int(data.split(":")[1])
-                        if msg_id:
-                            telegram_bot.mesaji_guncelle(
-                                msg_id,
-                                "🎨 <b>Format Değiştirme Menüsü:</b>\n"
-                                "Bu içeriği hangi EDM formatına dönüştürmek istersiniz?",
-                                reply_markup=telegram_bot.format_secim_menusu(h_id),
-                            )
+                    elif (
+                        data.startswith("yayin_menu:") or data.startswith("yayin_geri:") or
+                        data.startswith("foto_menu:") or data.startswith("foto_geri:") or
+                        data.startswith("metin_menu:") or data.startswith("metin_geri:") or
+                        data.startswith("slayt_menu:") or data.startswith("geri:") or
+                        data.startswith("format_menu:") or data.startswith("onay_menu_don:") or
+                        data.startswith("slayt:")
+                    ):
+                        parts = data.split(":")
+                        kok = parts[0]
+                        adet = 2
+                        try:
+                            adet = int(parts[-1]) if parts[-1].isdigit() else 2
+                        except Exception:
+                            adet = 2
+                        klavye = msg_obj.get("reply_markup", {}).get("inline_keyboard", [])
+                        secili_list = telegram_bot.secili_kanallari_cikar(klavye)
+                        secili_dict = {k: (k in secili_list) for k in ["ig", "reels", "story", "threads", "facebook", "youtube", "tiktok"]}
 
-                    elif data.startswith("onay_menu_don:"):
-                        h_id = int(data.split(":")[1])
+                        if kok == "slayt":
+                            sira = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 1
+                            yeni_menu = telegram_bot.slayt_islem_menusu(sira, adet, secili_dict)
+                        elif kok == "yayin_menu":
+                            yeni_menu = telegram_bot.yayin_zamani_menusu(adet, secili_dict)
+                        elif kok == "foto_menu":
+                            yeni_menu = telegram_bot.foto_menusu(adet, secili_dict)
+                        elif kok == "metin_menu":
+                            yeni_menu = telegram_bot.metin_menusu(adet, secili_dict)
+                        elif kok in ("slayt_menu", "format_menu"):
+                            yeni_menu = telegram_bot.slayt_secim_menusu(adet, secili_dict)
+                        else:
+                            yeni_menu = telegram_bot.ana_menu(adet, secili_dict)
+
                         if msg_id:
-                            telegram_bot.mesaji_guncelle(
-                                msg_id,
-                                "Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:",
-                                reply_markup=telegram_bot.onay_menusu(h_id),
-                            )
+                            telegram_bot.menuyu_degistir(msg_id, yeni_menu)
 
                     elif data.startswith("format_uygula:"):
-                        _, fmt, h_id_str = data.split(":")
-                        h_id = int(h_id_str)
-                        log.info("Format uygulanıyor: #%d -> %s", h_id, fmt)
-                        telegram_bot.format_degistir_ve_sun(h_id, fmt)
+                        parts = data.split(":")
+                        fmt = parts[1]
+                        h_id = None
+                        if len(parts) > 2 and parts[2].isdigit():
+                            h_id = int(parts[2])
+                        elif msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                _, ref_id_int, _ = bulunan
+                                h_id = int(ref_id_int)
+                        if h_id:
+                            log.info("Format uygulanıyor: #%d -> %s", h_id, fmt)
+                            telegram_bot.format_degistir_ve_sun(h_id, fmt)
+                        else:
+                            telegram_bot.mesaj_gonder(f"🎨 Format uygulanıyor ({fmt.upper()})...")
+                            telegram_bot.hizli_icerik_uret(fmt)
 
                     # ---------------------------------------------------------
-                    # F. Manuel Paylaşım Paketi
+                    # F. Yayınla (Anında veya Zamanlı - Instabot Canlı İlerleme Çubuğu)
                     # ---------------------------------------------------------
-                    elif data.startswith("manuel_paket:"):
-                        h_id = data.split(":")[1]
-                        log.info("Manuel paket talep edildi: #%s", h_id)
-                        cmd = [
-                            sys.executable,
-                            str(KOK / "scripts/yayinla.py"),
-                            "--tur",
-                            "haber",
-                            "--id",
-                            h_id,
-                            "--hedef",
-                            "manuel_paket",
-                        ]
-                        subprocess.run(cmd, cwd=str(KOK))
-
-                    # ---------------------------------------------------------
-                    # G. Onayla ve Yayınla (Çok Kanallı Dağıtım)
-                    # ---------------------------------------------------------
-                    elif data.startswith("onayla:"):
-                        parcalar = data.split(":")
-                        if len(parcalar) == 4:
-                            _, tur, hedef, ref_id = parcalar
-                            if hedef == "tamamla":
-                                log.info("Manuel tamamlandı: %s #%s", tur, ref_id)
-                                try:
-                                    db.haber_guncelle(int(ref_id), durum="yayinlandi")
-                                    db.onay_istegi_sonuclandir(tur, str(ref_id), "yayinlandi")
-                                except Exception as de:
-                                    log.warning("DB güncelleme hatası: %s", de)
-                                telegram_bot.mesaj_gonder(f"✅ <b>{tur.upper()} #{ref_id}</b> paylaşıldı olarak işaretlendi ve arşivlendi.")
-                            else:
-                                log.info("Yayın onaylandı: %s #%s -> %s", tur, ref_id, hedef)
-                                telegram_bot.mesaj_gonder(
-                                    f"🚀 <b>{tur.upper()} #{ref_id}</b> için paylaşım süreci başlatıldı...\n"
-                                    f"Platformlar: <b>{hedef.upper()}</b>\nLütfen bekleyin..."
+                    elif data == "yayinla" or data.startswith("yayinla_sonra:") or data.startswith("onayla:"):
+                        klavye = msg_obj.get("reply_markup", {}).get("inline_keyboard", [])
+                        secili = telegram_bot.secili_kanallari_cikar(klavye)
+                        if not secili and (data == "yayinla" or data.startswith("yayinla_sonra:")):
+                            try:
+                                requests.post(
+                                    f"https://api.telegram.org/bot{token}/answerCallbackQuery",
+                                    json={"callback_query_id": cb_id, "text": "⚠️ En az bir yayın kanalı seçmelisin!", "show_alert": True},
+                                    timeout=5,
                                 )
-                                cmd = [
-                                    sys.executable,
-                                    str(KOK / "scripts/yayinla.py"),
-                                    "--tur",
-                                    tur,
-                                    "--id",
-                                    ref_id,
-                                    "--hedef",
-                                    hedef,
-                                ]
-                                subprocess.run(cmd, cwd=str(KOK))
+                            except Exception:
+                                pass
+                            continue
+
+                        tur = "reels" if ("reels" in secili and "ig" not in secili) else "haber"
+                        hedef = ",".join(secili) if secili else "hepsi"
+                        ref_id = None
+
+                        if data.startswith("onayla:"):
+                            parcalar = data.split(":")
+                            if len(parcalar) >= 4:
+                                tur = parcalar[1]
+                                hedef = parcalar[2]
+                                ref_id = parcalar[3]
+                                if hedef == "tamamla":
+                                    if ref_id.isdigit():
+                                        db.haber_guncelle(int(ref_id), durum="yayinlandi")
+                                    db.onay_istegi_sonuclandir(tur, str(ref_id), "yayinlandi")
+                                    telegram_bot.mesaj_gonder(f"✅ <b>{tur.upper()} #{ref_id}</b> paylaşıldı olarak işaretlendi ve arşivlendi.")
+                                    continue
+                            elif len(parcalar) == 2:
+                                ref_id = parcalar[1]
+
+                        if not ref_id and msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+
+                        if not ref_id:
+                            telegram_bot.mesaj_gonder("⚠️ Onaylanacak içerik bulunamadı.")
+                            continue
+
+                        gecikme = data.split(":")[1] if data.startswith("yayinla_sonra:") else None
+                        baslik_etiketi = "Reels Videosu" if tur == "reels" else ("İlan Postu" if tur == "ilan" else "İçerik")
+                        if gecikme:
+                            telegram_bot.mesaji_guncelle(
+                                msg_id,
+                                f"⏰ <b>{baslik_etiketi} #{ref_id} {gecikme} dakika sonra yayınlanacak şekilde planlandı.</b>\n"
+                                f"Seçili Kanallar: <code>{hedef.upper()}</code>"
+                            )
+                            try:
+                                db.onay_istegi_ertele(tur, str(ref_id), dakika=int(gecikme))
+                            except Exception as ee:
+                                log.warning("Planlama hatası: %s", ee)
+                        else:
+                            telegram_bot.mesaji_guncelle(
+                                msg_id,
+                                f"🚀 <b>{baslik_etiketi} #{ref_id} yayına alınıyor...</b>\n"
+                                f"Seçili Kanallar: <code>{hedef.upper()}</code>\n"
+                                f"⏳ <i>Canlı yayın motoru başlatılıyor...</i>"
+                            )
+                            cmd = [
+                                sys.executable,
+                                str(KOK / "scripts/yayinla.py"),
+                                "--tur", tur,
+                                "--id", str(ref_id),
+                                "--hedef", hedef,
+                                "--mesaj-id", str(msg_id),
+                            ]
+                            subprocess.Popen(cmd, cwd=str(KOK))
 
                     # ---------------------------------------------------------
-                    # H. Yenile & Reddet
+                    # G. Manuel Paylaşım Paketi
                     # ---------------------------------------------------------
-                    elif data.startswith("yenile:"):
-                        parcalar = data.split(":")
-                        tur = parcalar[1] if len(parcalar) > 1 else "içerik"
-                        ref_id = parcalar[2] if len(parcalar) > 2 else ""
-                        log.info("Yenileme talep edildi: %s #%s", tur, ref_id)
-                        telegram_bot.mesaj_gonder(f"🔄 <b>{tur.upper()} #{ref_id}</b> yeniden üretiliyor, lütfen bekleyin...")
-                        cmd = [
-                            sys.executable,
-                            str(KOK / "scripts/yayinla.py"),
-                            "--tur",
-                            tur,
-                            "--id",
-                            ref_id,
-                            "--hedef",
-                            "yenile",
-                        ]
-                        subprocess.run(cmd, cwd=str(KOK))
+                    elif data == "manuel_paket" or data.startswith("manuel_paket:"):
+                        ref_id = data.split(":")[1] if ":" in data else None
+                        tur = "haber"
+                        if not ref_id and msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
+                            telegram_bot.mesaji_guncelle(
+                                msg_id,
+                                f"📲 <b>İçerik #{ref_id} için Manuel Paylaşım Paketi hazırlanıyor...</b>\n"
+                                f"Açıklama metni ve doğrudan yönlendirme butonları birazdan iletilecek."
+                            )
+                            cmd = [
+                                sys.executable,
+                                str(KOK / "scripts/yayinla.py"),
+                                "--tur", tur,
+                                "--id", str(ref_id),
+                                "--hedef", "manuel_paket",
+                                "--mesaj-id", str(msg_id),
+                            ]
+                            subprocess.Popen(cmd, cwd=str(KOK))
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Manuel paket için içerik bulunamadı.")
 
-                    elif data.startswith("reddet:"):
+                    # ---------------------------------------------------------
+                    # H. Fotoğraf Değiştirme ve Özelleştirme Aksiyonları
+                    # ---------------------------------------------------------
+                    elif data in ("foto_gercek", "foto_stok", "foto_ai", "foto_editoryal") or data.startswith("foto_eylem:"):
+                        eylem = data.split(":")[1] if data.startswith("foto_eylem:") else data
+                        ref_id = None
+                        tur = "haber"
+                        if msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
+                            telegram_bot.mesaji_guncelle(msg_id, f"🖼️ <b>İçerik #{ref_id} görseli güncelleniyor ({eylem})...</b>\nLütfen bekleyin...")
+                            cmd = [
+                                sys.executable,
+                                str(KOK / "scripts/yayinla.py"),
+                                "--tur", tur,
+                                "--id", str(ref_id),
+                                "--hedef", eylem,
+                                "--mesaj-id", str(msg_id),
+                            ]
+                            subprocess.Popen(cmd, cwd=str(KOK))
+
+                    # ---------------------------------------------------------
+                    # I. Metin Düzenleme ve Yenileme Aksiyonları
+                    # ---------------------------------------------------------
+                    elif data in ("metin_ozetle", "metin_detaylandir", "metin_yenile") or data.startswith("metin_eylem:") or data.startswith("yenile:"):
+                        eylem = data.split(":")[1] if data.startswith("metin_eylem:") else (data.split(":")[0] if not data.startswith("yenile:") else "yenile")
+                        ref_id = data.split(":")[2] if data.startswith("yenile:") and len(data.split(":")) > 2 else None
+                        tur = data.split(":")[1] if data.startswith("yenile:") and len(data.split(":")) > 1 else "haber"
+                        if not ref_id and msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
+                            telegram_bot.mesaji_guncelle(msg_id, f"✍️ <b>İçerik #{ref_id} metni güncelleniyor ({eylem})...</b>\nLütfen bekleyin...")
+                            cmd = [
+                                sys.executable,
+                                str(KOK / "scripts/yayinla.py"),
+                                "--tur", tur,
+                                "--id", str(ref_id),
+                                "--hedef", eylem,
+                                "--mesaj-id", str(msg_id),
+                            ]
+                            subprocess.Popen(cmd, cwd=str(KOK))
+
+                    # ---------------------------------------------------------
+                    # J. Ertele, İptal ve Çöpe At
+                    # ---------------------------------------------------------
+                    elif data == "ertele" or data.startswith("ertele:"):
+                        ref_id = None
+                        tur = "haber"
+                        if msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
+                            db.onay_istegi_ertele(tur, str(ref_id), dakika=60)
+                            telegram_bot.mesaji_guncelle(msg_id, f"⏰ <b>{tur.upper()} #{ref_id} yayını 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>")
+                        else:
+                            telegram_bot.mesaji_guncelle(msg_id, "⏰ <b>Yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>")
+
+                    elif data == "iptal" or data.startswith("reddet:"):
                         parcalar = data.split(":")
-                        tur = parcalar[1] if len(parcalar) > 1 else "içerik"
-                        ref_id = parcalar[2] if len(parcalar) > 2 else ""
-                        try:
+                        tur = parcalar[1] if len(parcalar) > 1 and parcalar[1] in ("haber", "ilan", "reels") else "haber"
+                        ref_id = parcalar[2] if len(parcalar) > 2 else None
+                        if not ref_id and msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
                             if ref_id.isdigit():
-                                db.haber_guncelle(int(ref_id), durum="reddedildi")
-                                db.onay_istegi_sonuclandir(tur, str(ref_id), "reddedildi")
-                        except Exception as re:
-                            log.warning("Reddetme DB hatası: %s", re)
-                        telegram_bot.mesaj_gonder(f"❌ <b>{tur.upper()} #{ref_id}</b> reddedildi ve iptal edildi.")
+                                db.haber_guncelle(int(ref_id), durum="iptal")
+                            db.onay_istegi_sonuclandir(tur, str(ref_id), "iptal")
+                            telegram_bot.mesaji_guncelle(msg_id, f"❌ <b>{tur.upper()} #{ref_id} atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>")
+                        else:
+                            telegram_bot.mesaji_guncelle(msg_id, "❌ <b>Bu içerik atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>")
+                        if tur == "reels":
+                            telegram_bot.reels_hazirla_ve_sun()
+                        else:
+                            telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
+
+                    elif data == "cope_at" or data.startswith("cope_at:"):
+                        ref_id = data.split(":")[1] if ":" in data else None
+                        tur = "haber"
+                        if not ref_id and msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
+                            if ref_id.isdigit():
+                                db.haber_guncelle(int(ref_id), durum="iptal")
+                            db.onay_istegi_sonuclandir(tur, str(ref_id), "cop")
+                            telegram_bot.mesaji_guncelle(msg_id, f"🗑️ <b>{tur.upper()} #{ref_id} taslağı çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi.</i>")
+                        else:
+                            telegram_bot.mesaji_guncelle(msg_id, "🗑️ <b>Taslak çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi.</i>")
 
                     elif data in ("ayar", "ayar_menu"):
                         telegram_bot.mesaji_guncelle(

@@ -360,3 +360,21 @@ def zincir_paylas(sayfalar: List[Dict[str, str]]) -> Optional[str]:
             time.sleep(CONTAINER_ARASI_SANIYE)
 
     return kok_id
+
+
+def post_baglantisi(post_id: str) -> str:
+    """Threads post bağlantısı — Telegram sonucunda göstermek için."""
+    if not post_id:
+        return ""
+    try:
+        token = config.env_al("THREADS_ACCESS_TOKEN")
+        if token:
+            url = f"{GRAPH_TABAN}/{post_id}?fields=permalink&access_token={token}"
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                p = r.json().get("permalink")
+                if p:
+                    return p
+    except Exception:
+        pass
+    return f"https://www.threads.net/@edmyapigayrimenkul/post/{post_id}"
