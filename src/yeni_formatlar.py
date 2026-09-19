@@ -251,9 +251,9 @@ def ciz_tik_filigran(
     draw_target: ImageDraw.ImageDraw,
     cx: int,
     cy: int,
-    boy: int = 310,
+    boy: int = 320,
     renk: Tuple[int, int, int, int] = (34, 197, 94, 52),
-    kalinlik: int = 30,
+    kalinlik: int = 46,
     r: Optional[int] = None,
 ) -> None:
     if r is not None:
@@ -277,9 +277,9 @@ def ciz_vektor_carpi_filigran(
     draw_target: ImageDraw.ImageDraw,
     cx: int,
     cy: int,
-    boy: int = 290,
+    boy: int = 300,
     renk: Tuple[int, int, int, int] = (255, 255, 255, 45),
-    kalinlik: int = 30,
+    kalinlik: int = 46,
     r: Optional[int] = None,
 ) -> None:
     if r is not None:
@@ -388,10 +388,10 @@ def uret_nedir_dogrusu(
     overlay_draw = ImageDraw.Draw(overlay)
     cx_carpi = GENISLIK - 45
     cy_carpi = ku + 280
-    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, boy=290, renk=(255, 255, 255, 45), kalinlik=30)
+    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, boy=300, renk=(255, 255, 255, 45), kalinlik=46)
     cx_tik = GENISLIK - 65
     cy_tik = dogru_y + 135
-    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=310, renk=(34, 197, 94, 52), kalinlik=30)
+    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=320, renk=(34, 197, 94, 52), kalinlik=46)
 
     # Paragraf başı '“' filigranı (puntoyla orantılı)
     f_quote_size = int(best_punto * 1.85)
