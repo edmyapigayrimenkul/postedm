@@ -251,25 +251,19 @@ def ciz_tik_filigran(
     draw_target: ImageDraw.ImageDraw,
     cx: int,
     cy: int,
-    r: int = 115,
-    renk: Tuple[int, int, int, int] = (34, 197, 94, 170),
-    kalinlik: int = 18,
-    boy: Optional[int] = None,
+    boy: int = 310,
+    renk: Tuple[int, int, int, int] = (34, 197, 94, 52),
+    kalinlik: int = 30,
+    r: Optional[int] = None,
 ) -> None:
-    if boy is not None:
-        r = boy // 2
-    # Yumuşak yeşil iç dolgu + ince dış çember + zarif tik (Madalyon rozet)
-    draw_target.ellipse(
-        [(cx - r, cy - r), (cx + r, cy + r)],
-        fill=(renk[0], renk[1], renk[2], 26),
-        outline=(renk[0], renk[1], renk[2], 80),
-        width=3,
-    )
-    p1 = (cx - int(r * 0.45), cy - int(r * 0.05))
-    p2 = (cx - int(r * 0.12), cy + int(r * 0.38))
-    p3 = (cx + int(r * 0.50), cy - int(r * 0.36))
+    if r is not None:
+        boy = r * 2
+    # Sağ kenara taşan kalın mimari tik (Çembersiz, güçlü ve zarif)
     w_line = kalinlik
     p_radius = w_line // 2
+    p1 = (cx - int(boy * 0.42), cy - int(boy * 0.05))
+    p2 = (cx - int(boy * 0.12), cy + int(boy * 0.35))
+    p3 = (cx + int(boy * 0.45), cy - int(boy * 0.40))
     draw_target.line([p1, p2], fill=renk, width=w_line)
     draw_target.line([p2, p3], fill=renk, width=w_line)
     for pt in (p1, p2, p3):
@@ -283,24 +277,20 @@ def ciz_vektor_carpi_filigran(
     draw_target: ImageDraw.ImageDraw,
     cx: int,
     cy: int,
-    r: int = 115,
-    renk: Tuple[int, int, int, int] = (255, 255, 255, 110),
-    kalinlik: int = 18,
-    boy: Optional[int] = None,
+    boy: int = 290,
+    renk: Tuple[int, int, int, int] = (255, 255, 255, 45),
+    kalinlik: int = 30,
+    r: Optional[int] = None,
 ) -> None:
-    if boy is not None:
-        r = boy // 2
-    # Yumuşak iç dolgu + ince dış çember + kalın iç çarpı (Madalyon rozet)
-    draw_target.ellipse(
-        [(cx - r, cy - r), (cx + r, cy + r)],
-        fill=(renk[0], renk[1], renk[2], 26),
-        outline=(renk[0], renk[1], renk[2], 85),
-        width=3,
-    )
-    k = int(r * 0.44)
+    if r is not None:
+        boy = r * 2
+    # Sağ kenara taşan kalın mimari çarpı (Çembersiz, güçlü ve zarif)
     w_line = kalinlik
     p_radius = w_line // 2
-    for p_line in [((cx - k, cy - k), (cx + k, cy + k)), ((cx - k, cy + k), (cx + k, cy - k))]:
+    for p_line in [
+        ((cx - boy // 2, cy - boy // 2), (cx + boy // 2, cy + boy // 2)),
+        ((cx - boy // 2, cy + boy // 2), (cx + boy // 2, cy - boy // 2)),
+    ]:
         draw_target.line(p_line, fill=renk, width=w_line)
         for pt in p_line:
             draw_target.ellipse(
@@ -393,15 +383,15 @@ def uret_nedir_dogrusu(
     alt_bosluk = max(10, (beyaz_alan_h - h_dogru) // 2)
     dogru_y = y_end + 25 + alt_bosluk
 
-    # Filigran Katmanı (Madalyon Çarpı + Madalyon Tik + Paragraf başı '“' filigranı)
+    # Filigran Katmanı (Sağ kenardan taşan kalın mimari Çarpı + Tik + Paragraf başı '“' filigranı)
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
     overlay_draw = ImageDraw.Draw(overlay)
-    cx_carpi = GENISLIK - 180
-    cy_carpi = ku + 265
-    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, r=115, renk=(255, 255, 255, 110), kalinlik=18)
-    cx_tik = GENISLIK - 220
-    cy_tik = 890
-    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, r=115, renk=(34, 197, 94, 170), kalinlik=18)
+    cx_carpi = GENISLIK - 45
+    cy_carpi = ku + 280
+    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, boy=290, renk=(255, 255, 255, 45), kalinlik=30)
+    cx_tik = GENISLIK - 65
+    cy_tik = dogru_y + 135
+    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=310, renk=(34, 197, 94, 52), kalinlik=30)
 
     # Paragraf başı '“' filigranı (puntoyla orantılı)
     f_quote_size = int(best_punto * 1.85)
