@@ -51,6 +51,9 @@ jobs:
           KATEGORI: ${{ github.event.client_payload.kategori }}
           EYLEM: ${{ github.event.client_payload.eylem }}
           SAAT: ${{ github.event.client_payload.saat }}
+          ICERIK_ID: ${{ github.event.client_payload.id }}
+          ANAHTAR: ${{ github.event.client_payload.anahtar }}
+          DEGER: ${{ github.event.client_payload.deger }}
         run: |
           if [ "$EYLEM" = "duraklat" ]; then
             python -c "import os; from src.telegram_bot import bot_duraklat; s = os.environ.get('SAAT', ''); bot_duraklat(saat=int(s) if s.isdigit() else 24)"
@@ -60,6 +63,14 @@ jobs:
             python -c "from src import db, telegram_bot; adet = db.askidaki_onaylari_temizle(); telegram_bot.mesaj_gonder(f'🧹 <b>Askıdaki Onaylar Temizlendi:</b> {adet} adet bekleyen onay iptal edildi.')"
           elif [ "$EYLEM" = "kota_raporu" ] || [ "$EYLEM" = "rapor" ]; then
             python scripts/gunluk_rapor.py
+          elif [ "$EYLEM" = "ayar_degistir" ]; then
+            python -c "import os; from src import ayar; ayar.ayar_kaydet(os.environ.get('ANAHTAR', ''), os.environ.get('DEGER', ''))"
+          elif [ "$EYLEM" = "incele" ]; then
+            python -c "import os; from src import telegram_bot; m, b = telegram_bot.icerik_incele_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
+          elif [ "$EYLEM" = "sonpostlar" ]; then
+            python -c "from src import telegram_bot; m, b = telegram_bot.son_postlar_raporu(); telegram_bot.mesaj_gonder(m, reply_markup=b)"
+          elif [ "$EYLEM" = "yayin_kontrol" ]; then
+            python -c "import os; from src import telegram_bot; m, b = telegram_bot.yayin_kontrol_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           fi
 
       - name: Yayınla

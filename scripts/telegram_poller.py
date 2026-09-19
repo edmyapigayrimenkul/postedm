@@ -20,7 +20,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import config, db, fetch_listings, fetch_news, konu_bankasi, telegram_bot
+from src import ayar, config, db, fetch_listings, fetch_news, konu_bankasi, ozel_icerik, telegram_bot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -389,6 +389,74 @@ def main() -> None:
                             log.warning("Reddetme DB hatası: %s", re)
                         telegram_bot.mesaj_gonder(f"❌ <b>{tur.upper()} #{ref_id}</b> reddedildi ve iptal edildi.")
 
+                    elif data in ("ayar", "ayar_menu"):
+                        telegram_bot.mesaji_guncelle(
+                            msg_id,
+                            "⚙️ <b>EDM Çalışma ve Yayın Ayarları:</b>\n"
+                            "Değiştirmek istediğiniz ayara dokunarak açıp kapatabilirsiniz:",
+                            reply_markup=ayar.ayar_menusu(),
+                        )
+
+                    elif data.startswith("ayarsec:"):
+                        _, key, val = data.split(":")
+                        ayar.ayar_kaydet(key, val)
+                        telegram_bot.mesaji_guncelle(
+                            msg_id,
+                            "⚙️ <b>EDM Çalışma ve Yayın Ayarları (Güncellendi):</b>",
+                            reply_markup=ayar.ayar_menusu(),
+                        )
+
+                    elif data == "sonpostlar":
+                        m, b = telegram_bot.son_postlar_raporu()
+                        if msg_id:
+                            telegram_bot.mesaji_guncelle(msg_id, m, reply_markup=b)
+                        else:
+                            telegram_bot.mesaj_gonder(m, reply_markup=b)
+
+                    elif data.startswith("incele:"):
+                        ref_id = int(data.split(":")[1])
+                        m, b = telegram_bot.icerik_incele_karti(ref_id)
+                        if msg_id:
+                            telegram_bot.mesaji_guncelle(msg_id, m, reply_markup=b)
+                        else:
+                            telegram_bot.mesaj_gonder(m, reply_markup=b)
+
+                    elif data.startswith("yayin_kontrol:"):
+                        ref_id = int(data.split(":")[1])
+                        m, b = telegram_bot.yayin_kontrol_karti(ref_id)
+                        if msg_id:
+                            telegram_bot.mesaji_guncelle(msg_id, m, reply_markup=b)
+                        else:
+                            telegram_bot.mesaj_gonder(m, reply_markup=b)
+
+                    elif data.startswith("kurtar:"):
+                        ref_id = data.split(":")[1]
+                        telegram_bot.mesaj_gonder(f"🚀 <b>İçerik #{ref_id}</b> tüm kanallar için kurtarılıyor ve yayınlanıyor...")
+                        cmd = [sys.executable, str(KOK / "scripts/yayinla.py"), "--tur", "haber", "--id", ref_id, "--hedef", "hepsi"]
+                        subprocess.run(cmd, cwd=str(KOK))
+
+                    elif data.startswith("retry_kanal:"):
+                        _, kanal, ref_id = data.split(":")
+                        telegram_bot.mesaj_gonder(f"🔄 <b>İçerik #{ref_id}</b> için <b>{kanal.upper()}</b> yayını tekrarlanıyor...")
+                        cmd = [sys.executable, str(KOK / "scripts/yayinla.py"), "--tur", "haber", "--id", ref_id, "--hedef", kanal]
+                        subprocess.run(cmd, cwd=str(KOK))
+
+                    elif data.startswith("cope_at:") or data == "cope_at":
+                        ref_id = data.split(":")[1] if ":" in data else ""
+                        if ref_id and ref_id.isdigit():
+                            db.haber_guncelle(int(ref_id), durum="cop")
+                            db.onay_istegi_sonuclandir("haber", ref_id, "cop")
+                        if msg_id:
+                            telegram_bot.mesaji_guncelle(msg_id, "🗑️ <b>İçerik çöpe atıldı (Havuza dönmeyecek).</b>")
+                        else:
+                            telegram_bot.mesaj_gonder("🗑️ <b>İçerik çöpe atıldı (Havuza dönmeyecek).</b>")
+
+                    elif any(data.startswith(pre) for pre in ("slayt_basa:", "slayt_yukari:", "slayt_asagi:", "slayt_sil:", "slayt_carpici:", "slayt_uzat:", "slayt_kisalt:")):
+                        eylem, sira = data.split(":")
+                        telegram_bot.mesaj_gonder(f"⏳ <b>Slayt güncelleniyor ({eylem})...</b>")
+                        cmd = [sys.executable, str(KOK / "scripts/slayt_islem.py"), "--eylem", eylem, "--sira", sira, "--mesaj-id", str(msg_id or "")]
+                        subprocess.run(cmd, cwd=str(KOK))
+
                 # =============================================================
                 # 2. SLASH KOMUTLARI & METİN MESAJLARI
                 # =============================================================
@@ -494,6 +562,80 @@ def main() -> None:
                             telegram_bot.haber_onayina_sun(bekleyenler[0]["id"])
                         else:
                             telegram_bot.mesaj_gonder("Şu anda sırada bekleyen yeni sektörel haber bulunmuyor.")
+
+                    elif komut_parca in ("/ayar", "/ayarlar"):
+                        log.info("/ayar komutu alındı.")
+                        telegram_bot.mesaj_gonder(
+                            "⚙️ <b>EDM Çalışma ve Yayın Ayarları:</b>\n"
+                            "Değiştirmek istediğiniz ayara dokunarak açıp kapatabilirsiniz:",
+                            reply_markup=ayar.ayar_menusu(),
+                        )
+
+                    elif komut_parca == "/temizle":
+                        log.info("/temizle komutu alındı.")
+                        adet = db.askidaki_onaylari_temizle()
+                        telegram_bot.mesaj_gonder(f"🧹 <b>Askıdaki Onaylar Temizlendi:</b> {adet} adet bekleyen onay iptal edildi.")
+
+                    elif komut_parca in ("/sonpostlar", "/son_postlar"):
+                        log.info("/sonpostlar komutu alındı.")
+                        m, b = telegram_bot.son_postlar_raporu()
+                        telegram_bot.mesaj_gonder(m, reply_markup=b)
+
+                    elif komut_parca == "/incele":
+                        parcalar = text.split()
+                        if len(parcalar) > 1 and parcalar[1].isdigit():
+                            m, b = telegram_bot.icerik_incele_karti(int(parcalar[1]))
+                            telegram_bot.mesaj_gonder(m, reply_markup=b)
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen incelenecek ID'yi belirtin: <code>/incele 104</code>")
+
+                    elif komut_parca == "/kurtar":
+                        parcalar = text.split()
+                        if len(parcalar) > 1 and parcalar[1].isdigit():
+                            cmd = [sys.executable, str(KOK / "scripts/yayinla.py"), "--tur", "haber", "--id", parcalar[1], "--hedef", "hepsi"]
+                            subprocess.run(cmd, cwd=str(KOK))
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen kurtarılacak ID'yi belirtin: <code>/kurtar 104</code>")
+
+                    elif komut_parca == "/yayin_kontrol":
+                        parcalar = text.split()
+                        if len(parcalar) > 1 and parcalar[1].isdigit():
+                            m, b = telegram_bot.yayin_kontrol_karti(int(parcalar[1]))
+                            telegram_bot.mesaj_gonder(m, reply_markup=b)
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen kontrol edilecek ID'yi belirtin: <code>/yayin_kontrol 104</code>")
+
+                    elif komut_parca == "/arastir":
+                        log.info("/arastir komutu alındı: %s", text)
+                        parcalar = text.split(maxsplit=1)
+                        if len(parcalar) > 1:
+                            ozel_icerik.arastir_icerik_uret(parcalar[1].strip())
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen araştırılacak konuyu girin:\n<code>/arastir tapu harcı muafiyeti</code>")
+
+                    elif komut_parca in ("/dosya", "/kronoloji"):
+                        log.info("/dosya komutu alındı: %s", text)
+                        parcalar = text.split(maxsplit=1)
+                        if len(parcalar) > 1:
+                            ozel_icerik.dosya_icerik_uret(parcalar[1].strip())
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen dosya konusunu girin:\n<code>/dosya Kentsel Dönüşüm Hukuki Süreci</code>")
+
+                    elif komut_parca == "/link":
+                        log.info("/link komutu alındı: %s", text)
+                        parcalar = text.split(maxsplit=1)
+                        if len(parcalar) > 1:
+                            ozel_icerik.linkten_icerik_uret(parcalar[1].strip())
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen geçerli bir web linki girin:\n<code>/link https://...</code>")
+
+                    elif komut_parca in ("/ozel", "/konu"):
+                        log.info("/ozel komutu alındı: %s", text)
+                        parcalar = text.split(maxsplit=1)
+                        if len(parcalar) > 1:
+                            ozel_icerik.konudan_ozel_icerik_uret(parcalar[1].strip())
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen konu metnini girin:\n<code>/ozel Hisseli tapuda şufa hakkı...</code>")
 
         except requests.exceptions.Timeout:
             continue

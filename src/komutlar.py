@@ -27,8 +27,21 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "rapor",
     "kullanim",
     "kota",
+    "ayar",
+    "ayarlar",
+    "ayar_menu",
+    "temizle",
+    "tur_temizle",
 
-    # Hızlı İçerik Üretimi
+    # İnceleme & Kurtarma & Rapor
+    "incele",
+    "sonpostlar",
+    "son_postlar",
+    "kurtar",
+    "yayin_kontrol",
+    "retry_kanal",
+
+    # Hızlı & Özel İçerik Üretimi
     "gonderi",
     "yeni",
     "uret",
@@ -43,45 +56,65 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "ilan",
     "ilanlar",
     "havuz",
+    "arastir",
+    "dosya",
+    "kronoloji",
+    "link",
+    "ozel",
+    "konu",
 
     # Aksiyonlar
     "ertele",
     "iptal",
     "yenile",
     "yayinla",
+    "cope_at",
 }
 
 # Telegram resmi açılır menüsünde (setMyCommands) listelenen komutlar
 KOMUT_MENUSU: List[Dict[str, str]] = [
-    # ── 🎛 YÖNETİM & KONTROL MERKEZİ ─────────────────────────────────
-    {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
-    {"command": "rapor", "description": "📈 GitHub Actions, Yapay Zeka ve Sistem Raporu"},
-    {"command": "durum", "description": "📊 Bot sağlığı, sıradaki post ve durum"},
-    {"command": "ilanlar", "description": "🏡 Portföyden tek tıkla ilan seçip paylaş"},
-    {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},
-    {"command": "saglik", "description": "🩺 Sistem ve API sağlık testi"},
-    {"command": "yardim", "description": "❓ Bot komutları ve kullanım kılavuzu"},
-
-    # ── ✍️ OTORİTE İÇERİK ÜRETİMİ ─────────────────────────────────────
-    {"command": "gonderi", "description": "📰 Günün konusundan onaylı post üret"},
-    {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu üretip gruba sun"},
-    {"command": "haber", "description": "🌐 Taze sektörel haber tara ve post yap"},
+    # ── ✍️ İÇERİK ÜRET & ARAŞTIR ─────────────────────────────────────
+    {"command": "gonderi", "description": "✍️ Günün konusundan onaylı post üret (Rotasyon)"},
+    {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu ve metni üret"},
+    {"command": "arastir", "description": "🔍 <konu> hakkında derin mevzuat araştırması yap"},
+    {"command": "dosya", "description": "📂 <konu> kronolojik dosya ve süreç analizi"},
+    {"command": "link", "description": "🌐 <url> ile linkten içerik üret"},
+    {"command": "ozel", "description": "📝 <metin> serbest konudan otorite postu üret"},
+    {"command": "haber", "description": "📰 Taze sektörel haber tara ve post yap"},
     {"command": "sozluk", "description": "📖 EDM Gayrimenkul Sözlüğü postu üret"},
     {"command": "dogrusu", "description": "⚖️ Nedir Doğrusu? (Efsane vs Gerçek) üret"},
     {"command": "vaka", "description": "📂 Hukuki Vaka Analizi (2 Slayt Carousel) üret"},
     {"command": "soru", "description": "❓ Net Cevap Rehberi (Soru & Hüküm) üret"},
+    {"command": "ilanlar", "description": "🏡 Portföyden tek tıkla ilan seçip paylaş"},
+
+    # ── 📊 AKIŞ, İNCELEME & RAPOR ─────────────────────────────────────
+    {"command": "sonpostlar", "description": "📰 Son yayınlanan postları listele"},
+    {"command": "incele", "description": "🔎 <id> ile içerik detaylarını incele"},
+    {"command": "yayin_kontrol", "description": "📡 <id> yayın doğrulama ve kanal durumu"},
+    {"command": "kurtar", "description": "🚀 <id> aksayan yayını kurtar ve paylaş"},
+    {"command": "durum", "description": "📊 Bot sağlığı, sıradaki post ve durum"},
+    {"command": "rapor", "description": "📈 GitHub Actions, Yapay Zeka ve Sistem Raporu"},
     {"command": "havuz", "description": "🔄 Konu havuzu doluluk ve istatistikleri"},
 
-    # ── ⏸️ AKIŞ KONTROLÜ ─────────────────────────────────────────────
+    # ── 🎛 YÖNETİM & AYARLAR ─────────────────────────────────────────
+    {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
+    {"command": "ayar", "description": "⚙️ Çalışma ayarlarını canlı düzenle"},
+    {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},
+    {"command": "saglik", "description": "🩺 Sistem ve API sağlık testi"},
+    {"command": "temizle", "description": "🧹 Askıdaki bekleyen onayları temizle"},
     {"command": "durdur", "description": "⏸️ Otomatik paylaşımları duraklat"},
     {"command": "devam", "description": "▶️ Duraklatılmış botu başlat"},
+    {"command": "yardim", "description": "❓ Bot komutları ve kullanım kılavuzu"},
 ]
 
 
 def mesajsiz_komut_mu(komut: str) -> bool:
     """Komutun onay mesajı olmadan bağımsız çalışıp çalışamayacağını doğrular."""
-    temiz = (komut or "").strip().lower().lstrip("/")
-    return temiz in MESAJSIZ_KOMUTLAR
+    if not komut:
+        return False
+    temiz = komut.strip().lower().lstrip("/")
+    kok = temiz.split(":", 1)[0].split()[0]
+    return kok in MESAJSIZ_KOMUTLAR or temiz in MESAJSIZ_KOMUTLAR
 
 
 def menuyu_telegrama_kaydet() -> bool:

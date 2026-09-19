@@ -28,7 +28,7 @@ log = logging.getLogger("ozel_uret")
 
 def main():
     parser = argparse.ArgumentParser(description="Dış Kaynaklı Özel İçerik Üretimi")
-    parser.add_argument("--tur", choices=["link", "ozel"], required=True, help="link veya ozel")
+    parser.add_argument("--tur", choices=["link", "ozel", "arastir", "dosya"], required=True, help="link, ozel, arastir veya dosya")
     parser.add_argument("--url", default="", help="Taranacak web sitesi / haber linki")
     parser.add_argument("--metin", default="", help="Özel konu / duyuru / soru metni")
     args = parser.parse_args()
@@ -52,6 +52,26 @@ def main():
         if not haber_id:
             sys.exit(1)
         log.info("Özel konudan içerik başarıyla üretildi: #%d", haber_id)
+
+    elif args.tur == "arastir":
+        metin = args.metin.strip()
+        if len(metin) < 3:
+            telegram_bot.mesaj_gonder("⚠️ Lütfen araştırmak istediğiniz konuyu girin:\n<code>/arastir tapu harcı muafiyeti</code>")
+            sys.exit(1)
+        haber_id = ozel_icerik.arastir_icerik_uret(metin)
+        if not haber_id:
+            sys.exit(1)
+        log.info("Araştırma içeriği başarıyla üretildi: #%d", haber_id)
+
+    elif args.tur == "dosya":
+        metin = args.metin.strip()
+        if len(metin) < 3:
+            telegram_bot.mesaj_gonder("⚠️ Lütfen dosya konusunu girin:\n<code>/dosya Kentsel Dönüşüm Süreci</code>")
+            sys.exit(1)
+        haber_id = ozel_icerik.dosya_icerik_uret(metin)
+        if not haber_id:
+            sys.exit(1)
+        log.info("Dosya içeriği başarıyla üretildi: #%d", haber_id)
 
 
 if __name__ == "__main__":

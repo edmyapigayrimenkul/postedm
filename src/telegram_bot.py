@@ -742,11 +742,15 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
             ],
             [
                 {"text": "📊 Sıradaki Post & Durum", "callback_data": "durum"},
-                duraklat_butonu,
+                {"text": "📰 Son Postlar", "callback_data": "sonpostlar"},
             ],
             [
                 {"text": "📈 Detaylı Kota Raporu", "callback_data": "kota_goster"},
+                {"text": "⚙️ Çalışma Ayarları", "callback_data": "ayar"},
+            ],
+            [
                 {"text": "🩺 Sistem Sağlık Testi", "callback_data": "saglik_testi"},
+                duraklat_butonu,
             ],
             [
                 {"text": "🔄 Konu Havuzu Durumu", "callback_data": "havuz_durum"},
@@ -773,6 +777,162 @@ def duraklatma_secenekleri_menusu() -> Dict[str, Any]:
             ],
         ]
     }
+
+
+def ayar_menusu() -> Dict[str, Any]:
+    """Çalışma ayarları interaktif toggle menüsü."""
+    try:
+        from . import ayar
+        return ayar.ayar_menusu()
+    except Exception as e:
+        log.warning("Ayar menüsü üretilemedi: %s", e)
+        return {"inline_keyboard": [[{"text": "← Kontrol Paneli", "callback_data": "panel"}]]}
+
+
+def icerik_incele_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
+    """İçerik #ref_id için detaylı inceleme kartı ve yönetim butonları üretir."""
+    haber = db.haber_getir(int(ref_id))
+    if not haber:
+        return f"⚠️ <b>#{ref_id} numaralı içerik veritabanında bulunamadı.</b>", {
+            "inline_keyboard": [[{"text": "← Kontrol Paneli", "callback_data": "panel"}]]
+        }
+
+    manset = haber.get("manset") or haber.get("orijinal_baslik") or "Başlıksız"
+    durum = haber.get("durum", "bilinmiyor")
+    kategori = haber.get("kategori", "Genel")
+    tarih = (haber.get("eklenme_tarihi") or "")[:16].replace("T", " ")
+    kaynak = haber.get("kaynak", "EDM")
+
+    durum_ikon = {
+        "yayinlandi": "✅ Yayında",
+        "onay_bekliyor": "⏳ Onay Bekliyor",
+        "iptal": "❌ Atlandı / İptal",
+        "cop": "🗑️ Çöpte",
+    }.get(durum, f"ℹ️ {durum}")
+
+    detay = {}
+    try:
+        detay = json.loads(haber.get("detay_metni") or "{}")
+    except Exception:
+        pass
+
+    spot = detay.get("spot") or haber.get("orijinal_ozet") or ""
+    slayt_sayisi = len(json.loads(haber.get("slayt_yollari") or "[]")) if haber.get("slayt_yollari") else 0
+
+    metin = (
+        f"🔍 <b>İÇERİK İNCELEME: #{ref_id}</b>\n\n"
+        f"📌 <b>Manşet:</b> {html.escape(manset)}\n"
+        f"🏷️ <b>Kategori:</b> {kategori} · <b>Kaynak:</b> {kaynak}\n"
+        f"📊 <b>Durum:</b> {durum_ikon}\n"
+        f"📅 <b>Tarih:</b> {tarih}\n"
+        f"🖼️ <b>Slaytlar:</b> {slayt_sayisi} adet görsel hazır\n\n"
+        f"📝 <b>Spot:</b>\n<i>{html.escape(spot[:200])}...</i>"
+    )
+
+    butonlar = {
+        "inline_keyboard": [
+            [
+                {"text": "▶️ Şimdi Yayınla", "callback_data": f"yayinla:{ref_id}"},
+                {"text": "🔄 Yeniden Üret", "callback_data": f"yenile:{ref_id}"},
+            ],
+            [
+                {"text": "🔍 Yayın Kontrolü", "callback_data": f"yayin_kontrol:{ref_id}"},
+                {"text": "🗑️ Çöpe At", "callback_data": f"cope_at:{ref_id}"},
+            ],
+            [
+                {"text": "← Kontrol Paneli", "callback_data": "panel"},
+            ],
+        ]
+    }
+    return metin, butonlar
+
+
+def son_postlar_raporu() -> Tuple[str, Dict[str, Any]]:
+    """Son 5 içeriği ve yayın durumlarını listeler."""
+    with db._baglanti_al() as conn:
+        satirlar = conn.execute(
+            """SELECT id, manset, orijinal_baslik, durum, eklenme_tarihi
+               FROM haberler
+               ORDER BY id DESC
+               LIMIT 5"""
+        ).fetchall()
+
+    if not satirlar:
+        return "ℹ️ <b>Henüz kayıtlı içerik bulunmuyor.</b>", {
+            "inline_keyboard": [[{"text": "← Kontrol Paneli", "callback_data": "panel"}]]
+        }
+
+    satir_metinleri = []
+    tuslar = []
+    for h in satirlar:
+        hid = h["id"]
+        baslik = h["manset"] or h["orijinal_baslik"] or f"İçerik #{hid}"
+        durum = h["durum"]
+        ikon = "✅" if durum == "yayinlandi" else ("⏳" if durum == "onay_bekliyor" else "❌")
+        tarih = (h["eklenme_tarihi"] or "")[:10]
+        satir_metinleri.append(f"{ikon} <b>#{hid}</b> ({tarih}) — {html.escape(baslik[:45])}...")
+        tuslar.append({"text": f"🔍 #{hid}", "callback_data": f"incele:{hid}"})
+
+    metin = (
+        "📰 <b>SON İÇERİKLER & YAYIN DURUMU</b>\n\n"
+        + "\n".join(satir_metinleri)
+        + "\n\n💡 <i>Detayları incelemek ve aksiyon almak için butonları kullanabilirsiniz.</i>"
+    )
+
+    inline_rows = []
+    for i in range(0, len(tuslar), 3):
+        inline_rows.append(tuslar[i:i+3])
+    inline_rows.append([{"text": "← Kontrol Paneli", "callback_data": "panel"}])
+
+    return metin, {"inline_keyboard": inline_rows}
+
+
+def yayin_kontrol_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
+    """İçerik #ref_id için platform bazlı yayın durumu ve tek tıkla retry butonları üretir."""
+    haber = db.haber_getir(int(ref_id))
+    if not haber:
+        return f"⚠️ <b>#{ref_id} numaralı içerik bulunamadı.</b>", {
+            "inline_keyboard": [[{"text": "← Kontrol Paneli", "callback_data": "panel"}]]
+        }
+
+    manset = haber.get("manset") or haber.get("orijinal_baslik") or f"İçerik #{ref_id}"
+    durum = haber.get("durum")
+    yayinlandi = (durum == "yayinlandi")
+
+    metin = (
+        f"📡 <b>YAYIN DOĞRULAMA & KONTROL: #{ref_id}</b>\n\n"
+        f"📌 <b>Başlık:</b> {html.escape(manset)}\n"
+        f"📊 <b>Genel Durum:</b> {'✅ Başarıyla Paylaşıldı' if yayinlandi else '⚠️ Paylaşım Bekleniyor / Kısmi'}\n\n"
+        f"<b>Kanal Durumları:</b>\n"
+        f"• Instagram: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
+        f"• Threads: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
+        f"• Facebook: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
+        f"• TikTok: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
+        f"• YouTube Shorts: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n\n"
+        f"💡 <i>Aşağıdaki butonla tekil kanal yayını yapabilir veya tümünü kurtarabilirsiniz:</i>"
+    )
+
+    butonlar = {
+        "inline_keyboard": [
+            [
+                {"text": "🔄 Tekrar: IG", "callback_data": f"retry_kanal:ig:{ref_id}"},
+                {"text": "🔄 Tekrar: Threads", "callback_data": f"retry_kanal:threads:{ref_id}"},
+                {"text": "🔄 Tekrar: Reels", "callback_data": f"retry_kanal:reels:{ref_id}"},
+            ],
+            [
+                {"text": "🔄 Tekrar: TikTok", "callback_data": f"retry_kanal:tiktok:{ref_id}"},
+                {"text": "🔄 Tekrar: Facebook", "callback_data": f"retry_kanal:facebook:{ref_id}"},
+                {"text": "🔄 Tekrar: YT", "callback_data": f"retry_kanal:youtube:{ref_id}"},
+            ],
+            [
+                {"text": "🚀 Tüm Kanalları Kurtar & Yayınla", "callback_data": f"kurtar:{ref_id}"},
+            ],
+            [
+                {"text": f"← #{ref_id} İnceleme Kartı", "callback_data": f"incele:{ref_id}"},
+            ],
+        ]
+    }
+    return metin, butonlar
 
 
 def panel_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:

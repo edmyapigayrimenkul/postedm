@@ -205,3 +205,168 @@ def konudan_ozel_icerik_uret(konu_metni: str) -> Optional[int]:
     db_senkron.hemen_kaydet(f"db: ozel haber #{haber_id} olusturuldu")
     telegram_bot.haber_onayina_sun(haber_id)
     return haber_id
+
+
+def arastir_icerik_uret(konu: str) -> Optional[int]:
+    """
+    Kullanıcının ilettiği konuyu (örn: /arastir 2026 tapu harcı muafiyeti şartları)
+    Gemini ile derinlemesine araştırıp mevzuat maddeleri, kriterler ve uzman tavsiyesi
+    içeren otorite karuseli üretir.
+    """
+    log.info("Konu araştırma süreci başlatıldı: %s", konu[:50])
+    telegram_bot.mesaj_gonder(
+        f"🔍 <b>Derin Gayrimenkul Araştırması Başlatıldı:</b>\n"
+        f"<i>\"{html.escape(konu[:120])}\"</i>\n\n"
+        f"⏳ İlgili mevzuat hükümleri taranıyor, uzman analizi ve slaytlar hazırlanıyor..."
+    )
+
+    arastirma_promptu = (
+        f"Sen Türkiye'nin en saygın gayrimenkul hukuku ve tapu danışmanlığı şirketi EDM Yapı'nın "
+        f"kıdemli hukuk ve değerleme uzmanısın. Kullanıcı şu konuda derin araştırma ve bilgilendirme istedi:\n"
+        f"\"{konu}\"\n\n"
+        f"Bu konuyu Tapu Kanunu, Medeni Kanun, Kat Mülkiyeti Kanunu veya ilgili güncel mevzuat hükümleriyle "
+        f"somut, net ve vatandaşın hemen anlayabileceği pratik tavsiyelerle analiz et. "
+        f"Temel sorun, kanuni hüküm ve yapılması gereken adımları özetle."
+    )
+    sistem = "Sen EDM Yapı & Gayrimenkul Baş Danışmanısın. Cevabın net, otoriter ve hukuken sağlam olmalıdır."
+
+    arastirma_ozeti = ""
+    try:
+        yanit = generate_text._gemini_cagri(arastirma_promptu, sistem_talimati=sistem, sicaklik=0.5)
+        if yanit:
+            arastirma_ozeti = yanit.strip()
+    except Exception as e:
+        log.warning("Araştırma analizi çağrısı başarısız: %s", e)
+
+    if not arastirma_ozeti:
+        arastirma_ozeti = konu
+
+    simdi = datetime.now(timezone.utc).isoformat()
+    konu_kodu = f"ARASTIR_{int(time.time())}"
+    orijinal_url = f"edm://arastir/{konu_kodu}"
+    baslik = konu.split("\n")[0][:80]
+
+    konu_dict = {
+        "kod": konu_kodu,
+        "sutun": "S1",
+        "kategori": "TAPU_VE_HUKUK",
+        "baslik": baslik,
+        "aci": f"{konu}\n\nDetaylı Analiz & Hukuki Çerçeve:\n{arastirma_ozeti}"[:3000],
+        "bicim": "B1",
+        "onem_puani": 10,
+        "kaynak": "EDM Hukuk & Araştırma Masası",
+    }
+
+    veri = generate_text.konudan_uret(konu_dict)
+    if not veri:
+        telegram_bot.mesaj_gonder("❌ Araştırma sonucundan içerik üretilemedi.")
+        return None
+
+    manset = generate_text.manset_birlestir(veri) or baslik
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor')""",
+            (
+                "EDM Araştırma Masası",
+                baslik,
+                orijinal_url,
+                arastirma_ozeti[:400],
+                simdi,
+                10,
+                "TAPU_VE_HUKUK",
+                manset,
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    db_senkron.hemen_kaydet(f"db: arastirma haberi #{haber_id} olusturuldu")
+    telegram_bot.haber_onayina_sun(haber_id)
+    return haber_id
+
+
+def dosya_icerik_uret(konu: str) -> Optional[int]:
+    """
+    Kullanıcının talep ettiği konuyu (örn: /dosya İmar Barışı ve Yapı Kayıt Belgesi)
+    adım adım süreç, kritik dönüm noktaları ve risk tablosu içeren prestij dosya haberine dönüştürür.
+    """
+    log.info("Dosya haberi üretimi başlatıldı: %s", konu[:50])
+    telegram_bot.mesaj_gonder(
+        f"📂 <b>Özel Dosya / Süreç Analizi Başlatıldı:</b>\n"
+        f"<i>\"{html.escape(konu[:120])}\"</i>\n\n"
+        f"⏳ Kronolojik aşamalar, riskler ve çözüm adımları derleniyor..."
+    )
+
+    dosya_promptu = (
+        f"Sen EDM Yapı & Gayrimenkul Baş Danışmanısın. Aşağıdaki konu hakkında adım adım süreç analizi yap:\n"
+        f"\"{konu}\"\n\n"
+        f"Bu süreci: 1. Başlangıç & Kritik Sorun, 2. Yasal / İdari Süreç Aşamaları, 3. Vatandaşın Korunması & Çözüm Yolu "
+        f"başlıklarıyla net ve kapsamlı biçimde açıkla."
+    )
+    sistem = "Sen EDM Yapı & Gayrimenkul Baş Danışmanısın. Detaylı, net ve rehber niteliğinde yaz."
+
+    analiz = ""
+    try:
+        yanit = generate_text._gemini_cagri(dosya_promptu, sistem_talimati=sistem, sicaklik=0.5)
+        if yanit:
+            analiz = yanit.strip()
+    except Exception as e:
+        log.warning("Dosya analizi çağrısı başarısız: %s", e)
+
+    if not analiz:
+        analiz = konu
+
+    simdi = datetime.now(timezone.utc).isoformat()
+    konu_kodu = f"DOSYA_{int(time.time())}"
+    orijinal_url = f"edm://dosya/{konu_kodu}"
+    baslik = f"DOSYA: {konu.split(chr(10))[0][:70]}"
+
+    konu_dict = {
+        "kod": konu_kodu,
+        "sutun": "S2",
+        "kategori": "IMAR_VE_MEVZUAT",
+        "baslik": baslik,
+        "aci": f"{konu}\n\nSüreç ve Dosya Detayları:\n{analiz}"[:3000],
+        "bicim": "B1",
+        "onem_puani": 10,
+        "kaynak": "EDM Dosya Masası",
+    }
+
+    veri = generate_text.konudan_uret(konu_dict)
+    if not veri:
+        telegram_bot.mesaj_gonder("❌ Dosya analizi içeriği üretilemedi.")
+        return None
+
+    manset = generate_text.manset_birlestir(veri) or baslik
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor')""",
+            (
+                "EDM Dosya Masası",
+                baslik,
+                orijinal_url,
+                analiz[:400],
+                simdi,
+                10,
+                "IMAR_VE_MEVZUAT",
+                manset,
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    db_senkron.hemen_kaydet(f"db: dosya haberi #{haber_id} olusturuldu")
+    telegram_bot.haber_onayina_sun(haber_id)
+    return haber_id

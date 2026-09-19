@@ -340,9 +340,10 @@ export default {
           await cevapVer();
           await mesajiGuncelle(
             "📊 <b>EDM SİSTEM & YAYIN DURUMU</b>\n\n" +
-            "• <b>Otomasyon:</b> 🟢 Aktif (Haftanın 7 Günü, Günde 2 İçerik)\n" +
-            "  - <i>Sabah 10:00:</i> 1 Otorite Postu (4:5 Görsel / Carousel)\n" +
-            "  - <i>Akşam 18:30:</i> 1 Dikey Video (9:16 Reels / Shorts / TikTok)\n\n" +
+            "• <b>Otomasyon:</b> 🟢 Aktif (Haftanın 7 Günü, Günde 3 Farklı Gönderi)\n" +
+            "  - <i>Sabah 10:00:</i> 1. Bilgilendirici (Rotasyon: Nedir Doğrusu, Vaka, Net Cevap, B1)\n" +
+            "  - <i>Öğle 13:30:</i> 2. EDM Gayrimenkul Sözlüğü\n" +
+            "  - <i>Akşam 18:30:</i> 3. Taze Haber & Gündem (veya Bilgilendirici Fallback)\n\n" +
             "• <b>Bağlı Platformlar:</b>\n" +
             "  ✅ Instagram (Post & Reels)\n" +
             "  ✅ Threads\n" +
@@ -353,6 +354,71 @@ export default {
             "<i>Tüm sistemler, Cloudflare Worker ve API bağlantıları %100 sağlıklı çalışıyor.</i>",
             { inline_keyboard: [[{ text: "← Kontrol Paneline Dön", callback_data: "panel" }, { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" }]] }
           );
+          return new Response("OK");
+        }
+
+        if (data === "ayar" || data === "ayar_menu") {
+          await cevapVer();
+          await mesajiGuncelle(
+            "⚙️ <b>EDM ÇALIŞMA VE YAYIN AYARLARI</b>\n\n" +
+            "Aşağıdaki ayarları tek tıkla canlı olarak açıp kapatabilirsiniz:",
+            ayarMenusu()
+          );
+          return new Response("OK");
+        }
+
+        if (data.startsWith("ayarsec:")) {
+          const [_, key, val] = data.split(":");
+          await cevapVer("Ayar güncellendi");
+          const keyboard = cb.message?.reply_markup?.inline_keyboard || [];
+          for (let row of keyboard) {
+            for (let btn of row) {
+              if (btn.callback_data?.startsWith(`ayarsec:${key}:`)) {
+                const suAnAcik = btn.text.includes("✅");
+                const yeniAcik = !suAnAcik;
+                btn.text = btn.text.replace(/^[✅⬜]/, yeniAcik ? "✅" : "⬜");
+                btn.callback_data = `ayarsec:${key}:${!yeniAcik}`;
+              }
+            }
+          }
+          await butonlariGuncelle(keyboard);
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "ayar_degistir", anahtar: key, deger: val });
+          return new Response("OK");
+        }
+
+        if (data === "sonpostlar") {
+          await cevapVer("Son postlar getiriliyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "sonpostlar", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data.startsWith("incele:")) {
+          const refId = data.split(":")[1];
+          await cevapVer("İçerik inceleniyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "incele", id: refId, mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data.startsWith("yayin_kontrol:")) {
+          const refId = data.split(":")[1];
+          await cevapVer("Yayın kontrol ediliyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "yayin_kontrol", id: refId, mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data.startsWith("kurtar:")) {
+          const refId = data.split(":")[1];
+          await cevapVer("Tüm kanallar için kurtarılıyor...");
+          await mesajiGuncelle(`🚀 <b>İçerik #${refId}</b> tüm kanallar için kurtarılıyor ve yayınlanıyor...`);
+          await tetikleGitHub(env, "yayinla", { hedef: "hepsi", id: refId, mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data.startsWith("retry_kanal:")) {
+          const [_, kanal, refId] = data.split(":");
+          await cevapVer(`${kanal.toUpperCase()} için tekrar deneniyor...`);
+          await mesajiGuncelle(`🔄 <b>İçerik #${refId}</b> için <b>${kanal.toUpperCase()}</b> yayını tekrarlanıyor...`);
+          await tetikleGitHub(env, "yayinla", { hedef: kanal, id: refId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -854,24 +920,105 @@ export default {
           return new Response("OK");
         }
 
+        if (rawText.startsWith("/arastir")) {
+          const metin = rawText.replace(/^\/arastir\s*/i, "").trim();
+          if (metin.length < 3) {
+            await mesajGonder("⚠️ Lütfen araştırmak istediğiniz konuyu yazın:\n<code>/arastir 2026 tapu harcı muafiyeti şartları</code>");
+            return new Response("OK");
+          }
+          await mesajGonder(`🔍 <b>Derin araştırma başlatıldı...</b>\n<i>"${metin.slice(0, 100)}..."</i>`);
+          await tetikleGitHub(env, "ozel_uret", { tur: "arastir", metin });
+          return new Response("OK");
+        }
+
+        if (rawText.startsWith("/dosya") || rawText.startsWith("/kronoloji")) {
+          const metin = rawText.replace(/^\/(dosya|kronoloji)\s*/i, "").trim();
+          if (metin.length < 3) {
+            await mesajGonder("⚠️ Lütfen dosya konusunu yazın:\n<code>/dosya Kentsel Dönüşüm Hukuki Süreci</code>");
+            return new Response("OK");
+          }
+          await mesajGonder(`📂 <b>Özel dosya ve süreç analizi hazırlanıyor...</b>\n<i>"${metin.slice(0, 100)}..."</i>`);
+          await tetikleGitHub(env, "ozel_uret", { tur: "dosya", metin });
+          return new Response("OK");
+        }
+
+        if (text.startsWith("/incele") || text.startsWith("incele")) {
+          const parcalar = text.split(/\s+/);
+          if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
+            await mesajGonder(`🔎 <b>İçerik #${parcalar[1]}</b> inceleniyor...`);
+            await tetikleGitHub(env, "bot_yonetim", { eylem: "incele", id: parcalar[1] });
+            return new Response("OK");
+          }
+          await mesajGonder("⚠️ Lütfen incelenecek ID'yi belirtin: <code>/incele 104</code>");
+          return new Response("OK");
+        }
+
+        if (text === "/sonpostlar" || text === "/son_postlar" || text === "sonpostlar") {
+          await mesajGonder("📰 <b>Son yayınlanan postlar</b> taranıyor...");
+          await tetikleGitHub(env, "bot_yonetim", { eylem: "sonpostlar" });
+          return new Response("OK");
+        }
+
+        if (text.startsWith("/kurtar")) {
+          const parcalar = text.split(/\s+/);
+          if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
+            await mesajGonder(`🚀 <b>İçerik #${parcalar[1]}</b> tüm kanallar için kurtarılıyor ve yayınlanıyor...`);
+            await tetikleGitHub(env, "yayinla", { hedef: "hepsi", id: parcalar[1] });
+            return new Response("OK");
+          }
+          await mesajGonder("⚠️ Lütfen kurtarılacak ID'yi belirtin: <code>/kurtar 104</code>");
+          return new Response("OK");
+        }
+
+        if (text.startsWith("/yayin_kontrol")) {
+          const parcalar = text.split(/\s+/);
+          if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
+            await mesajGonder(`📡 <b>İçerik #${parcalar[1]}</b> için yayın durumu kontrol ediliyor...`);
+            await tetikleGitHub(env, "bot_yonetim", { eylem: "yayin_kontrol", id: parcalar[1] });
+            return new Response("OK");
+          }
+          await mesajGonder("⚠️ Lütfen kontrol edilecek ID'yi belirtin: <code>/yayin_kontrol 104</code>");
+          return new Response("OK");
+        }
+
+        if (text === "/ayar" || text === "/ayarlar" || text === "ayar") {
+          await mesajGonder(
+            "⚙️ <b>EDM ÇALIŞMA VE YAYIN AYARLARI</b>\n\n" +
+            "Aşağıdaki ayarları tek tıkla canlı olarak açıp kapatabilirsiniz:",
+            ayarMenusu()
+          );
+          return new Response("OK");
+        }
+
         if (text === "/start" || text === "/yardim") {
           const yardim = (
             "🏢 <b>EDM Yapı & Gayrimenkul Sosyal Medya Botu</b>\n\n" +
-            "<b>Kullanabileceğiniz Komutlar:</b>\n" +
-            "• <b>/panel</b> — İnteraktif kontrol merkezini açar.\n" +
-            "• <b>/rapor</b> — GitHub Actions, yapay zeka ve sistem kota tablosu.\n" +
-            "• <b>/durum</b> — Bot ve yayın durumunu raporlar.\n" +
-            "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n" +
+            "<b>✍️ İÇERİK ÜRET & ARAŞTIR:</b>\n" +
             "• <b>/gonderi</b> — Günün konusundan onaylı post üretir (Rotasyon).\n" +
+            "• <b>/reels</b> — 9:16 Dikey Reels videosu ve metni üretir.\n" +
+            "• <b>/arastir &lt;konu&gt;</b> — Derin mevzuat araştırması ve post üretir.\n" +
+            "• <b>/dosya &lt;konu&gt;</b> — Kronolojik dosya ve süreç analizi üretir.\n" +
+            "• <b>/link &lt;url&gt;</b> — Web linkinden otorite postu üretir.\n" +
+            "• <b>/ozel &lt;metin&gt;</b> — Serbest duyuru/konudan post üretir.\n" +
             "• <b>/haber</b> — Taze sektörel haber tara ve post üret.\n" +
             "• <b>/sozluk</b> — Emlak sözlüğü formatında içerik üretir.\n" +
             "• <b>/dogrusu</b> — Nedir Doğrusu formatında içerik üretir.\n" +
             "• <b>/vaka</b> — 2 slaytlık vaka analizi carousel üretir.\n" +
             "• <b>/soru</b> — Net cevap rehberi üretir.\n" +
-            "• <b>/reels</b> — 9:16 Dikey Reels videosu ve metni üretir.\n" +
+            "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n\n" +
+            "<b>📊 AKIŞ, İNCELEME & RAPOR:</b>\n" +
+            "• <b>/sonpostlar</b> — Son paylaşılan 5 postu listeler.\n" +
+            "• <b>/incele &lt;id&gt;</b> — Post detaylarını ve slayt metinlerini inceler.\n" +
+            "• <b>/kurtar &lt;id&gt;</b> — Aksayan yayını tüm kanallara kurtarır.\n" +
+            "• <b>/durum</b> — Bot ve yayın durumunu raporlar.\n" +
+            "• <b>/rapor</b> — GitHub Actions, yapay zeka ve sistem kota tablosu.\n" +
+            "• <b>/havuz</b> — Konu bankası havuz durumunu gösterir.\n\n" +
+            "<b>🎛 YÖNETİM & AYARLAR:</b>\n" +
+            "• <b>/panel</b> — İnteraktif kontrol merkezini açar.\n" +
+            "• <b>/ayar</b> — Çalışma ayarlarını canlı düzenler.\n" +
             "• <b>/hatirlat</b> — Onay bekleyen paylaşımları anında tarar.\n" +
+            "• <b>/temizle</b> — Askıda bekleyen onayları temizler.\n" +
             "• <b>/saglik</b> — API ve sistem bağlantı sağlık testi.\n" +
-            "• <b>/havuz</b> — Konu bankası havuz durumunu gösterir.\n" +
             "• <b>/durdur</b> — Otomatik paylaşımları duraklatır.\n" +
             "• <b>/devam</b> — Duraklatılmış akışı devam ettirir."
           );
@@ -892,6 +1039,22 @@ export default {
     await tetikleGitHub(env, "sabah_hazirla", { kaynak: "cloudflare_cron" });
   },
 };
+
+function ayarMenusu(ayarlar = {}) {
+  const v = (k, d = true) => (ayarlar[k] !== undefined ? ayarlar[k] : d);
+  return {
+    inline_keyboard: [
+      [{ text: `${v('oto_yayin', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🌙 Otomatik Yayın`, callback_data: `ayarsec:oto_yayin:${!v('oto_yayin', true)}` }],
+      [{ text: `${v('hatirlatici', true) ? '✅ AÇIK' : '⬜ KAPALI'} ⏰ Onay Hatırlatıcı`, callback_data: `ayarsec:hatirlatici:${!v('hatirlatici', true)}` }],
+      [{ text: `${v('reels_varsayilan', false) ? '✅ AÇIK' : '⬜ KAPALI'} 🎬 Varsayılan Reels Modu`, callback_data: `ayarsec:reels_varsayilan:${!v('reels_varsayilan', false)}` }],
+      [{ text: `${v('kanal_threads', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🧵 Threads Paylaşımı`, callback_data: `ayarsec:kanal_threads:${!v('kanal_threads', true)}` }],
+      [{ text: `${v('kanal_fb', true) ? '✅ AÇIK' : '⬜ KAPALI'} 📘 Facebook Paylaşımı`, callback_data: `ayarsec:kanal_fb:${!v('kanal_fb', true)}` }],
+      [{ text: `${v('kanal_tiktok', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🎵 TikTok Paylaşımı`, callback_data: `ayarsec:kanal_tiktok:${!v('kanal_tiktok', true)}` }],
+      [{ text: `${v('kanal_youtube', true) ? '✅ AÇIK' : '⬜ KAPALI'} ▶️ YouTube Shorts`, callback_data: `ayarsec:kanal_youtube:${!v('kanal_youtube', true)}` }],
+      [{ text: "← Kontrol Paneli", callback_data: "panel" }],
+    ],
+  };
+}
 
 function kontrolMerkeziMenusu() {
   return {
@@ -914,11 +1077,15 @@ function kontrolMerkeziMenusu() {
       ],
       [
         { text: "📊 Sıradaki Post & Durum", callback_data: "durum" },
-        { text: "⏸️ Akışı Duraklat", callback_data: "duraklat_menu" },
+        { text: "📰 Son Postlar", callback_data: "sonpostlar" },
       ],
       [
         { text: "📈 Detaylı Kota Raporu", callback_data: "kota_goster" },
+        { text: "⚙️ Çalışma Ayarları", callback_data: "ayar" },
+      ],
+      [
         { text: "🩺 Sistem Sağlık Testi", callback_data: "saglik_testi" },
+        { text: "⏸️ Akışı Duraklat", callback_data: "duraklat_menu" },
       ],
       [
         { text: "🔄 Konu Havuzu", callback_data: "havuz_durum" },
