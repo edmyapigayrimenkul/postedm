@@ -9,6 +9,7 @@ src/yeni_formatlar.py — EDM 4 Temel Format Görsel Motoru
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -40,31 +41,78 @@ FONT_SANS_MEDIUM = config.yol_al("assets/fonts/PlusJakartaSans-Medium.ttf")
 FONT_MONO = config.yol_al("assets/fonts/IBMPlexMono.ttf")
 FONT_MONO_BOLD = config.yol_al("assets/fonts/IBMPlexMono-Bold.ttf")
 
+KATEGORI_HARITASI = {
+    "S1": "TAPU & HUKUK",
+    "S2": "KİRACI & EV SAHİBİ",
+    "S3": "ARSA & İMAR",
+    "S4": "KİRA & ENFLASYON",
+    "TAPU_VE_HUKUK": "TAPU & HUKUK",
+    "KIRACI_VE_EV_SAHIBI": "KİRACI & EV SAHİBİ",
+    "ARSA_VE_IMAR": "ARSA & İMAR",
+    "FINANS_VE_BANKACILIK": "FİNANS & BANKACILIK",
+    "PIYASA_VE_YATIRIM": "PİYASA & YATIRIM",
+    "HUKUK": "TAPU & HUKUK",
+    "KİRA": "KİRA & ENFLASYON",
+    "KIRA": "KİRA & ENFLASYON",
+    "ARSA": "ARSA & İMAR",
+    "TAPU": "TAPU & HUKUK",
+    "IMAR": "ARSA & İMAR",
+    "İMAR": "ARSA & İMAR",
+}
+
+
+def kategori_temizle(kat: Optional[str]) -> str:
+    if not kat:
+        return "GAYRİMENKUL & HUKUK"
+    k = str(kat).strip()
+    k_up = k.upper()
+    if k_up in KATEGORI_HARITASI:
+        return KATEGORI_HARITASI[k_up]
+    for code in ("S1", "S2", "S3", "S4"):
+        if k_up == code or k_up.startswith(f"{code}-") or k_up.startswith(f"{code}_") or k_up.startswith(f"{code} "):
+            return KATEGORI_HARITASI[code]
+    temiz = k.replace("_", " ").strip()
+    return temiz if temiz else "GAYRİMENKUL & HUKUK"
+
 
 # =============================================================================
 # 1. FORMAT: EDM GAYRİMENKUL SÖZLÜĞÜ
 # =============================================================================
-def ciz_sag_sozluk_filigran(draw_target: ImageDraw.ImageDraw, cx: int, cy: int, w: int = 290, h: int = 195, alpha: int = 30) -> None:
-    """Sağ üstte açık kitap ikonu filigranı."""
+def ciz_buyuk_sozluk_filigran_vector(
+    draw_target: ImageDraw.ImageDraw,
+    cx: int = 320,
+    cy: int = 310,
+    w: int = 520,
+    h: int = 350,
+    alpha: int = 23,
+) -> None:
+    """Çok daha büyük (w=520, h=350), kelimelerin ve kategorinin arkasına zarifçe taşan mimari açık kitap filigranı."""
     renk = (18, 19, 22, alpha)
     hw = w // 2
     hh = h // 2
-    sol_pts = [(cx - 6, cy - hh + 16), (cx - hw, cy - hh + 4), (cx - hw, cy + hh - 14), (cx - 6, cy + hh + 4)]
-    sag_pts = [(cx + 6, cy - hh + 16), (cx + hw, cy - hh + 4), (cx + hw, cy + hh - 14), (cx + 6, cy + hh + 4)]
-    draw_target.polygon(sol_pts, outline=renk, width=4)
-    draw_target.polygon(sag_pts, outline=renk, width=4)
-    draw_target.line([(cx, cy - hh + 12), (cx, cy + hh + 8)], fill=renk, width=5)
+    sol_pts = [(cx - 8, cy - hh + 24), (cx - hw, cy - hh + 4), (cx - hw, cy + hh - 20), (cx - 8, cy + hh + 4)]
+    sag_pts = [(cx + 8, cy - hh + 24), (cx + hw, cy - hh + 4), (cx + hw, cy + hh - 20), (cx + 8, cy + hh + 4)]
+    draw_target.polygon(sol_pts, outline=renk, width=5)
+    draw_target.polygon(sag_pts, outline=renk, width=5)
+    draw_target.line([(cx, cy - hh + 20), (cx, cy + hh + 10)], fill=renk, width=6)
 
-    for dy in np.linspace(-hh + 45, hh - 45, 4):
+    for dy in np.linspace(-hh + 65, hh - 65, 5):
         int_dy = int(dy)
-        draw_target.line([(cx - hw + 25, cy + int_dy - 2), (cx - 24, cy + int_dy + 2)], fill=renk, width=2)
-        draw_target.line([(cx + 24, cy + int_dy + 2), (cx + hw - 25, cy + int_dy - 2)], fill=renk, width=2)
+        draw_target.line([(cx - hw + 38, cy + int_dy - 4), (cx - 36, cy + int_dy + 2)], fill=renk, width=3)
+        draw_target.line([(cx + 36, cy + int_dy + 2), (cx + hw - 38, cy + int_dy - 4)], fill=renk, width=3)
 
-    ribbon_pts = [(cx - 5, cy + hh + 4), (cx + 5, cy + hh + 4), (cx + 4, cy + hh + 30), (cx, cy + hh + 22), (cx - 4, cy + hh + 30)]
-    draw_target.polygon(ribbon_pts, fill=(196, 3, 15, int(alpha * 2)))
+    ribbon_pts = [(cx - 7, cy + hh + 4), (cx + 7, cy + hh + 4), (cx + 6, cy + hh + 44), (cx, cy + hh + 34), (cx - 6, cy + hh + 44)]
+    draw_target.polygon(ribbon_pts, fill=(196, 3, 15, int(alpha * 1.8)))
 
 
-def uret_sozluk(cikti_yolu: Path, terim: str, kategori: str, tanim_metni: str, puf_maddeleri: Any, sayfa_no: str = "SÖZLÜK // 01") -> Path:
+def uret_sozluk(
+    cikti_yolu: Path,
+    terim: str,
+    kategori: str,
+    tanim_metni: str,
+    puf_maddeleri: Any,
+    sayfa_no: str = "SÖZLÜK // 01",
+) -> Path:
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_KIREC_BEJ)
     canvas = make_image._filigran_uygula(canvas, acik_zemin=True)
 
@@ -73,12 +121,7 @@ def uret_sozluk(cikti_yolu: Path, terim: str, kategori: str, tanim_metni: str, p
     kullanilabilir_w = GENISLIK - (2 * kenar)
     ku = yer["kronik_ust"]
 
-    # Logo ve sağ üst kitap filigranı
     make_image._logo_yerlestir(canvas, beyaz=False, y=ku - 5, lw=285, golge=False, kirmizi_zemin=False)
-
-    overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    ciz_sag_sozluk_filigran(overlay_draw, cx=GENISLIK - kenar - 145, cy=ku + 105, w=280, h=185, alpha=24)
 
     alt_y = yer["alt_bar"]
     draw = ImageDraw.Draw(canvas)
@@ -88,119 +131,83 @@ def uret_sozluk(cikti_yolu: Path, terim: str, kategori: str, tanim_metni: str, p
     sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
     draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
 
-    # Kategori etiketi
-    kat_y = 160
+    ust_sinir = yer["ust"] - 15
+    alan_yukseklik = alt_y - ust_sinir - 30
+
+    parcalar = terim.split()
+    en_uzun_kelime = max(parcalar, key=len) if parcalar else terim
+    f_punto = 136
+    while f_punto >= 65:
+        f_test = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
+        bb = f_test.getbbox(en_uzun_kelime)
+        if (bb[2] - bb[0]) <= kullanilabilir_w:
+            break
+        f_punto -= 2
+
+    f_terim = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
+    terim_satirlar = make_image._metin_sar(terim, f_terim, kullanilabilir_w, draw)
+
     f_kat = make_image._font_yukle(FONT_MONO_BOLD, 21)
-    draw.text((kenar, kat_y), f"// {kategori.upper()}", font=f_kat, fill=RENK_LOGO_KIRMIZI)
-
-    # Terim Punto ve Satır Hesaplama (Maksimum 2 satır, 1 satıra sığıyorsa öncelikli tek satır)
-    best_satirlar = []
-    best_punto = 65
-    for f_punto in range(110, 60, -2):
-        f_test = make_image._font_yukle(FONT_FRAUNCES, f_punto)
-        img_temp = Image.new("RGB", (10, 10))
-        d_temp = ImageDraw.Draw(img_temp)
-        satirlar = make_image._metin_sar(terim, f_test, kullanilabilir_w, d_temp)
-        if len(satirlar) <= 2:
-            best_satirlar = satirlar
-            best_punto = f_punto
-            if len(satirlar) == 1 and f_punto >= 85:
-                break
-
-    f_terim = make_image._font_yukle(FONT_FRAUNCES, best_punto)
-    terim_satirlar = best_satirlar
-    line_h_terim = int(best_punto * 1.15)
-
-    # Terim başlangıcı: Kitap filigranı ve logo alt hizasına saygılı, ferah
-    terim_y = 225
-    for s in terim_satirlar:
-        draw.text((kenar, terim_y), s, font=f_terim, fill=RENK_MUREKKEP)
-        terim_y += line_h_terim
-
-    # Çizgi
-    cizgi_y = terim_y + 16
-    draw.line([(kenar, cizgi_y), (GENISLIK - kenar, cizgi_y)], fill=RENK_KIREC_BORDER, width=2)
-
-    # Tanım Başlığı & Metni
-    tanim_baslik_y = cizgi_y + 26
-    draw.text((kenar, tanim_baslik_y), "// HUKUKİ VE TEKNİK TANIM:", font=make_image._font_yukle(FONT_MONO_BOLD, 18), fill=RENK_KURSUN)
-
-    # Tanım Gövdesi
-    f_tanim = make_image._font_yukle(FONT_SANS_MEDIUM, 31)
-    indent_px = 56
-    tanim_kelimeler = tanim_metni.split()
-    tanim_satirlar = []
-    curr_satir = []
-    for w in tanim_kelimeler:
-        test_s = (" ".join(curr_satir + [w])) if curr_satir else w
-        max_w = (kullanilabilir_w - indent_px) if len(tanim_satirlar) == 0 else kullanilabilir_w
-        if draw.textbbox((0, 0), test_s, font=f_tanim)[2] <= max_w:
-            curr_satir.append(w)
-        else:
-            if curr_satir:
-                tanim_satirlar.append(" ".join(curr_satir))
-            curr_satir = [w]
-    if curr_satir:
-        tanim_satirlar.append(" ".join(curr_satir))
-
-    ty = tanim_baslik_y + 38
-
-    # Çift Tırnak Filigranı (%50 küçültülmüş 70pt, tam paragraf başı boşluğuna denk gelir)
-    f_quote = make_image._font_yukle(FONT_FRAUNCES, 70)
-    overlay_draw.text((kenar + 4, ty - 15), "“", font=f_quote, fill=(18, 19, 22, 55))
-
-    for i, s in enumerate(tanim_satirlar):
-        x_pos = kenar + (indent_px if i == 0 else 0)
-        draw.text((x_pos, ty), s, font=f_tanim, fill=RENK_MUREKKEP)
-        ty += 46
-
-    # Püf Maddeleri Hesabı
+    f_tanim = make_image._font_yukle(FONT_SANS_MEDIUM, 35)
     f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    f_puf_madde_baslik = make_image._font_yukle(FONT_SANS_BOLD, 27)
-    f_puf_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 26)
+    f_puf_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 31)
+
+    tanim_satirlar = make_image._metin_sar(tanim_metni, f_tanim, kullanilabilir_w, draw)
 
     if isinstance(puf_maddeleri, list):
-        maddeler = puf_maddeleri
+        temiz_maddeler = []
+        for m in puf_maddeleri:
+            m_str = str(m).strip()
+            if ":" in m_str:
+                m_str = m_str.split(":", 1)[1].strip()
+            temiz_maddeler.append(m_str)
+        puf_metin = " ".join(temiz_maddeler[:2])
     else:
-        maddeler = [str(puf_maddeleri)]
+        puf_metin = str(puf_maddeleri)
 
-    puf_icerik_h = 0
-    parsed_maddeler = []
-    for m in maddeler:
-        m_str = str(m).strip()
-        if ":" in m_str:
-            b, a = m_str.split(":", 1)
-            b = b.strip() + ":"
-            a = a.strip()
-        else:
-            b = "◆"
-            a = m_str
-        b_satirlar = make_image._metin_sar(b, f_puf_madde_baslik, kullanilabilir_w - 60, draw)
-        a_satirlar = make_image._metin_sar(a, f_puf_govde, kullanilabilir_w - 60, draw)
-        puf_icerik_h += (len(b_satirlar) * 35) + (len(a_satirlar) * 35) + 14
-        parsed_maddeler.append((b_satirlar, a_satirlar))
+    puf_satirlar = make_image._metin_sar(puf_metin, f_puf_govde, kullanilabilir_w - 52, draw)
 
-    h_kutu = 48 + puf_icerik_h + 16
-    kutu_y = alt_y - 24 - h_kutu
-    if kutu_y < ty + 30:
-        kutu_y = ty + 30
+    h_terim = len(terim_satirlar) * int(f_punto * 1.15)
+    h_tanim = len(tanim_satirlar) * 52
+    h_kutu = 52 + (len(puf_satirlar) * 44) + 24
 
-    # Kutuyu ve içini çiz
-    draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_KIREC_KUTU, outline=RENK_KIREC_BORDER, width=1)
-    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
-    draw.text((kenar + 28, kutu_y + 18), "YATIRIMCI GÖZÜYLE DEĞERLENDİRME:", font=f_puf_etiket, fill=RENK_LOGO_KIRMIZI)
+    toplam_h = 36 + h_terim + 26 + 36 + h_tanim + 36 + h_kutu
+    bosluk_payi = max(0, (alan_yukseklik - toplam_h) // 2)
+    curr_y = ust_sinir + bosluk_payi
 
-    py = kutu_y + 54
-    for b_satirlar, a_satirlar in parsed_maddeler:
-        for s in b_satirlar:
-            draw.text((kenar + 28, py), s, font=f_puf_madde_baslik, fill=RENK_MUREKKEP)
-            py += 35
-        for s in a_satirlar:
-            draw.text((kenar + 28, py), s, font=f_puf_govde, fill=(45, 48, 55))
-            py += 35
-        py += 12
-
+    overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=310, w=520, h=350, alpha=23)
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(canvas)
+
+    kat_temiz = kategori_temizle(kategori)
+    draw.text((kenar, curr_y), f"// {kat_temiz.upper()}", font=f_kat, fill=RENK_LOGO_KIRMIZI)
+    curr_y += 42
+
+    for s in terim_satirlar:
+        draw.text((kenar, curr_y), s, font=f_terim, fill=RENK_MUREKKEP)
+        curr_y += int(f_punto * 1.15)
+    curr_y += 12
+
+    draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_KIREC_BORDER, width=2)
+    curr_y += 34
+
+    draw.text((kenar, curr_y), "TANIM & ANLAMI", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_KURSUN)
+    curr_y += 34
+    for s in tanim_satirlar:
+        draw.text((kenar, curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
+        curr_y += 52
+    curr_y += 36
+
+    draw.rounded_rectangle([(kenar, curr_y), (GENISLIK - kenar, curr_y + h_kutu)], radius=10, fill=RENK_KIREC_KUTU, outline=RENK_KIREC_BORDER, width=1)
+    draw.rounded_rectangle([(kenar, curr_y), (kenar + 6, curr_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
+    draw.text((kenar + 28, curr_y + 20), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_LOGO_KIRMIZI)
+    py = curr_y + 58
+    for s in puf_satirlar:
+        draw.text((kenar + 28, py), s, font=f_puf_govde, fill=(35, 38, 44))
+        py += 44
+
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
     return cikti_yolu
@@ -209,164 +216,130 @@ def uret_sozluk(cikti_yolu: Path, terim: str, kategori: str, tanim_metni: str, p
 # =============================================================================
 # 2. FORMAT: NEDİR DOĞRUSU? (YANLIŞ / DOĞRU)
 # =============================================================================
-def hazirla_taban_nedir_dogrusu() -> Tuple[Image.Image, int, int]:
+def ciz_tik_filigran(draw_target: ImageDraw.ImageDraw, cx: int, cy: int, boy: int = 240, renk: Tuple[int, int, int, int] = (34, 197, 94, 64), kalinlik: int = 26) -> None:
+    p1 = (cx - int(boy * 0.44), cy - int(boy * 0.05))
+    p2 = (cx - int(boy * 0.12), cy + int(boy * 0.35))
+    p3 = (cx + int(boy * 0.48), cy - int(boy * 0.45))
+    draw_target.line([p1, p2], fill=renk, width=kalinlik)
+    draw_target.line([p2, p3], fill=renk, width=kalinlik)
+    r = kalinlik // 2
+    draw_target.ellipse([(p2[0]-r, p2[1]-r), (p2[0]+r, p2[1]+r)], fill=renk)
+    draw_target.ellipse([(p1[0]-r, p1[1]-r), (p1[0]+r, p1[1]+r)], fill=renk)
+    draw_target.ellipse([(p3[0]-r, p3[1]-r), (p3[0]+r, p3[1]+r)], fill=renk)
+
+
+def ciz_vektor_carpi_filigran(draw_target: ImageDraw.ImageDraw, cx: int, cy: int, boy: int = 220, renk: Tuple[int, int, int, int] = (255, 255, 255, 82), kalinlik: int = 28) -> None:
+    h = boy // 2
+    p1 = (cx - h, cy - h)
+    p2 = (cx + h, cy + h)
+    p3 = (cx - h, cy + h)
+    p4 = (cx + h, cy - h)
+    draw_target.line([p1, p2], fill=renk, width=kalinlik)
+    draw_target.line([p3, p4], fill=renk, width=kalinlik)
+    r = kalinlik // 2
+    for p in [p1, p2, p3, p4]:
+        draw_target.ellipse([(p[0]-r, p[1]-r), (p[0]+r, p[1]+r)], fill=renk)
+
+
+def uret_nedir_dogrusu(
+    cikti_yolu: Path,
+    konu: str,
+    yanlis_metin: str,
+    dogru_metin: str,
+    altin_kural: str,
+) -> Path:
     w, h = GENISLIK, YUKSEKLIK
     arr = np.zeros((h, w, 3), dtype=np.uint8)
-
-    r1, g1, b1 = RENK_LOGO_KIRMIZI  # 196, 3, 15 (#C4030F - Tam Logo Kırmızısı)
-    r2, g2, b2 = 255, 255, 255      # Saf Beyaz
-
-    y_start = 490
-    y_end = 650
-
+    r1, g1, b1 = RENK_LOGO_KIRMIZI
+    r2, g2, b2 = 255, 255, 255
+    y_start = 480
+    y_end = 640
     arr[:y_start, :] = [r1, g1, b1]
-
     for y in range(y_start, y_end):
         t = (y - y_start) / (y_end - y_start)
-        s = t * t * (3 - 2 * t)  # Smoothstep
-        r = int(r1 + (r2 - r1) * s)
-        g = int(g1 + (r2 - g1) * s)
-        b = int(b1 + (r2 - b1) * s)
-        arr[y, :] = [r, g, b]
-
+        s = t * t * (3 - 2 * t)
+        arr[y, :] = [int(r1 + (r2 - r1) * s), int(g1 + (r2 - g1) * s), int(b1 + (r2 - b1) * s)]
     arr[y_end:, :] = [r2, g2, b2]
 
     canvas = Image.fromarray(arr)
-
-    # Alt beyaz kısma hafif pafta filigranı uygula
-    overlay_filigran = Image.new("RGB", (GENISLIK, YUKSEKLIK), (255, 255, 255))
-    overlay_filigran = make_image._filigran_uygula(overlay_filigran, acik_zemin=True)
-    f_arr = np.array(overlay_filigran)
-    canvas_arr = np.array(canvas)
-    canvas_arr[y_end:, :, :] = f_arr[y_end:, :, :]
-    return Image.fromarray(canvas_arr), y_start, y_end
-
-
-def uret_nedir_dogrusu(cikti_yolu: Path, konu: str, yanlis_metin: str, dogru_metin: str, altin_kural: str) -> Path:
-    canvas, y_start, y_end = hazirla_taban_nedir_dogrusu()
-    draw = ImageDraw.Draw(canvas)
-
     yer = make_image._yerlesim()
     kenar = yer["kenar"]
     kullanilabilir_w = GENISLIK - (2 * kenar)
     ku = yer["kronik_ust"]
 
-    # Header: Kırmızı zemin üzerinde beyaz logo + DOĞRU BİLİNEN YANLIŞLAR rozeti
-    konu_baslik = (konu or "HUKUK & GERÇEK").upper()
-    rozet_metni = f"DOĞRU BİLİNEN YANLIŞLAR // {konu_baslik}"
-    make_image._rozet_ciz(
-        draw, kenar, ku, rozet_metni,
-        bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=19
-    )
-    make_image._logo_yerlestir(
-        canvas,
-        beyaz=True,
-        y=ku - 5,
-        lw=285,
-        golge=True,
-        kirmizi_zemin=True,
-    )
+    overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    cx_carpi = GENISLIK - 180
+    cy_carpi = ku + 265
+    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, boy=220, renk=(255, 255, 255, 82), kalinlik=28)
+    cx_tik = GENISLIK - 220
+    cy_tik = 890
+    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=240, renk=(34, 197, 94, 64), kalinlik=26)
+    canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(canvas)
 
-    # 1. YANLIŞ KISMI (Kırmızı alanda dev beyaz Fraunces tırnaklı metin)
-    yanlis_formatli = (yanlis_metin or "").strip()
-    if yanlis_formatli and not yanlis_formatli.startswith("“") and not yanlis_formatli.startswith('"'):
-        yanlis_formatli = f'“{yanlis_formatli}”'
+    konu_baslik = kategori_temizle(konu)
+    make_image._rozet_ciz(draw, kenar, ku, f"NEDİR DOĞRUSU? // {konu_baslik.upper()}", bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20)
+    make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=285, golge=True, kirmizi_zemin=True)
 
-    kirmizi_alan_h = y_start - (ku + 65)
+    temiz_yanlis = re.sub(r'^[\s"\'\u201c\u201d\u2018\u2019]+|[\s"\'\u201c\u201d\u2018\u2019]+$', '', yanlis_metin or "")
+    yanlis_formatli = f"“{temiz_yanlis}”"
 
-    # Dinamik punto hesabı (40 - 54 arası)
-    punto_yanlis = 54
-    best_yanlis_satirlar = []
-    best_yanlis_leading = 66
-    for p in range(54, 38, -2):
-        f_test = make_image._font_yukle(FONT_FRAUNCES, p)
-        leading = int(p * 1.25)
-        lines = make_image._metin_sar(yanlis_formatli, f_test, kullanilabilir_w, draw)
-        if len(lines) * leading <= kirmizi_alan_h:
-            punto_yanlis = p
-            best_yanlis_leading = leading
-            best_yanlis_satirlar = lines
+    kirmizi_alan_h = y_start - (ku + 75)
+    f_punto = 48
+    while f_punto >= 30:
+        f_test = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
+        lh_test = int(f_punto * 1.26)
+        test_satirlar = make_image._metin_sar(yanlis_formatli, f_test, kullanilabilir_w - 140, draw)
+        if len(test_satirlar) * lh_test <= kirmizi_alan_h - 20:
             break
-    else:
-        punto_yanlis = 40
-        best_yanlis_leading = 50
-        f_test = make_image._font_yukle(FONT_FRAUNCES, punto_yanlis)
-        best_yanlis_satirlar = make_image._metin_sar(yanlis_formatli, f_test, kullanilabilir_w, draw)
+        f_punto -= 2
 
-    f_yanlis = make_image._font_yukle(FONT_FRAUNCES, punto_yanlis)
-    h_yanlis = len(best_yanlis_satirlar) * best_yanlis_leading
-    yanlis_y = ku + 65 + max(10, (kirmizi_alan_h - h_yanlis) // 2)
+    f_yanlis = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
+    line_h = int(f_punto * 1.26)
+    yanlis_satirlar = make_image._metin_sar(yanlis_formatli, f_yanlis, kullanilabilir_w - 140, draw)
+    h_yanlis = len(yanlis_satirlar) * line_h
+    yanlis_y = ku + 75 + max(10, (kirmizi_alan_h - h_yanlis) // 2)
 
-    for s in best_yanlis_satirlar:
+    for s in yanlis_satirlar:
         draw.text((kenar, yanlis_y), s, font=f_yanlis, fill=(255, 255, 255))
-        yanlis_y += best_yanlis_leading
+        yanlis_y += line_h
 
-    # 2. DOĞRU KISMI (Soft geçişin bittiği beyaz alanda metin)
+    f_dogru_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 34)
     f_kural_baslik = make_image._font_yukle(FONT_MONO_BOLD, 20)
     f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 29)
+
+    dogru_satirlar = make_image._metin_sar(dogru_metin or "", f_dogru_govde, kullanilabilir_w, draw)
     kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, draw)
     if len(kural_satirlar) > 3:
         f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 26)
         kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, draw)
 
+    h_dogru = len(dogru_satirlar) * 50
     h_kutu = 48 + (len(kural_satirlar) * 40) + 20
+
     alt_bar_y = yer["alt_bar"]
     beyaz_alan_h = alt_bar_y - (y_end + 30)
-
-    # Doğru gövde metnini dinamik punto ile sığdır
-    punto_dogru = 34
-    best_dogru_satirlar = []
-    best_dogru_leading = 50
-    for p in range(34, 24, -2):
-        f_test = make_image._font_yukle(FONT_SANS_MEDIUM, p)
-        leading = int(p * 1.45)
-        lines = make_image._metin_sar(dogru_metin or "", f_test, kullanilabilir_w, draw)
-        if (len(lines) * leading + 38 + h_kutu) <= beyaz_alan_h:
-            punto_dogru = p
-            best_dogru_leading = leading
-            best_dogru_satirlar = lines
-            break
-    else:
-        punto_dogru = 24
-        best_dogru_leading = 35
-        f_test = make_image._font_yukle(FONT_SANS_MEDIUM, punto_dogru)
-        best_dogru_satirlar = make_image._metin_sar(dogru_metin or "", f_test, kullanilabilir_w, draw)
-
-    f_dogru_govde = make_image._font_yukle(FONT_SANS_MEDIUM, punto_dogru)
-    h_dogru = len(best_dogru_satirlar) * best_dogru_leading
     toplam_alt_h = h_dogru + 38 + h_kutu
     alt_bosluk = max(10, (beyaz_alan_h - toplam_alt_h) // 2)
     curr_y = y_end + 30 + alt_bosluk
 
-    # Doğru metni (Mürekkep siyahı)
-    for s in best_dogru_satirlar:
+    for s in dogru_satirlar:
         draw.text((kenar, curr_y), s, font=f_dogru_govde, fill=RENK_MUREKKEP)
-        curr_y += best_dogru_leading
+        curr_y += 50
     curr_y += 38
 
-    # EDM Altın Kuralı Kartı
-    draw.rounded_rectangle(
-        [(kenar, curr_y), (GENISLIK - kenar, curr_y + h_kutu)],
-        radius=12,
-        fill=RENK_MUREKKEP,
-        outline=(45, 48, 56),
-        width=1,
-    )
-    draw.rounded_rectangle(
-        [(kenar, curr_y), (kenar + 6, curr_y + h_kutu)],
-        radius=2,
-        fill=RENK_LOGO_KIRMIZI,
-    )
+    draw.rounded_rectangle([(kenar, curr_y), (GENISLIK - kenar, curr_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(45, 48, 56), width=1)
+    draw.rounded_rectangle([(kenar, curr_y), (kenar + 6, curr_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
     draw.text((kenar + 28, curr_y + 18), "EDM ALTIN KURALI:", font=f_kural_baslik, fill=RENK_LOGO_KIRMIZI)
     ky = curr_y + 52
     for s in kural_satirlar:
         draw.text((kenar + 28, ky), s, font=f_kural_govde, fill=RENK_BEYAZ)
         ky += 40
 
-    # Footer
     draw.line([(kenar, alt_bar_y), (GENISLIK - kenar, alt_bar_y)], fill=RENK_CIZGI_ACIK, width=1)
-    draw.text((kenar, alt_bar_y + 26), "EDM YAPI & GAYRİMENKUL // DOĞRU BİLİNEN YANLIŞLAR", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
-    draw.text((GENISLIK - kenar - 170, alt_bar_y + 26), "HUKUKİ GERÇEK", font=make_image._font_yukle(FONT_MONO_BOLD, 19), fill=RENK_MUREKKEP)
+    draw.text((kenar, alt_bar_y + 26), "EDM YAPI & GAYRİMENKUL // HUKUK & GERÇEK", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
+    draw.text((GENISLIK - kenar - 170, alt_bar_y + 26), "NEDİR DOĞRUSU?", font=make_image._font_yukle(FONT_MONO_BOLD, 19), fill=RENK_MUREKKEP)
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -719,7 +692,8 @@ def slaytlari_uret(
     cikti_dizini.mkdir(parents=True, exist_ok=True)
 
     format_turu = str(format_turu or veri.get("format_turu") or veri.get("format") or "").lower()
-    kategori = veri.get("kategori") or veri.get("kategori_kodu", "TAPU VE HUKUK").replace("_", " ")
+    kat_ham = veri.get("kategori") or veri.get("kategori_kodu") or "TAPU VE HUKUK"
+    kategori = kategori_temizle(kat_ham)
     brief = veri.get("_brief", {}) or {}
 
     # =========================================================================
@@ -748,7 +722,8 @@ def slaytlari_uret(
     # 2. DOĞRUDAN NEDİR DOĞRUSU?
     if format_turu in ("nedir_dogrusu", "dogrusu", "yaygin_yanlis") or ("yanlis_metin" in veri and "dogru_metin" in veri):
         p1 = cikti_dizini / f"{cikti_onek}_nedir_dogrusu.jpg"
-        konu = (veri.get("konu") or veri.get("rozet_metni") or kategori or "HUKUK & GERÇEK").strip()
+        konu_raw = veri.get("konu") or veri.get("rozet_metni") or kat_ham
+        konu = kategori_temizle(konu_raw)
 
         yanlis = (veri.get("yanlis_metin") or "").strip()
         if not yanlis:
@@ -825,7 +800,8 @@ def slaytlari_uret(
     if format_turu in ("vaka", "emsal_karar") or ("yargitay_hukmu" in veri and "cikarilacak_ders" in veri):
         p1 = cikti_dizini / f"{cikti_onek}_vaka_s1.jpg"
         p2 = cikti_dizini / f"{cikti_onek}_vaka_s2.jpg"
-        vaka_kodu = (veri.get("vaka_kodu") or veri.get("konu_kodu") or "01 / EMSAL DOSYA").strip()
+        vaka_raw = veri.get("vaka_kodu") or veri.get("konu_kodu") or "01 / EMSAL DOSYA"
+        vaka_kodu = kategori_temizle(vaka_raw)
         kaynak = (veri.get("yargitay_kaynak") or veri.get("yasal_dayanak") or brief.get("mevzuat") or "Yargıtay Emsal İçtihadı").strip()
         manset = (veri.get("manset") or f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')} {veri.get('manset_parca_2', '')}").strip()
         if not manset or len(manset) < 10:
@@ -902,7 +878,9 @@ def slaytlari_uret(
         if not altin_kural:
             altin_kural = "Noter onayı ve tapu sicil şerhi olmadan hiçbir sözlü taahhüde güvenmeyin."
 
-        uret_nedir_dogrusu(p1, konu=kategori, yanlis_metin=yanlis, dogru_metin=dogru, altin_kural=altin_kural)
+        konu_raw = veri.get("konu") or veri.get("rozet_metni") or kat_ham
+        konu = kategori_temizle(konu_raw)
+        uret_nedir_dogrusu(p1, konu=konu, yanlis_metin=yanlis, dogru_metin=dogru, altin_kural=altin_kural)
         log.info("Yeni Format Üretildi (NEDİR DOĞRUSU): %s", p1)
         return [p1]
 
@@ -966,7 +944,8 @@ def slaytlari_uret(
         if not ders:
             ders = "Tapu devirlerinde sözleşmelerinizi noter onaylı yapın ve tapu siciline mutlaka şerh işleyin."
 
-        vaka_kodu = veri.get("konu_kodu", "01 / EMSAL DOSYA")
+        vaka_raw = veri.get("konu_kodu", "01 / EMSAL DOSYA")
+        vaka_kodu = kategori_temizle(vaka_raw)
         uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset, olay_detay=olay, sayfa_no="01 / 02")
         uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum, cikarilacak_ders=ders, sayfa_no="02 / 02")
         log.info("Yeni Format Üretildi (VAKA ANALİZİ): %s, %s", p1, p2)

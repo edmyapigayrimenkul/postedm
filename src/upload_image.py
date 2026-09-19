@@ -235,19 +235,21 @@ def gorsel_yukle(dosya_yolu: Path | str, son_kullanma_saniye: int = 172800) -> O
     anahtarlar = _imgbb_anahtarlari()
     if anahtarlar:
         try:
-            with open(p, "rb") as f:
-                b64 = base64.b64encode(f.read()).decode("utf-8")
-
             for api_key in anahtarlar:
                 payload = {
                     "key": api_key,
-                    "image": b64,
                     "expiration": son_kullanma_saniye,
                 }
 
                 for deneme in range(3):
                     try:
-                        resp = requests.post(IMGBB_URL, data=payload, timeout=30)
+                        with open(p, "rb") as f_img:
+                            resp = requests.post(
+                                IMGBB_URL,
+                                data=payload,
+                                files={"image": (p.name, f_img, "image/jpeg")},
+                                timeout=20,
+                            )
                         if resp.status_code == 200:
                             data = resp.json().get("data", {})
                             url = data.get("image", {}).get("url") or data.get("url")
