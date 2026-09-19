@@ -124,36 +124,8 @@ def uret_sozluk(
     make_image._logo_yerlestir(canvas, beyaz=False, y=ku - 5, lw=285, golge=False, kirmizi_zemin=False)
 
     alt_y = yer["alt_bar"]
-    draw = ImageDraw.Draw(canvas)
-    draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_KIREC_BORDER, width=1)
-    draw.text((kenar, alt_y + 26), "EDM YAPI & GAYRİMENKUL // EMLAK SÖZLÜĞÜ", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
-    sf = make_image._font_yukle(FONT_MONO_BOLD, 19)
-    sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
-    draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
 
-    ust_sinir = yer["ust"] - 15
-    alan_yukseklik = alt_y - ust_sinir - 30
-
-    parcalar = terim.split()
-    en_uzun_kelime = max(parcalar, key=len) if parcalar else terim
-    f_punto = 136
-    while f_punto >= 65:
-        f_test = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
-        bb = f_test.getbbox(en_uzun_kelime)
-        if (bb[2] - bb[0]) <= kullanilabilir_w:
-            break
-        f_punto -= 2
-
-    f_terim = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
-    terim_satirlar = make_image._metin_sar(terim, f_terim, kullanilabilir_w, draw)
-
-    f_kat = make_image._font_yukle(FONT_MONO_BOLD, 21)
-    f_tanim = make_image._font_yukle(FONT_SANS_MEDIUM, 35)
-    f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    f_puf_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 31)
-
-    tanim_satirlar = make_image._metin_sar(tanim_metni, f_tanim, kullanilabilir_w, draw)
-
+    # 1. Öneri Kartı: ALTA DAYALI
     if isinstance(puf_maddeleri, list):
         temiz_maddeler = []
         for m in puf_maddeleri:
@@ -165,45 +137,102 @@ def uret_sozluk(
     else:
         puf_metin = str(puf_maddeleri)
 
-    puf_satirlar = make_image._metin_sar(puf_metin, f_puf_govde, kullanilabilir_w - 52, draw)
-
-    h_terim = len(terim_satirlar) * int(f_punto * 1.15)
-    h_tanim = len(tanim_satirlar) * 52
+    f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
+    f_puf_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 31)
+    img_temp = Image.new("RGB", (10, 10))
+    d_temp = ImageDraw.Draw(img_temp)
+    puf_satirlar = make_image._metin_sar(puf_metin, f_puf_govde, kullanilabilir_w - 56, d_temp)
     h_kutu = 52 + (len(puf_satirlar) * 44) + 24
+    kutu_y = alt_y - 26 - h_kutu
 
-    toplam_h = 36 + h_terim + 26 + 36 + h_tanim + 36 + h_kutu
-    bosluk_payi = max(0, (alan_yukseklik - toplam_h) // 2)
-    curr_y = ust_sinir + bosluk_payi
+    # 2. Terim: BOLD FRAUNCES BLACK (136px -> 68px)
+    parcalar = terim.split()
+    en_uzun_kelime = max(parcalar, key=len) if parcalar else terim
+    f_punto = 136
+    while f_punto >= 68:
+        f_test = make_image._font_yukle(FONT_FRAUNCES, f_punto)
+        bb = f_test.getbbox(en_uzun_kelime)
+        if (bb[2] - bb[0]) <= kullanilabilir_w:
+            break
+        f_punto -= 2
 
+    f_terim = make_image._font_yukle(FONT_FRAUNCES, f_punto)
+    terim_satirlar = make_image._metin_sar(terim, f_terim, kullanilabilir_w, d_temp)
+    line_h_terim = int(f_punto * 1.15)
+    h_terim = len(terim_satirlar) * line_h_terim
+
+    # 3. Anlam (Tanım Metni): DAHA BÜYÜK (40px) + PARAGRAF BAŞI BOŞLUĞU (indent_px = 64)
+    f_tanim = make_image._font_yukle(FONT_SANS_MEDIUM, 40)
+    line_h_tanim = 56
+    indent_px = 64
+
+    tanim_kelimeler = tanim_metni.split()
+    tanim_satirlar = []
+    curr = []
+    for w in tanim_kelimeler:
+        cand = (" ".join(curr + [w])) if curr else w
+        max_w = (kullanilabilir_w - indent_px) if len(tanim_satirlar) == 0 else kullanilabilir_w
+        if d_temp.textbbox((0, 0), cand, font=f_tanim)[2] <= max_w:
+            curr.append(w)
+        else:
+            if curr:
+                tanim_satirlar.append(" ".join(curr))
+            curr = [w]
+    if curr:
+        tanim_satirlar.append(" ".join(curr))
+
+    h_tanim = len(tanim_satirlar) * line_h_tanim
+
+    ust_sinir = yer["ust"] - 15
+    kullanilabilir_orta_h = (kutu_y - 28) - ust_sinir
+    toplam_orta_h = 36 + h_terim + 22 + 34 + 34 + h_tanim
+    bosluk_payi = max(0, (kullanilabilir_orta_h - toplam_orta_h) // 3)
+    curr_y = ust_sinir + min(36, bosluk_payi)
+
+    # Filigran Katmanı (Kitap filigranı + Paragraf başı '“' filigranı)
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
     overlay_draw = ImageDraw.Draw(overlay)
     ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=310, w=520, h=350, alpha=23)
+
+    ty = curr_y + 42 + h_terim + 16 + 34 + 36
+    f_quote = make_image._font_yukle(FONT_FRAUNCES, 72)
+    overlay_draw.text((kenar + 2, ty - 8), "“", font=f_quote, fill=(18, 19, 22, 60))
+
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(canvas)
 
+    # Footer
+    draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_KIREC_BORDER, width=1)
+    draw.text((kenar, alt_y + 26), "EDM YAPI & GAYRİMENKUL // EMLAK SÖZLÜĞÜ", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
+    sf = make_image._font_yukle(FONT_MONO_BOLD, 19)
+    sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
+    draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
+
     kat_temiz = kategori_temizle(kategori)
-    draw.text((kenar, curr_y), f"// {kat_temiz.upper()}", font=f_kat, fill=RENK_LOGO_KIRMIZI)
+    draw.text((kenar, curr_y), f"// {kat_temiz.upper()}", font=make_image._font_yukle(FONT_MONO_BOLD, 21), fill=RENK_LOGO_KIRMIZI)
     curr_y += 42
 
     for s in terim_satirlar:
         draw.text((kenar, curr_y), s, font=f_terim, fill=RENK_MUREKKEP)
-        curr_y += int(f_punto * 1.15)
-    curr_y += 12
+        curr_y += line_h_terim
+    curr_y += 16
 
     draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_KIREC_BORDER, width=2)
     curr_y += 34
 
     draw.text((kenar, curr_y), "TANIM & ANLAMI", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_KURSUN)
-    curr_y += 34
-    for s in tanim_satirlar:
-        draw.text((kenar, curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
-        curr_y += 52
     curr_y += 36
 
-    draw.rounded_rectangle([(kenar, curr_y), (GENISLIK - kenar, curr_y + h_kutu)], radius=10, fill=RENK_KIREC_KUTU, outline=RENK_KIREC_BORDER, width=1)
-    draw.rounded_rectangle([(kenar, curr_y), (kenar + 6, curr_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
-    draw.text((kenar + 28, curr_y + 20), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_LOGO_KIRMIZI)
-    py = curr_y + 58
+    for i, s in enumerate(tanim_satirlar):
+        x_pos = kenar + (indent_px if i == 0 else 0)
+        draw.text((x_pos, curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
+        curr_y += line_h_tanim
+
+    # Alta dayalı öneri kartı
+    draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=10, fill=RENK_KIREC_KUTU, outline=RENK_KIREC_BORDER, width=1)
+    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
+    draw.text((kenar + 28, kutu_y + 20), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_LOGO_KIRMIZI)
+    py = kutu_y + 58
     for s in puf_satirlar:
         draw.text((kenar + 28, py), s, font=f_puf_govde, fill=(35, 38, 44))
         py += 44
@@ -267,6 +296,46 @@ def uret_nedir_dogrusu(
     kullanilabilir_w = GENISLIK - (2 * kenar)
     ku = yer["kronik_ust"]
 
+    # Altın Kural Kartı Yüksekliği (Alta dayalı)
+    f_kural_baslik = make_image._font_yukle(FONT_MONO_BOLD, 20)
+    f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 29)
+    img_temp = Image.new("RGB", (10, 10))
+    d_temp = ImageDraw.Draw(img_temp)
+    kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, d_temp)
+    if len(kural_satirlar) > 3:
+        f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 26)
+        kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, d_temp)
+    h_kutu = 48 + (len(kural_satirlar) * 40) + 20
+
+    alt_bar_y = yer["alt_bar"]
+    kutu_y = alt_bar_y - 26 - h_kutu
+
+    # Doğru Metni (Daha büyük 38px + Paragraf başı boşluğu)
+    f_dogru = make_image._font_yukle(FONT_SANS_MEDIUM, 38)
+    line_h_dogru = 54
+    indent_px = 64
+
+    dogru_kelimeler = (dogru_metin or "").split()
+    dogru_satirlar = []
+    curr = []
+    for w in dogru_kelimeler:
+        cand = (" ".join(curr + [w])) if curr else w
+        max_w = (kullanilabilir_w - indent_px) if len(dogru_satirlar) == 0 else kullanilabilir_w
+        if d_temp.textbbox((0, 0), cand, font=f_dogru)[2] <= max_w:
+            curr.append(w)
+        else:
+            if curr:
+                dogru_satirlar.append(" ".join(curr))
+            curr = [w]
+    if curr:
+        dogru_satirlar.append(" ".join(curr))
+
+    h_dogru = len(dogru_satirlar) * line_h_dogru
+    beyaz_alan_h = kutu_y - (y_end + 25)
+    alt_bosluk = max(10, (beyaz_alan_h - h_dogru) // 2)
+    dogru_y = y_end + 25 + alt_bosluk
+
+    # Filigran Katmanı (Çarpı + Tik + Paragraf başı '“' filigranı)
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
     overlay_draw = ImageDraw.Draw(overlay)
     cx_carpi = GENISLIK - 180
@@ -275,6 +344,11 @@ def uret_nedir_dogrusu(
     cx_tik = GENISLIK - 220
     cy_tik = 890
     ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=240, renk=(34, 197, 94, 64), kalinlik=26)
+
+    # Paragraf başı '“' filigranı
+    f_quote = make_image._font_yukle(FONT_FRAUNCES, 72)
+    overlay_draw.text((kenar + 2, dogru_y - 8), "“", font=f_quote, fill=(18, 19, 22, 55))
+
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(canvas)
 
@@ -282,22 +356,28 @@ def uret_nedir_dogrusu(
     make_image._rozet_ciz(draw, kenar, ku, f"NEDİR DOĞRUSU? // {konu_baslik.upper()}", bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20)
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=285, golge=True, kirmizi_zemin=True)
 
-    temiz_yanlis = re.sub(r'^[\s"\'\u201c\u201d\u2018\u2019]+|[\s"\'\u201c\u201d\u2018\u2019]+$', '', yanlis_metin or "")
+    # Yanlış Metni: SAĞA DOĞRU TAM GENİŞLİK (kullanilabilir_w) + TİPOGRAFİK TIRNAKLAR
+    temiz_yanlis = re.sub(r"""^[\s"'“”‘’]+|[\s"'“”‘’]+$""", '', yanlis_metin or "")
     yanlis_formatli = f"“{temiz_yanlis}”"
 
     kirmizi_alan_h = y_start - (ku + 75)
-    f_punto = 48
-    while f_punto >= 30:
+    f_punto = 50
+    while f_punto >= 32:
         f_test = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
-        lh_test = int(f_punto * 1.26)
-        test_satirlar = make_image._metin_sar(yanlis_formatli, f_test, kullanilabilir_w - 140, draw)
+        lh_test = int(f_punto * 1.25)
+        test_satirlar = make_image._metin_sar(yanlis_formatli, f_test, kullanilabilir_w, draw)
         if len(test_satirlar) * lh_test <= kirmizi_alan_h - 20:
             break
         f_punto -= 2
 
     f_yanlis = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
-    line_h = int(f_punto * 1.26)
-    yanlis_satirlar = make_image._metin_sar(yanlis_formatli, f_yanlis, kullanilabilir_w - 140, draw)
+    line_h = int(f_punto * 1.25)
+    yanlis_satirlar = make_image._metin_sar(yanlis_formatli, f_yanlis, kullanilabilir_w, draw)
+
+    if yanlis_satirlar:
+        yanlis_satirlar[0] = "“" + yanlis_satirlar[0].lstrip(' "“')
+        yanlis_satirlar[-1] = yanlis_satirlar[-1].rstrip(' "”') + "”"
+
     h_yanlis = len(yanlis_satirlar) * line_h
     yanlis_y = ku + 75 + max(10, (kirmizi_alan_h - h_yanlis) // 2)
 
@@ -305,38 +385,23 @@ def uret_nedir_dogrusu(
         draw.text((kenar, yanlis_y), s, font=f_yanlis, fill=(255, 255, 255))
         yanlis_y += line_h
 
-    f_dogru_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 34)
-    f_kural_baslik = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 29)
+    # Doğru Metni Çizimi
+    curr_dy = dogru_y
+    for i, s in enumerate(dogru_satirlar):
+        x_pos = kenar + (indent_px if i == 0 else 0)
+        draw.text((x_pos, curr_dy), s, font=f_dogru, fill=RENK_MUREKKEP)
+        curr_dy += line_h_dogru
 
-    dogru_satirlar = make_image._metin_sar(dogru_metin or "", f_dogru_govde, kullanilabilir_w, draw)
-    kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, draw)
-    if len(kural_satirlar) > 3:
-        f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 26)
-        kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, draw)
-
-    h_dogru = len(dogru_satirlar) * 50
-    h_kutu = 48 + (len(kural_satirlar) * 40) + 20
-
-    alt_bar_y = yer["alt_bar"]
-    beyaz_alan_h = alt_bar_y - (y_end + 30)
-    toplam_alt_h = h_dogru + 38 + h_kutu
-    alt_bosluk = max(10, (beyaz_alan_h - toplam_alt_h) // 2)
-    curr_y = y_end + 30 + alt_bosluk
-
-    for s in dogru_satirlar:
-        draw.text((kenar, curr_y), s, font=f_dogru_govde, fill=RENK_MUREKKEP)
-        curr_y += 50
-    curr_y += 38
-
-    draw.rounded_rectangle([(kenar, curr_y), (GENISLIK - kenar, curr_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(45, 48, 56), width=1)
-    draw.rounded_rectangle([(kenar, curr_y), (kenar + 6, curr_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
-    draw.text((kenar + 28, curr_y + 18), "EDM ALTIN KURALI:", font=f_kural_baslik, fill=RENK_LOGO_KIRMIZI)
-    ky = curr_y + 52
+    # Altın Kural Kartı (Alta dayalı)
+    draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(45, 48, 56), width=1)
+    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_LOGO_KIRMIZI)
+    draw.text((kenar + 28, kutu_y + 18), "EDM ALTIN KURALI:", font=f_kural_baslik, fill=RENK_LOGO_KIRMIZI)
+    ky = kutu_y + 52
     for s in kural_satirlar:
         draw.text((kenar + 28, ky), s, font=f_kural_govde, fill=RENK_BEYAZ)
         ky += 40
 
+    # Footer
     draw.line([(kenar, alt_bar_y), (GENISLIK - kenar, alt_bar_y)], fill=RENK_CIZGI_ACIK, width=1)
     draw.text((kenar, alt_bar_y + 26), "EDM YAPI & GAYRİMENKUL // HUKUK & GERÇEK", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
     draw.text((GENISLIK - kenar - 170, alt_bar_y + 26), "NEDİR DOĞRUSU?", font=make_image._font_yukle(FONT_MONO_BOLD, 19), fill=RENK_MUREKKEP)
