@@ -74,6 +74,63 @@ class TestOkunabilirlikVeYonlendirme(unittest.TestCase):
         self.assertTrue(p2.exists())
         self.assertGreater(p2.stat().st_size, 10000)
 
+    def test_nedir_dogrusu_ayiklama_ve_cizim(self):
+        """B3 şemasından gelen verinin nedir_dogrusu formatında kart_1, kart_2 ve altin_kural olarak ayıklandığını doğrular."""
+        ornek_b3 = {
+            'bicim': 'B3',
+            'format_turu': 'nedir_dogrusu',
+            'kategori_kodu': 'Çatılı İşyeri Kiraları',
+            'manset_parca_1': 'İşyeri kirasında',
+            'manset_vurgu': 'SERBESTİ GEÇERLİ',
+            'spot': 'Tacir kiracılarda kanuni konut koruması işlemez.',
+            'slayt_2_detay': {
+                'kart_1': {
+                    'aciklama': 'Tacir veya şirket kiracıysanız konutlardaki depozito sınırı işlemez.'
+                },
+                'kart_2': {
+                    'aciklama': 'Türk Borçlar Kanunu md. 339 uyarınca sözleşme serbestisi esastır.'
+                }
+            },
+            'slayt_3_cozum': {
+                'maddeler': [
+                    {'baslik': 'Depozito ve iade şartı', 'aciklama': 'Tahliyede kesintisiz iade edileceğini yazdırın.'}
+                ]
+            }
+        }
+        slaytlar = yeni_formatlar.slaytlari_uret(ornek_b3, cikti_dizini=self.tmp_dir, cikti_onek='test_nd')
+        self.assertEqual(len(slaytlar), 1)
+        p = Path(slaytlar[0])
+        self.assertTrue(p.exists())
+        self.assertGreater(p.stat().st_size, 15000)
+
+    def test_sozluk_ve_net_cevap_ayiklama(self):
+        """Sozluk ve net_cevap formatlarında da eksik anahtar durumunda güvenli çıkarım yapıldığını test eder."""
+        ornek_sozluk = {
+            'bicim': 'B1',
+            'format_turu': 'sozluk',
+            'manset_vurgu': 'İFRAZ',
+            'spot': 'Bir parselin birden çok parçaya bölünmesi işlemidir.',
+            'slayt_3_cozum': {
+                'maddeler': ['İmar planına uygunluk şarttır.']
+            }
+        }
+        slaytlar_s = yeni_formatlar.slaytlari_uret(ornek_sozluk, cikti_dizini=self.tmp_dir, cikti_onek='test_sozluk')
+        self.assertEqual(len(slaytlar_s), 1)
+        self.assertTrue(Path(slaytlar_s[0]).exists())
+
+        ornek_cevap = {
+            'bicim': 'B3',
+            'format_turu': 'net_cevap',
+            'manset_parca_1': 'Tarlaya Tiny House',
+            'manset_vurgu': 'Koymak Yasal mı?',
+            'manset_parca_2': 'ŞARTA BAĞLI',
+            'spot': 'Sabit temelli yapılar ruhsata tabidir.',
+        }
+        slaytlar_c = yeni_formatlar.slaytlari_uret(ornek_cevap, cikti_dizini=self.tmp_dir, cikti_onek='test_cevap')
+        self.assertEqual(len(slaytlar_c), 1)
+        self.assertTrue(Path(slaytlar_c[0]).exists())
+
 
 if __name__ == '__main__':
     unittest.main()
+

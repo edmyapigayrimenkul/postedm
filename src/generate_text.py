@@ -903,7 +903,7 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
     return veri2
 
 
-def konudan_uret(konu: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Konu bankası kaydından slayt içeriği üretir. Faz 1'in ana giriş noktası."""
     from . import konu_bankasi
 
@@ -913,9 +913,42 @@ def konudan_uret(konu: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         + "\n\nBu brief'i yukarıdaki biçim şemasına göre işle. "
         "AÇI alanındaki bakış açısı içeriğin merkezi olsun."
     )
+    if format_turu in ("nedir_dogrusu", "dogrusu"):
+        girdi += (
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NEDİR DOĞRUSU? (DOĞRU BİLİNEN YANLIŞLAR)' formatında üret. "
+            "JSON nesnesinde 'format_turu': 'nedir_dogrusu', "
+            "'yanlis_metin': (Vatandaşın veya kiracının/yatırımcının inandığı yaygın yanlış / şehir efsanesi - tek ve vurucu cümle), "
+            "'dogru_metin': (Kanunen ve hukuken işin esası, yasal dayanak maddesi ve Yargıtay içtihadı - 2-3 cümle), "
+            "'altin_kural': (EDM Altın Kuralı: Kısa ve net uzman tavsiyesi) alanlarını MUTLAKA doldur."
+        )
+    elif format_turu in ("sozluk", "sozluk_uret"):
+        girdi += (
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GAYRİMENKUL SÖZLÜĞÜ' formatında üret. "
+            "JSON nesnesinde 'format_turu': 'sozluk', "
+            "'terim': (Konunun odaklandığı gayrimenkul/imar/tapu hukuku terimi - örn: ŞUFA, İFRAZ, vb.), "
+            "'tanim_metni': (Hukuki ve teknik tanımı), "
+            "'puf_maddeleri': [(Yatırımcının bilmesi gereken 2-3 kritik kural ve risk)] alanlarını MUTLAKA doldur."
+        )
+    elif format_turu in ("vaka", "emsal_karar"):
+        girdi += (
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'HUKUKİ VAKA ANALİZİ' formatında üret. "
+            "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / EMSAL DOSYA', "
+            "'yargitay_kaynak': (Mevzuat veya emsal içtihat), 'manset': (Çarpıcı başlık), "
+            "'olay_detay': (Olay özeti), 'yargitay_hukmu': (Yargıtay/Mahkeme hükmü), "
+            "'cikarilacak_ders': (Yatırımcının çıkarması gereken ders) alanlarını MUTLAKA doldur."
+        )
+    elif format_turu in ("net_cevap", "soru", "kim_hakli"):
+        girdi += (
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NET CEVAP REHBERİ' formatında üret. "
+            "JSON nesnesinde 'format_turu': 'net_cevap', 'soru': (Net soru?), 'net_cevap': 'CEVAP: ...', "
+            "'aciklama': (Gerekçe ve hukuki açıklama), 'tavsiye_metin': (Resmi adım ve tavsiye) alanlarını MUTLAKA doldur."
+        )
+
     veri = _uret(girdi, bicim)
     if veri:
         veri.setdefault("bicim", bicim)
+        if format_turu:
+            veri["format_turu"] = format_turu
         veri["konu_kodu"] = konu["kod"]
         # Brief'i sakla: dogrula.py metindeki mevzuat ve yerel bağ iddialarını
         # bununla karşılaştırıyor. Onay önizlemesinde uyarı olarak görünüyor.

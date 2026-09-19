@@ -1351,7 +1351,7 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
         mesaj_gonder("⚠️ Konu bankasında bakir konu kalmadı.")
         return False
 
-    veri = generate_text.konudan_uret(konu)
+    veri = generate_text.konudan_uret(konu, format_turu=format_turu)
     if not veri:
         mesaj_gonder("❌ İçerik üretilemedi. Gemini API yanıt vermedi.")
         return False
