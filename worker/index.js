@@ -207,6 +207,13 @@ export default {
         const messageId = cb.message?.message_id;
         const callbackId = cb.id;
 
+        // Mesaj metni veya fotoğraf/video caption'ından içerik ID'sini (#123) çıkaran yardımcı
+        const icerikIdBul = () => {
+          const metin = cb.message?.text || cb.message?.caption || "";
+          const m = metin.match(/#(\d+)/);
+          return m ? m[1] : "";
+        };
+
         // Telegram'a bekleme simgesini kaldırması için hızlı yanıt ver
         const cevapVer = async (metin = "İşlem alınıyor...") => {
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
@@ -540,9 +547,8 @@ export default {
             }
           }
 
-          if (!icerikId && cb.message?.text) {
-            const match = cb.message.text.match(/#(\d+)/);
-            if (match) icerikId = match[1];
+          if (!icerikId) {
+            icerikId = icerikIdBul();
           }
 
           const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1] : null;
@@ -565,48 +571,54 @@ export default {
 
         // F. MANUEL PAYLAŞIM PAKETİ
         if (data === "manuel_paket" || data.startsWith("manuel_paket:")) {
+          const mId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
           await cevapVer("Manuel paket hazırlanıyor...");
           await mesajiGuncelle(`📲 <b>Manuel Paylaşım Paketi hazırlanıyor...</b>\nAçıklama metni ve yönlendirme butonları birazdan iletilecek.`);
-          await tetikleGitHub(env, "yayinla", { tur: "haber", hedef: "manuel_paket", mesaj_id: messageId });
+          await tetikleGitHub(env, "yayinla", { tur: "haber", id: mId, hedef: "manuel_paket", mesaj_id: messageId });
           return new Response("OK");
         }
 
         // G. METİN DÜZENLEME EYLEMLERİ
         if (data === "metin_ozetle" || data === "metin_detaylandir" || data === "metin_yenile" || data.startsWith("metin_eylem:") || data.startsWith("yenile:")) {
           const eylem = data.startsWith("metin_eylem:") ? data.split(":")[1] : (data.startsWith("yenile:") ? "yenile" : data);
+          const mId = (data.startsWith("yenile:") && data.split(":").length > 2 ? data.split(":")[2] : "") || icerikIdBul();
           await cevapVer("Metin düzenleniyor...");
           await mesajiGuncelle(`✍️ <b>İçerik için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "yayinla", { hedef: eylem, mesaj_id: messageId });
+          await tetikleGitHub(env, "yayinla", { hedef: eylem, id: mId, mesaj_id: messageId });
           return new Response("OK");
         }
 
         // H. FOTOĞRAF EYLEMLERİ
         if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data.startsWith("foto_eylem:")) {
           const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
+          const fId = icerikIdBul();
           await cevapVer("Görsel güncelleniyor...");
           await mesajiGuncelle(`🖼️ <b>Görsel güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "yayinla", { hedef: eylem, mesaj_id: messageId });
+          await tetikleGitHub(env, "yayinla", { hedef: eylem, id: fId, mesaj_id: messageId });
           return new Response("OK");
         }
 
         // I. FORMAT DÖNÜŞTÜRME
         if (data.startsWith("format_uygula:")) {
-          const format = data.split(":")[1];
+          const parts = data.split(":");
+          const format = parts[1];
+          const fmtId = (parts.length > 2 ? parts[2] : "") || icerikIdBul();
           await cevapVer("Format dönüştürülüyor");
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: `🎨 İçerik <b>${format.toUpperCase()}</b> formatına dönüştürülüyor...`, parse_mode: "HTML" }),
           });
-          await tetikleGitHub(env, "format_donustur", { format_turu: format, mesaj_id: messageId });
+          await tetikleGitHub(env, "format_donustur", { format_turu: format, id: fmtId, mesaj_id: messageId });
           return new Response("OK");
         }
 
         // J. ERTELEME
         if (data === "ertele" || data.startsWith("ertele:")) {
+          const ertId = icerikIdBul();
           await cevapVer("Yayın 1 saat ertelendi");
           await mesajiGuncelle(`⏰ <b>Yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>`);
-          await tetikleGitHub(env, "yayinla", { hedef: "ertele", mesaj_id: messageId });
+          await tetikleGitHub(env, "yayinla", { hedef: "ertele", id: ertId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -625,15 +637,17 @@ export default {
               refId = parts[1];
             }
           }
+          if (!refId) refId = icerikIdBul();
           await tetikleGitHub(env, "yayinla", { tur, id: refId, hedef: "iptal", mesaj_id: messageId });
           return new Response("OK");
         }
 
         // L. ÇÖPE AT (TASLAK ÇÖPE ATILIR, KULLANICI İSTEĞİYLE KONU KİLİTLENMEZ)
         if (data === "cope_at" || data.startsWith("cope_at:")) {
+          const copId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
           await cevapVer("Taslak çöpe atıldı, konu havuza iade edildi");
           await mesajiGuncelle(`🗑️ <b>Taslak çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
-          await tetikleGitHub(env, "yayinla", { hedef: "cope_at", mesaj_id: messageId });
+          await tetikleGitHub(env, "yayinla", { hedef: "cope_at", id: copId, mesaj_id: messageId });
           return new Response("OK");
         }
 

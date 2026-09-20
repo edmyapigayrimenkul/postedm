@@ -247,6 +247,7 @@ def foto_yayinla(
     gorsel_urlleri: List[str],
     baslik: str,
     etiketler: Optional[List[str]] = None,
+    hazir_video_yolu: Optional[Path | str] = None,
 ) -> Dict[str, Any]:
     """
     TikTok Content Posting API v2 ile fotoğraf veya kaydırmalı (Carousel) post yayınlar.
@@ -290,6 +291,22 @@ def foto_yayinla(
             timeout=25,
         )
 
+        # 401 durumunda token süresi dolmuş olabilir (24 saatlik ömür) — otomatik yenile ve tekrar dene
+        if r.status_code == 401 or (r.status_code != 200 and "token" in r.text.lower()):
+            log.warning("TikTok fotoğraf API erişim jetonu geçersiz veya süresi dolmuş (HTTP %d). Otomatik yenileniyor...", r.status_code)
+            yeni_tok = token_yenile()
+            if yeni_tok:
+                token = yeni_tok
+                r = requests.post(
+                    TIKTOK_CONTENT_INIT_URL,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json; charset=UTF-8",
+                    },
+                    data=json.dumps(payload),
+                    timeout=25,
+                )
+
         if r.status_code == 200:
             veri = r.json()
             if veri.get("error", {}).get("code") == "ok":
@@ -301,9 +318,15 @@ def foto_yayinla(
     except Exception as e:
         log.warning("TikTok fotoğraf API çağrısı hatası: %s", e)
 
-    # 2. Fallback: Fotoğraflardan dikey slayt videosu üretip video olarak yükle
-    log.info("TikTok için fotoğraflardan dikey video üretilerek fallback yükleme yapılıyor...")
+    # 2. Fallback: Dikey slayt videosu yükle (Varsa hazır video, yoksa üret)
+    log.info("TikTok için dikey video fallback moduna geçiliyor...")
     try:
+        if hazir_video_yolu:
+            p_hazir = Path(hazir_video_yolu)
+            if p_hazir.exists() and p_hazir.stat().st_size > 0:
+                log.info("Hazır dikey video kullanılıyor: %s", p_hazir)
+                return video_yukle(p_hazir, baslik=baslik, etiketler=etiketler)
+
         from . import video
         v_yolu = video.slaytlardan_reels_uret(gorsel_urlleri)
         if v_yolu and v_yolu.exists():

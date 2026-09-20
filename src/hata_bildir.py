@@ -321,6 +321,26 @@ def telegrama_hata_bildir(
     run_url: str = "",
 ) -> bool:
     """Hatayı analiz eder, kalıcı loga yazar ve Telegram grubuna interaktif kart gönderir."""
+    # Hata metni boşsa son_hata.txt dosyasından oku
+    if not istisna and not ek_bilgi and SON_HATA_YOLU.exists():
+        try:
+            with open(SON_HATA_YOLU, "r", encoding="utf-8") as f:
+                kayitli = f.read().strip()
+                if kayitli:
+                    ek_bilgi = kayitli
+        except Exception:
+            pass
+
+    # Referans ID boşsa veritabanındaki son içerikten otomatik tamamla
+    if not ref_id:
+        try:
+            from . import db
+            bekleyenler = db.onay_bekleyen_haberleri_getir(limit=1)
+            if bekleyenler:
+                ref_id = str(bekleyenler[0].get("id", ""))
+        except Exception:
+            pass
+
     hata_str = str(istisna) if istisna else ek_bilgi
     tb_str = traceback.format_exc() if istisna else ""
     tum_hata = f"{hata_str}\n{tb_str}" if tb_str and "NoneType: None" not in tb_str else hata_str
@@ -381,11 +401,31 @@ if __name__ == "__main__":
     parser.add_argument("--run-url", default="", help="GitHub Actions run URL")
     args = parser.parse_args()
 
+    hata_metni = args.hata
+    if not hata_metni and SON_HATA_YOLU.exists():
+        try:
+            with open(SON_HATA_YOLU, "r", encoding="utf-8") as f:
+                icerik = f.read().strip()
+                if icerik:
+                    hata_metni = icerik
+        except Exception:
+            pass
+
+    ref_id = args.id
+    if not ref_id:
+        try:
+            from . import db
+            bekleyenler = db.onay_bekleyen_haberleri_getir(limit=1)
+            if bekleyenler:
+                ref_id = str(bekleyenler[0].get("id", ""))
+        except Exception:
+            pass
+
     telegrama_hata_bildir(
         islem_adi=args.islem,
-        ek_bilgi=args.hata or "İşlem sırasında beklenmeyen bir hata meydana geldi.",
-        tur=args.tur,
-        ref_id=args.id,
+        ek_bilgi=hata_metni or "İşlem sırasında beklenmeyen bir hata meydana geldi.",
+        tur=args.tur or "haber",
+        ref_id=ref_id,
         hedef=args.hedef,
         mesaj_id=args.mesaj_id,
         run_url=args.run_url,

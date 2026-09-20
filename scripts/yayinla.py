@@ -401,10 +401,10 @@ def main() -> None:
         or (reels_modu and hedef_mi("fb", "facebook"))
         or (reels_modu and hedef_mi("tt", "tiktok"))
     )
+    v_yolu = None
     sesli_video_yolu = None
     if video_lazim:
         log.info("Dikey video ve fon müziği hazırlanıyor (FB/YT standart video kuralı)...")
-        v_yolu = None
         if haber and haber.get("video_yolu"):
             vy = Path(haber["video_yolu"])
             if vy.exists():
@@ -524,7 +524,7 @@ def main() -> None:
         else:
             log.info("TikTok'ta fotoğraf/carousel paylaşılıyor (Tek sayfa: %s)...", tek_sayfa)
             try:
-                tt_res = tiktok.foto_yayinla(public_urller, baslik=baslik)
+                tt_res = tiktok.foto_yayinla(public_urller, baslik=baslik, hazir_video_yolu=v_yolu)
                 if tt_res.get("durum"):
                     if tt_res.get("taslak_mi"):
                         rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi ✓")
@@ -931,6 +931,14 @@ def main() -> None:
         log.warning("Telegram sonuç bildirimi gönderilemedi: %s", bildirim_hatasi)
     print("POSTEDM_SONUC=" + json.dumps({"hedefler": sorted(hedefler), "rapor": rapor_satirlari}, ensure_ascii=False))
     if hata_var:
+        # Hata detayını son_hata.txt'ye yaz ki teşhis modülü tam nedenini bilsin
+        try:
+            hata_satirlari = [r for r in rapor_satirlari if "✗" in r or "Hata" in r]
+            if hata_satirlari:
+                from src import hata_bildir
+                hata_bildir.son_ham_hata_kaydet("\n".join(hata_satirlari))
+        except Exception:
+            pass
         raise RuntimeError("Bir veya daha fazla sosyal medya yayını başarısız oldu.")
     log.info("Yayınlama süreci tamamlandı.")
 

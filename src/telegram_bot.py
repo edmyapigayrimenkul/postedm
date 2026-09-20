@@ -65,6 +65,9 @@ def _istek(metot: str, **parametreler: Any) -> Optional[Dict[str, Any]]:
                                 log.warning("Telegram callback_data 64 bayt sınırını aştı (%d bayt): %s", len(cb_b), cb)
                                 btn["callback_data"] = cb_b[:64].decode("utf-8", errors="ignore")
 
+    # None değerli parametreleri payload'dan temizle (özellikle reply_markup=None Telegram API'de 400 Bad Request hatası verir)
+    parametreler = {k: v for k, v in parametreler.items() if v is not None}
+
     for deneme in range(1, 4):
         try:
             cevap = requests.post(url, json=parametreler, timeout=25)
@@ -394,14 +397,15 @@ def mesaji_sil(mesaj_id: int) -> bool:
 
 def mesaji_guncelle(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> bool:
     """Var olan mesajı günceller; 'message is not modified' durumunda çökmez."""
-    res = _istek(
-        "editMessageText",
-        message_id=mesaj_id,
-        text=metin,
-        parse_mode="HTML",
-        disable_web_page_preview=True,
-        reply_markup=reply_markup,
-    )
+    payload: Dict[str, Any] = {
+        "message_id": mesaj_id,
+        "text": metin,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
+    res = _istek("editMessageText", **payload)
     return bool(res)
 
 
@@ -1320,11 +1324,12 @@ def haber_onayina_sun(haber_id: int) -> bool:
 
     mesaj_metni = (
         denetim_basligi
-        + f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR</b>\n\n"
+        + f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
         f"<b>Kategori:</b> {rozet}\n"
         f"<b>Dayanak:</b> {dayanak}\n"
         f"<b>Manşet:</b> {haber['manset']}\n"
-        f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n\n"
+        f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n"
+        f"<b>İçerik No:</b> #{haber_id}\n\n"
     )
     if temiz_caption:
         mesaj_metni += (
@@ -1675,9 +1680,10 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     )
     temiz_caption = html_lib.escape(caption_metin.strip())
     mesaj_metni = (
-        f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR</b>\n\n"
+        f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR (#{haber_id})</b>\n\n"
         f"📌 <b>Başlık:</b> {konu['baslik']}\n"
-        f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n\n"
+        f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n"
+        f"🆔 <b>İçerik No:</b> #{haber_id}\n\n"
         f"📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
         f"<pre><code>{temiz_caption}</code></pre>\n\n"
         f"💡 <i>Videoyu kaydedebilir veya '✅ Yayınla' -> '▶️ Şimdi' butonuna basarak doğrudan tüm platformlara otomatik yayınlayabilirsiniz.</i>"
