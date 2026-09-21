@@ -1359,8 +1359,17 @@ def haber_onayina_sun(haber_id: int) -> bool:
         except Exception as e:
             log.warning("Denetim çalıştırılamadı: %s", e)
 
+    # Format bazlı başlık belirleme
+    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (not otorite_verisi)
+    if is_haber:
+        album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {haber['manset']}"
+        kart_baslik = f"📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+    else:
+        album_caption = f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}"
+        kart_baslik = f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+
     # 3. Medya albümü gönder (HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER)
-    medya_grubu_gonder(slayt_yollari, caption=f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}")
+    medya_grubu_gonder(slayt_yollari, caption=album_caption)
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
     import html as html_lib
@@ -1375,8 +1384,8 @@ def haber_onayina_sun(haber_id: int) -> bool:
 
     mesaj_metni = (
         denetim_basligi
-        + f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
-        f"<b>Kategori:</b> {rozet}\n"
+        + kart_baslik
+        + f"<b>Kategori:</b> {rozet}\n"
         f"<b>Dayanak:</b> {dayanak}\n"
         f"<b>Manşet:</b> {haber['manset']}\n"
         f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n"
