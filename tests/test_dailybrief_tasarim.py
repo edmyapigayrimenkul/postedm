@@ -238,6 +238,65 @@ class TestDailyBriefTasarim(unittest.TestCase):
         )
         self.assertEqual(len(res), 3)
 
+    def test_hook_motoru_stat_punch_ve_minimal_vurgu(self):
+        """Hook motoru gayrimenkul verilerini ve editoryal kancaları doğru formatta üretmeli."""
+        from src import hook_motoru
+
+        # 1. Ada ve parsel verisinden stat_punch
+        h_imar = {
+            "manset": "Silivri Selimpaşa'da Yeni İmar Planı Askıya Çıktı",
+            "spot": "142 ada ve 85 parseli kapsayan plan ilan edildi.",
+            "kategori": "ARSA_VE_IMAR",
+        }
+        hook_imar = hook_motoru.hook_olustur(h_imar)
+        self.assertIsNotNone(hook_imar)
+        self.assertEqual(hook_imar["format"], "stat_punch")
+        self.assertEqual(hook_imar["num_txt"], "142")
+        self.assertEqual(hook_imar["unit_txt"], "ADA")
+        self.assertIn("85 PARSEL", hook_imar["t1"])
+
+        # 2. Açıkça belirtilmiş kanca alanından minimal_vurgu
+        h_hukuk = {
+            "manset": "Tahliye Taahhütnamesinde Emsal Karar",
+            "spot": "Kiracının açtığı tespit davası reddedildi.",
+            "kategori": "TAPU_VE_HUKUK",
+            "kanca": "Boş Taahhütname Geçerli Sayıldı",
+        }
+        hook_hukuk = hook_motoru.hook_olustur(h_hukuk)
+        self.assertIsNotNone(hook_hukuk)
+        self.assertEqual(hook_hukuk["format"], "minimal_vurgu")
+        self.assertIn("YARGITAY", hook_hukuk["kicker"])
+
+        # 3. Başlıkla birebir örtüşen kancanın elenmesi
+        self.assertFalse(
+            hook_motoru._basliktan_farkli_mi(
+                "SİLİVRİ İMAR PLANI",
+                "ASKIYA ÇIKTI",
+                "Silivri İmar Planı Askıya Çıktı",
+            )
+        )
+
+    def test_haber_dailybrief_kapak_hook_entegrasyonu(self):
+        """Kapak slaytında hook uygulandığında görsel boyutları ve bütünlüğü korunmalı."""
+        h = {
+            "manset": "Silivri Alibey Mahallesi İmar Planı Değişikliği",
+            "spot": "30 günlük askı ve itiraz süreci resmen başladı.",
+            "kategori": "ARSA_VE_IMAR",
+            "kaynak": "İBB Şehircilik",
+        }
+        cikti = self.tmp_path / "kapak_hook_test.jpg"
+        res = make_image.haber_dailybrief_slayti_ciz(
+            h,
+            foto_yolu=self.test_foto,
+            cikti_yolu=cikti,
+            olcu="besleme",
+            sayfa_no="01 / 02",
+        )
+        self.assertTrue(cikti.exists())
+        with Image.open(res) as im:
+            self.assertEqual(im.size, (1080, 1350))
+
 
 if __name__ == "__main__":
     unittest.main()
+

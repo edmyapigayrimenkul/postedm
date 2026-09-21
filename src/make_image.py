@@ -2993,33 +2993,48 @@ def haber_dailybrief_slayti_ciz(
         spot_lh = 38
         spot_h = len(spot_satirlari) * spot_lh
 
-        # Manşet metni formatlama (Fraunces)
+        # Manşet metni formatlama (Fraunces — Dev Editoryal Manşet)
         manset_temiz = _temizle_tipografi(manset_raw)
-        punto_manset = 52
+        punto_manset = 70
         font_manset = _font_yukle(FONT_FRAUNCES, punto_manset)
         manset_satirlari = _metin_sar(manset_temiz, font_manset, kullanilabilir_w, draw)
         
-        while len(manset_satirlari) > 3 and punto_manset > 36:
+        while len(manset_satirlari) > 3 and punto_manset > 46:
             punto_manset -= 2
             font_manset = _font_yukle(FONT_FRAUNCES, punto_manset)
             manset_satirlari = _metin_sar(manset_temiz, font_manset, kullanilabilir_w, draw)
         manset_satirlari = manset_satirlari[:3]
 
-        manset_lh = int(punto_manset * 1.25)
+        manset_lh = int(punto_manset * 1.18)
         manset_h = len(manset_satirlari) * manset_lh
 
         # Pozisyonlama: Alt çizginin üzerinden yukarıya doğru yerleştirme
-        spot_ust_y = alt_y - 32 - spot_h
-        manset_ust_y = spot_ust_y - (24 if spot_h > 0 else 0) - manset_h
+        spot_ust_y = alt_y - 28 - spot_h
+        manset_ust_y = spot_ust_y - (20 if spot_h > 0 else 0) - manset_h
+
+        # 3.1. Editoryal Kanca (Hook) Entegrasyonu (instabot referansı)
+        # Kapak fotoğrafı üzerine dikkat çekici hook ve difüzyon gölgesi yerleştirilir
+        try:
+            from . import hook_motoru
+            canvas = hook_motoru.hook_uygula(
+                canvas=canvas,
+                haber=haber,
+                manset_ust_y=manset_ust_y,
+                ust_y=ust_y,
+                olcu=olcu,
+            )
+            draw = ImageDraw.Draw(canvas)
+        except Exception as he:
+            log.warning("Hook çiziminde hata (devam ediliyor): %s", he)
 
         # Difüzyon Gölgesi (Manşet arkasına)
         golge = Image.new("RGBA", (genislik, yukseklik), (0, 0, 0, 0))
         golge_draw = ImageDraw.Draw(golge)
         curr_y = manset_ust_y
         for sat in manset_satirlari:
-            golge_draw.text((kenar, curr_y + 4), sat, font=font_manset, fill=(0, 0, 0, 220))
+            golge_draw.text((kenar, curr_y + 4), sat, font=font_manset, fill=(0, 0, 0, 240))
             curr_y += manset_lh
-        golge = golge.filter(ImageFilter.GaussianBlur(12))
+        golge = golge.filter(ImageFilter.GaussianBlur(14))
         canvas = Image.alpha_composite(canvas.convert("RGBA"), golge).convert("RGB")
         draw = ImageDraw.Draw(canvas)
 
