@@ -68,6 +68,8 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s123") as fb_story,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/x"}) as yt_shorts,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch.object(yayinla.telegram_bot, "video_gonder") as tg_video,
+            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -121,6 +123,8 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s-tek") as fb_story,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/y"}) as yt_shorts,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch.object(yayinla.telegram_bot, "video_gonder") as tg_video,
+            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -167,6 +171,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.facebook, "video_yayinla", return_value="fb-v-reels") as fb_video,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/z"}) as yt_shorts,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -203,6 +208,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
             patch.object(yayinla.threads, "zincir_paylas", return_value="th-chain-45") as th_zincir,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -232,6 +238,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.upload_image, "coklu_gorsel_yukle", return_value=["https://cdn.com/yeni_4x5_1.jpg", "https://cdn.com/yeni_4x5_2.jpg"]),
             patch.object(yayinla.threads, "zincir_paylas", return_value="th-chain-native") as th_zincir,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):
             yayinla.main()
 
