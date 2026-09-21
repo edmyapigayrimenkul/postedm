@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -97,8 +98,7 @@ def main() -> int:
             if refresh_token.github_secret_guncelle(yeni, GITHUB_SECRET_ADI):
                 satirlar.append("   ↳ GitHub Secret güncellendi")
             else:
-                sorunlu = True
-                satirlar.append("   ⚠️ GitHub Secret GÜNCELLENEMEDİ — runner eski jetonu kullanır")
+                satirlar.append("   ℹ️ GitHub Secret güncellenemedi (SECRET_YAZMA_PAT tanımlanmalı)")
         else:
             sorunlu = True
             d = refresh_token.threads_token_durumu()

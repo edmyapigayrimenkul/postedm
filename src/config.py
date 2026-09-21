@@ -44,8 +44,11 @@ def ayar_al(anahtar_yolu: str, varsayilan: Any = None) -> Any:
 
 
 def env_al(anahtar: str, varsayilan: str = "") -> str:
-    """Çevre değişkenini döndürür."""
-    return os.getenv(anahtar, varsayilan)
+    """Çevre değişkenini döndürür. Tanımsız veya boş string ise varsayılana düşer."""
+    deger = os.getenv(anahtar)
+    if deger is None or (isinstance(deger, str) and deger.strip() == "" and varsayilan != ""):
+        return varsayilan
+    return deger or ""
 
 
 def yol_al(goreli_yol: str) -> Path:

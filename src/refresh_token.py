@@ -118,7 +118,7 @@ def threads_token_yenile() -> Optional[str]:
 def meta_token_durumu() -> Dict[str, Any]:
     """Instagram & Facebook Page Token geçerliliğini doğrular."""
     token = config.env_al("INSTAGRAM_ACCESS_TOKEN")
-    page_id = config.env_al("FACEBOOK_PAGE_ID", "145361567360773")
+    page_id = (config.env_al("FACEBOOK_PAGE_ID") or "145361567360773").strip()
 
     if not token:
         return {"gecerli": False, "mesaj": "INSTAGRAM_ACCESS_TOKEN tanımlı değil"}

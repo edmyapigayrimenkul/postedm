@@ -31,7 +31,7 @@ GECICI_HATALAR = {429, 500, 502, 503, 504}
 
 def _page_bilgileri() -> tuple[str, str]:
     token = config.env_al("INSTAGRAM_ACCESS_TOKEN")
-    page_id = config.env_al("FACEBOOK_PAGE_ID", "145361567360773")
+    page_id = (config.env_al("FACEBOOK_PAGE_ID") or "145361567360773").strip()
     return token, page_id
 
 
