@@ -1294,8 +1294,20 @@ def haber_onayina_sun(haber_id: int) -> bool:
         if otorite_verisi and isinstance(otorite_verisi, dict):
             format_turu = otorite_verisi.get("format_turu")
 
-        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief"):
             slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=format_turu, cikti_onek=f"gonderi_{haber_id}")
+            slayt_yollari = [str(p) for p in slayt_listesi]
+        elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
+            # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla üret
+            veri_icin = {
+                "manset": haber.get("manset") or haber.get("orijinal_baslik", ""),
+                "spot": haber.get("orijinal_ozet") or haber.get("detay_metni", ""),
+                "kategori": haber.get("kategori") or "TAPU_VE_HUKUK",
+                "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
+                "gorsel_yolu": haber.get("gorsel_url"),
+                "format_turu": "dailybrief",
+            }
+            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}")
             slayt_yollari = [str(p) for p in slayt_listesi]
         else:
             # Standart carousel / otorite postu: yüksek kontrastlı mimari fotoğraflı make_image motorunu kullan (4-7 slayt)

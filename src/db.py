@@ -120,9 +120,26 @@ def tablolari_olustur() -> None:
             deger TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS icerik_metrikleri (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            haber_id INTEGER,
+            platform TEXT NOT NULL,
+            medya_id TEXT NOT NULL,
+            reach INTEGER DEFAULT 0,
+            impressions INTEGER DEFAULT 0,
+            saved INTEGER DEFAULT 0,
+            shares INTEGER DEFAULT 0,
+            comments INTEGER DEFAULT 0,
+            likes INTEGER DEFAULT 0,
+            kayit_tarihi TEXT NOT NULL,
+            ham_veri TEXT
+        );
+
         CREATE INDEX IF NOT EXISTS idx_haber_durum ON haberler(durum);
         CREATE INDEX IF NOT EXISTS idx_haber_url ON haberler(orijinal_url);
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
+        CREATE INDEX IF NOT EXISTS idx_metrik_haber ON icerik_metrikleri(haber_id);
+        CREATE INDEX IF NOT EXISTS idx_metrik_medya ON icerik_metrikleri(medya_id);
         """)
 
         # Dinamik şema göçü: Git geçmişindeki eski SQLite dosyaları da yeni
@@ -532,6 +549,74 @@ def gunluk_yayin_ozeti() -> Dict[str, Any]:
         "toplam_haber": toplam_haber,
         "toplam_ilan": toplam_ilan,
     }
+
+
+# --- İÇERİK PERFORMANS METRİKLERİ (ANALİTİK VERİ TOPLAYICI) ---
+
+def metrik_kaydet(
+    haber_id: Optional[int],
+    platform: str,
+    medya_id: str,
+    reach: int = 0,
+    impressions: int = 0,
+    saved: int = 0,
+    shares: int = 0,
+    comments: int = 0,
+    likes: int = 0,
+    ham_veri: Optional[Dict[str, Any]] = None,
+) -> int:
+    """Yayınlanmış içeriğin performans metriklerini sessizce kaydeder."""
+    simdi = datetime.now(timezone.utc).isoformat()
+    ham_str = json.dumps(ham_veri, ensure_ascii=False) if ham_veri else None
+    with _baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO icerik_metrikleri (
+                   haber_id, platform, medya_id, reach, impressions,
+                   saved, shares, comments, likes, kayit_tarihi, ham_veri
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (haber_id, platform, str(medya_id), reach, impressions, saved, shares, comments, likes, simdi, ham_str)
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def haber_metrikleri_getir(haber_id: int) -> List[Dict[str, Any]]:
+    """Belirli bir haber için toplanan tüm metrik kayıtlarını döner."""
+    with _baglanti_al() as conn:
+        rows = conn.execute(
+            "SELECT * FROM icerik_metrikleri WHERE haber_id = ? ORDER BY kayit_tarihi DESC",
+            (haber_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def yayinlanmis_ve_metrik_bekleyenler(min_yas_saat: float = 24.0, max_yas_saat: float = 168.0) -> List[Dict[str, Any]]:
+    """Son 24 saat ile 7 gün arasında yayınlanmış ve Instagram post ID'si olan haberleri döner."""
+    simdi = datetime.now(timezone.utc)
+    sonuclar = []
+    with _baglanti_al() as conn:
+        rows = conn.execute(
+            """SELECT id, durum, yayin_zamani, instagram_post_id, threads_post_id, kategori, manset
+               FROM haberler
+               WHERE durum IN ('yayinda', 'yayinlandi', 'tamamlandi') AND instagram_post_id IS NOT NULL AND yayin_zamani IS NOT NULL
+               ORDER BY yayin_zamani DESC"""
+        ).fetchall()
+        for r in rows:
+            d = dict(r)
+            yz = d.get("yayin_zamani")
+            if not yz:
+                continue
+            try:
+                dt = datetime.fromisoformat(yz)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                yas = (simdi - dt).total_seconds() / 3600.0
+                if min_yas_saat <= yas <= max_yas_saat:
+                    d["yas_saat"] = yas
+                    sonuclar.append(d)
+            except Exception:
+                continue
+    return sonuclar
 
 
 # Başlangıçta tabloları hazırla

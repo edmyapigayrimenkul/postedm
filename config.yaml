@@ -96,6 +96,18 @@ haberler:
       url: "https://www.ntv.com.tr/ekonomi.rss"
       agirlik: 6
       kategori: "ekonomi"
+    - ad: "TRT Haber Ekonomi"
+      url: "https://www.trthaber.com/xml_mobile.php?tur=xml_genel&kategori=ekonomi"
+      agirlik: 8
+      kategori: "ekonomi"
+    - ad: "Habertürk Ekonomi"
+      url: "https://www.haberturk.com/rss/kategori/ekonomi.xml"
+      agirlik: 7
+      kategori: "ekonomi"
+    - ad: "Bloomberg HT"
+      url: "https://www.bloomberght.com/rss"
+      agirlik: 7
+      kategori: "ekonomi"
 
 ilanlar:
   otomatik_yayin: false # Başlangıçta kapalı; Telegram'dan tek tıkla talep edilince üretilir

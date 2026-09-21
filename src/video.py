@@ -110,12 +110,14 @@ def slaytlardan_video_uret(
     cikti_yolu: Optional[Path] = None,
     slayt_suresi_saniye: float = 3.5,
     gecis_suresi_saniye: float = 0.5,
+    hedef_sure: Optional[float] = None,
     fps: int = 30,
 ) -> Optional[Path]:
     """
     Slayt görsellerini alıp akıcı Cosine S-Curve crossfade geçişleri ve
     Stereo AAC ses izi ile 1080x1920 MP4 video üretir.
 
+    * hedef_sure verilirse slayt süreleri bu süreye (örn: seslendirme süresi) göre dinamik ayarlanır.
     * İlk slaytta (Kapak) kanca etkisi ve okunabilirlik için +1.0 saniye bekleme.
     * S-Curve yumuşak kararma geçişleri (titremesiz).
     * TikTok, Reels ve Shorts için standart stereo AAC ses kanalı eklenir.
@@ -130,7 +132,7 @@ def slaytlardan_video_uret(
         cikti_yolu = Path(cikti_yolu)
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
 
-    log.info("Dikey video üretimi başlatılıyor: %d slayt -> %s (fps=%d)", len(slayt_yollari), cikti_yolu, fps)
+    log.info("Dikey video üretimi başlatılıyor: %d slayt -> %s (fps=%d, hedef_sure=%s)", len(slayt_yollari), cikti_yolu, fps, hedef_sure)
 
     # 1. Tüm görselleri 1080x1920 formatına getir (Yerel dosya veya URL)
     kareler_ham: List[Image.Image] = []
@@ -144,6 +146,14 @@ def slaytlardan_video_uret(
     if not kareler_ham:
         log.error("Hiçbir slayt görseli yüklenemedi!")
         return None
+
+    # Eğer hedef süre (örn: ElevenLabs ses süresi) verilmişse slayt süresini dinamik hesapla
+    if hedef_sure and hedef_sure > 3.0:
+        toplam_slayt = len(kareler_ham)
+        # İlk slayt ekstra 1 sn durduğu için onu hesaba kat: (toplam_sure - 1.0) / slayt_sayisi
+        dinamik_sure = max(2.5, (hedef_sure - 0.5) / max(1, toplam_slayt))
+        slayt_suresi_saniye = round(dinamik_sure, 2)
+        log.info("Ses süresine göre dinamik slayt süresi belirlendi: %.2f sn (Toplam ses: %.1f sn)", slayt_suresi_saniye, hedef_sure)
 
     # Kare sayıları hesabı
     toplam_kare_slayt = max(1, int(fps * slayt_suresi_saniye))
@@ -242,6 +252,7 @@ def slaytlardan_reels_uret(
     cikti_yolu: Optional[Path] = None,
     slayt_suresi: float = 3.5,
     gecis_suresi: float = 0.5,
+    hedef_sure: Optional[float] = None,
     fps: int = 30,
 ) -> Optional[Path]:
     """slaytlardan_video_uret için uyumluluk fonksiyonu (instabot mimarisi)."""
@@ -250,6 +261,7 @@ def slaytlardan_reels_uret(
         cikti_yolu=cikti_yolu,
         slayt_suresi_saniye=slayt_suresi,
         gecis_suresi_saniye=gecis_suresi,
+        hedef_sure=hedef_sure,
         fps=fps,
     )
 

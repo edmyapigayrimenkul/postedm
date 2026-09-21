@@ -138,10 +138,12 @@ SUTUN_TERIMLERI: Dict[str, List[str]] = {
            "taahhütname", "aidat", "kontrat", "kira artış", "tüfe"],
     "S3": ["imar", "arsa", "tarla", "parsel", "emsal", "taks", "kaks",
            "ifraz", "tevhid", "tiny house", "ruhsat", "kamulaştırma",
-           "tarım arazisi", "yapı kayıt", "kentsel dönüşüm"],
+           "tarım arazisi", "yapı kayıt", "kentsel dönüşüm", "rezerv yapı",
+           "riskli yapı", "güçlendirme", "zemin etüdü"],
     "S4": ["konut fiyat", "metrekare", "m2", "kira çarpan", "getiri",
            "konut satış", "faiz", "konut kredisi", "enflasyon", "amortisman",
-           "değer artış", "emlak vergisi", "rayiç"],
+           "değer artış", "emlak vergisi", "rayiç", "tcmb", "bddk", "toki",
+           "emlak konut", "gyo", "değerli konut vergisi", "tapu harcı"],
 }
 
 YEREL_YAKIN = ["silivri", "trakya", "çatalca", "büyükçekmece", "beylikdüzü",
@@ -165,11 +167,16 @@ REKLAM = [
 PR_DEMEC = ["açıkladı", "konuştu", "ziyaret etti", "mesaj yayımladı",
             "değerlendirdi", "imzayı attı", "protokol imzaland", "ödül aldı"]
 
-# Emlak kelimesi geçse de haber değeri olmayan konular
+# Emlak kelimesi geçse de haber değeri olmayan veya kesinlikle yayınlanmayacak konular (Siyaset, Asayiş, Magazin, Spor, Borsa vb.)
 DISLANAN = [
     "cezaevi", "tutuklu", "gözaltı", "operasyon", "cinayet", "trafik kazası",
     "yangın", "maç", "transfer", "dizi", "konser", "festival", "altın fiyat",
     "döviz kuru", "borsa", "kripto", "vatandaşlık",
+    "parti", "seçim", "chp", "ak parti", "mhp", "iyi parti", "dem parti",
+    "milletvekili", "bakanlık açıkladı", "açlık sınırı", "asgari ücret",
+    "siber", "hacker", "istismar", "uyuşturucu",
+    "magazin", "ünlü", "oyuncu", "şarkıcı", "futbol", "basketbol", "süper lig",
+    "şampiyonlar ligi", "derbi", "puan durumu",
 ]
 
 # Türkiye dışı — okuyucumuz için eyleme dönüşmez

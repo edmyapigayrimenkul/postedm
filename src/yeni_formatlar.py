@@ -979,6 +979,35 @@ def slaytlari_uret(
         log.info("Yeni Format Üretildi (NATIVE VAKA ANALİZİ): %s, %s", p1, p2)
         return [p1, p2]
 
+    # 5. DAILYBRIEF HABER FORMATI (Instabot Paritesi: Gerçek/Stok Fotoğraf + Okuma Perdesi + Manşet)
+    if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") == "haber":
+        p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
+        p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
+        foto_yolu = veri.get("foto_yolu") or veri.get("gorsel_yolu")
+
+        # 1. Slayt: DailyBrief Haber Kapak Kartı
+        make_image.haber_dailybrief_slayti_ciz(
+            haber=veri,
+            foto_yolu=foto_yolu,
+            cikti_yolu=p1,
+            olcu="besleme"
+        )
+
+        # 2. Slayt: Haberin Detayları & EDM Uzman Değerlendirmesi
+        vaka_kodu = kategori_temizle(veri.get("kategori") or "GAYRİMENKUL & MEVZUAT")
+        detay_hukum = (veri.get("detay") or veri.get("spot") or veri.get("orijinal_ozet") or "Konuyla ilgili resmi mevzuat ve yasal süreleri takip etmek hak kaybını önler.").strip()
+        uzman_notu = (veri.get("uzman_notu") or veri.get("cikarilacak_ders") or "Taşınmaz alım-satım ve kiralama süreçlerinizde güncel mevzuat ve tapu kayıtlarını mutlaka uzman kontrolünde inceleyin.").strip()
+
+        uret_vaka_slayt2(
+            p2,
+            vaka_kodu=vaka_kodu,
+            yargitay_hukmu=detay_hukum,
+            cikarilacak_ders=uzman_notu,
+            sayfa_no="02 / 02"
+        )
+        log.info("Yeni Format Üretildi (DAILYBRIEF HABER): %s, %s", p1, p2)
+        return [p1, p2]
+
     # =========================================================================
     # B) ESKİ BİÇİMLERDEN (B1, B2, B3) AKILLI ADAPTASYON (FALLBACK)
     # =========================================================================

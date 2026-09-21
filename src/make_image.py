@@ -2811,3 +2811,185 @@ def haber_slayti_2_ciz(manset: str, maddeler: List[str], cikti_yolu: Optional[Pa
 
 def haber_kapanis_slayti_ciz(cikti_yolu: Optional[Path] = None) -> Path:
     return slayt_kapanis({}, "03 / 03", cikti_yolu)
+
+
+# =========================================================================
+# INSTABOT DAILYBRIEF HABER TASARIMI PARİTESİ (EDM EDİTORYAL FORMATI)
+# =========================================================================
+
+def _perde_maskesi_smoothstep(genislik: int, yukseklik: int, bas: int, son: int) -> Image.Image:
+    """Instabot standardı: Fotoğraftan koyu zemine pürüzsüz geçiş maskesi."""
+    seritler = []
+    fark = max(1, son - bas)
+    for y in range(yukseklik):
+        if y <= bas:
+            v = 0
+        elif y >= son:
+            v = 255
+        else:
+            t = (y - bas) / fark
+            v = int(255 * (t * t * (3 - 2 * t)))  # smoothstep
+        seritler.append(v)
+    serit = Image.new("L", (1, yukseklik))
+    serit.putdata(seritler)
+    return serit.resize((genislik, yukseklik), Image.BILINEAR)
+
+
+def haber_dailybrief_slayti_ciz(
+    haber: Dict[str, Any],
+    foto_yolu: Optional[Path | str] = None,
+    cikti_yolu: Optional[Path] = None,
+    olcu: str = "besleme",
+) -> Path:
+    """
+    Instabot (DailyBrief) mimarisi paritesi:
+    Gerçek/stok haber fotoğrafı + kademeli okuma perdesi + Fraunces manşet +
+    PlusJakartaSans özet + EDM kurumsal kimliği ile yüksek dönüşümlü haber kartı.
+    """
+    with tuval(olcu):
+        g = _yerlesim()
+        genislik = GENISLIK
+        yukseklik = YUKSEKLIK
+        kenar = g["kenar"]
+
+        if cikti_yolu is None:
+            cikti_yolu = config.yol_al(f"data/output/haber_dailybrief_{os.getpid()}_{int(time.time())}.jpg")
+        else:
+            cikti_yolu = Path(cikti_yolu)
+        cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
+
+        # 1. Arka Plan Fotoğrafını Hazırla
+        bg_img: Optional[Image.Image] = None
+        if foto_yolu:
+            fp = Path(foto_yolu)
+            if fp.exists() and fp.is_file():
+                try:
+                    bg_img = ImageOps.exif_transpose(Image.open(fp)).convert("RGB")
+                except Exception as fe:
+                    log.warning("Haber fotoğrafı açılamadı: %s", fe)
+
+        # Fotoğraf yoksa Pexels API'den emlak stok görseli ara
+        if not bg_img:
+            try:
+                from . import fetch_stock
+                arama_sorgu = haber.get("manset") or haber.get("baslik") or "real estate"
+                kat = haber.get("kategori") or haber.get("kategori_kodu") or "TAPU_VE_HUKUK"
+                stok_p = fetch_stock.stok_fotografi_ara(arama_sorgu, kategori_kodu=kat)
+                if stok_p and stok_p.exists():
+                    bg_img = ImageOps.exif_transpose(Image.open(stok_p)).convert("RGB")
+            except Exception as se:
+                log.warning("Stok fotoğraf aranamadı: %s", se)
+
+        # Fotoğraf ölçeklendir veya şık koyu pafta zemini üret
+        if bg_img:
+            # Görseli tuval genişliğine tam oturtacak şekilde kırp ve ölçekle
+            bg_w, bg_h = bg_img.size
+            oran = max(genislik / bg_w, (yukseklik * 0.75) / bg_h)
+            yeni_w = int(bg_w * oran)
+            yeni_h = int(bg_h * oran)
+            bg_olcekli = bg_img.resize((yeni_w, yeni_h), Image.Resampling.LANCZOS)
+            # Merkeze al
+            kirp_x = max(0, (yeni_w - genislik) // 2)
+            bg_kirp = bg_olcekli.crop((kirp_x, 0, kirp_x + genislik, min(yeni_h, yukseklik)))
+
+            canvas = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
+            canvas.paste(bg_kirp, (0, 0))
+
+            # Kademeli okuma perdesi (Smoothstep degrade)
+            perde_bas = int(yukseklik * 0.28) if olcu == "besleme" else int(yukseklik * 0.35)
+            perde_son = int(yukseklik * 0.70) if olcu == "besleme" else int(yukseklik * 0.72)
+            maske = _perde_maskesi_smoothstep(genislik, yukseklik, perde_bas, perde_son)
+
+            koyu_zemin = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
+            canvas = Image.composite(koyu_zemin, canvas, maske)
+        else:
+            # Yedek zemin: Derin mimari pafta zemini
+            canvas = _zemin_uret("murekkep", olcu=olcu)
+
+        # Filigranı uygula
+        canvas = _filigran_uygula(canvas, acik_zemin=False)
+        draw = ImageDraw.Draw(canvas)
+
+        # 2. Üst Bar: Sol üstte Logo + Kırmızı Mimari Çizgi, Sağ üstte Kategori Rozeti
+        ust_y = g["kronik_ust"]
+        _logo_yerlestir(canvas, x=kenar, y=ust_y, lw=150, beyaz=True)
+        draw = ImageDraw.Draw(canvas)
+
+        # Kırmızı mimari vurgu çizgisi
+        cizgi_x = kenar + 160
+        cizgi_y = ust_y + 14
+        draw.rectangle([cizgi_x, cizgi_y, cizgi_x + 40, cizgi_y + 4], fill=RENK_KIRMIZI)
+
+        kategori_adi = haber.get("kategori") or haber.get("kategori_kodu") or "GAYRİMENKUL & HUKUK"
+        kategori_adi = str(kategori_adi).replace("_", " ").upper()
+        rozet_txt = f"{kategori_adi} // GÜNDEM"
+        font_rozet = _font_yukle(FONT_MONO_BOLD, 17 if olcu == "story" else 15)
+        bbox_r = draw.textbbox((0, 0), rozet_txt, font=font_rozet)
+        r_w = bbox_r[2] - bbox_r[0]
+        draw.text((genislik - kenar - r_w, ust_y + 6), rozet_txt, font=font_rozet, fill=RENK_KURSUN_ACIK)
+
+        # 3. Metin Alanı: Alttan yukarıya doğru hesaplama
+        alt_y = g["alt_bar"]
+
+        manset_raw = haber.get("manset") or haber.get("baslik") or "Gündem Özeti"
+        spot_raw = haber.get("spot") or haber.get("ozet") or ""
+
+        # Spot metni formatlama
+        spot_temiz = _temizle_tipografi(spot_raw)
+        font_spot = _font_yukle(FONT_SANS, 26 if olcu == "story" else 24)
+        spot_satirlari = _metin_sar(spot_temiz, font_spot, genislik - 2 * kenar, draw) if spot_temiz else []
+        spot_satirlari = spot_satirlari[:3]  # Maksimum 3 satır
+        spot_h = len(spot_satirlari) * 36
+
+        # Manşet metni formatlama (Fraunces)
+        manset_temiz = _temizle_tipografi(manset_raw)
+        font_manset = _font_yukle(FONT_FRAUNCES, 56 if olcu == "story" else 50)
+        manset_satirlari = _metin_sar(manset_temiz, font_manset, genislik - 2 * kenar, draw)
+        manset_satirlari = manset_satirlari[:3]  # Maksimum 3 satır
+        manset_h = len(manset_satirlari) * (70 if olcu == "story" else 62)
+
+        # Pozisyonlama: Alttan yukarıya
+        spot_ust_y = alt_y - 24 - spot_h
+        manset_ust_y = spot_ust_y - (20 if spot_h > 0 else 0) - manset_h
+
+        # Difüzyon Gölgesi (Manşet arkasına)
+        golge = Image.new("RGBA", (genislik, yukseklik), (0, 0, 0, 0))
+        golge_draw = ImageDraw.Draw(golge)
+        curr_y = manset_ust_y
+        for sat in manset_satirlari:
+            golge_draw.text((kenar, curr_y + 4), sat, font=font_manset, fill=(0, 0, 0, 220))
+            curr_y += (70 if olcu == "story" else 62)
+        golge = golge.filter(ImageFilter.GaussianBlur(12))
+        canvas = Image.alpha_composite(canvas.convert("RGBA"), golge).convert("RGB")
+        draw = ImageDraw.Draw(canvas)
+
+        # Manşet Çizimi
+        curr_y = manset_ust_y
+        for idx, sat in enumerate(manset_satirlari):
+            draw.text((kenar, curr_y), sat, font=font_manset, fill=RENK_BEYAZ)
+            curr_y += (70 if olcu == "story" else 62)
+
+        # Spot Çizimi
+        curr_y = spot_ust_y
+        for sat in spot_satirlari:
+            draw.text((kenar, curr_y), sat, font=font_spot, fill=RENK_METIN_GOVDE)
+            curr_y += 36
+
+        # 4. Alt Taban Barı: İnce mimari çizgi + Kaynak ve Slogan
+        draw.line([(kenar, alt_y), (genislik - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
+
+        kaynak_adi = haber.get("kaynak") or "Sektörel Bülten"
+        kaynak_txt = f"EDM GÜNDEM // Kaynak: {kaynak_adi}"
+        font_alt = _font_yukle(FONT_MONO, 14 if olcu == "story" else 13)
+        draw.text((kenar, alt_y + 14), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
+
+        slogan_txt = "@edmyapigayrimenkul · Yatırım Ortağınız"
+        bbox_s = draw.textbbox((0, 0), slogan_txt, font=font_alt)
+        s_w = bbox_s[2] - bbox_s[0]
+        draw.text((genislik - kenar - s_w, alt_y + 14), slogan_txt, font=font_alt, fill=RENK_KURSUN)
+
+        # Dosyayı kaydet
+        canvas.save(cikti_yolu, "JPEG", quality=95)
+        log.info("DailyBrief haber slaytı üretildi: %s (%dx%d, olcu=%s)", cikti_yolu.name, genislik, yukseklik, olcu)
+        return cikti_yolu
+

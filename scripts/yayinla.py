@@ -416,13 +416,37 @@ def main() -> None:
             if vy.exists():
                 v_yolu = vy
 
+        # 3.0. AI Seslendirme (ElevenLabs Voiceover - Dikey Videolar İçin)
+        konusma_sesi_yolu = None
+        ses_hedef_sure = None
+        if video_lazim and (not v_yolu or not v_yolu.exists()):
+            try:
+                ses_metni = ""
+                if baslik:
+                    ses_metni = str(baslik)
+                if detay and isinstance(detay, dict):
+                    spot_txt = detay.get("spot") or ""
+                    if spot_txt and spot_txt != baslik:
+                        ses_metni = f"{ses_metni}. {spot_txt}" if ses_metni else spot_txt
+                elif haber.get("spot"):
+                    spot_val = str(haber.get("spot"))
+                    ses_metni = f"{ses_metni}. {spot_val}" if ses_metni else spot_val
+
+                if ses_metni and len(ses_metni.strip()) > 10:
+                    konusma_sesi_yolu = ses.metin_seslendir(ses_metni)
+                    if konusma_sesi_yolu and konusma_sesi_yolu.exists():
+                        ses_hedef_sure = ses.ses_suresi_ogren(konusma_sesi_yolu)
+                        log.info("ElevenLabs seslendirmesi hazır: %s (%.1f sn)", konusma_sesi_yolu.name, ses_hedef_sure)
+            except Exception as tts_e:
+                log.warning("AI seslendirme üretilemedi, müzik moduyla devam: %s", tts_e)
+
         if not v_yolu or not v_yolu.exists():
             from src import make_image, yeni_formatlar
             if detay and isinstance(detay, dict) and detay.get("format_turu") in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
                 try:
                     fmt = detay["format_turu"]
                     d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"reels_{ref_id}")
-                    v_yolu = video.slaytlardan_reels_uret([str(p) for p in d_slaytlar])
+                    v_yolu = video.slaytlardan_reels_uret([str(p) for p in d_slaytlar], hedef_sure=ses_hedef_sure)
                 except Exception as ve:
                     log.warning("Yeni formatlardan dikey video üretilemedi: %s", ve)
 
@@ -430,19 +454,19 @@ def main() -> None:
                 try:
                     dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
                     dikey_yollar = [str(p) for p in dikey_slaytlar]
-                    v_yolu = video.slaytlardan_reels_uret(dikey_yollar)
+                    v_yolu = video.slaytlardan_reels_uret(dikey_yollar, hedef_sure=ses_hedef_sure)
                 except Exception as ve:
                     log.warning("Dikey otorite slaytlarından video üretilemedi: %s", ve)
 
             if (not v_yolu or not v_yolu.exists()) and slayt_yollari:
                 try:
-                    v_yolu = video.slaytlardan_reels_uret(slayt_yollari)
+                    v_yolu = video.slaytlardan_reels_uret(slayt_yollari, hedef_sure=ses_hedef_sure)
                 except Exception as ve:
                     log.warning("Slayt yollarından video üretilemedi: %s", ve)
 
             if (not v_yolu or not v_yolu.exists()) and public_urller:
                 try:
-                    v_yolu = video.slaytlardan_reels_uret(public_urller)
+                    v_yolu = video.slaytlardan_reels_uret(public_urller, hedef_sure=ses_hedef_sure)
                 except Exception as ve:
                     log.warning("Public URL'lerden video üretilemedi: %s", ve)
 
@@ -452,13 +476,17 @@ def main() -> None:
                     ik1 = make_image.ilan_kapak_slayti_ciz(ilan)
                     ik2 = make_image.ilan_detay_slayti_ciz(ilan)
                     ik3 = make_image.ilan_kapanis_slayti_ciz(ilan)
-                    v_yolu = video.slaytlardan_reels_uret([str(ik1), str(ik2), str(ik3)])
+                    v_yolu = video.slaytlardan_reels_uret([str(ik1), str(ik2), str(ik3)], hedef_sure=ses_hedef_sure)
                 except Exception as ve:
                     log.warning("İlan slaytlarından video üretilemedi: %s", ve)
 
         if v_yolu and v_yolu.exists():
             try:
-                sesli_video_yolu = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20)
+                sesli_video_yolu = ses.sesli_video_hazirla(
+                    v_yolu,
+                    konusma_sesi=konusma_sesi_yolu,
+                    ses_seviyesi=0.14 if konusma_sesi_yolu else 0.20,
+                )
             except Exception as se:
                 log.warning("Fon müziği mikslenemedi: %s", se)
                 sesli_video_yolu = v_yolu

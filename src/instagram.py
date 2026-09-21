@@ -438,3 +438,78 @@ def story_yayinla(gorsel_url: str) -> Optional[str]:
     return _yayina_al(creation_id, hesap_id, token)
 
 
+def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Instagram Graph API üzerinden bir medyanın (post/carousel/reels)
+    erişim, kaydetme, beğeni, yorum vb. verilerini çeker.
+    Hata durumunda sessizce None döner, akışı aksatmaz.
+    """
+    hesap_id, token = _hesap_bilgileri()
+    if not token or not medya_id:
+        return None
+
+    sonuc = {
+        "likes": 0,
+        "comments": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "impressions": 0,
+        "media_type": "",
+    }
+
+    # 1. Temel post alanları (likes, comments, media_type)
+    url_temel = f"{GRAPH_TABAN}/{medya_id}"
+    params_temel = {
+        "fields": "id,like_count,comments_count,media_type,timestamp",
+        "access_token": token,
+    }
+
+    try:
+        r_temel = requests.get(url_temel, params=params_temel, timeout=12)
+        if r_temel.status_code == 200:
+            veri = r_temel.json()
+            sonuc["likes"] = veri.get("like_count", 0)
+            sonuc["comments"] = veri.get("comments_count", 0)
+            sonuc["media_type"] = veri.get("media_type", "")
+        else:
+            log.debug("Instagram temel post verisi alınamadı [%d]: %s", r_temel.status_code, r_temel.text)
+    except Exception as e:
+        log.debug("Instagram temel post sorgu hatası (%s): %s", medya_id, e)
+
+    # 2. Insights metrikleri (reach, saved, shares, total_interactions)
+    url_insights = f"{GRAPH_TABAN}/{medya_id}/insights"
+    params_insights = {
+        "metric": "reach,saved,total_interactions",
+        "access_token": token,
+    }
+
+    try:
+        r_ins = requests.get(url_insights, params=params_insights, timeout=12)
+        if r_ins.status_code == 200:
+            data = r_ins.json().get("data", [])
+            for item in data:
+                m_name = item.get("name")
+                m_val = 0
+                values = item.get("values", [])
+                if values and isinstance(values, list):
+                    m_val = values[0].get("value", 0)
+                elif "value" in item:
+                    m_val = item.get("value", 0)
+
+                if m_name == "reach":
+                    sonuc["reach"] = m_val
+                elif m_name == "saved":
+                    sonuc["saved"] = m_val
+                elif m_name == "shares":
+                    sonuc["shares"] = m_val
+                elif m_name == "impressions":
+                    sonuc["impressions"] = m_val
+        else:
+            log.debug("Instagram insights verisi alınamadı [%d]: %s", r_ins.status_code, r_ins.text)
+    except Exception as e:
+        log.debug("Instagram insights sorgu hatası (%s): %s", medya_id, e)
+
+    return sonuc
+
+
