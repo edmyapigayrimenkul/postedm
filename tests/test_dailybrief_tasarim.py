@@ -139,6 +139,105 @@ class TestDailyBriefTasarim(unittest.TestCase):
         with Image.open(res2) as im2:
             self.assertEqual(im2.size, (1080, 1920))
 
+    def test_dinamik_slayt_sayisi_belirle(self):
+        """Dinamik slayt sayısı belirleyici (Seçenek 2) kural setini doğrulamalı."""
+        # 3 maddeli zengin haber -> 3 slayt
+        h3 = {
+            "detay_maddeleri": [
+                {"etiket": "BÖLGE", "metin": "Selimpaşa 142 ada ve 85 parsel"},
+                {"etiket": "EMSAL", "metin": "KAKS 0.60, Yençok 3 kat"},
+                {"etiket": "ASKI", "metin": "30 günlük askı süresi başladı"},
+            ]
+        }
+        self.assertEqual(make_image.dailybrief_slayt_sayisi_belirle(h3), 3)
+
+        # 2 maddeli teknik zengin haber -> 3 slayt
+        h2_zengin = {
+            "detay_maddeleri": [
+                {"etiket": "KAPSANAN PARSELLER", "metin": "Selimpaşa D-100 kuzey aksı ile Ortaköy sanayi gelişim koridorundaki 142 ada ve muhtelif 85 parseli doğrudan kapsıyor."},
+                {"etiket": "YENİ YAPILAŞMA VE EMSAL", "metin": "Konut ve ticaret alanlarında KAKS 0.60, Yençok 3 kat olarak sınırlandı. Donatı terkleri ve parselasyon şartları yeniden düzenlendi."},
+            ]
+        }
+        self.assertEqual(make_image.dailybrief_slayt_sayisi_belirle(h2_zengin), 3)
+
+        # 1 maddeli kısa haber -> 2 slayt
+        h_kisa = {
+            "spot": "Tahliye taahhütnamesinde tarih sonradan doldurulmuşsa ispat yükü kiracıya aittir."
+        }
+        self.assertEqual(make_image.dailybrief_slayt_sayisi_belirle(h_kisa), 2)
+
+        # Açıkça belirtilmiş slayt_sayisi
+        self.assertEqual(make_image.dailybrief_slayt_sayisi_belirle({"slayt_sayisi": 2, **h3}), 2)
+        self.assertEqual(make_image.dailybrief_slayt_sayisi_belirle({"slayt_sayisi": 3, **h_kisa}), 3)
+
+    def test_haber_dailybrief_slaytlari_uret_dinamik_3_ve_2(self):
+        """make_image.haber_dailybrief_slaytlari_uret dinamik 2 veya 3 slayt üretmeli."""
+        h_zengin = {
+            "manset": "Silivri Selimpaşa ve Ortaköy'de Yeni İmar Planı Askıya Çıktı",
+            "spot": "Çevre ve Şehircilik koordinasyonunda hazırlanan revizyon planı ilan edildi.",
+            "kaynak": "Resmi Gazete",
+            "detay_maddeleri": [
+                {"etiket": "KAPSANAN BÖLGE", "metin": "142 ada ve 85 parsel kapsama alındı.", "renk": "kirmizi"},
+                {"etiket": "YAPILAŞMA ŞARTLARI", "metin": "KAKS 0.60, Yençok 3 kat olarak sınırlandı.", "renk": "turkuaz"},
+                {"etiket": "ASKI SÜRESİ", "metin": "30 günlük resmi askı süreci başlamıştır.", "renk": "yesil"},
+            ],
+            "uzman_notu": "Askı süresi dolmadan belediye askı panolarından parselinizi sorgulayın.",
+        }
+        slaytlar_3 = make_image.haber_dailybrief_slaytlari_uret(
+            haber=h_zengin,
+            cikti_dizini=self.tmp_path / "test_3s",
+            cikti_onek="zengin_haber",
+            foto_yolu=self.test_foto,
+        )
+        self.assertEqual(len(slaytlar_3), 3)
+        for s in slaytlar_3:
+            self.assertTrue(s.exists())
+            with Image.open(s) as im:
+                self.assertEqual(im.size, (1080, 1350))
+
+        h_yalin = {
+            "manset": "Merkez Bankası Faiz Kararını Açıkladı",
+            "spot": "Politika faizi yüzde 45 seviyesinde sabit tutuldu.",
+            "kaynak": "TCMB",
+            "uzman_notu": "Kredi faiz oranlarının seyrini takip etmekte fayda var.",
+        }
+        slaytlar_2 = make_image.haber_dailybrief_slaytlari_uret(
+            haber=h_yalin,
+            cikti_dizini=self.tmp_path / "test_2s",
+            cikti_onek="yalin_haber",
+            foto_yolu=self.test_foto,
+        )
+        self.assertEqual(len(slaytlar_2), 2)
+        for s in slaytlar_2:
+            self.assertTrue(s.exists())
+            with Image.open(s) as im:
+                self.assertEqual(im.size, (1080, 1350))
+
+    def test_yeni_formatlar_slaytlari_uret_dinamik_secenek_2(self):
+        """yeni_formatlar.slaytlari_uret format_turu='dailybrief' için dinamik 3 ve 2 slaytı entegre üretmeli."""
+        from src import yeni_formatlar
+        zengin_veri = {
+            "manset": "Silivri İmar Planı Revizyonu",
+            "spot": "Yeni plan askıya çıktı.",
+            "kategori": "ARSA_VE_IMAR",
+            "kaynak": "Resmi Gazete",
+            "format_turu": "dailybrief",
+            "detay_maddeleri": [
+                {"etiket": "PARSELLER", "metin": "Selimpaşa sanayi koridorundaki 142 ada ve muhtelif 85 parsel."},
+                {"etiket": "EMSALLER", "metin": "Konut ve ticaret alanlarında KAKS 0.60 olarak güncellendi."},
+                {"etiket": "İTİRAZ", "metin": "15 Ekim tarihine kadar itiraz dilekçesi verilebilecek."},
+            ],
+            "uzman_notu": "Askı süresini kaçırmayın, parselinizi sorgulayın.",
+            "foto_yolu": str(self.test_foto),
+        }
+        res = yeni_formatlar.slaytlari_uret(
+            zengin_veri,
+            cikti_dizini=self.tmp_path / "yf_test",
+            cikti_onek="yf_zengin",
+            format_turu="dailybrief",
+        )
+        self.assertEqual(len(res), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

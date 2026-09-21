@@ -3044,17 +3044,139 @@ def haber_dailybrief_slayti_ciz(
         draw.text((kenar, alt_y + 20), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
 
         if sayfa_no:
-            sag_txt = f"{sayfa_no}  ›  KAYDIRIN" if "01" in sayfa_no and olcu == "besleme" else sayfa_no
+            sag_txt = f"{sayfa_no}  ›  KAYDIRIN" if "01" in sayfa_no and olcu == "besleme" and "KAYDIRIN" not in sayfa_no else sayfa_no
         else:
             sag_txt = "@edmyapigayrimenkul · Yatırım Ortağınız"
         bbox_s = draw.textbbox((0, 0), sag_txt, font=font_alt)
         s_w = bbox_s[2] - bbox_s[0]
-        draw.text((genislik - kenar - s_w, alt_y + 20), sag_txt, font=font_alt, fill=RENK_KURSUN)
+        draw.text((genislik - kenar - s_w, alt_y + 20), sag_txt, font=font_alt, fill=RENK_KURSUN_ACIK if "›" in sag_txt else RENK_KURSUN)
 
         # Dosyayı kaydet
         canvas.save(cikti_yolu, "JPEG", quality=95)
         log.info("DailyBrief haber slaytı üretildi: %s (%dx%d, olcu=%s)", cikti_yolu.name, genislik, yukseklik, olcu)
         return cikti_yolu
+
+
+def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Haber verisinden editoryal Smart Brevity detay maddelerini normalize edilmiş liste olarak ayıklar."""
+    maddeler = haber.get("detay_maddeleri") or haber.get("maddeler") or []
+    if not maddeler:
+        s3 = haber.get("slayt_3_cozum")
+        if isinstance(s3, dict) and s3.get("maddeler"):
+            renk_sira = ["kirmizi", "turkuaz", "yesil"]
+            maddeler = [
+                {
+                    "etiket": m.get("baslik", "DETAY").upper(),
+                    "metin": m.get("aciklama", ""),
+                    "renk": renk_sira[i % len(renk_sira)],
+                }
+                for i, m in enumerate(s3.get("maddeler", [])[:3])
+            ]
+        elif isinstance(haber.get("slayt_2_detay"), dict):
+            s2 = haber["slayt_2_detay"]
+            k1 = s2.get("kart_1")
+            k2 = s2.get("kart_2")
+            if k1 and k2:
+                maddeler = [
+                    {"etiket": k1.get("etiket") or k1.get("baslik") or "NE OLDU", "metin": k1.get("aciklama", ""), "renk": "kirmizi"},
+                    {"etiket": k2.get("etiket") or k2.get("baslik") or "BÖLGESEL ETKİ", "metin": k2.get("aciklama", ""), "renk": "turkuaz"},
+                ]
+    if not maddeler:
+        detay_ham = haber.get("detay") or haber.get("detay_metni") or haber.get("spot") or haber.get("orijinal_ozet") or ""
+        cumleler = [c.strip() for c in re.split(r"(?<=[.!?])\s+", detay_ham) if len(c.strip()) > 8]
+        if len(cumleler) >= 3:
+            maddeler = [
+                {"etiket": "KAPSANAN BÖLGE VE PARSELLER", "metin": cumleler[0], "renk": "kirmizi"},
+                {"etiket": "YASAL VE TEKNİK AYRINTILAR", "metin": cumleler[1], "renk": "turkuaz"},
+                {"etiket": "YÜRÜRLÜK VE UYGULAMA KOŞULLARI", "metin": " ".join(cumleler[2:]), "renk": "yesil"},
+            ]
+        elif len(cumleler) == 2:
+            maddeler = [
+                {"etiket": "KAPSANAN BÖLGE VE PARSELLER", "metin": cumleler[0], "renk": "kirmizi"},
+                {"etiket": "YASAL VE TEKNİK AYRINTILAR", "metin": cumleler[1], "renk": "turkuaz"},
+            ]
+        elif cumleler:
+            maddeler = [
+                {"etiket": "HABERİN AYRINTILARI", "metin": cumleler[0], "renk": "kirmizi"},
+            ]
+        else:
+            maddeler = [
+                {"etiket": "HABERİN AYRINTILARI", "metin": "Sektörü ve mülk sahiplerini doğrudan ilgilendiren yasal düzenleme yürürlüğe girdi.", "renk": "kirmizi"},
+            ]
+
+    varsayilan_etiketler = ["KAPSANAN BÖLGE VE PARSELLER", "YAPILAŞMA VE İMAR ŞARTLARI", "ASKI SÜRESİ VE İTİRAZ MERKEZİ", "KRİTİK UYARI"]
+    renk_sozlugu = {
+        "kirmizi": (240, 0, 13),
+        "turkuaz": (6, 182, 212),
+        "yesil": (16, 185, 129),
+        "amber": (226, 170, 88),
+        "sari": (226, 170, 88),
+    }
+    varsayilan_renk_listesi = [(240, 0, 13), (6, 182, 212), (16, 185, 129), (226, 170, 88)]
+
+    temiz = []
+    for idx, m in enumerate(maddeler):
+        if isinstance(m, dict):
+            e = m.get("etiket") or m.get("baslik") or varsayilan_etiketler[idx % len(varsayilan_etiketler)]
+            t = m.get("metin") or m.get("aciklama") or m.get("govde") or ""
+            r_val = m.get("renk")
+            if isinstance(r_val, tuple) and len(r_val) == 3:
+                r = r_val
+            else:
+                r = renk_sozlugu.get(str(r_val).lower(), varsayilan_renk_listesi[idx % len(varsayilan_renk_listesi)])
+        else:
+            m_str = str(m).strip()
+            if ":" in m_str:
+                e_part, t_part = m_str.split(":", 1)
+                e = e_part.strip().upper()
+                t = t_part.strip()
+            else:
+                e = varsayilan_etiketler[idx % len(varsayilan_etiketler)]
+                t = m_str
+            r = varsayilan_renk_listesi[idx % len(varsayilan_renk_listesi)]
+        temiz.append({"etiket": str(e).upper(), "metin": str(t).strip(), "renk": r})
+    return temiz
+
+
+def dailybrief_slayt_sayisi_belirle(
+    haber: Dict[str, Any],
+    maddeler: Optional[List[Dict[str, Any]]] = None,
+) -> int:
+    """
+    Haberin kapsamına göre dinamik slayt sayısı belirler (Seçenek 2):
+    - Açıkça belirtilmişse (slayt_sayisi=2 veya 3) onu kullanır.
+    - 3 ve üzeri madde varsa -> 3 slayt (Kapak + 2 Teknik Detay + Yasal Takvim/Uzman Stratejisi)
+    - 2 madde varsa:
+        Eğer maddeler teknik açıdan zenginse (parsel, imar, ada, askı, emsal, kanun, resmi gazete vb. içeriyorsa
+        veya toplam metin uzunluğu >= 130 karakterse) -> 3 slayt (Maddeler 2 sayfaya ferahça dağıtılır)
+        Kısa ve özet maddeler ise -> 2 slayt
+    - 0 veya 1 madde varsa:
+        Detay metni / spot uzunluğu incelenir: >= 200 karakter veya 3+ cümle ise -> 3 slayt
+        Kısa özet haber ise -> 2 slayt
+    """
+    if haber.get("slayt_sayisi") in (2, 3):
+        return int(haber["slayt_sayisi"])
+
+    if maddeler is None:
+        maddeler = haber_detay_maddelerini_ayikla(haber)
+
+    sayi = len(maddeler)
+    if sayi >= 3:
+        return 3
+
+    if sayi == 2:
+        toplam_uzunluk = sum(len(m.get("metin", "")) for m in maddeler)
+        anahtar_kelimeler = ["parsel", "ada", "imar", "askı", "kaks", "emsal", "yargıtay", "kanun", "madde", "resmi gazete", "ruhsat", "iskan"]
+        tum_metin = " ".join(m.get("metin", "") + " " + m.get("etiket", "") for m in maddeler).lower()
+        has_anahtar = any(k in tum_metin for k in anahtar_kelimeler)
+        if toplam_uzunluk >= 130 or has_anahtar:
+            return 3
+        return 2
+
+    detay_ham = (haber.get("detay") or haber.get("detay_metni") or haber.get("orijinal_ozet") or haber.get("spot") or "").strip()
+    if len(detay_ham) >= 200:
+        return 3
+    return 2
 
 
 def haber_dailybrief_detay_slayti_ciz(
@@ -3063,14 +3185,17 @@ def haber_dailybrief_detay_slayti_ciz(
     cikti_yolu: Optional[Path] = None,
     olcu: str = "besleme",
     sayfa_no: str = "02 / 02",
+    maddeler: Optional[List[Dict[str, Any]]] = None,
+    ust_etiket: Optional[str] = None,
+    goster_uzman_notu: bool = True,
 ) -> Path:
     """
-    DailyBrief Haber 2. Slaytı (Ayrıntılar & EDM Uzman Analizi):
+    DailyBrief Haber Detay Slaytı (Ayrıntılar & EDM Uzman Analizi):
     Instabot Smart Brevity mimarisi paritesi:
     - 1. slaytın spotuyla birebir aynı Plus Jakarta Sans fontuyla (%100 okunaklılık).
     - Haberin kritik detayları: Kapsanan alanlar/parseller, imar/yapılaşma koşulları, askı süresi ve yasal haklar.
     - Her maddenin solunda mimari dikey renk çentiği (Accent Notch).
-    - Altta EDM Uzman Değerlendirmesi & Yatırımcı Tavsiyesi kartı.
+    - İsteğe bağlı EDM Uzman Değerlendirmesi & Yatırımcı Tavsiyesi kartı (goster_uzman_notu=True).
     - 4:5 tuvaline göre hizalı, 9:16 Story/Reels ile tam güvenli alan uyumlu.
     """
     with tuval(olcu):
@@ -3128,7 +3253,6 @@ def haber_dailybrief_detay_slayti_ciz(
         draw = ImageDraw.Draw(canvas)
 
         # 2. Üst Bar: Sol üstte zarif editoryal etiket, Sağ üstte Dev EDM Logosu (lw=285)
-        # Kullanıcı direktifi: Detay sayfalarında kırmızı rozet kirlilik yaratıyor, kaldırıldı.
         logo_w = 285
         logo_x = genislik - kenar - logo_w
         _logo_yerlestir(
@@ -3142,132 +3266,87 @@ def haber_dailybrief_detay_slayti_ciz(
         )
         draw = ImageDraw.Draw(canvas)
 
+        if not ust_etiket:
+            ust_etiket = "// ÖNE ÇIKAN DETAYLAR & MEVZUAT" if goster_uzman_notu else "// HABERİN AYRINTILARI & TEKNİK PLAN"
+
         font_top_etiket = _font_yukle(FONT_MONO_BOLD, 21)
-        draw.text((kenar, ust_y + 12), "// ÖNE ÇIKAN DETAYLAR & MEVZUAT", font=font_top_etiket, fill=RENK_KURSUN_ACIK)
+        draw.text((kenar, ust_y + 12), ust_etiket, font=font_top_etiket, fill=RENK_KURSUN_ACIK)
         draw.line([(kenar, ust_y + 60), (genislik - kenar, ust_y + 60)], fill=RENK_CIZGI_KOYU, width=1)
 
-        # 3. İçerik Detaylarının Hazırlanması (Smart Brevity)
-        maddeler = haber.get("detay_maddeleri") or haber.get("maddeler") or []
-        if not maddeler:
-            s3 = haber.get("slayt_3_cozum")
-            if isinstance(s3, dict) and s3.get("maddeler"):
-                renk_sira = ["kirmizi", "turkuaz", "yesil"]
-                maddeler = [
-                    {
-                        "etiket": m.get("baslik", "DETAY").upper(),
-                        "metin": m.get("aciklama", ""),
-                        "renk": renk_sira[i % len(renk_sira)],
-                    }
-                    for i, m in enumerate(s3.get("maddeler", [])[:3])
-                ]
-            elif isinstance(haber.get("slayt_2_detay"), dict):
-                s2 = haber["slayt_2_detay"]
-                k1 = s2.get("kart_1")
-                k2 = s2.get("kart_2")
-                if k1 and k2:
-                    maddeler = [
-                        {"etiket": k1.get("etiket") or k1.get("baslik") or "NE OLDU", "metin": k1.get("aciklama", ""), "renk": "kirmizi"},
-                        {"etiket": k2.get("etiket") or k2.get("baslik") or "BÖLGESEL ETKİ", "metin": k2.get("aciklama", ""), "renk": "turkuaz"},
-                    ]
-        if not maddeler:
-            detay_ham = haber.get("detay") or haber.get("spot") or haber.get("orijinal_ozet") or ""
-            cumleler = [c.strip() for c in re.split(r"(?<=[.!?])\s+", detay_ham) if len(c.strip()) > 8]
-            if len(cumleler) >= 3:
-                maddeler = [
-                    {"etiket": "KAPSANAN BÖLGE VE PARSELLER", "metin": cumleler[0], "renk": "kirmizi"},
-                    {"etiket": "YASAL VE TEKNİK AYRINTILAR", "metin": cumleler[1], "renk": "turkuaz"},
-                    {"etiket": "YÜRÜRLÜK VE UYGULAMA KOŞULLARI", "metin": " ".join(cumleler[2:]), "renk": "yesil"},
-                ]
-            elif len(cumleler) == 2:
-                maddeler = [
-                    {"etiket": "KAPSANAN BÖLGE VE PARSELLER", "metin": cumleler[0], "renk": "kirmizi"},
-                    {"etiket": "YASAL VE TEKNİK AYRINTILAR", "metin": cumleler[1], "renk": "turkuaz"},
-                ]
-            elif cumleler:
-                maddeler = [
-                    {"etiket": "HABERİN AYRINTILARI", "metin": cumleler[0], "renk": "kirmizi"},
-                ]
-            else:
-                maddeler = [
-                    {"etiket": "HABERİN AYRINTILARI", "metin": "Sektörü ve mülk sahiplerini doğrudan ilgilendiren yasal düzenleme yürürlüğe girdi.", "renk": "kirmizi"},
-                ]
+        # 3. İçerik Detaylarının Hazırlanması
+        if maddeler is not None:
+            temiz_maddeler = maddeler
+        else:
+            temiz_maddeler = haber_detay_maddelerini_ayikla(haber)[:3]
 
-        varsayilan_etiketler = ["KAPSANAN BÖLGE VE PARSELLER", "YAPILAŞMA VE İMAR ŞARTLARI", "ASKI SÜRESİ VE İTİRAZ MERKEZİ", "KRİTİK UYARI"]
-        renk_sozlugu = {
-            "kirmizi": (240, 0, 13),
-            "turkuaz": (6, 182, 212),
-            "yesil": (16, 185, 129),
-            "amber": (226, 170, 88),
-            "sari": (226, 170, 88),
-        }
-        varsayilan_renk_listesi = [(240, 0, 13), (6, 182, 212), (16, 185, 129), (226, 170, 88)]
-
-        temiz_maddeler = []
-        for idx, m in enumerate(maddeler[:3]):
-            if isinstance(m, dict):
-                e = m.get("etiket") or m.get("baslik") or varsayilan_etiketler[idx % len(varsayilan_etiketler)]
-                t = m.get("metin") or m.get("aciklama") or m.get("govde") or ""
-                r = renk_sozlugu.get(str(m.get("renk", "")).lower(), varsayilan_renk_listesi[idx % len(varsayilan_renk_listesi)])
-            else:
-                m_str = str(m).strip()
-                if ":" in m_str:
-                    e_part, t_part = m_str.split(":", 1)
-                    e = e_part.strip().upper()
-                    t = t_part.strip()
-                else:
-                    e = varsayilan_etiketler[idx % len(varsayilan_etiketler)]
-                    t = m_str
-                r = varsayilan_renk_listesi[idx % len(varsayilan_renk_listesi)]
-            temiz_maddeler.append({"etiket": str(e).upper(), "metin": t, "renk": r})
-
-        # Uzman Notu
-        uzman_notu = (haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
-        if not uzman_notu and isinstance(haber.get("slayt_4_cta"), dict):
-            uzman_notu = str(haber["slayt_4_cta"].get("aciklama", "")).strip()
-        if not uzman_notu:
-            uzman_notu = "Parselinizin güncel imar ve tapu kayıtlarını askı panolarından vakit kaybetmeden kontrol edin; itiraz süresini kaçırmayın."
-
-        # 4. Fontlar: 4:5 Tuvaline Göre İri, Güçlü ve Ultra Okunaklı Plus Jakarta Sans!
-        # Küçük font ve kutu sıkışıklığı giderildi; manşetle yarışacak seviyede iri editoryal tipografi.
-        if len(temiz_maddeler) <= 2:
+        # 4. Fontlar ve Boyutlandırma
+        if not goster_uzman_notu:
+            # Uzman notu yok -> Tüm dikey alan maddelere ayrılır, devasa ve ferah tipografi!
+            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 40)
+            font_madde_govde = _font_yukle(FONT_SANS, 34)
+            lh_govde = 50
+            h_etiket = 44
+        elif len(temiz_maddeler) <= 1:
+            # 1 Madde + Dev Uzman Notu Kartı (3. slayt düzeni)
+            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 40)
+            font_madde_govde = _font_yukle(FONT_SANS, 34)
+            lh_govde = 50
+            h_etiket = 44
+            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 24)
+            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 34)
+            uzman_lh = 50
+            pad_y = 30
+        elif len(temiz_maddeler) == 2:
             font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 38)
             font_madde_govde = _font_yukle(FONT_SANS, 34)
             lh_govde = 48
             h_etiket = 42
+            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
+            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
+            uzman_lh = 46
+            pad_y = 24
         else:
             font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 36)
             font_madde_govde = _font_yukle(FONT_SANS, 32)
             lh_govde = 46
             h_etiket = 38
+            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
+            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 30)
+            uzman_lh = 42
+            pad_y = 22
 
-        font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
-        font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
-        uzman_lh = 46
-
-        # 5. Dikey Yerleşim Mimarisi (4:5 Tuvalini Dengeli Doldurma)
+        # 5. Dikey Yerleşim Mimarisi
         y_kursur = ust_y + 85
 
-        # Alttaki Uzman Notu Kartını Ölç ve Alta Yasla (İri 32px font)
-        uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
-        if len(uzman_satirlari) > 3:
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 28)
-            uzman_lh = 40
-            uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
-        
-        pad_y = 24
-        uzman_kart_h = pad_y + 26 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
-        uzman_kart_y = alt_y - 25 - uzman_kart_h
+        if goster_uzman_notu:
+            uzman_notu = (haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
+            if not uzman_notu and isinstance(haber.get("slayt_4_cta"), dict):
+                uzman_notu = str(haber["slayt_4_cta"].get("aciklama", "")).strip()
+            if not uzman_notu:
+                uzman_notu = "Parselinizin güncel imar ve tapu kayıtlarını askı panolarından vakit kaybetmeden kontrol edin; itiraz süresini kaçırmayın."
 
-        # Kalan Dikey Alanı Maddelere Dağıt (4:5 Uyumlu Orantılama)
-        kalan_h = (uzman_kart_y - 30) - y_kursur
+            uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
+            if len(uzman_satirlari) > 3 and uzman_lh >= 46:
+                font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 28)
+                uzman_lh = 40
+                uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
+
+            uzman_kart_h = pad_y + 26 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
+            uzman_kart_y = alt_y - 25 - uzman_kart_h
+            kalan_h = (uzman_kart_y - 30) - y_kursur
+        else:
+            uzman_kart_h = 0
+            uzman_kart_y = alt_y - 25
+            kalan_h = (alt_y - 25) - y_kursur
+
         madde_sayisi = max(1, len(temiz_maddeler))
-        
+
         # Her maddenin satırlarını ve blok yüksekliğini hesapla
         maddeler_olculu = []
         for m in temiz_maddeler:
             satirlar_m = _metin_sar(_temizle_tipografi(m["metin"]), font_madde_govde, kullanilabilir_w - 38, draw)
-            satirlar_m = satirlar_m[:3]  # Maks 3 satır
-            h_m = h_etiket + 12 + (len(satirlar_m) * lh_govde)
+            satirlar_m = satirlar_m[:4 if not goster_uzman_notu else 3]
+            h_m = h_etiket + 14 + (len(satirlar_m) * lh_govde)
             maddeler_olculu.append({
                 "etiket": m["etiket"],
                 "satirlar": satirlar_m,
@@ -3277,7 +3356,7 @@ def haber_dailybrief_detay_slayti_ciz(
 
         toplam_madde_h = sum(mo["h"] for mo in maddeler_olculu)
         bosluk = (kalan_h - toplam_madde_h) // max(1, len(maddeler_olculu) - 1)
-        bosluk = max(35, min(75, bosluk))
+        bosluk = max(35, min(90 if not goster_uzman_notu else 75, bosluk))
 
         toplam_blok_h = toplam_madde_h + (bosluk * max(0, madde_sayisi - 1))
         curr_m_y = y_kursur + max(0, (kalan_h - toplam_blok_h) // 2)
@@ -3285,13 +3364,9 @@ def haber_dailybrief_detay_slayti_ciz(
         # Maddeleri Çiz (Açık, ferah ve güçlü mimari akış)
         for mo in maddeler_olculu:
             m_h = mo["h"]
-            # Sol renkli çentik (Accent notch - 8px kalın, radius=4)
             draw.rounded_rectangle([kenar, curr_m_y + 3, kenar + 8, curr_m_y + m_h - 4], radius=4, fill=mo["renk"])
-            
-            # Madde Etiketi (36px Bold)
             draw.text((kenar + 28, curr_m_y), mo["etiket"], font=font_madde_etiket, fill=mo["renk"])
-            
-            # Madde Açıklaması (32px Plus Jakarta Sans, 46px leading)
+
             gy = curr_m_y + h_etiket + 12
             for s in mo["satirlar"]:
                 draw.text((kenar + 28, gy), s, font=font_madde_govde, fill=RENK_METIN_GOVDE)
@@ -3299,15 +3374,16 @@ def haber_dailybrief_detay_slayti_ciz(
 
             curr_m_y += m_h + bosluk
 
-        # 6. EDM Uzman Değerlendirmesi Kartı Çizimi (Alta Yaslı, 4:5 Alt Bölgesi)
-        draw.rounded_rectangle([(kenar, uzman_kart_y), (genislik - kenar, uzman_kart_y + uzman_kart_h)], radius=14, fill=(20, 24, 34), outline=(55, 65, 85), width=1)
-        draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 8, uzman_kart_y + uzman_kart_h)], radius=3, fill=RENK_ALTIN)
-        draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_ALTIN)
+        # 6. EDM Uzman Değerlendirmesi Kartı Çizimi (goster_uzman_notu=True ise)
+        if goster_uzman_notu:
+            draw.rounded_rectangle([(kenar, uzman_kart_y), (genislik - kenar, uzman_kart_y + uzman_kart_h)], radius=14, fill=(20, 24, 34), outline=(55, 65, 85), width=1)
+            draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 8, uzman_kart_y + uzman_kart_h)], radius=3, fill=RENK_ALTIN)
+            draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_ALTIN)
 
-        uy = uzman_kart_y + pad_y + 26 + 14
-        for s in uzman_satirlari:
-            draw.text((kenar + 28, uy), s, font=font_uzman_govde, fill=RENK_BEYAZ)
-            uy += uzman_lh
+            uy = uzman_kart_y + pad_y + 26 + 14
+            for s in uzman_satirlari:
+                draw.text((kenar + 28, uy), s, font=font_uzman_govde, fill=RENK_BEYAZ)
+                uy += uzman_lh
 
         # 7. Alt Taban Barı: İnce mimari çizgi + Kaynak ve Slogan / Sayfa
         draw.line([(kenar, alt_y), (genislik - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
@@ -3319,12 +3395,111 @@ def haber_dailybrief_detay_slayti_ciz(
 
         bbox_s = draw.textbbox((0, 0), sayfa_no, font=font_alt)
         s_w = bbox_s[2] - bbox_s[0]
-        draw.text((genislik - kenar - s_w, alt_y + 20), sayfa_no, font=font_alt, fill=RENK_KURSUN)
+        draw.text((genislik - kenar - s_w, alt_y + 20), sayfa_no, font=font_alt, fill=RENK_KURSUN_ACIK if "›" in sayfa_no else RENK_KURSUN)
 
         # Dosyayı kaydet
         canvas.save(cikti_yolu, "JPEG", quality=95)
         log.info("DailyBrief haber detay slaytı üretildi: %s (%dx%d, olcu=%s)", cikti_yolu.name, genislik, yukseklik, olcu)
         return cikti_yolu
+
+
+def haber_dailybrief_slaytlari_uret(
+    haber: Dict[str, Any],
+    cikti_dizini: Optional[Path] = None,
+    cikti_onek: str = "dailybrief",
+    olcu: str = "besleme",
+    foto_yolu: Optional[Path | str] = None,
+) -> List[Path]:
+    """
+    DailyBrief Haber Carousel Üreticisi (Seçenek 2: Dinamik 2 veya 3 Slayt):
+    - Haber içeriği kapsamlı ve teknikse -> 3 Slayt (Kapak + Detay 1 + Detay 2 & Uzman Stratejisi)
+    - Haber kısa ve yalınsa -> 2 Slayt (Kapak + Detay & Uzman Stratejisi)
+    """
+    if cikti_dizini is None:
+        cikti_dizini = config.yol_al("data/output/gonderiler")
+    cikti_dizini = Path(cikti_dizini)
+    cikti_dizini.mkdir(parents=True, exist_ok=True)
+
+    if not haber.get("manset"):
+        m1 = haber.get("manset_parca_1", "")
+        mv = haber.get("manset_vurgu", "")
+        m2 = haber.get("manset_parca_2", "")
+        haber["manset"] = f"{m1} {mv} {m2}".strip() or haber.get("orijinal_baslik", "")
+
+    fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url")
+    maddeler = haber_detay_maddelerini_ayikla(haber)
+    slayt_sayisi = dailybrief_slayt_sayisi_belirle(haber, maddeler)
+
+    p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
+
+    if slayt_sayisi == 3:
+        p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
+        p3 = cikti_dizini / f"{cikti_onek}_dailybrief_s3.jpg"
+
+        if len(maddeler) >= 3:
+            s2_maddeler = maddeler[:2]
+            s3_maddeler = maddeler[2:3]
+        elif len(maddeler) == 2:
+            s2_maddeler = [maddeler[0]]
+            s3_maddeler = [maddeler[1]]
+        else:
+            s2_maddeler = maddeler
+            s3_maddeler = []
+
+        haber_dailybrief_slayti_ciz(
+            haber=haber,
+            foto_yolu=fp,
+            cikti_yolu=p1,
+            olcu=olcu,
+            sayfa_no="01 / 03",
+        )
+
+        haber_dailybrief_detay_slayti_ciz(
+            haber=haber,
+            foto_yolu=fp,
+            cikti_yolu=p2,
+            olcu=olcu,
+            sayfa_no="02 / 03  ›  KAYDIRIN",
+            maddeler=s2_maddeler,
+            ust_etiket="// HABERİN AYRINTILARI & TEKNİK PLAN",
+            goster_uzman_notu=False,
+        )
+
+        haber_dailybrief_detay_slayti_ciz(
+            haber=haber,
+            foto_yolu=fp,
+            cikti_yolu=p3,
+            olcu=olcu,
+            sayfa_no="03 / 03",
+            maddeler=s3_maddeler,
+            ust_etiket="// YASAL SÜREÇ & UZMAN STRATEJİSİ",
+            goster_uzman_notu=True,
+        )
+        log.info("DailyBrief Dinamik 3 Slayt üretildi: %s, %s, %s", p1.name, p2.name, p3.name)
+        return [p1, p2, p3]
+    else:
+        p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
+
+        haber_dailybrief_slayti_ciz(
+            haber=haber,
+            foto_yolu=fp,
+            cikti_yolu=p1,
+            olcu=olcu,
+            sayfa_no="01 / 02",
+        )
+
+        haber_dailybrief_detay_slayti_ciz(
+            haber=haber,
+            foto_yolu=fp,
+            cikti_yolu=p2,
+            olcu=olcu,
+            sayfa_no="02 / 02",
+            maddeler=maddeler[:2],
+            ust_etiket="// ÖNE ÇIKAN DETAYLAR & MEVZUAT",
+            goster_uzman_notu=True,
+        )
+        log.info("DailyBrief Dinamik 2 Slayt üretildi: %s, %s", p1.name, p2.name)
+        return [p1, p2]
 
 
 

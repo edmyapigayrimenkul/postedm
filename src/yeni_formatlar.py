@@ -836,6 +836,7 @@ def slaytlari_uret(
     cikti_dizini: Optional[Path] = None,
     cikti_onek: str = "post",
     format_turu: Optional[str] = None,
+    olcu: str = "besleme",
 ) -> List[Path]:
     """İçerik verisini inceleyip 4 yeni formattan en uygun olanı seçerek slaytları üretir.
     Hem doğrudan yeni format şemalarını (sozluk, nedir_dogrusu, net_cevap, vaka) hem de geriye dönük uyumluluk adaptörünü destekler.
@@ -993,36 +994,18 @@ def slaytlari_uret(
         return [p1, p2]
 
     # 5. DAILYBRIEF HABER FORMATI (Instabot Paritesi: Gerçek/Stok Fotoğraf + Okuma Perdesi + Manşet)
+    # Seçenek 2 (Dinamik 2 veya 3 Slayt): Zengin teknik haberler 3 slayt, kısa haberler 2 slayt
     if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") in ("haber", "B5"):
-        p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
-        p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
         foto_yolu = veri.get("foto_yolu") or veri.get("gorsel_yolu")
-
-        if not veri.get("manset"):
-            m1 = veri.get("manset_parca_1", "")
-            mv = veri.get("manset_vurgu", "")
-            m2 = veri.get("manset_parca_2", "")
-            veri["manset"] = f"{m1} {mv} {m2}".strip() or veri.get("orijinal_baslik", "")
-
-        # 1. Slayt: DailyBrief Haber Kapak Kartı
-        make_image.haber_dailybrief_slayti_ciz(
+        slaytlar = make_image.haber_dailybrief_slaytlari_uret(
             haber=veri,
+            cikti_dizini=cikti_dizini,
+            cikti_onek=cikti_onek,
+            olcu=olcu,
             foto_yolu=foto_yolu,
-            cikti_yolu=p1,
-            olcu="besleme",
-            sayfa_no="01 / 02",
         )
-
-        # 2. Slayt: DailyBrief Haber Ayrıntıları & EDM Uzman Değerlendirmesi
-        make_image.haber_dailybrief_detay_slayti_ciz(
-            haber=veri,
-            foto_yolu=foto_yolu,
-            cikti_yolu=p2,
-            olcu="besleme",
-            sayfa_no="02 / 02",
-        )
-        log.info("Yeni Format Üretildi (DAILYBRIEF HABER): %s, %s", p1, p2)
-        return [p1, p2]
+        log.info("Yeni Format Üretildi (DAILYBRIEF HABER %d Slayt): %s", len(slaytlar), ", ".join(str(p) for p in slaytlar))
+        return slaytlar
 
     # =========================================================================
     # B) ESKİ BİÇİMLERDEN (B1, B2, B3) AKILLI ADAPTASYON (FALLBACK)
