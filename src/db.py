@@ -139,6 +139,7 @@ def tablolari_olustur() -> None:
                 ("threads_post_id", "TEXT"),
                 ("youtube_video_id", "TEXT"),
                 ("tiktok_publish_id", "TEXT"),
+                ("facebook_post_id", "TEXT"),
                 ("video_yolu", "TEXT"),
             ]
             for ad, tip in haber_ek_kolonlar:

@@ -523,14 +523,16 @@ def sonucu_yaz(
     Onay mesajını sonuçla günceller, butonları canlı linkler veya telafi tuşlarıyla değiştirir.
     bildir=True ise ayrıca grupta yeni bir mesaj olarak iletir.
     """
+    if not reply_markup and ek_dugmeler:
+        reply_markup = {"inline_keyboard": ek_dugmeler}
+
     duzenlendi = False
     if mesaj_id:
         duzenlendi = mesaji_guncelle(mesaj_id, metin, reply_markup=reply_markup)
 
     if bildir:
         try:
-            markup = reply_markup or ({"inline_keyboard": ek_dugmeler} if ek_dugmeler else None)
-            mesaj_gonder(metin, reply_markup=markup)
+            mesaj_gonder(metin, reply_markup=reply_markup)
         except Exception as e:
             log.warning("Sonuç bildirimi gönderilemedi: %s", e)
 
@@ -1092,40 +1094,54 @@ def yayin_kontrol_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
     durum = haber.get("durum")
     yayinlandi = (durum == "yayinlandi")
 
+    ig_id = haber.get("instagram_post_id")
+    th_id = haber.get("threads_post_id")
+    fb_id = haber.get("facebook_post_id")
+    yt_id = haber.get("youtube_video_id")
+    tt_id = haber.get("tiktok_publish_id")
+
+    ig_durum = "✅ Yayında" if ig_id else "⚪ Yayınlanmadı / Bilgi Yok"
+    th_durum = "✅ Yayında" if th_id else "⚪ Yayınlanmadı / Bilgi Yok"
+    fb_durum = "✅ Yayında" if fb_id else "⚪ Yayınlanmadı / Bilgi Yok"
+    yt_durum = "✅ Yayında" if yt_id else "⚪ Yayınlanmadı / Bilgi Yok"
+    tt_durum = "✅ Yayında / Taslak" if tt_id else "⚪ Yayınlanmadı / Bilgi Yok"
+
     metin = (
         f"📡 <b>YAYIN DOĞRULAMA & KONTROL: #{ref_id}</b>\n\n"
         f"📌 <b>Başlık:</b> {html.escape(manset)}\n"
         f"📊 <b>Genel Durum:</b> {'✅ Başarıyla Paylaşıldı' if yayinlandi else '⚠️ Paylaşım Bekleniyor / Kısmi'}\n\n"
-        f"<b>Kanal Durumları:</b>\n"
-        f"• Instagram: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
-        f"• Threads: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
-        f"• Facebook: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
-        f"• TikTok: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n"
-        f"• YouTube Shorts: {'✅ Aktif' if yayinlandi else '⚪ Kontrol Edilebilir'}\n\n"
-        f"💡 <i>Aşağıdaki butonla tekil kanal yayını yapabilir veya tümünü kurtarabilirsiniz:</i>"
+        f"<b>Platform Durumları:</b>\n"
+        f"• 📸 Instagram: {ig_durum}\n"
+        f"• 🧵 Threads: {th_durum}\n"
+        f"• 📘 Facebook: {fb_durum}\n"
+        f"• 🎵 TikTok: {tt_durum}\n"
+        f"• ▶️ YouTube Shorts: {yt_durum}\n\n"
+        f"💡 <i>Eksik kalan veya tekrar yayınlamak istediğiniz kanallar için aşağıdaki butonları kullanabilirsiniz:</i>"
     )
 
-    butonlar = {
-        "inline_keyboard": [
-            [
-                {"text": "🔄 Tekrar: IG", "callback_data": f"retry_kanal:ig:{ref_id}"},
-                {"text": "🔄 Tekrar: Threads", "callback_data": f"retry_kanal:threads:{ref_id}"},
-                {"text": "🔄 Tekrar: Reels", "callback_data": f"retry_kanal:reels:{ref_id}"},
-            ],
-            [
-                {"text": "🔄 Tekrar: TikTok", "callback_data": f"retry_kanal:tiktok:{ref_id}"},
-                {"text": "🔄 Tekrar: Facebook", "callback_data": f"retry_kanal:facebook:{ref_id}"},
-                {"text": "🔄 Tekrar: YT", "callback_data": f"retry_kanal:youtube:{ref_id}"},
-            ],
-            [
-                {"text": "🚀 Tüm Kanalları Kurtar & Yayınla", "callback_data": f"kurtar:{ref_id}"},
-            ],
-            [
-                {"text": f"← #{ref_id} İnceleme Kartı", "callback_data": f"incele:{ref_id}"},
-            ],
-        ]
-    }
-    return metin, butonlar
+    retry_butonlari = []
+    tekil_siralar = []
+    if not ig_id:
+        tekil_siralar.append({"text": "🔄 IG Gönderi", "callback_data": f"retry_kanal:ig:{ref_id}"})
+    tekil_siralar.append({"text": "🔄 Reels Video", "callback_data": f"retry_kanal:reels:{ref_id}"})
+    if not th_id:
+        tekil_siralar.append({"text": "🔄 Threads", "callback_data": f"retry_kanal:threads:{ref_id}"})
+    if not fb_id:
+        tekil_siralar.append({"text": "🔄 Facebook", "callback_data": f"retry_kanal:facebook:{ref_id}"})
+    if not yt_id:
+        tekil_siralar.append({"text": "🔄 YouTube", "callback_data": f"retry_kanal:youtube:{ref_id}"})
+    if not tt_id:
+        tekil_siralar.append({"text": "🔄 TikTok", "callback_data": f"retry_kanal:tiktok:{ref_id}"})
+
+    for i in range(0, len(tekil_siralar), 3):
+        retry_butonlari.append(tekil_siralar[i:i + 3])
+
+    alt_butonlar = [
+        [{"text": "🚀 Tüm Kanalları Kurtar & Yayınla", "callback_data": f"kurtar:{ref_id}"}],
+        [{"text": f"← #{ref_id} İnceleme Kartı", "callback_data": f"incele:{ref_id}"}],
+    ]
+
+    return metin, {"inline_keyboard": retry_butonlari + alt_butonlar}
 
 
 def panel_gonder(mesaj_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
