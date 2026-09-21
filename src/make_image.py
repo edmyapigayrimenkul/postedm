@@ -3127,7 +3127,8 @@ def haber_dailybrief_detay_slayti_ciz(
         canvas = _filigran_uygula(canvas, acik_zemin=False)
         draw = ImageDraw.Draw(canvas)
 
-        # 2. Üst Bar: Sol üstte Kırmızı Rozet, Sağ üstte Dev EDM Logosu (lw=285)
+        # 2. Üst Bar: Sol üstte zarif editoryal etiket, Sağ üstte Dev EDM Logosu (lw=285)
+        # Kullanıcı direktifi: Detay sayfalarında kırmızı rozet kirlilik yaratıyor, kaldırıldı.
         logo_w = 285
         logo_x = genislik - kenar - logo_w
         _logo_yerlestir(
@@ -3141,20 +3142,9 @@ def haber_dailybrief_detay_slayti_ciz(
         )
         draw = ImageDraw.Draw(canvas)
 
-        kategori_adi = haber.get("kategori") or haber.get("kategori_kodu") or "GAYRİMENKUL & MEVZUAT"
-        kategori_adi = str(kategori_adi).replace("_", " ").upper()
-        rozet_txt = f"EDM GÜNDEM // {kategori_adi} - DETAY"
-        azami_rozet_w = logo_x - kenar - 30
-        _rozet_ciz(
-            draw,
-            kenar,
-            ust_y,
-            rozet_txt,
-            bg_color=RENK_KIRMIZI,
-            fg_color=RENK_BEYAZ,
-            font_boyut=20,
-            max_w=azami_rozet_w,
-        )
+        font_top_etiket = _font_yukle(FONT_MONO_BOLD, 21)
+        draw.text((kenar, ust_y + 12), "// ÖNE ÇIKAN DETAYLAR & MEVZUAT", font=font_top_etiket, fill=RENK_KURSUN_ACIK)
+        draw.line([(kenar, ust_y + 60), (genislik - kenar, ust_y + 60)], fill=RENK_CIZGI_KOYU, width=1)
 
         # 3. İçerik Detaylarının Hazırlanması (Smart Brevity)
         maddeler = haber.get("detay_maddeleri") or haber.get("maddeler") or []
@@ -3237,38 +3227,41 @@ def haber_dailybrief_detay_slayti_ciz(
         if not uzman_notu:
             uzman_notu = "Parselinizin güncel imar ve tapu kayıtlarını askı panolarından vakit kaybetmeden kontrol edin; itiraz süresini kaçırmayın."
 
-        # 4. Fontlar: 1. sayfadaki gibi tamamen Plus Jakarta Sans!
-        font_bolum_etiket = _font_yukle(FONT_MONO_BOLD, 18)
-        font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 22)
-        font_madde_govde = _font_yukle(FONT_SANS, 23)
-        font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 19)
-        font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 23)
+        # 4. Fontlar: 4:5 Tuvaline Göre Büyütülmüş ve Ultra Okunaklı Plus Jakarta Sans!
+        font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 30)
+        font_madde_govde = _font_yukle(FONT_SANS, 28)
+        lh_govde = 42
+        pad_kutu_y = 20
+        pad_kutu_x = 24
 
-        # 5. Dikey Yerleşim Mimarisi
-        y_kursur = ust_y + 80
-        bolum_baslik = "HABERİN AYRINTILARI & MEVZUAT ANALİZİ"
-        draw.text((kenar, y_kursur), bolum_baslik, font=font_bolum_etiket, fill=RENK_KURSUN_ACIK)
-        y_kursur += 36
+        font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
+        font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 28)
+        uzman_lh = 40
+
+        # 5. Dikey Yerleşim Mimarisi (4:5 Tuvalini Dengeli Doldurma)
+        y_kursur = ust_y + 85
 
         # Alttaki Uzman Notu Kartını Ölç ve Alta Yasla
-        uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 56, draw)
+        uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
         if len(uzman_satirlari) > 3:
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 21)
-            uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 56, draw)
-        uzman_lh = 34
-        uzman_kart_h = 52 + (len(uzman_satirlari) * uzman_lh) + 16
-        uzman_kart_y = alt_y - 24 - uzman_kart_h
+            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 25)
+            uzman_lh = 36
+            uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
+        
+        pad_y = 24
+        uzman_kart_h = pad_y + 28 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
+        uzman_kart_y = alt_y - 25 - uzman_kart_h
 
-        # Kalan Dikey Alanı Maddelere Dağıt
-        kalan_h = (uzman_kart_y - 26) - y_kursur
+        # Kalan Dikey Alanı Maddelere Dağıt (4:5 Uyumlu Orantılama)
+        kalan_h = (uzman_kart_y - 30) - y_kursur
         madde_sayisi = max(1, len(temiz_maddeler))
         
-        # Her maddenin satırlarını hesapla
+        # Her maddenin satırlarını ve kutu yüksekliğini hesapla
         maddeler_olculu = []
         for m in temiz_maddeler:
-            satirlar_m = _metin_sar(_temizle_tipografi(m["metin"]), font_madde_govde, kullanilabilir_w - 32, draw)
+            satirlar_m = _metin_sar(_temizle_tipografi(m["metin"]), font_madde_govde, kullanilabilir_w - (pad_kutu_x * 2) - 16, draw)
             satirlar_m = satirlar_m[:3]  # Maks 3 satır
-            h_m = 28 + 6 + (len(satirlar_m) * 33)
+            h_m = pad_kutu_y + 32 + 10 + (len(satirlar_m) * lh_govde) + pad_kutu_y
             maddeler_olculu.append({
                 "etiket": m["etiket"],
                 "satirlar": satirlar_m,
@@ -3277,34 +3270,36 @@ def haber_dailybrief_detay_slayti_ciz(
             })
 
         toplam_madde_h = sum(mo["h"] for mo in maddeler_olculu)
-        bosluk = max(18, min(36, (kalan_h - toplam_madde_h) // max(1, madde_sayisi)))
+        bosluk = (kalan_h - toplam_madde_h) // max(1, len(maddeler_olculu) - 1)
+        bosluk = max(24, min(42, bosluk))
 
-        # Maddeleri Çiz
-        curr_m_y = y_kursur + max(0, (kalan_h - (toplam_madde_h + bosluk * (madde_sayisi - 1))) // 3)
+        toplam_blok_h = toplam_madde_h + (bosluk * max(0, madde_sayisi - 1))
+        curr_m_y = y_kursur + max(0, (kalan_h - toplam_blok_h) // 2)
+
+        # Maddeleri Çiz (Her biri koyu mimari kart kutusu içinde)
         for mo in maddeler_olculu:
-            m_h = mo["h"]
-            # Sol renkli çentik (Accent notch)
-            draw.rounded_rectangle([kenar, curr_m_y, kenar + 5, curr_m_y + m_h - 2], radius=2, fill=mo["renk"])
-            
-            # Madde Etiketi
-            draw.text((kenar + 22, curr_m_y), mo["etiket"], font=font_madde_etiket, fill=mo["renk"])
-            
-            # Madde Açıklaması (Plus Jakarta Sans)
-            gy = curr_m_y + 32
+            # Kutu arka planı
+            draw.rounded_rectangle([(kenar, curr_m_y), (genislik - kenar, curr_m_y + mo["h"])], radius=12, fill=(19, 23, 33), outline=(38, 46, 62), width=1)
+            # Sol çentik (6px kalın, radius=3)
+            draw.rounded_rectangle([(kenar, curr_m_y), (kenar + 6, curr_m_y + mo["h"])], radius=3, fill=mo["renk"])
+            # Madde Etiketi (30px Bold)
+            draw.text((kenar + pad_kutu_x + 6, curr_m_y + pad_kutu_y), mo["etiket"], font=font_madde_etiket, fill=mo["renk"])
+            # Madde Açıklaması (28px Plus Jakarta Sans, 42px leading)
+            gy = curr_m_y + pad_kutu_y + 32 + 10
             for s in mo["satirlar"]:
-                draw.text((kenar + 22, gy), s, font=font_madde_govde, fill=RENK_METIN_GOVDE)
-                gy += 33
+                draw.text((kenar + pad_kutu_x + 6, gy), s, font=font_madde_govde, fill=RENK_METIN_GOVDE)
+                gy += lh_govde
 
-            curr_m_y += m_h + bosluk
+            curr_m_y += mo["h"] + bosluk
 
-        # 6. EDM Uzman Değerlendirmesi Kartı Çizimi (Alta Yaslı)
-        draw.rounded_rectangle([(kenar, uzman_kart_y), (genislik - kenar, uzman_kart_y + uzman_kart_h)], radius=12, fill=(24, 28, 40), outline=(55, 65, 85), width=1)
-        draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 6, uzman_kart_y + uzman_kart_h)], radius=2, fill=RENK_ALTIN)
-        draw.text((kenar + 26, uzman_kart_y + 18), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_ALTIN)
+        # 6. EDM Uzman Değerlendirmesi Kartı Çizimi (Alta Yaslı, 4:5 Alt Bölgesi)
+        draw.rounded_rectangle([(kenar, uzman_kart_y), (genislik - kenar, uzman_kart_y + uzman_kart_h)], radius=14, fill=(20, 24, 34), outline=(55, 65, 85), width=1)
+        draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 7, uzman_kart_y + uzman_kart_h)], radius=3, fill=RENK_ALTIN)
+        draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_ALTIN)
 
-        uy = uzman_kart_y + 50
+        uy = uzman_kart_y + pad_y + 28 + 14
         for s in uzman_satirlari:
-            draw.text((kenar + 26, uy), s, font=font_uzman_govde, fill=RENK_BEYAZ)
+            draw.text((kenar + 28, uy), s, font=font_uzman_govde, fill=RENK_BEYAZ)
             uy += uzman_lh
 
         # 7. Alt Taban Barı: İnce mimari çizgi + Kaynak ve Slogan / Sayfa
