@@ -574,7 +574,17 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     return cikti_yolu
 
 
-def uret_vaka_slayt2(cikti_yolu: Path, vaka_kodu: str, yargitay_hukmu: str, cikarilacak_ders: str, sayfa_no: str = "02 / 02") -> Path:
+def uret_vaka_slayt2(
+    cikti_yolu: Path,
+    vaka_kodu: str,
+    yargitay_hukmu: str,
+    cikarilacak_ders: str,
+    sayfa_no: str = "02 / 02",
+    rozet_baslik: Optional[str] = None,
+    hukum_baslik: Optional[str] = None,
+    ders_baslik: Optional[str] = None,
+    alt_arsiv_metni: Optional[str] = None,
+) -> Path:
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
     canvas = make_image._filigran_uygula(canvas, acik_zemin=False)
     draw = ImageDraw.Draw(canvas)
@@ -587,13 +597,14 @@ def uret_vaka_slayt2(cikti_yolu: Path, vaka_kodu: str, yargitay_hukmu: str, cika
     logo_w = 285
     logo_x = GENISLIK - kenar - logo_w
     azami_rozet_w = logo_x - kenar - 30
-    rozet_metni = f"GERÇEK HUKUKİ VAKA // {vaka_kodu.upper()} - KARAR"
+    rozet_metni = rozet_baslik or f"GERÇEK HUKUKİ VAKA // {vaka_kodu.upper()} - KARAR"
     make_image._rozet_ciz(draw, kenar, ku, rozet_metni, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20, max_w=azami_rozet_w)
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=logo_w, golge=True, kirmizi_zemin=False)
 
     alt_y = yer["alt_bar"]
     draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
-    draw.text((kenar, alt_y + 26), "EDM HUKUK ARŞİVİ // EMSAL İÇTİHAT DOSYASI", font=make_image._font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
+    alt_txt = alt_arsiv_metni or "EDM HUKUK ARŞİVİ // EMSAL İÇTİHAT DOSYASI"
+    draw.text((kenar, alt_y + 26), alt_txt, font=make_image._font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
     draw.text((GENISLIK - kenar - 90, alt_y + 26), sayfa_no, font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_LOGO_KIRMIZI)
 
     punto_ders = 29
@@ -640,7 +651,8 @@ def uret_vaka_slayt2(cikti_yolu: Path, vaka_kodu: str, yargitay_hukmu: str, cika
 
     hukum_blok_h = 36 + 18 + h_hukum
     curr_y = ust_sinir + min(36, max(0, mevcut_hukum_h - hukum_blok_h) // 3)
-    make_image._rozet_ciz(draw, kenar, curr_y, "YARGITAY'IN VERDİĞİ KESİN HÜKÜM", bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
+    etiket_txt = hukum_baslik or "YARGITAY'IN VERDİĞİ KESİN HÜKÜM"
+    make_image._rozet_ciz(draw, kenar, curr_y, etiket_txt, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
     curr_y += 44
 
     for s in hukum_satirlar:
@@ -649,7 +661,8 @@ def uret_vaka_slayt2(cikti_yolu: Path, vaka_kodu: str, yargitay_hukmu: str, cika
 
     draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=(28, 32, 42), outline=(55, 65, 85), width=1)
     draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_ALTIN)
-    draw.text((kenar + 28, kutu_y + 18), "BU DAVADAN ÇIKARILACAK DERS:", font=f_ders_etiket, fill=RENK_ALTIN)
+    ders_etiket_txt = ders_baslik or "BU DAVADAN ÇIKARILACAK DERS:"
+    draw.text((kenar + 28, kutu_y + 18), ders_etiket_txt, font=f_ders_etiket, fill=RENK_ALTIN)
 
     dy = kutu_y + 52
     for s in ders_satirlar:
@@ -990,7 +1003,8 @@ def slaytlari_uret(
             haber=veri,
             foto_yolu=foto_yolu,
             cikti_yolu=p1,
-            olcu="besleme"
+            olcu="besleme",
+            sayfa_no="01 / 02",
         )
 
         # 2. Slayt: Haberin Detayları & EDM Uzman Değerlendirmesi
@@ -1003,7 +1017,11 @@ def slaytlari_uret(
             vaka_kodu=vaka_kodu,
             yargitay_hukmu=detay_hukum,
             cikarilacak_ders=uzman_notu,
-            sayfa_no="02 / 02"
+            sayfa_no="02 / 02",
+            rozet_baslik=f"EDM GÜNDEM // {vaka_kodu.upper()} - DETAY",
+            hukum_baslik="HABERİN DETAYI VE HUKUKİ ETKİSİ",
+            ders_baslik="EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:",
+            alt_arsiv_metni="EDM GÜNDEM // SEKTÖREL MEVZUAT BÜLTENİ",
         )
         log.info("Yeni Format Üretildi (DAILYBRIEF HABER): %s, %s", p1, p2)
         return [p1, p2]
