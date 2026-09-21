@@ -179,7 +179,6 @@ def haber_metni_guncelle(
         mesaj_metni = (
             f"🎬 <b>EDM REELS / VİDEO (GÜNCELLENDİ)</b>\n\n"
             f"📌 <b>Başlık:</b> {html.escape(yeni_baslik)}\n\n"
-            f"📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
             f"<pre><code>{temiz_caption}</code></pre>\n\n"
             f"💡 <i>'🚀 Seçili Kanallarda Yayınla' butonuna bastığınızda 1080x1920 MP4 dikey videosu derlenip gruba iletilecektir.</i>"
         )

@@ -963,12 +963,9 @@ def main() -> None:
         except Exception as ve:
             log.warning("Telegram'a video iletilemedi: %s", ve)
 
-    # 9. Kopyalanabilir Açıklama Metnini Ayrı ve Eksiksiz İlet (Instabot Standardı)
+    # 9. Kopyalanabilir Açıklama Metnini Ayrı ve Eksiksiz İlet (Başlıksız, doğrudan kopyalanabilir blok)
     try:
-        telegram_bot.mesaj_gonder(
-            f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n\n"
-            f"<pre><code>{temiz_caption}</code></pre>"
-        )
+        telegram_bot.mesaj_gonder(f"<pre><code>{temiz_caption}</code></pre>")
     except Exception as ce:
         log.warning("Kopyalanabilir açıklama metni iletilemedi: %s", ce)
     print("POSTEDM_SONUC=" + json.dumps({"hedefler": sorted(hedefler), "rapor": rapor_satirlari}, ensure_ascii=False))

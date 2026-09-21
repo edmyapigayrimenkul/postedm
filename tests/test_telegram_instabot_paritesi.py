@@ -36,9 +36,8 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         """Açıklama metninin Telegram tek dokunuşla kopyalanabilir <pre><code> bloğu ürettiği doğrulanır."""
         raw_text = "EDM Yapı Gayrimenkul\nTapu Harcı & Miras Rehberi 2026\n#emlak #tapu"
         kutu = telegram_bot.aciklama_metni_kutusu(raw_text)
-        self.assertIn("📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>", kutu)
-        self.assertIn("<pre><code>", kutu)
-        self.assertIn("</code></pre>", kutu)
+        self.assertTrue(kutu.startswith("<pre><code>"))
+        self.assertTrue(kutu.endswith("</code></pre>"))
         self.assertIn("EDM Yapı Gayrimenkul", kutu)
 
     def test_kanal_toggle_ve_secili_kanallari_cikar(self):

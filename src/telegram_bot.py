@@ -418,10 +418,7 @@ def menuyu_degistir(mesaj_id: int, reply_markup: Dict[str, Any]) -> bool:
 def aciklama_metni_kutusu(metin: str) -> str:
     """Telegram'da tek dokunuşla panoya kopyalanabilir HTML kod bloğu oluşturur."""
     temiz = html.escape(metin.strip())
-    return (
-        f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
-        f"<pre><code>{temiz}</code></pre>"
-    )
+    return f"<pre><code>{temiz}</code></pre>"
 
 
 KANAL_ETIKETLERI = {
@@ -1358,10 +1355,7 @@ def haber_onayina_sun(haber_id: int) -> bool:
         f"<b>İçerik No:</b> #{haber_id}\n\n"
     )
     if temiz_caption:
-        mesaj_metni += (
-            f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
-            f"<pre><code>{temiz_caption}</code></pre>\n\n"
-        )
+        mesaj_metni += f"<pre><code>{temiz_caption}</code></pre>\n\n"
     mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
 
     butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2)
@@ -1710,7 +1704,6 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         f"📌 <b>Başlık:</b> {konu['baslik']}\n"
         f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n"
         f"🆔 <b>İçerik No:</b> #{haber_id}\n\n"
-        f"📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
         f"<pre><code>{temiz_caption}</code></pre>\n\n"
         f"💡 <i>Videoyu kaydedebilir veya '✅ Yayınla' -> '▶️ Şimdi' butonuna basarak doğrudan tüm platformlara otomatik yayınlayabilirsiniz.</i>"
     )
@@ -1859,7 +1852,6 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
         f"📌 <b>{ilan.get('baslik')}</b>\n"
         f"💰 <b>Fiyat:</b> {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n"
         f"📍 <b>Konum:</b> {ilan.get('ilce')} / {ilan.get('mahalle')}\n\n"
-        f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
         f"<pre><code>{temiz_caption}</code></pre>\n\n"
         f"Bu portföy ilanını sosyal medyada yayınlayalım mı?"
     )
