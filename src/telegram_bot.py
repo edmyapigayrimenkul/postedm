@@ -616,9 +616,15 @@ def varsayilan_kanallar() -> Dict[str, bool]:
 
 
 def kanal_ayarla(kanal: str, aktif: bool) -> Dict[str, bool]:
-    """Kanal durumunu günceller ve kaydeder."""
+    """Kanal durumunu günceller ve kaydeder.
+    Kural: Bir içerik ya gönderi (ig) ya da Reels olarak paylaşılır.
+    """
     kanallar = varsayilan_kanallar()
     kanallar[kanal] = aktif
+    if aktif and kanal == "reels":
+        kanallar["ig"] = False
+    elif aktif and kanal == "ig":
+        kanallar["reels"] = False
     db.ayar_yaz("aktif_kanallar", json.dumps(kanallar))
     return kanallar
 
@@ -674,19 +680,39 @@ def secili_kanallari_cikar(klavye: Optional[List[List[Dict[str, Any]]]]) -> List
 
 
 def kanal_toggle(klavye: List[List[Dict[str, Any]]], hedef_kanal: str) -> List[List[Dict[str, Any]]]:
-    """Klavye içerisindeki hedef kanalın onay durumunu (✅ <-> ⬜) tersine çevirir."""
+    """Klavye içerisindeki hedef kanalın onay durumunu (✅ <-> ⬜) tersine çevirir.
+    Instagram Kuralı: Bir içerik ya gönderi (IG) ya da Reels olarak paylaşılır.
+    Reels aktif edilirse IG kapatılır, IG aktif edilirse Reels kapatılır.
+    """
+    hedef_suan_secili = False
+    for satir in klavye:
+        for btn in satir:
+            cb = str(btn.get("callback_data", ""))
+            if cb in (f"kanal:{hedef_kanal}", f"kanal_toggle:{hedef_kanal}"):
+                text = str(btn.get("text", ""))
+                hedef_suan_secili = text.startswith("✅")
+                break
+
+    hedef_yeni_secili = not hedef_suan_secili
+
     yeni_klavye = []
     for satir in klavye:
         yeni_satir = []
         for btn in satir:
             b = dict(btn)
             cb = str(b.get("callback_data", ""))
-            if cb in (f"kanal:{hedef_kanal}", f"kanal_toggle:{hedef_kanal}"):
+            bu_kanal = cb.replace("kanal_toggle:", "").replace("kanal:", "")
+            if cb.startswith("kanal:") or cb.startswith("kanal_toggle:"):
                 text = str(b.get("text", ""))
-                if text.startswith("✅"):
-                    b["text"] = "⬜ " + text[1:].strip()
-                elif text.startswith("⬜"):
-                    b["text"] = "✅ " + text[1:].strip()
+                label = text.lstrip("✅⬜ ").strip()
+                if bu_kanal == hedef_kanal:
+                    b["text"] = f"{'✅' if hedef_yeni_secili else '⬜'} {label}"
+                elif hedef_yeni_secili and hedef_kanal == "reels" and bu_kanal == "ig":
+                    # Kural: Reels seçilince IG gönderi deaktif edilir
+                    b["text"] = f"⬜ {label}"
+                elif hedef_yeni_secili and hedef_kanal == "ig" and bu_kanal == "reels":
+                    # Kural: IG gönderi seçilince Reels deaktif edilir
+                    b["text"] = f"⬜ {label}"
             yeni_satir.append(b)
         yeni_klavye.append(yeni_satir)
     return yeni_klavye

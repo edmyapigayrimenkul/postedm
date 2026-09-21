@@ -50,16 +50,17 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         self.assertIn("story", secili)
         self.assertNotIn("reels", secili)
 
-        # Reels'i aç (toggle)
+        # Reels'i aç (toggle) -> Kural gereği IG otomatik deaktif olmalıdır
         yeni_klavye = telegram_bot.kanal_toggle(klavye, "reels")
         secili_sonra = telegram_bot.secili_kanallari_cikar(yeni_klavye)
         self.assertIn("reels", secili_sonra)
+        self.assertNotIn("ig", secili_sonra)
 
-        # IG'yi kapat (toggle)
+        # IG'yi tekrar aç (toggle) -> Kural gereği Reels otomatik deaktif olmalıdır
         yeni_klavye_2 = telegram_bot.kanal_toggle(yeni_klavye, "ig")
         secili_sonra_2 = telegram_bot.secili_kanallari_cikar(yeni_klavye_2)
-        self.assertNotIn("ig", secili_sonra_2)
-        self.assertIn("reels", secili_sonra_2)
+        self.assertIn("ig", secili_sonra_2)
+        self.assertNotIn("reels", secili_sonra_2)
 
     @patch("src.telegram_bot._istek")
     def test_menuyu_degistir(self, mock_istek):

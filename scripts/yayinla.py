@@ -395,6 +395,10 @@ def main() -> None:
     # 2. Dikey Video & Arkaplan Sesi Hazırlığı (YouTube Shorts her zaman, FB/TT/IG ise Reels modunda)
     paylas_reels = ("reels" in hedefler or ("hepsi" in hedefler and tur == "reels"))
     paylas_ig = ("ig" in hedefler or "instagram" in hedefler or ("hepsi" in hedefler and tur != "reels"))
+    if paylas_reels:
+        # Kural: İçerik ya Reels ya da Gönderi olarak atılır. Reels aktifse Instagram Feed (görsel gönderi) deaktif edilir.
+        paylas_ig = False
+
     video_lazim = (
         paylas_reels
         or hedef_mi("yt", "youtube", "shorts")
@@ -430,12 +434,30 @@ def main() -> None:
                 except Exception as ve:
                     log.warning("Dikey otorite slaytlarından video üretilemedi: %s", ve)
 
-            # Yedek: Normal slayt yollarından video üret (tek sayfa ise 6.5 sn sinematik zoom otomatik uygulanır)
+            # Yedek 1: Normal yerel slayt yollarından video üret (tek sayfa ise 6.5 sn sinematik zoom otomatik uygulanır)
             if (not v_yolu or not v_yolu.exists()) and slayt_yollari:
                 try:
                     v_yolu = video.slaytlardan_reels_uret(slayt_yollari)
                 except Exception as ve:
                     log.warning("Slayt yollarından video üretilemedi: %s", ve)
+
+            # Yedek 2: CDN Public URL'lerinden video üret (Runner diskinde yerel dosya yoksa indirip üretir)
+            if (not v_yolu or not v_yolu.exists()) and public_urller:
+                try:
+                    v_yolu = video.slaytlardan_reels_uret(public_urller)
+                except Exception as ve:
+                    log.warning("Public URL'lerden video üretilemedi: %s", ve)
+
+            # Yedek 3: İlan ise ve slaytlar diskte yoksa anında çiz ve video üret
+            if (not v_yolu or not v_yolu.exists()) and tur == "ilan" and "ilan" in locals() and ilan:
+                try:
+                    from src import make_image
+                    ik1 = make_image.ilan_kapak_slayti_ciz(ilan)
+                    ik2 = make_image.ilan_detay_slayti_ciz(ilan)
+                    ik3 = make_image.ilan_kapanis_slayti_ciz(ilan)
+                    v_yolu = video.slaytlardan_reels_uret([str(ik1), str(ik2), str(ik3)])
+                except Exception as ve:
+                    log.warning("İlan slaytlarından video üretilemedi: %s", ve)
 
         if v_yolu and v_yolu.exists():
             # YouTube ve Facebook'a özel telifsiz kurumsal emlak fon müziği miksle
@@ -573,6 +595,7 @@ def main() -> None:
     # -------------------------------------------------------------
     # KANAL 2.1: INSTAGRAM REELS (9:16 Dikey Video)
     # -------------------------------------------------------------
+    video_telegrama_gitti = False
     if paylas_reels:
         _durum_bildir("reels", "⏳ Yükleniyor...")
         # Instagram Reels için Telegram'a iletilen video:
@@ -581,24 +604,20 @@ def main() -> None:
         if ig_reels_video and ig_reels_video.exists():
             try:
                 import html as html_lib
-                temiz_metin = html_lib.escape(caption.strip())
                 telegram_bot.video_gonder(
                     ig_reels_video,
                     aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
-                             f"📌 <b>Konu:</b> {baslik}\n\n"
+                             f"📌 <b>Konu:</b> {html_lib.escape(baslik)}\n\n"
                              f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
                 )
-                telegram_bot.mesaj_gonder(
-                    "📝 <b>Reels Açıklama Metni (Kopyalamak için dokunun):</b>\n"
-                    f"<pre><code>{temiz_metin}</code></pre>"
-                )
+                video_telegrama_gitti = True
                 rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video ve açıklama Telegram'a iletildi ✓")
             except Exception as re:
                 log.warning("Instagram Reels teslim hatası: %s", re)
                 rapor_satirlari.append(f"🎬 <b>Instagram Reels:</b> Hata ({re}) ✗")
         else:
             rapor_satirlari.append("🎬 <b>Instagram Reels:</b> Video üretilemedi ✗")
-        _durum_bildir("reels", "✅ Yayında" if (locals().get("ig_reels_video") and Path(ig_reels_video).exists()) else "❌ Hata", ilerlet=True)
+        _durum_bildir("reels", "✅ Yayında" if video_telegrama_gitti else "❌ Hata", ilerlet=True)
 
     # -------------------------------------------------------------
     # KANAL 3: STORY (Instagram & Facebook Story — 9:16 Dikey Format)
@@ -877,7 +896,6 @@ def main() -> None:
         ("⚠️ <b>YAYIN KISMEN TAMAMLANDI</b>\n\n" if hata_var else "🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\n\n")
         + f"<b>İçerik:</b> {html_lib.escape(baslik)}\n\n"
         + "\n".join(rapor_satirlari)
-        + f"\n\n📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n<pre><code>{temiz_caption}</code></pre>"
     )
 
     # Canlı bağlantı butonları
@@ -929,6 +947,30 @@ def main() -> None:
         # Platform yayını tamamlandıktan sonra ikincil Telegram raporu işi
         # başarısız gösterip aynı içeriğin yeniden yayınlanmasına yol açmasın.
         log.warning("Telegram sonuç bildirimi gönderilemedi: %s", bildirim_hatasi)
+
+    # 8. Hazırlanan 9:16 Dikey Videoyu Telegram Grubuna İlet (Henüz iletilmediyse)
+    gonderilecek_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
+    if gonderilecek_video and gonderilecek_video.exists() and not video_telegrama_gitti:
+        try:
+            log.info("Hazırlanan dikey video Telegram grubuna iletiliyor: %s", gonderilecek_video)
+            telegram_bot.video_gonder(
+                gonderilecek_video,
+                aciklama=f"🎬 <b>EDM Hazır Dikey Video (1080x1920 MP4)</b>\n\n"
+                         f"📌 <b>Konu:</b> {html_lib.escape(baslik)}\n\n"
+                         f"💡 <i>Videoyu telefonunuza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
+            )
+            video_telegrama_gitti = True
+        except Exception as ve:
+            log.warning("Telegram'a video iletilemedi: %s", ve)
+
+    # 9. Kopyalanabilir Açıklama Metnini Ayrı ve Eksiksiz İlet (Instabot Standardı)
+    try:
+        telegram_bot.mesaj_gonder(
+            f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n\n"
+            f"<pre><code>{temiz_caption}</code></pre>"
+        )
+    except Exception as ce:
+        log.warning("Kopyalanabilir açıklama metni iletilemedi: %s", ce)
     print("POSTEDM_SONUC=" + json.dumps({"hedefler": sorted(hedefler), "rapor": rapor_satirlari}, ensure_ascii=False))
     if hata_var:
         # Hata detayını son_hata.txt'ye yaz ki teşhis modülü tam nedenini bilsin

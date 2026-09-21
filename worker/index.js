@@ -277,6 +277,14 @@ export default {
                 if (buKanal === hedefKanal) {
                   const label = btn.text.replace(/^[✅⬜]\s*/, "");
                   btn.text = `${hedefYeniSecili ? "✅" : "⬜"} ${label}`;
+                } else if (hedefYeniSecili && hedefKanal === "reels" && buKanal === "ig") {
+                  // Kural: Ya gönderi ya da Reels. Reels seçilince IG gönderi deaktif edilir.
+                  const label = btn.text.replace(/^[✅⬜]\s*/, "");
+                  btn.text = `⬜ ${label}`;
+                } else if (hedefYeniSecili && hedefKanal === "ig" && buKanal === "reels") {
+                  // Kural: IG gönderi seçilince Reels deaktif edilir.
+                  const label = btn.text.replace(/^[✅⬜]\s*/, "");
+                  btn.text = `⬜ ${label}`;
                 }
               }
             }
