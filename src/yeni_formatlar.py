@@ -993,10 +993,16 @@ def slaytlari_uret(
         return [p1, p2]
 
     # 5. DAILYBRIEF HABER FORMATI (Instabot Paritesi: Gerçek/Stok Fotoğraf + Okuma Perdesi + Manşet)
-    if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") == "haber":
+    if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") in ("haber", "B5"):
         p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
         p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
         foto_yolu = veri.get("foto_yolu") or veri.get("gorsel_yolu")
+
+        if not veri.get("manset"):
+            m1 = veri.get("manset_parca_1", "")
+            mv = veri.get("manset_vurgu", "")
+            m2 = veri.get("manset_parca_2", "")
+            veri["manset"] = f"{m1} {mv} {m2}".strip() or veri.get("orijinal_baslik", "")
 
         # 1. Slayt: DailyBrief Haber Kapak Kartı
         make_image.haber_dailybrief_slayti_ciz(
@@ -1007,21 +1013,13 @@ def slaytlari_uret(
             sayfa_no="01 / 02",
         )
 
-        # 2. Slayt: Haberin Detayları & EDM Uzman Değerlendirmesi
-        vaka_kodu = kategori_temizle(veri.get("kategori") or "GAYRİMENKUL & MEVZUAT")
-        detay_hukum = (veri.get("detay") or veri.get("spot") or veri.get("orijinal_ozet") or "Konuyla ilgili resmi mevzuat ve yasal süreleri takip etmek hak kaybını önler.").strip()
-        uzman_notu = (veri.get("uzman_notu") or veri.get("cikarilacak_ders") or "Taşınmaz alım-satım ve kiralama süreçlerinizde güncel mevzuat ve tapu kayıtlarını mutlaka uzman kontrolünde inceleyin.").strip()
-
-        uret_vaka_slayt2(
-            p2,
-            vaka_kodu=vaka_kodu,
-            yargitay_hukmu=detay_hukum,
-            cikarilacak_ders=uzman_notu,
+        # 2. Slayt: DailyBrief Haber Ayrıntıları & EDM Uzman Değerlendirmesi
+        make_image.haber_dailybrief_detay_slayti_ciz(
+            haber=veri,
+            foto_yolu=foto_yolu,
+            cikti_yolu=p2,
+            olcu="besleme",
             sayfa_no="02 / 02",
-            rozet_baslik=f"EDM GÜNDEM // {vaka_kodu.upper()} - DETAY",
-            hukum_baslik="HABERİN DETAYI VE HUKUKİ ETKİSİ",
-            ders_baslik="EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:",
-            alt_arsiv_metni="EDM GÜNDEM // SEKTÖREL MEVZUAT BÜLTENİ",
         )
         log.info("Yeni Format Üretildi (DAILYBRIEF HABER): %s, %s", p1, p2)
         return [p1, p2]

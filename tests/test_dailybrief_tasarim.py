@@ -100,6 +100,45 @@ class TestDailyBriefTasarim(unittest.TestCase):
         im = Image.open(res)
         self.assertEqual(im.size, (1080, 1920))
 
+    def test_haber_dailybrief_detay_slayti_uret(self):
+        """Detay slaytı 4:5 ve 9:16 boyutlarında, maddeler ve uzman notuyla üretilmeli."""
+        haber = {
+            "manset": "Silivri Selimpaşa'da Yeni İmar Planı Askıya Çıktı",
+            "kategori": "ARSA_VE_IMAR",
+            "kaynak": "İBB Şehircilik",
+            "detay_maddeleri": [
+                {"etiket": "KAPSANAN ALAN", "metin": "Selimpaşa D-100 aksı ve Ortaköy sanayi sınırı gelişim parselleri.", "renk": "kirmizi"},
+                {"etiket": "YAPILAŞMA ŞARTLARI", "metin": "KAKS 0.60'a yükseltildi, ticaret ve konut fonksiyonu verildi.", "renk": "turkuaz"},
+                {"etiket": "ASKI SÜRESİ", "metin": "30 günlük itiraz süreci başladı.", "renk": "yesil"},
+            ],
+            "uzman_notu": "Parselinizin yeni imar durumunu e-devletten hemen teyit edin.",
+        }
+        # 4:5 Besleme
+        cikti_besleme = self.tmp_path / "dailybrief_detay_4_5.jpg"
+        res1 = make_image.haber_dailybrief_detay_slayti_ciz(
+            haber,
+            foto_yolu=self.test_foto,
+            cikti_yolu=cikti_besleme,
+            olcu="besleme",
+            sayfa_no="02 / 02",
+        )
+        self.assertTrue(cikti_besleme.exists())
+        with Image.open(res1) as im1:
+            self.assertEqual(im1.size, (1080, 1350))
+
+        # 9:16 Story
+        cikti_story = self.tmp_path / "dailybrief_detay_9_16.jpg"
+        res2 = make_image.haber_dailybrief_detay_slayti_ciz(
+            haber,
+            foto_yolu=self.test_foto,
+            cikti_yolu=cikti_story,
+            olcu="story",
+            sayfa_no="02 / 02",
+        )
+        self.assertTrue(cikti_story.exists())
+        with Image.open(res2) as im2:
+            self.assertEqual(im2.size, (1080, 1920))
+
 
 if __name__ == "__main__":
     unittest.main()

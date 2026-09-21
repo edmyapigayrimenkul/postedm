@@ -1288,14 +1288,16 @@ def haber_onayina_sun(haber_id: int) -> bool:
         except Exception:
             otorite_verisi = None
 
+    format_turu = None
+    if otorite_verisi and isinstance(otorite_verisi, dict):
+        format_turu = otorite_verisi.get("format_turu")
+
     if not slayt_yollari:
         from . import yeni_formatlar, make_image
-        format_turu = None
-        if otorite_verisi and isinstance(otorite_verisi, dict):
-            format_turu = otorite_verisi.get("format_turu")
 
-        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief"):
-            slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=format_turu, cikti_onek=f"gonderi_{haber_id}")
+        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
+            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else "dailybrief"
+            slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}")
             slayt_yollari = [str(p) for p in slayt_listesi]
         elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
             # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla üret
@@ -1306,6 +1308,8 @@ def haber_onayina_sun(haber_id: int) -> bool:
                 "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
                 "gorsel_yolu": haber.get("gorsel_url"),
                 "format_turu": "dailybrief",
+                "detay_maddeleri": haber.get("detay_maddeleri"),
+                "uzman_notu": haber.get("uzman_notu"),
             }
             slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}")
             slayt_yollari = [str(p) for p in slayt_listesi]
