@@ -369,7 +369,7 @@ def post_baglantisi(post_id: str) -> str:
     try:
         token = config.env_al("THREADS_ACCESS_TOKEN")
         if token:
-            url = f"{GRAPH_TABAN}/{post_id}?fields=permalink&access_token={token}"
+            url = f"https://graph.threads.net/v1.0/{post_id}?fields=permalink&access_token={token}"
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 p = r.json().get("permalink")
@@ -378,3 +378,45 @@ def post_baglantisi(post_id: str) -> str:
     except Exception:
         pass
     return f"https://www.threads.net/@edmyapigayrimenkul/post/{post_id}"
+
+
+def zinciri_sil(ana_id: str) -> Tuple[int, int]:
+    """Bir Threads zincirini veya tekil gönderiyi tamamen siler (Instabot standardı).
+
+    (silinen, toplam) döner.
+    Önce yanıtlar, en sonda ana gönderi silinir.
+    """
+    _, token = _hesap_bilgileri()
+    if not token or not ana_id:
+        return 0, 0
+
+    yanitlar: List[str] = []
+    try:
+        url = f"{THREADS_TABAN}/{ana_id}/conversation"
+        r = requests.get(url, params={"access_token": token, "fields": "id"}, timeout=15)
+        if r.status_code == 200:
+            yanitlar = [x["id"] for x in r.json().get("data", [])]
+    except Exception as e:
+        log.warning("Threads zinciri okunamadı (%s): %s", ana_id, e)
+
+    hedefler = yanitlar + [ana_id]
+    silinen = 0
+    for h in hedefler:
+        try:
+            res = requests.delete(f"{THREADS_TABAN}/{h}", params={"access_token": token}, timeout=15)
+            if res.status_code in (200, 204) or (res.json() if res.content else {}).get("success"):
+                silinen += 1
+                log.info("Threads gönderisi silindi: %s", h)
+            else:
+                log.warning("Threads gönderisi silinemedi (%s): %s", h, res.text[:120])
+        except Exception as e:
+            log.warning("Threads silme hatası (%s): %s", h, e)
+
+    return silinen, len(hedefler)
+
+
+def postu_sil(post_id: str) -> bool:
+    """Tekil Threads gönderisini siler."""
+    silinen, _ = zinciri_sil(post_id)
+    return silinen > 0
+

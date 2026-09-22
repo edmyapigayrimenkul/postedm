@@ -28,14 +28,17 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import numpy as np
 
 from . import config, make_image
 
 log = logging.getLogger(__name__)
 
 # --- RENK PALETİ ---
-AMBER = (245, 158, 11)        # #F59E0B (Sıcak Kehribar Sarısı — Fotoğraf üstü en yüksek kontrast)
+AMBER_SARI = (250, 204, 21)   # #FACC15 (Parlak Güneş / Altın Sarısı — Her fotoğrafta kristal netlik)
+AMBER = (245, 158, 11)        # #F59E0B (Sıcak Kehribar Sarısı)
 KIRMIZI_CANLI = (255, 59, 48) # #FF3B30 (Canlı Mercan / EDM İkaz Kırmızısı)
+YESIL_CANLI = (52, 211, 153)  # #34D399 (Canlı Zümrüt Yeşili)
 WHITE = (255, 255, 255)
 GRAY = (148, 163, 184)
 
@@ -364,7 +367,7 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "lbl_txt": "YASAL SÜREÇ",
             "t1": "RESMİ ASKI VE İTİRAZ",
             "t2": "SÜRECİ BAŞLAMIŞTIR",
-            "renk": KIRMIZI_CANLI,
+            "renk": AMBER_SARI,
         }
 
     # Kalıp 3: KAKS / EMSAL (Örn: KAKS 0.60 veya Emsal 1.50)
@@ -427,6 +430,50 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+def hook_rengi_belirle(
+    canvas: Image.Image,
+    x: int,
+    y: int,
+    w: int = 650,
+    h: int = 140,
+    tercih_edilen_renk: Optional[Tuple[int, int, int]] = None,
+    varsayilan_dikkat_rengi: Tuple[int, int, int] = AMBER_SARI,
+) -> Tuple[int, int, int]:
+    """
+    Kullanıcı Tasarım İlkesi:
+    - Kırmızının arkasında net kontrast oluşturduğu (açık zeminli, beyaz, buz mavisi)
+      durumlarda kırmızı kullanılabilir.
+    - Ancak arka planda kiremit kırmızısı/kahverengi çatı dokusu, koyu zemin veya renk karmaşası
+      varsa kırmızı boğulur; bu durumda dikkat çekici parlak altın sarısı (#FACC15) seçilir.
+    """
+    if tercih_edilen_renk is not None:
+        return tercih_edilen_renk
+
+    try:
+        x1 = max(0, x)
+        y1 = max(0, y)
+        x2 = min(canvas.width, x + w)
+        y2 = min(canvas.height, y + h)
+        patch = canvas.crop((x1, y1, x2, y2)).convert("RGB")
+        arr = np.array(patch, dtype=np.float32)
+
+        mean_r = float(np.mean(arr[:, :, 0]))
+        mean_g = float(np.mean(arr[:, :, 1]))
+        mean_b = float(np.mean(arr[:, :, 2]))
+        luminance = 0.299 * mean_r + 0.587 * mean_g + 0.114 * mean_b
+        std_all = float(np.std(arr))
+
+        # Kırmızının gerçekten temiz ve net okunabileceği durum:
+        # Zemin oldukça aydınlık (lum >= 190) ve doku karmaşası az (std_all < 35) ise kırmızı kullanılabilir.
+        if luminance >= 190.0 and std_all < 35.0 and mean_r < 210.0:
+            return KIRMIZI_CANLI
+
+        return varsayilan_dikkat_rengi
+    except Exception as e:
+        log.debug("Hook rengi analiz hatası: %s", e)
+        return varsayilan_dikkat_rengi
+
+
 def hook_uygula(
     canvas: Image.Image,
     haber: Dict[str, Any],
@@ -443,7 +490,7 @@ def hook_uygula(
         return canvas
 
     fmt = hook_veri.get("format", "minimal_vurgu")
-    renk = hook_veri.get("renk", AMBER)
+    override_renk = haber.get("hook_renk_override")
 
     # Dikey koordinat hesabı:
     # Üst sınır: ust_y + 120 (EDM logosu ve rozetin altı)
@@ -458,6 +505,17 @@ def hook_uygula(
         y_pos = alt_sinir - hook_h
 
     x_pos = KENAR_BOSLUK
+
+    # Arka plan kontrastına göre dinamik renk adaptasyonu (Kullanıcı Kuralı)
+    renk = hook_rengi_belirle(
+        canvas=canvas,
+        x=x_pos,
+        y=y_pos,
+        w=650,
+        h=hook_h,
+        tercih_edilen_renk=override_renk,
+        varsayilan_dikkat_rengi=hook_veri.get("renk", AMBER_SARI),
+    )
 
     if fmt == "stat_punch":
         return ciz_stat_punch(

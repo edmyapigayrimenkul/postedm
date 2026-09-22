@@ -569,6 +569,33 @@ def main() -> None:
                         else:
                             telegram_bot.mesaji_guncelle(msg_id, "🗑️ <b>Taslak çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi.</i>")
 
+                    elif data == "kaldir" or data.startswith("kaldir:"):
+                        parcalar = data.split(":")
+                        tur = "haber"
+                        ref_id = None
+                        if len(parcalar) == 3:
+                            tur = parcalar[1]
+                            ref_id = parcalar[2]
+                        elif len(parcalar) == 2:
+                            if parcalar[1].isdigit():
+                                ref_id = parcalar[1]
+                            else:
+                                tur = parcalar[1]
+                        if not ref_id and msg_id:
+                            bulunan = db.mesajdan_icerik_bul(msg_id)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if not ref_id:
+                            bulunan = db.mesajdan_icerik_bul(None)
+                            if bulunan:
+                                tur, ref_id_int, _ = bulunan
+                                ref_id = str(ref_id_int)
+                        if ref_id:
+                            telegram_bot.yayindan_kaldir(tur, ref_id, mesaj_id=msg_id, basan=sender)
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Yayından kaldırılacak içerik ID'si bulunamadı.")
+
                     elif data in ("ayar", "ayar_menu"):
                         telegram_bot.mesaji_guncelle(
                             msg_id,
@@ -784,6 +811,13 @@ def main() -> None:
                             telegram_bot.mesaj_gonder(m, reply_markup=b)
                         else:
                             telegram_bot.mesaj_gonder("⚠️ Lütfen kontrol edilecek ID'yi belirtin: <code>/yayin_kontrol 104</code>")
+
+                    elif komut_parca in ("/kaldir", "/sil"):
+                        parcalar = text.split()
+                        if len(parcalar) > 1 and parcalar[1].isdigit():
+                            telegram_bot.yayindan_kaldir("haber", parcalar[1], basan=sender)
+                        else:
+                            telegram_bot.mesaj_gonder("⚠️ Lütfen yayından kaldırılacak ID'yi belirtin: <code>/kaldir 170</code>")
 
                     elif komut_parca == "/arastir":
                         log.info("/arastir komutu alındı: %s", text)

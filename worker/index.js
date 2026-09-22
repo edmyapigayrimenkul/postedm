@@ -659,6 +659,28 @@ export default {
           return new Response("OK");
         }
 
+        // L2. YAYINDAN KALDIR (SOSYAL MEDYA YAYINLARINI GERİ ALMA)
+        if (data === "kaldir" || data.startsWith("kaldir:")) {
+          let tur = "haber";
+          let refId = "";
+          const parts = data.split(":");
+          if (parts.length === 3) {
+            tur = parts[1];
+            refId = parts[2];
+          } else if (parts.length === 2) {
+            if (/^\d+$/.test(parts[1])) {
+              refId = parts[1];
+            } else {
+              tur = parts[1];
+            }
+          }
+          if (!refId) refId = icerikIdBul();
+          await cevapVer("Yayından kaldırma işlemi başlatıldı");
+          await mesajiGuncelle(`🗑️ <b>Yayından Kaldırılıyor...</b>\n<i>İçerik #${refId || ""} sosyal medya kanallarından siliniyor...</i>`);
+          await tetikleGitHub(env, "yayinla", { tur, id: refId, hedef: "kaldir", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
         // M. İLAN İŞLEMLERİ
         if (data.startsWith("ilan_sec:")) {
           const ilanId = data.split(":")[1];
@@ -838,6 +860,19 @@ export default {
         if (text === "/temizle" || text === "temizle") {
           await mesajGonder("🧹 Askıda bekleyen onaylar temizleniyor...");
           await tetikleGitHub(env, "bot_yonetim", { eylem: "tur_temizle" });
+          return new Response("OK");
+        }
+
+        // /kaldir, /sil — Yayındaki içeriği sosyal medyadan geri alır
+        if (text.startsWith("/kaldir") || text.startsWith("kaldir") || text.startsWith("/sil") || text.startsWith("sil")) {
+          const parcalar = text.split(/\s+/);
+          const refId = parcalar.length > 1 ? parcalar[1] : "";
+          if (refId && /^\d+$/.test(refId)) {
+            await mesajGonder(`🗑️ <b>İçerik #${refId} yayından kaldırılıyor...</b>\n<i>Sosyal medya kanallarından siliniyor...</i>`);
+            await tetikleGitHub(env, "yayinla", { tur: "haber", id: refId, hedef: "kaldir" });
+          } else {
+            await mesajGonder("⚠️ Lütfen yayından kaldırılacak ID'yi belirtin:\nÖrn: <code>/kaldir 170</code>");
+          }
           return new Response("OK");
         }
 

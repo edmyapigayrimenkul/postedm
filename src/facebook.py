@@ -227,3 +227,19 @@ def reels_baglantisi(video_id: str) -> str:
     if not video_id:
         return ""
     return f"https://www.facebook.com/reel/{video_id}"
+
+
+def postu_sil(post_id: str) -> bool:
+    """Yayınlanmış Facebook gönderisini veya videosunu siler (Instabot standardı)."""
+    if not post_id:
+        return False
+    try:
+        res = _istek("DELETE", f"/{post_id}")
+        if res and (res.get("success") or res.get("id")):
+            log.info("Facebook postu silindi: %s", post_id)
+            return True
+        log.warning("Facebook postu silinemedi: %s (yanıt: %s)", post_id, res)
+        return False
+    except Exception as e:
+        log.warning("Facebook postu silinirken hata (%s): %s", post_id, e)
+        return False

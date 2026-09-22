@@ -539,6 +539,115 @@ def sonucu_yaz(
     return duzenlendi
 
 
+def yayindan_kaldir(
+    tur: str,
+    ref_id: str | int,
+    mesaj_id: Optional[int] = None,
+    basan: Optional[str] = None,
+) -> bool:
+    """
+    Yayınlanmış bir içeriği (haber, ilan, reels) geri alır (Instabot standardı).
+
+    * Facebook API'den gönderi/video silinir (facebook.postu_sil).
+    * Threads API'den gönderi/zincir silinir (threads.zinciri_sil).
+    * Instagram Graph API silmeye izin vermediği için ("#10 Insufficient permissions")
+      kullanıcıya gönderi linki sunulur ve mobil uygulamadan elle silmesi istenir.
+    * Veritabanında durum='kaldirildi' yapılır, havuza DÖNMEZ (tekrar ertesi gün çıkmasın).
+    """
+    from . import facebook, threads, db
+
+    ref_str = str(ref_id)
+    haber = None
+    ilan = None
+    baslik = f"İçerik #{ref_str}"
+
+    if tur in ("haber", "reels") or ref_str.isdigit():
+        haber = db.haber_getir(int(ref_str))
+        if haber:
+            baslik = haber.get("manset") or haber.get("orijinal_baslik") or f"Haber #{ref_str}"
+    elif tur == "ilan":
+        ilan = db.ilan_getir(ref_str)
+        if ilan:
+            baslik = ilan.get("baslik") or f"İlan #{ref_str}"
+
+    if not haber and not ilan:
+        mesaj_gonder(f"⚠️ Yayından kaldırılacak içerik bulunamadı (#{ref_str}).")
+        return False
+
+    icerik_obj = haber if haber else ilan
+    durum = icerik_obj.get("durum")
+    if durum not in ("yayinlandi", "hata", "onay_bekliyor"):
+        mesaj_gonder(f"⚠️ Bu içerik kaldırılmaya uygun bir durumda değil (durum: {durum}).")
+        return False
+
+    satirlar = []
+
+    # 1. Facebook
+    fb_id = icerik_obj.get("facebook_post_id")
+    if fb_id:
+        if facebook.postu_sil(fb_id):
+            satirlar.append("📘 Facebook gönderisi silindi ✓")
+        else:
+            satirlar.append("⚠️ Facebook gönderisi silinemedi")
+    else:
+        satirlar.append("· Facebook: Kayıtlı gönderi ID yok")
+
+    # 2. Threads
+    th_id = icerik_obj.get("threads_post_id")
+    if th_id:
+        silinen, toplam = threads.zinciri_sil(th_id)
+        if silinen > 0:
+            satirlar.append(f"🧵 Threads zinciri silindi ({silinen}/{toplam} gönderi) ✓")
+        else:
+            satirlar.append("⚠️ Threads gönderisi silinemedi")
+    else:
+        satirlar.append("· Threads: Kayıtlı gönderi ID yok")
+
+    # 3. Instagram (Elle silinmeli)
+    ig_id = icerik_obj.get("instagram_post_id")
+    if ig_id:
+        ig_link = f"https://www.instagram.com/p/{ig_id}/"
+        satirlar.append(
+            "\n📷 <b>Instagram'dan ELLE silmeniz gerekiyor:</b>\n"
+            "<i>(Meta Graph API yayınlanmış postların silinmesine izin vermemektedir)</i>\n"
+            f"🔗 <a href='{ig_link}'>{ig_link}</a>"
+        )
+    else:
+        satirlar.append("· Instagram: Kayıtlı gönderi ID yok")
+
+    # 4. YouTube & TikTok
+    yt_id = icerik_obj.get("youtube_video_id")
+    if yt_id:
+        satirlar.append(f"▶️ YouTube Shorts: YouTube Studio üzerinden kaldırabilirsiniz (ID: {yt_id})")
+
+    # 5. Veritabanını güncelle: havuza DÖNMEMESİ için durum='kaldirildi'
+    if haber:
+        db.haber_guncelle(
+            int(ref_str),
+            durum="kaldirildi",
+            atlanma_zamani=datetime.now(timezone.utc).isoformat(),
+        )
+    elif ilan:
+        db.ilan_kaldirildi_isaretle(ref_str)
+
+    db.onay_istegi_sonuclandir(tur, ref_str, "kaldirildi")
+    db.wal_bosalt()
+
+    rapor_metni = (
+        f"🗑️ <b>YAYINDAN KALDIRILDI</b>\n\n"
+        f"<b>İçerik:</b> {html.escape(baslik)} (#{ref_str})\n"
+        f"<b>Kaldıran:</b> {html.escape(basan or 'Kullanıcı')}\n\n"
+        + "\n".join(satirlar)
+    )
+
+    if mesaj_id:
+        mesaji_guncelle(mesaj_id, rapor_metni, reply_markup=None)
+
+    mesaj_gonder(rapor_metni)
+    log.info("İçerik yayından kaldırıldı: tur=%s, ref_id=%s, basan=%s", tur, ref_str, basan)
+    return True
+
+
 def durum_guncelle(mesaj_id: int, baslik: str, adim: int, toplam_adim: int = 4, detay: str = "") -> None:
     """İşlem sürerken Telegram'da görsel progress bar günceller."""
     if toplam_adim < 1:
@@ -1344,10 +1453,22 @@ def haber_onayina_sun(haber_id: int) -> bool:
     except Exception as e:
         log.warning("Görseller CDN'e yüklenemedi: %s", e)
 
+    # 2.6 Eşzamanlı 9:16 Video Üretimi (Instabot Paritesi: Onaylanan slaytlarla video 1:1 kilitlenir)
+    v_yolu = None
+    try:
+        from . import video, ses
+        v_ham = video.slaytlardan_reels_uret(slayt_yollari)
+        if v_ham and v_ham.exists():
+            v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
+            v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
+    except Exception as ve:
+        log.warning("Haber videosu onay anında derlenemedi: %s", ve)
+
     db.haber_guncelle(
         haber_id,
         slayt_yollari=json.dumps(slayt_yollari),
         slayt_urlleri=json.dumps(slayt_urlleri) if slayt_urlleri else None,
+        video_yolu=str(v_yolu) if v_yolu else None,
         durum="onay_bekliyor"
     )
 
@@ -1639,20 +1760,22 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         mesaj_gonder("⚠️ Konu bankasında uygun konu bulunamadı.")
         return False
 
-    # Reels dikey video için tek görsel yetersizdir; 5-7 slaytlık dinamik akış için B1 rehber şeması kullanılır
     konu_reels = dict(konu)
-    konu_reels["bicim"] = "B1"
+    bicim = konu_reels.get("bicim") or "dailybrief"
 
     veri = generate_text.konudan_uret(konu_reels)
     if not veri:
         mesaj_gonder("❌ Gemini metin üretemedi.")
         return False
 
-    from . import make_image
-    # EDM Otorite Tasarım Sistemi (1080x1920 Story / Reels Ölçüsü)
-    slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(
-        veri, cikti_onek=f"reels_{konu['kod']}", olcu="story"
-    )
+    from . import make_image, yeni_formatlar
+    fmt = veri.get("format_turu") or bicim
+    if fmt in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+        slayt_yollari = yeni_formatlar.slaytlari_uret(veri, format_turu=fmt, cikti_onek=f"reels_{konu['kod']}")
+    else:
+        slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(
+            veri, cikti_onek=f"reels_{konu['kod']}", olcu="besleme"
+        )
     if not slayt_yollari:
         mesaj_gonder("❌ Reels için slayt görselleri üretilemedi.")
         return False
@@ -1665,17 +1788,9 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         log.warning("Reels slaytları CDN'e yüklenemedi: %s", e)
 
     # 4:5 Besleme Slaytları (Threads ve Akış paylaşımları için)
-    try:
-        slayt_4x5_yollari = make_image.otorite_gonderi_slaytlari_uret(
-            veri, cikti_onek=f"reels_4x5_{konu['kod']}", olcu="besleme"
-        )
-        if slayt_4x5_yollari:
-            slayt_4x5_urlleri = upload_image.coklu_gorsel_yukle(slayt_4x5_yollari)
-            if slayt_4x5_urlleri:
-                veri["slayt_4x5_urlleri"] = slayt_4x5_urlleri
-            veri["slayt_4x5_yollari"] = [str(p) for p in slayt_4x5_yollari]
-    except Exception as e45:
-        log.warning("Reels 4:5 slaytları hazırlanamadı: %s", e45)
+    slayt_4x5_yollari = slayt_yollari
+    veri["slayt_4x5_urlleri"] = slayt_urlleri
+    veri["slayt_4x5_yollari"] = [str(p) for p in slayt_4x5_yollari]
 
     # Dikey 1080x1920 MP4 Reels Videosu Derle (Instabot standardı)
     from . import video
@@ -1782,7 +1897,7 @@ def format_degistir_ve_sun(haber_id: int, hedef_format: str) -> bool:
     detay_metni = haber.get("detay_metni")
     veri = json.loads(detay_metni) if detay_metni else {}
     veri["format_turu"] = hedef_format
-    db.haber_guncelle(haber_id, detay_metni=json.dumps(veri, ensure_ascii=False), slayt_yollari=None, slayt_urlleri=None)
+    db.haber_guncelle(haber_id, detay_metni=json.dumps(veri, ensure_ascii=False), slayt_yollari=None, slayt_urlleri=None, video_yolu=None)
     mesaj_gonder(f"🎨 Haber #{haber_id} <b>{hedef_format.upper()}</b> formatına dönüştürülüyor...")
     return haber_onayina_sun(haber_id)
 
@@ -1996,8 +2111,7 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     # 2. YouTube Shorts için dikey 9:16 video ve fon müziği hazırla
     v_yolu = None
     try:
-        dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=f"reels_{haber_id}", olcu="story")
-        v_yolu = video.slaytlardan_reels_uret([str(p) for p in dikey_slaytlar])
+        v_yolu = video.slaytlardan_reels_uret(slayt_str_yollari)
         if v_yolu and v_yolu.exists():
             sesli_v = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20)
             if sesli_v and sesli_v.exists():

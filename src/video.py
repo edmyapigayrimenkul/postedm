@@ -32,43 +32,64 @@ FONT_FRAUNCES = config.yol_al("assets/fonts/Fraunces-Variable.ttf")
 LOGO_PIN = config.yol_al("assets/logos/pin-sembol.png")
 
 
-def _cercevele_9_16(kart_img: Image.Image) -> Image.Image:
+def _cercevele_9_16(kart_img: Image.Image, genislik: int = HEDEF_W, yukseklik: int = HEDEF_H) -> Image.Image:
     """1080x1350 slayt görselini 1080x1920 (9:16) formatına dönüştürür.
 
-    Kullanıcı kuralı: Alt ve üst kısımlarda yapay geçiş, blur veya degrade
-    hissiyatı olmamalıdır. Kartın üst rengi en tepeye (y=0), alt rengi ise
-    en alta (y=1920) kesintisiz ve aynı tonda devam eder.
+    Instabot standartı: Kartın arkasına sinematik Gaussian blur + koyu perde +
+    yumuşak derinlik gölgesi uygulanır. Kart tam merkezde net ve güvenli alanda kalır;
+    asla piksel uzatma çizgisi veya yapay renk yırtılması oluşmaz.
     """
     w, h = kart_img.size
-    if (w, h) == (HEDEF_W, HEDEF_H):
+    if (w, h) == (genislik, yukseklik):
         return kart_img.convert("RGB")
 
+    card_y = max(0, (yukseklik - h) // 2)  # 285 px
+
+    # Düz zeminli kart kontrolü (Kullanıcı kuralı: Tek renkli zeminlerde kesintisiz uzatma)
     kart_rgb = kart_img.convert("RGB")
-    card_y = max(0, (HEDEF_H - h) // 2)
+    ust_satir = np.array(kart_rgb.crop((0, 0, w, 1)), dtype=np.float32)
+    alt_satir = np.array(kart_rgb.crop((0, h - 1, w, h)), dtype=np.float32)
+    if float(np.max(np.std(ust_satir, axis=1))) < 4.0 and float(np.max(np.std(alt_satir, axis=1))) < 4.0:
+        tuval = Image.new("RGB", (genislik, yukseklik))
+        ust_serit = kart_rgb.crop((0, 0, w, 1)).resize((genislik, card_y), Image.Resampling.NEAREST)
+        tuval.paste(ust_serit, (0, 0))
+        alt_kalan = yukseklik - (card_y + h)
+        if alt_kalan > 0:
+            alt_serit = kart_rgb.crop((0, h - 1, w, h)).resize((genislik, alt_kalan), Image.Resampling.NEAREST)
+            tuval.paste(alt_serit, (0, card_y + h))
+        tuval.paste(kart_rgb, (0, card_y))
+        return tuval
 
-    tuval = Image.new("RGB", (HEDEF_W, HEDEF_H))
+    # 1. Arka plan: Görüntüyü tüm 1080x1920 alana orantılı büyütüp sinematik blur ve karartma uygula
+    oran = max(genislik / w, yukseklik / h)
+    bg_w, bg_h = int(w * oran), int(h * oran)
+    bg = kart_img.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
+    sol = (bg_w - genislik) // 2
+    ust = (bg_h - yukseklik) // 2
+    bg = bg.crop((sol, ust, sol + genislik, ust + yukseklik))
+    bg = bg.filter(ImageFilter.GaussianBlur(35))
 
-    # 1. Üst kısım: Kartın en üst satırını yukarıya doğru kesintisiz uzat (0 .. card_y)
-    ust_serit = kart_rgb.crop((0, 0, w, 1)).resize((HEDEF_W, card_y), Image.Resampling.NEAREST)
-    tuval.paste(ust_serit, (0, 0))
+    # Koyu perde
+    perde = Image.new("RGBA", (genislik, yukseklik), (10, 13, 19, 160))
+    bg = Image.alpha_composite(bg.convert("RGBA"), perde)
 
-    # 2. Alt kısım: Kartın en alt satırını aşağıya doğru kesintisiz uzat (card_y + h .. 1920)
-    alt_y = card_y + h
-    alt_kalan = HEDEF_H - alt_y
-    if alt_kalan > 0:
-        alt_serit = kart_rgb.crop((0, h - 1, w, h)).resize((HEDEF_W, alt_kalan), Image.Resampling.NEAREST)
-        tuval.paste(alt_serit, (0, alt_y))
+    # 2. Ana 4:5 kartın arkasına yumuşak derinlik gölgesi
+    golge = Image.new("RGBA", (genislik, yukseklik), (0, 0, 0, 0))
+    gdraw = ImageDraw.Draw(golge)
+    gdraw.rectangle([0, card_y - 8, genislik, card_y + h + 8], fill=(0, 0, 0, 180))
+    golge = golge.filter(ImageFilter.GaussianBlur(25))
+    bg = Image.alpha_composite(bg, golge)
 
-    # 3. 4:5 Görseli Merkeze Sıfır Geçiş Maskesi ile Kesintisiz Yerleştir
-    tuval.paste(kart_rgb, (0, card_y))
+    # 3. Ana 4:5 kartı merkeze yerleştir
+    bg.paste(kart_img.convert("RGBA"), (0, card_y))
 
-    return tuval
+    return bg.convert("RGB")
 
 
 def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[Image.Image]:
     """Görseli yerel dosyadan veya önbellekten açar; yoksa uzak URL'den 3 denemeli olarak indirir."""
     import time
-    s = str(kaynak)
+    s = str(kaynak).strip()
 
     # 1. Önce URL ise upload önbelleğinde yerel karşılığı var mı bak
     yerel = upload_image.yerel_karsiligi(s)
@@ -79,19 +100,27 @@ def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[I
         except Exception as e:
             log.warning("Önbellekteki yerel görsel açılamadı (%s): %s", yerel, e)
 
-    # 2. Uzak URL ise indir
+    # 2. Uzak URL ise indir (Önce hızlı curl, sonra requests fallback)
     if s.startswith("http://") or s.startswith("https://"):
-        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+        try:
+            c_res = subprocess.run(["curl", "-s", "-f", "-L", "-m", "15", s], capture_output=True)
+            if c_res.returncode == 0 and len(c_res.stdout) > 500:
+                img = Image.open(io.BytesIO(c_res.stdout))
+                return ImageOps.exif_transpose(img).convert("RGB")
+        except Exception as ce:
+            log.debug("Curl indirme atlandı/başarısız: %s", ce)
+
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36", "Connection": "close"}
         for deneme in range(1, deneme_adedi + 1):
             try:
-                resp = requests.get(s, headers=headers, timeout=25)
-                if resp.status_code == 200:
+                resp = requests.get(s, headers=headers, timeout=20)
+                if resp.status_code == 200 and len(resp.content) > 500:
                     img = Image.open(io.BytesIO(resp.content))
                     return ImageOps.exif_transpose(img).convert("RGB")
             except Exception as e:
                 log.warning("Video görseli indirme hatası (%s, deneme %d/%d): %s", s, deneme, deneme_adedi, e)
             if deneme < deneme_adedi:
-                time.sleep(2 * deneme)
+                time.sleep(1.5 * deneme)
         return None
 
     # 3. Yerel dosya yolu ise doğrudan aç
@@ -102,6 +131,7 @@ def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[I
             return ImageOps.exif_transpose(img).convert("RGB")
         except Exception as e:
             log.warning("Yerel görsel açılamadı (%s): %s", p, e)
+    return None
 def slayt_surelerini_hesapla(
     toplam_slayt: int,
     haber: Optional[dict] = None,

@@ -2892,8 +2892,19 @@ def haber_dailybrief_slayti_ciz(
         bg_img: Optional[Image.Image] = None
         foto_kaynak = haber.get("foto_kaynak")
 
+        # 1.0. Önceden belirlenmiş/önbelleğe alınmış fotoğraf varsa doğrudan kullan
+        secilen_fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu")
+        if secilen_fp:
+            p_sec = Path(secilen_fp)
+            if p_sec.exists() and p_sec.is_file():
+                try:
+                    img_ham = ImageOps.exif_transpose(Image.open(p_sec)).convert("RGB")
+                    bg_img = img_ham
+                except Exception as pe:
+                    log.warning("Kayıtlı haber fotoğrafı açılamadı: %s", pe)
+
         # Telegram'dan '📸 Gerçek Fotoğraf Ara' seçilmişse veya web fotoğrafı istendiyse
-        if foto_kaynak == "gercek":
+        if not bg_img and foto_kaynak == "gercek":
             try:
                 from . import fetch_web_image
                 sorgu = haber.get("manset") or haber.get("baslik") or ""
@@ -2903,6 +2914,15 @@ def haber_dailybrief_slayti_ciz(
                     atif = fetch_web_image.atif_metni(aday)
                     if atif:
                         haber["foto_atif"] = atif
+                    # Gelecek slaytlar ve 9:16 video için fotoğrafı önbelleğe yaz
+                    try:
+                        c_dir = cikti_yolu.parent if cikti_yolu else config.yol_al("data/output/gonderiler")
+                        c_dir.mkdir(parents=True, exist_ok=True)
+                        cache_foto_yolu = c_dir / f"cache_foto_{cikti_yolu.stem if cikti_yolu else os.getpid()}.jpg"
+                        bg_img.save(cache_foto_yolu, "JPEG", quality=95)
+                        haber["foto_yolu"] = str(cache_foto_yolu)
+                    except Exception as ce:
+                        log.debug("Fotoğraf önbelleğe yazılamadı: %s", ce)
                     log.info("Gerçek web basın fotoğrafı kullanılıyor (%s).", atif or "atıfsız")
             except Exception as we:
                 log.warning("Gerçek web fotoğrafı aranamadı: %s", we)
@@ -2972,8 +2992,8 @@ def haber_dailybrief_slayti_ciz(
         )
         draw = ImageDraw.Draw(canvas)
 
-        kategori_adi = haber.get("kategori") or haber.get("kategori_kodu") or "GAYRİMENKUL & MEVZUAT"
-        kategori_adi = str(kategori_adi).replace("_", " ").upper()
+        from .yeni_formatlar import kategori_temizle
+        kategori_adi = kategori_temizle(haber.get("kategori") or haber.get("kategori_kodu")).upper()
         rozet_txt = f"EDM GÜNDEM // {kategori_adi}"
         azami_rozet_w = logo_x - kenar - 30
         _rozet_ciz(
@@ -3330,40 +3350,51 @@ def haber_dailybrief_detay_slayti_ciz(
         else:
             temiz_maddeler = haber_detay_maddelerini_ayikla(haber)[:3]
 
-        # 4. Fontlar ve Boyutlandırma
+        # 4. Fontlar ve Boyutlandırma (Genişletilmiş, Prestijli Tipografi)
         if not goster_uzman_notu:
             # Uzman notu yok -> Tüm dikey alan maddelere ayrılır, devasa ve ferah tipografi!
-            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 40)
-            font_madde_govde = _font_yukle(FONT_SANS, 34)
-            lh_govde = 50
-            h_etiket = 44
+            if len(temiz_maddeler) <= 1:
+                font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 48)
+                font_madde_govde = _font_yukle(FONT_SANS, 42)
+                lh_govde = 60
+                h_etiket = 54
+            elif len(temiz_maddeler) == 2:
+                font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 44)
+                font_madde_govde = _font_yukle(FONT_SANS, 38)
+                lh_govde = 54
+                h_etiket = 48
+            else:
+                font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 40)
+                font_madde_govde = _font_yukle(FONT_SANS, 34)
+                lh_govde = 48
+                h_etiket = 44
         elif len(temiz_maddeler) <= 1:
             # 1 Madde + Dev Uzman Notu Kartı (3. slayt düzeni)
-            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 40)
-            font_madde_govde = _font_yukle(FONT_SANS, 34)
-            lh_govde = 50
-            h_etiket = 44
+            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 46)
+            font_madde_govde = _font_yukle(FONT_SANS, 40)
+            lh_govde = 56
+            h_etiket = 52
             font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 24)
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 34)
-            uzman_lh = 50
+            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 38)
+            uzman_lh = 54
             pad_y = 30
         elif len(temiz_maddeler) == 2:
+            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 42)
+            font_madde_govde = _font_yukle(FONT_SANS, 36)
+            lh_govde = 50
+            h_etiket = 46
+            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
+            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 34)
+            uzman_lh = 48
+            pad_y = 26
+        else:
             font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 38)
-            font_madde_govde = _font_yukle(FONT_SANS, 34)
-            lh_govde = 48
+            font_madde_govde = _font_yukle(FONT_SANS, 32)
+            lh_govde = 46
             h_etiket = 42
             font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
             font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
-            uzman_lh = 46
-            pad_y = 24
-        else:
-            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 36)
-            font_madde_govde = _font_yukle(FONT_SANS, 32)
-            lh_govde = 46
-            h_etiket = 38
-            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 30)
-            uzman_lh = 42
+            uzman_lh = 44
             pad_y = 22
 
         # 5. Dikey Yerleşim Mimarisi
@@ -3377,9 +3408,9 @@ def haber_dailybrief_detay_slayti_ciz(
                 uzman_notu = "Parselinizin güncel imar ve tapu kayıtlarını askı panolarından vakit kaybetmeden kontrol edin; itiraz süresini kaçırmayın."
 
             uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
-            if len(uzman_satirlari) > 3 and uzman_lh >= 46:
-                font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 28)
-                uzman_lh = 40
+            if len(uzman_satirlari) > 4 and uzman_lh >= 50:
+                font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
+                uzman_lh = 46
                 uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
 
             uzman_kart_h = pad_y + 26 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
@@ -3396,7 +3427,8 @@ def haber_dailybrief_detay_slayti_ciz(
         maddeler_olculu = []
         for m in temiz_maddeler:
             satirlar_m = _metin_sar(_temizle_tipografi(m["metin"]), font_madde_govde, kullanilabilir_w - 38, draw)
-            satirlar_m = satirlar_m[:4 if not goster_uzman_notu else 3]
+            max_satir = 4 if not goster_uzman_notu else (4 if len(temiz_maddeler) <= 1 else 3)
+            satirlar_m = satirlar_m[:max_satir]
             h_m = h_etiket + 14 + (len(satirlar_m) * lh_govde)
             maddeler_olculu.append({
                 "etiket": m["etiket"],
@@ -3413,14 +3445,16 @@ def haber_dailybrief_detay_slayti_ciz(
         curr_m_y = y_kursur + max(0, (kalan_h - toplam_blok_h) // 2)
 
         # Maddeleri Çiz (Açık, ferah ve güçlü mimari akış)
+        notch_w = 10 if (not goster_uzman_notu or len(temiz_maddeler) <= 1) else 8
+        notch_pad = 32 if notch_w >= 10 else 28
         for mo in maddeler_olculu:
             m_h = mo["h"]
-            draw.rounded_rectangle([kenar, curr_m_y + 3, kenar + 8, curr_m_y + m_h - 4], radius=4, fill=mo["renk"])
-            draw.text((kenar + 28, curr_m_y), mo["etiket"], font=font_madde_etiket, fill=mo["renk"])
+            draw.rounded_rectangle([kenar, curr_m_y + 3, kenar + notch_w, curr_m_y + m_h - 4], radius=4, fill=mo["renk"])
+            draw.text((kenar + notch_pad, curr_m_y), mo["etiket"], font=font_madde_etiket, fill=mo["renk"])
 
             gy = curr_m_y + h_etiket + 12
             for s in mo["satirlar"]:
-                draw.text((kenar + 28, gy), s, font=font_madde_govde, fill=RENK_METIN_GOVDE)
+                draw.text((kenar + notch_pad, gy), s, font=font_madde_govde, fill=RENK_METIN_GOVDE)
                 gy += lh_govde
 
             curr_m_y += m_h + bosluk

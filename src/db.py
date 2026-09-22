@@ -424,6 +424,13 @@ def ilan_reddedildi_isaretle(ilan_id: str) -> None:
         conn.commit()
 
 
+def ilan_kaldirildi_isaretle(ilan_id: str) -> None:
+    """İlanı yayından kaldırıldı olarak işaretler, havuza dönmez."""
+    with _baglanti_al() as conn:
+        conn.execute("UPDATE ilanlar SET durum = 'kaldirildi' WHERE id = ?", (str(ilan_id),))
+        conn.commit()
+
+
 def onay_istegi_kaydet(
     tur: str,
     referans_id: str,
