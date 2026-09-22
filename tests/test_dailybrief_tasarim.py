@@ -292,11 +292,40 @@ class TestDailyBriefTasarim(unittest.TestCase):
             olcu="besleme",
             sayfa_no="01 / 02",
         )
+    def test_haber_dailybrief_foto_atif_entegrasyonu(self):
+        """Web fotoğrafları için foto_atif künyesi alt bara eklenmeli ve taşma yapmadan çizilmeli."""
+        h = {
+            "manset": "Silivri Alibey Mahallesi İmar Planı Değişikliği",
+            "spot": "30 günlük askı ve itiraz süreci resmen başladı.",
+            "kategori": "ARSA_VE_IMAR",
+            "kaynak": "Anadolu Ajansı",
+            "foto_atif": "Fotoğraf: aa.com.tr",
+        }
+        cikti = self.tmp_path / "kapak_atif_test.jpg"
+        res = make_image.haber_dailybrief_slayti_ciz(
+            h,
+            foto_yolu=self.test_foto,
+            cikti_yolu=cikti,
+            olcu="besleme",
+            sayfa_no="01 / 02",
+        )
         self.assertTrue(cikti.exists())
         with Image.open(res) as im:
             self.assertEqual(im.size, (1080, 1350))
 
+    def test_telegram_ve_worker_format_menusu_dailybrief(self):
+        """Telegram slayt ve format menülerinde DailyBrief Haber seçeneği yer almalı."""
+        from src import telegram_bot
+        menu = telegram_bot.format_secim_menusu(123)
+        cb_list = [btn["callback_data"] for row in menu["inline_keyboard"] for btn in row]
+        self.assertIn("format_uygula:dailybrief:123", cb_list)
+
+        s_menu = telegram_bot.slayt_secim_menusu(adet=2)
+        s_cb_list = [btn["callback_data"] for row in s_menu["inline_keyboard"] for btn in row]
+        self.assertIn("format_uygula:dailybrief", s_cb_list)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

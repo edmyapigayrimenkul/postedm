@@ -617,7 +617,7 @@ export default {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: `🎨 İçerik <b>${format.toUpperCase()}</b> formatına dönüştürülüyor...`, parse_mode: "HTML" }),
           });
-          await tetikleGitHub(env, "format_donustur", { format_turu: format, id: fmtId, mesaj_id: messageId });
+          await tetikleGitHub(env, "format_donustur", { format_turu: format, id: fmtId, haber_id: fmtId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -1262,18 +1262,19 @@ function slaytSecimMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", 
     tuslar.push(satir);
   }
   tuslar.push([
+    { text: "📰 DailyBrief Haber", callback_data: "format_uygula:dailybrief" },
     { text: "📖 Sözlük Formatı", callback_data: "format_uygula:sozluk" },
+  ]);
+  tuslar.push([
     { text: "⚖️ Nedir Doğrusu?", callback_data: "format_uygula:nedir_dogrusu" },
-  ]);
-  tuslar.push([
     { text: "📂 Vaka Analizi", callback_data: "format_uygula:vaka" },
+  ]);
+  tuslar.push([
     { text: "❓ Net Cevap", callback_data: "format_uygula:net_cevap" },
-  ]);
-  tuslar.push([
     { text: "🎬 9:16 Dikey Reels", callback_data: "format_uygula:reels" },
-    { text: "🏛️ Klasik Otorite (B1)", callback_data: "format_uygula:b1" },
   ]);
   tuslar.push([
+    { text: "🏛️ Klasik Otorite (B1)", callback_data: "format_uygula:b1" },
     { text: "← Geri", callback_data: `geri:${adet}` },
   ]);
   return { inline_keyboard: tuslar };

@@ -2899,8 +2899,11 @@ def haber_dailybrief_slayti_ciz(
                 sorgu = haber.get("manset") or haber.get("baslik") or ""
                 sonuc = fetch_web_image.fotograf_ara([sorgu, f"{sorgu} emlak", f"{sorgu} haber"])
                 if sonuc:
-                    bg_img, _ = sonuc
-                    log.info("Gerçek web basın fotoğrafı kullanılıyor.")
+                    bg_img, aday = sonuc
+                    atif = fetch_web_image.atif_metni(aday)
+                    if atif:
+                        haber["foto_atif"] = atif
+                    log.info("Gerçek web basın fotoğrafı kullanılıyor (%s).", atif or "atıfsız")
             except Exception as we:
                 log.warning("Gerçek web fotoğrafı aranamadı: %s", we)
 
@@ -3080,8 +3083,10 @@ def haber_dailybrief_slayti_ciz(
 
         kaynak_adi = haber.get("kaynak") or "Sektörel Bülten"
         kaynak_txt = f"KAYNAK: {str(kaynak_adi).upper()}"
+        foto_atif = (haber.get("foto_atif") or "").strip()
+        if foto_atif:
+            kaynak_txt = f"{kaynak_txt}  ·  {foto_atif.upper()}"
         font_alt = _font_yukle(FONT_MONO, 17)
-        draw.text((kenar, alt_y + 20), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
 
         if sayfa_no:
             sag_txt = f"{sayfa_no}  ›  KAYDIRIN" if "01" in sayfa_no and olcu == "besleme" and "KAYDIRIN" not in sayfa_no else sayfa_no
@@ -3089,6 +3094,12 @@ def haber_dailybrief_slayti_ciz(
             sag_txt = "@edmyapigayrimenkul · Yatırım Ortağınız"
         bbox_s = draw.textbbox((0, 0), sag_txt, font=font_alt)
         s_w = bbox_s[2] - bbox_s[0]
+
+        max_sol_w = genislik - (2 * kenar) - s_w - 30
+        while draw.textbbox((0, 0), kaynak_txt, font=font_alt)[2] > max_sol_w and len(kaynak_txt) > 20:
+            kaynak_txt = kaynak_txt[:-4] + "…"
+
+        draw.text((kenar, alt_y + 20), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
         draw.text((genislik - kenar - s_w, alt_y + 20), sag_txt, font=font_alt, fill=RENK_KURSUN_ACIK if "›" in sag_txt else RENK_KURSUN)
 
         # Dosyayı kaydet

@@ -25,12 +25,14 @@ on:
     types: [rapor]
 
 concurrency:
-  group: gunluk-rapor
-  cancel-in-progress: true
+  group: edm-veritabani
+  cancel-in-progress: false
 
 jobs:
   rapor:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +57,11 @@ jobs:
           MESAJ_ID: ${{ github.event.client_payload.mesaj_id }}
           KATEGORI: ${{ github.event.client_payload.kategori }}
         run: python scripts/gunluk_rapor.py
+
+      - name: Veritabanını Kaydet
+        if: always()
+        run: |
+          python scripts/db_kaydet.py "db: gunluk metrikler ve durum guncellendi"
 
       - name: Hata bildir
         if: failure()

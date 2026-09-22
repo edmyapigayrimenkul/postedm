@@ -344,7 +344,10 @@ def main() -> None:
                     otorite_verisi = json.loads(detay_str)
                     if isinstance(otorite_verisi, dict):
                         format_turu = otorite_verisi.get("format_turu")
-                        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+                        if (
+                            format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief")
+                            or otorite_verisi.get("bicim") in ("haber", "B5")
+                        ):
                             slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=format_turu, cikti_onek=f"haber_{ref_id}")
                         else:
                             slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(otorite_verisi, cikti_onek=f"haber_{ref_id}", olcu="besleme")
@@ -674,11 +677,14 @@ def main() -> None:
             story_dosya.parent.mkdir(parents=True, exist_ok=True)
             hazir_yol = None
 
-            if detay and isinstance(detay, dict) and detay.get("format_turu") in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+            if detay and isinstance(detay, dict) and (
+                detay.get("format_turu") in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief")
+                or detay.get("bicim") in ("haber", "B5")
+            ):
                 try:
                     from src import yeni_formatlar
-                    fmt = detay["format_turu"]
-                    d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"story_{ref_id}")
+                    fmt = detay.get("format_turu") or "dailybrief"
+                    d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"story_{ref_id}", olcu="story")
                     if d_slaytlar and Path(d_slaytlar[0]).exists():
                         hazir_yol = Path(d_slaytlar[0])
                 except Exception as de:

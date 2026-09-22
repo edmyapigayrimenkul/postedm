@@ -816,18 +816,19 @@ def slayt_secim_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None
         tuslar.append(satir)
     tuslar.extend([
         [
+            {"text": "📰 DailyBrief Haber", "callback_data": "format_uygula:dailybrief"},
             {"text": "📖 Sözlük Formatı", "callback_data": "format_uygula:sozluk"},
+        ],
+        [
             {"text": "⚖️ Nedir Doğrusu?", "callback_data": "format_uygula:nedir_dogrusu"},
-        ],
-        [
             {"text": "📂 Vaka Analizi", "callback_data": "format_uygula:vaka"},
+        ],
+        [
             {"text": "❓ Net Cevap", "callback_data": "format_uygula:net_cevap"},
-        ],
-        [
             {"text": "🎬 9:16 Dikey Reels", "callback_data": "format_uygula:reels"},
-            {"text": "🏛️ Klasik Otorite (B1)", "callback_data": "format_uygula:b1"},
         ],
         [
+            {"text": "🏛️ Klasik Otorite (B1)", "callback_data": "format_uygula:b1"},
             {"text": "← Geri", "callback_data": f"geri:{adet}"},
         ],
     ])
@@ -893,15 +894,18 @@ def format_secim_menusu(haber_id: int) -> Dict[str, Any]:
     return {
         "inline_keyboard": [
             [
+                {"text": "📰 DailyBrief Haber", "callback_data": f"format_uygula:dailybrief:{haber_id}"},
                 {"text": "📖 EDM Sözlük", "callback_data": f"format_uygula:sozluk:{haber_id}"},
+            ],
+            [
                 {"text": "⚖️ Nedir Doğrusu?", "callback_data": f"format_uygula:nedir_dogrusu:{haber_id}"},
-            ],
-            [
                 {"text": "📂 Vaka Analizi", "callback_data": f"format_uygula:vaka:{haber_id}"},
-                {"text": "❓ Net Cevap", "callback_data": f"format_uygula:net_cevap:{haber_id}"},
             ],
             [
+                {"text": "❓ Net Cevap", "callback_data": f"format_uygula:net_cevap:{haber_id}"},
                 {"text": "🎬 9:16 Dikey Reels", "callback_data": f"format_uygula:reels:{haber_id}"},
+            ],
+            [
                 {"text": "🏛️ Klasik Otorite (B1)", "callback_data": f"format_uygula:b1:{haber_id}"},
             ],
             [
