@@ -745,6 +745,22 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             mock_arttir.assert_called_once_with(102)
             self.assertIn("1. Hatırlatma", mock_mesaj.call_args[0][0])
 
+        # 3. 2 gün beklemiş ve 3 kez hatırlatılmış haber -> 5 gün dolana kadar zaman aşımına uğramaz, onayda kalır
+        orta_haber = {
+            "id": 103,
+            "manset": "2 Günlük Bekleyen Haber",
+            "eklenme_tarihi": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(),
+            "hatirlatma_sayisi": 3,
+            "durum": "onay_bekliyor",
+        }
+        with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[orta_haber]), \
+             patch.object(hatirlat_mod.db, "durum_zaman_asimi_yap") as mock_za_orta, \
+             patch.object(hatirlat_mod.telegram_bot, "mesaj_gonder") as mock_mesaj_orta, \
+             patch.object(hatirlat_mod.db, "wal_bosalt"):
+            hatirlat_mod.main(argv=[])
+            mock_za_orta.assert_not_called()
+            mock_mesaj_orta.assert_not_called()
+
     def test_actions_asla_beklemede_kalmaz(self) -> None:
         """GitHub Actions iş akışları asla Telegram yanıtı beklemek için açık kalmamalı (sıfır bekleme kuralı)."""
         wf_klasoru = KOK / ".github" / "workflows"

@@ -251,7 +251,7 @@ def eski_kayitlari_temizle(gun: int = 14) -> int:
     esik = (datetime.now(timezone.utc) - timedelta(days=gun)).isoformat()
     with _baglanti_al() as conn:
         cursor = conn.execute(
-            "DELETE FROM haberler WHERE durum != 'yayinlandi' AND eklenme_tarihi < ?",
+            "DELETE FROM haberler WHERE durum NOT IN ('yayinlandi', 'onay_bekliyor') AND eklenme_tarihi < ?",
             (esik,)
         )
         conn.execute(

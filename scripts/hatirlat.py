@@ -58,19 +58,27 @@ def main(argv: list[str] | None = None):
         baslik = haber.get("manset") or haber.get("orijinal_baslik") or "İçerik"
         mevcut_hatirlatma = haber.get("hatirlatma_sayisi") or 0
 
-        # 1. Zaman aşımı kontrolü (24 saat = 1440 dakika veya 3 hatırlatma)
-        if dakika is not None and (dakika >= 24 * 60 or mevcut_hatirlatma >= 3):
+        # 1. Zaman aşımı kontrolü (Kullanıcı kuralı: 5 gün = 120 saat = 7200 dakika)
+        # Gündüz gelen haberler unutulsa dahi 5 güne kadar onay kuyruğunda korunur, silinmez/arşivlenmez.
+        ZAMAN_ASIMI_DAKIKA = 5 * 24 * 60
+        if dakika is not None and dakika >= ZAMAN_ASIMI_DAKIKA:
             log.info("Haber #%d zaman aşımına uğradı (%d dakika, %d hatırlatma).", haber_id, int(dakika), mevcut_hatirlatma)
             db.durum_zaman_asimi_yap(haber_id)
             telegram_bot.mesaj_gonder(
-                f"⌛️ <b>İÇERİK ZAMAN AŞIMINA UĞRADI</b>\n\n"
+                f"⌛️ <b>İÇERİK ZAMAN AŞIMINA UĞRADI (5 Gün)</b>\n\n"
                 f"📌 <b>Başlık:</b> {baslik}\n"
-                f"ℹ️ Bu içerik 24 saati aşkın süredir onay beklediği için güncelliğini yitirmemesi adına arşivlendi ve onay kuyruğundan kaldırıldı."
+                f"ℹ️ Bu içerik 5 gündür onay beklediği için güncelliğini yitirmemesi adına arşivlendi ve onay kuyruğundan kaldırıldı."
             )
             continue
 
         if not args.zorla and dakika is not None and dakika < 60:
             log.info("Haber #%d henüz %d dakikadır bekliyor, hatırlatma için erken.", haber_id, int(dakika))
+            continue
+
+        # Azami bildirim kısıtı: Kullanıcıyı mesaj yağmuruna tutmamak için en fazla 3 hatırlatma gönderilir.
+        # 3 hatırlatmadan sonra içerik onay kuyruğunda sessizce 5 gün boyunca bekletilir, kullanıcı istediğinde yayınlayabilir.
+        if not args.zorla and mevcut_hatirlatma >= 3:
+            log.info("Haber #%d azami hatırlatma adedine (%d) ulaştı. 5 günlük onay süresine kadar sessizce bekletiliyor.", haber_id, mevcut_hatirlatma)
             continue
 
         yeni_sayi = db.hatirlatma_arttir(haber_id)
