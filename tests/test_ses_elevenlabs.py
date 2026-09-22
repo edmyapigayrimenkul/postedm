@@ -138,6 +138,30 @@ class TestSesElevenLabs(unittest.TestCase):
         self.assertEqual(res, cikti)
         mock_writer.assert_called_once()
 
+    def test_slayt_surelerini_hesapla(self):
+        """Instabot commit 94bf292 standardı: İçerik ve kelime yoğunluğuna göre dinamik slayt süreleri."""
+        from src.video import slayt_surelerini_hesapla
+
+        # 1. Tek slayt için varsayılan kapak süresi
+        s1 = slayt_surelerini_hesapla(1)
+        self.assertEqual(s1, [4.2])
+
+        # 2. 3 slayt için kapak (4.2) + 2 detay slaytı
+        h = {
+            "detay_maddeleri": [
+                {"etiket": "PARSELLER", "metin": "Selimpaşa D-100 kuzey aksı ve Ortaköy gelişim koridorundaki 142 ada ve 85 parsel doğrudan etkileniyor."},
+                {"etiket": "EMSALLER", "metin": "Konut ve ticaret alanlarında KAKS 0.60 olarak güncellendi."},
+            ]
+        }
+        s3 = slayt_surelerini_hesapla(3, haber=h)
+        self.assertEqual(len(s3), 3)
+        self.assertEqual(s3[0], 4.2)
+        # Detay slaytları 4.8 ile 6.2 sn arasında olmalı
+        self.assertTrue(4.8 <= s3[1] <= 6.2)
+        self.assertTrue(4.8 <= s3[2] <= 6.2)
+        # Toplam süre algoritmanın zirve retention penceresinde (13-20 sn) olmalı
+        self.assertTrue(13.0 <= sum(s3) <= 20.0)
+
 
 if __name__ == "__main__":
     unittest.main()

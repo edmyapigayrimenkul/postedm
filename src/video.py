@@ -102,7 +102,53 @@ def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[I
             return ImageOps.exif_transpose(img).convert("RGB")
         except Exception as e:
             log.warning("Yerel görsel açılamadı (%s): %s", p, e)
-    return None
+def slayt_surelerini_hesapla(
+    toplam_slayt: int,
+    haber: Optional[dict] = None,
+    varsayilan_kapak_suresi: float = 4.2,
+) -> List[float]:
+    """
+    Her slayt için içerik ve kelime yoğunluğuna göre akıllı dinamik süre (saniye) listesi döner.
+    (Instabot commit 94bf292 referansı ile EDM formatına uyarlanmıştır)
+
+    * 1. Slayt (Kapak / Kanca): 4.2 saniye (Görseli, kancayı ve 70px dev manşeti algılamak için ideal).
+    * 2. ve Sonraki Slaytlar (Detay):
+      - Kelime sayısına göre: 4.8s ila 6.2s arasında otomatik ölçeklenir.
+      - Ortalama Türkçe sessiz okuma hızına (saniyede ~3-3.5 kelime) göre insani okuma payı bırakılır.
+      - Toplam video süresi 15 - 20 saniye bandında tutulur (Reels/Shorts zirve retention süresi).
+    """
+    if toplam_slayt <= 0:
+        return []
+
+    sureler = [varsayilan_kapak_suresi]
+    if toplam_slayt == 1:
+        return sureler
+
+    detay_maddeleri = []
+    if haber and isinstance(haber, dict):
+        detay_maddeleri = haber.get("detay_maddeleri") or []
+        if not detay_maddeleri and haber.get("detay_metni"):
+            try:
+                import json
+                d = json.loads(haber["detay_metni"]) if isinstance(haber["detay_metni"], str) else haber["detay_metni"]
+                if isinstance(d, dict):
+                    detay_maddeleri = d.get("detay_maddeleri") or []
+            except Exception:
+                pass
+
+    kalan_slayt_sayisi = toplam_slayt - 1
+    for idx in range(kalan_slayt_sayisi):
+        kelime_sayisi = 40  # Varsayılan detay kelime sayısı
+        if detay_maddeleri and idx < len(detay_maddeleri):
+            m = detay_maddeleri[idx]
+            txt = f"{m.get('etiket', '')} {m.get('metin', '')}"
+            kelime_sayisi = len(txt.split())
+
+        # Taban 4.5 sn + her 20 kelime için +0.5 sn ek süre (Min 4.8 sn, Maks 6.2 sn)
+        hesaplanan = 4.5 + min(1.7, max(0.3, (kelime_sayisi / 20.0) * 0.5))
+        sureler.append(round(hesaplanan, 2))
+
+    return sureler
 
 
 def slaytlardan_video_uret(
@@ -112,13 +158,16 @@ def slaytlardan_video_uret(
     gecis_suresi_saniye: float = 0.5,
     hedef_sure: Optional[float] = None,
     fps: int = 30,
+    slayt_sureleri: Optional[List[float]] = None,
+    haber: Optional[dict] = None,
 ) -> Optional[Path]:
     """
     Slayt görsellerini alıp akıcı Cosine S-Curve crossfade geçişleri ve
     Stereo AAC ses izi ile 1080x1920 MP4 video üretir.
 
     * hedef_sure verilirse slayt süreleri bu süreye (örn: seslendirme süresi) göre dinamik ayarlanır.
-    * İlk slaytta (Kapak) kanca etkisi ve okunabilirlik için +1.0 saniye bekleme.
+    * hedef_sure yoksa slayt_surelerini_hesapla ile içerik yoğunluğuna göre dinamik insani süreler uygulanır.
+    * İlk slaytta (Kapak) kanca etkisi ve okunabilirlik için 4.2 saniye bekleme.
     * S-Curve yumuşak kararma geçişleri (titremesiz).
     * TikTok, Reels ve Shorts için standart stereo AAC ses kanalı eklenir.
     * Faststart moov atomu ile web ve sosyal medyada anında yüklenme.
@@ -147,19 +196,21 @@ def slaytlardan_video_uret(
         log.error("Hiçbir slayt görseli yüklenemedi!")
         return None
 
+    toplam_slayt = len(kareler_ham)
+
     # Eğer hedef süre (örn: ElevenLabs ses süresi) verilmişse slayt süresini dinamik hesapla
     if hedef_sure and hedef_sure > 3.0:
-        toplam_slayt = len(kareler_ham)
-        # İlk slayt ekstra 1 sn durduğu için onu hesaba kat: (toplam_sure - 1.0) / slayt_sayisi
         dinamik_sure = max(2.5, (hedef_sure - 0.5) / max(1, toplam_slayt))
         slayt_suresi_saniye = round(dinamik_sure, 2)
         log.info("Ses süresine göre dinamik slayt süresi belirlendi: %.2f sn (Toplam ses: %.1f sn)", slayt_suresi_saniye, hedef_sure)
+        hesaplanan_sureler = [slayt_suresi_saniye] * toplam_slayt
+    elif slayt_sureleri and len(slayt_sureleri) == toplam_slayt:
+        hesaplanan_sureler = slayt_sureleri
+    else:
+        hesaplanan_sureler = slayt_surelerini_hesapla(toplam_slayt, haber=haber)
+        log.info("İçerik yoğunluğuna göre dinamik süreler belirlendi: %s (Toplam: %.1f sn)", hesaplanan_sureler, sum(hesaplanan_sureler))
 
-    # Kare sayıları hesabı
-    toplam_kare_slayt = max(1, int(fps * slayt_suresi_saniye))
-    gecis_kare_sayisi = max(1, int(fps * gecis_suresi_saniye)) if len(kareler_ham) > 1 else 0
-    sabit_kare_sayisi = max(1, toplam_kare_slayt - gecis_kare_sayisi)
-
+    gecis_kare_sayisi = max(1, int(fps * gecis_suresi_saniye)) if toplam_slayt > 1 else 0
     np_kareler = [np.array(img, dtype=np.float32) for img in kareler_ham]
 
     raw_video_yolu = cikti_yolu.with_name(f"{cikti_yolu.stem}_raw.mp4")
@@ -202,8 +253,10 @@ def slaytlardan_video_uret(
                 arr_simdiki = np_kareler[idx]
                 arr_sonraki = np_kareler[(idx + 1) % toplam_slayt] if toplam_slayt > 1 else None
 
-                # Kapak slaytında (idx == 0) başlığın rahat okunması için +1.0 saniye kanca beklemesi
-                bu_slayt_sabit_kare = sabit_kare_sayisi + (int(fps * 1.0) if idx == 0 else 0)
+                # İçerik ve kelime yoğunluğuna göre dinamik hesaplanan kare sayısı
+                bu_slayt_suresi = hesaplanan_sureler[idx] if idx < len(hesaplanan_sureler) else slayt_suresi_saniye
+                bu_slayt_toplam_kare = max(1, int(fps * bu_slayt_suresi))
+                bu_slayt_sabit_kare = max(1, bu_slayt_toplam_kare - gecis_kare_sayisi)
 
                 # A. Sabit Görsel Aşaması
                 arr_uint8 = np.clip(arr_simdiki, 0, 255).astype(np.uint8)
@@ -254,6 +307,8 @@ def slaytlardan_reels_uret(
     gecis_suresi: float = 0.5,
     hedef_sure: Optional[float] = None,
     fps: int = 30,
+    slayt_sureleri: Optional[List[float]] = None,
+    haber: Optional[dict] = None,
 ) -> Optional[Path]:
     """slaytlardan_video_uret için uyumluluk fonksiyonu (instabot mimarisi)."""
     return slaytlardan_video_uret(
@@ -263,5 +318,7 @@ def slaytlardan_reels_uret(
         gecis_suresi_saniye=gecis_suresi,
         hedef_sure=hedef_sure,
         fps=fps,
+        slayt_sureleri=slayt_sureleri,
+        haber=haber,
     )
 
