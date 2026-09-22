@@ -2939,33 +2939,14 @@ def haber_dailybrief_slayti_ciz(
             yeni_w = int(bg_w * oran)
             yeni_h = int(bg_h * oran)
             bg_olcekli = bg_img.resize((yeni_w, yeni_h), Image.Resampling.LANCZOS)
-            
-            # Merkeze ve mimariye odaklı kırp
+
+            # Fotoğrafı tuvalin tam merkezine odakla (hem 4:5 hem 9:16'da dikişsiz, yekpare ve kusursuz odak)
             kirp_x = max(0, (yeni_w - genislik) // 2)
-            kirp_y = max(0, int((yeni_h - yukseklik) * 0.25))
-            if kirp_y + yukseklik > yeni_h:
-                kirp_y = max(0, yeni_h - yukseklik)
+            kirp_y = max(0, (yeni_h - yukseklik) // 2)
             bg_kirp = bg_olcekli.crop((kirp_x, kirp_y, kirp_x + genislik, kirp_y + yukseklik))
 
             canvas = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
             canvas.paste(bg_kirp, (0, 0))
-
-            # Kademeli okuma perdesi (Smoothstep degrade)
-            perde_bas = y_ofset + 420
-            perde_son = y_ofset + 960
-            maske = _perde_maskesi_smoothstep(genislik, yukseklik, perde_bas, perde_son)
-
-            koyu_zemin = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
-            canvas = Image.composite(koyu_zemin, canvas, maske)
-
-            # Üst atmosfer vignette (gökyüzünü karartmadan rozet ve logonun kristal kontrastını artırır)
-            top_vignette = Image.new("RGBA", (genislik, yukseklik), (0, 0, 0, 0))
-            tv_draw = ImageDraw.Draw(top_vignette)
-            vignette_son = ust_y + 110
-            for vy in range(vignette_son):
-                alfa = int(80 * ((vignette_son - vy) / vignette_son) ** 1.6)
-                tv_draw.line([(0, vy), (genislik, vy)], fill=(10, 12, 16, alfa))
-            canvas = Image.alpha_composite(canvas.convert("RGBA"), top_vignette).convert("RGB")
         else:
             # Yedek zemin: Derin mimari pafta zemini
             canvas = _zemin_uret("murekkep", olcu=olcu)
@@ -3007,12 +2988,17 @@ def haber_dailybrief_slayti_ciz(
         manset_raw = haber.get("manset") or haber.get("baslik") or "Gündem Özeti"
         spot_raw = haber.get("spot") or haber.get("ozet") or ""
 
-        # Spot metni formatlama
+        # Spot metni formatlama (İri, okunaklı editoryal açıklayıcı başlık)
         spot_temiz = _temizle_tipografi(spot_raw)
-        font_spot = _font_yukle(FONT_SANS, 26)
+        punto_spot = 34
+        font_spot = _font_yukle(FONT_SANS, punto_spot)
         spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw) if spot_temiz else []
+        if len(spot_satirlari) > 2:
+            punto_spot = 30
+            font_spot = _font_yukle(FONT_SANS, punto_spot)
+            spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw) if spot_temiz else []
         spot_satirlari = spot_satirlari[:3]  # Maksimum 3 satır
-        spot_lh = 38
+        spot_lh = int(punto_spot * 1.38)
         spot_h = len(spot_satirlari) * spot_lh
 
         # Manşet metni formatlama (Fraunces — Dev Editoryal Manşet)
@@ -3032,10 +3018,27 @@ def haber_dailybrief_slayti_ciz(
 
         # Pozisyonlama: Alt çizginin üzerinden yukarıya doğru yerleştirme
         spot_ust_y = alt_y - 28 - spot_h
-        manset_ust_y = spot_ust_y - (20 if spot_h > 0 else 0) - manset_h
+        manset_ust_y = spot_ust_y - (22 if spot_h > 0 else 0) - manset_h
 
-        # 3.1. Editoryal Kanca (Hook) Entegrasyonu (instabot referansı)
-        # Kapak fotoğrafı üzerine dikkat çekici hook ve difüzyon gölgesi yerleştirilir
+        # 3.1. Kademeli okuma perdesi (Yazı ve kanca hizasına göre dinamik perde)
+        if bg_img:
+            perde_bas = max(y_ofset + 320, manset_ust_y - 130)
+            perde_son = min(alt_y, manset_ust_y + int(manset_h * 0.75))
+            maske = _perde_maskesi_smoothstep(genislik, yukseklik, perde_bas, perde_son)
+            koyu_zemin = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
+            canvas = Image.composite(koyu_zemin, canvas, maske)
+
+            # Üst atmosfer vignette (gökyüzünü karartmadan rozet ve logonun kristal kontrastını artırır)
+            top_vignette = Image.new("RGBA", (genislik, yukseklik), (0, 0, 0, 0))
+            tv_draw = ImageDraw.Draw(top_vignette)
+            vignette_son = ust_y + 110
+            for vy in range(vignette_son):
+                alfa = int(80 * ((vignette_son - vy) / vignette_son) ** 1.6)
+                tv_draw.line([(0, vy), (genislik, vy)], fill=(10, 12, 16, alfa))
+            canvas = Image.alpha_composite(canvas.convert("RGBA"), top_vignette).convert("RGB")
+            draw = ImageDraw.Draw(canvas)
+
+        # 3.2. Editoryal Kanca (Hook) Entegrasyonu (instabot referansı)
         try:
             from . import hook_motoru
             canvas = hook_motoru.hook_uygula(
@@ -3066,7 +3069,7 @@ def haber_dailybrief_slayti_ciz(
             draw.text((kenar, curr_y), sat, font=font_manset, fill=RENK_BEYAZ)
             curr_y += manset_lh
 
-        # Spot Çizimi
+        # Spot Çizimi (Büyük & Ferah)
         curr_y = spot_ust_y
         for sat in spot_satirlari:
             draw.text((kenar, curr_y), sat, font=font_spot, fill=RENK_METIN_GOVDE)
