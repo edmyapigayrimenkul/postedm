@@ -782,6 +782,7 @@ def foto_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Di
                 {"text": "🏛️ Saf Editoryal Zemin", "callback_data": "foto_editoryal"},
             ],
             [
+                {"text": "↩️ İlk Görsele Dön", "callback_data": "foto_ilk"},
                 {"text": "← Ana Menü", "callback_data": f"foto_geri:{adet}"},
             ],
         ]

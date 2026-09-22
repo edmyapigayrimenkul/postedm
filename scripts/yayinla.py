@@ -257,8 +257,8 @@ def main() -> None:
         db.wal_bosalt()
         return
 
-    # 0.7 Fotoğraf Özelleştirme Aksiyonları (Değiştir / Saf Editoryal / Stok / AI / Gerçek)
-    if hedef in ("foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai"):
+    # 0.7 Fotoğraf Özelleştirme Aksiyonları (Değiştir / Saf Editoryal / Stok / AI / Gerçek / İlk)
+    if hedef in ("foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai", "foto_ilk"):
         if tur in ("haber", "reels"):
             haber = db.haber_getir(int(ref_id))
             if not haber:
@@ -267,7 +267,11 @@ def main() -> None:
                 haber = db.haber_getir(int(ref_id))
             if haber:
                 detay = json.loads(haber["detay_metni"]) if haber.get("detay_metni") else {}
-                if hedef == "foto_editoryal":
+                if hedef == "foto_ilk":
+                    detay.pop("foto_kaynak", None)
+                    detay.pop("saf_editoryal", None)
+                    detay.pop("foto_degistir", None)
+                elif hedef == "foto_editoryal":
                     detay["saf_editoryal"] = True
                 elif hedef == "foto_stok":
                     detay["foto_kaynak"] = "stok"

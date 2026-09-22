@@ -597,7 +597,7 @@ export default {
         }
 
         // H. FOTOĞRAF EYLEMLERİ
-        if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data.startsWith("foto_eylem:")) {
+        if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data === "foto_ilk" || data.startsWith("foto_eylem:")) {
           const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
           const fId = icerikIdBul();
           await cevapVer("Görsel güncelleniyor...");

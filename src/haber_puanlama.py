@@ -321,5 +321,19 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         d.rehber_mi = True
         d.isaretler.append("rehber içerik — konu bankası adayı")
 
+    # --- Paylaşılabilirlik / Kaydedilebilirlik Boyutu (Instabot f2691ab standardı) ---
+    # Sosyal medyada en çok paylaşılan (%52) ve kaydedilen (%44) içerikler
+    # mülk sahibinin/kiracının/yatırımcının doğrudan hakkını koruyan somut fayda konularıdır.
+    FAYDA_TERIMLERI = [
+        "tapu harc", "kira artis", "tahliye taahhut", "miras", "hisseli tapu", "imar baris",
+        "kentsel donusum", "kira yardim", "vergi muafiyet", "faiz indirim", "konut kredisi",
+        "aidat", "itiraz hakk", "yargitay", "emsal karar", "hak sahipligi", "basvuru sure",
+        "parsel sorgu", "ecrimisil", "sufa", "onalim"
+    ]
+    fayda_tutan = [t for t in FAYDA_TERIMLERI if t in metin_k]
+    if fayda_tutan:
+        d.bilesenler["paylasilabilirlik"] = min(3, len(fayda_tutan))
+        d.isaretler.append(f"yüksek paylaşım potansiyeli: {', '.join(fayda_tutan[:2])}")
+
     d.puan = max(0, sum(d.bilesenler.values()))
     return d
