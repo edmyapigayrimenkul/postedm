@@ -65,41 +65,65 @@ def youtube_icin_sesli_video_hazirla(video_yolu: Path | str) -> Path:
 
 
 
-def access_token_al() -> Optional[str]:
-    """YOUTUBE_REFRESH_TOKEN ile yeni bir Google OAuth2 Access Token alır."""
-    client_id = (config.env_al("YOUTUBE_CLIENT_ID") or "").strip().strip("'\"")
-    client_secret = (config.env_al("YOUTUBE_CLIENT_SECRET") or "").strip().strip("'\"")
-    refresh_token = (config.env_al("YOUTUBE_REFRESH_TOKEN") or "").strip().strip("'\"")
+def projeleri_getir() -> List[Dict[str, Any]]:
+    """Tanımlı YouTube projelerini (Client ID, Secret, Refresh Token) döner."""
+    projeler = []
+    # 1. Ana Proje
+    c1 = (config.env_al("YOUTUBE_CLIENT_ID") or "").strip().strip("'\"")
+    s1 = (config.env_al("YOUTUBE_CLIENT_SECRET") or "").strip().strip("'\"")
+    r1 = (config.env_al("YOUTUBE_REFRESH_TOKEN") or "").strip().strip("'\"")
+    if c1 and s1 and r1:
+        projeler.append({"proje_no": 1, "client_id": c1, "client_secret": s1, "refresh_token": r1})
 
-    if not client_id or not client_secret or not refresh_token:
+    # 2. Yedek Proje (2. Google Cloud Projesi - Kota Failover)
+    c2 = (config.env_al("YOUTUBE_CLIENT_ID_2") or "").strip().strip("'\"")
+    s2 = (config.env_al("YOUTUBE_CLIENT_SECRET_2") or "").strip().strip("'\"")
+    r2 = (config.env_al("YOUTUBE_REFRESH_TOKEN_2") or "").strip().strip("'\"")
+    if c2 and s2 and r2:
+        projeler.append({"proje_no": 2, "client_id": c2, "client_secret": s2, "refresh_token": r2})
+
+    return projeler
+
+
+def azami_gunluk_video() -> int:
+    """Mevcut YouTube proje sayısına göre günlük azami video kotasını döner (proje başına 5 video)."""
+    p_sayisi = len(projeleri_getir())
+    return max(5, p_sayisi * 5)
+
+
+def access_token_al(proje_no: Optional[int] = None) -> Optional[str]:
+    """Belirtilen YouTube projesi veya ilk uygun proje için taze bir OAuth2 Access Token alır."""
+    projeler = projeleri_getir()
+    if not projeler:
         log.warning("YouTube API kimlik bilgileri eksik (CLIENT_ID / SECRET / REFRESH_TOKEN).")
         return None
 
-    try:
-        data = {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "refresh_token": refresh_token,
-            "grant_type": "refresh_token",
-        }
-        res = requests.post(YOUTUBE_TOKEN_URL, data=data, timeout=12)
-        if res.status_code == 200:
-            return res.json().get("access_token")
+    secilenler = [p for p in projeler if p["proje_no"] == proje_no] if proje_no else projeler
+    for p in secilenler:
+        try:
+            data = {
+                "client_id": p["client_id"],
+                "client_secret": p["client_secret"],
+                "refresh_token": p["refresh_token"],
+                "grant_type": "refresh_token",
+            }
+            res = requests.post(YOUTUBE_TOKEN_URL, data=data, timeout=12)
+            if res.status_code == 200:
+                token = res.json().get("access_token")
+                if token:
+                    return token
 
-        cevap_metni = res.text
-        if "invalid_grant" in cevap_metni:
-            log.error(
-                "YouTube refresh token geçersiz (invalid_grant: %s). Google Cloud Console OAuth Consent Screen 'Testing' modunda ise jeton 7 günde iptal edilir; 'Publish App' (In production) yapılmalıdır. CID=%s*** (Uzunluk=%d), Token=***%s (Uzunluk=%d)",
-                cevap_metni[:150],
-                client_id[:6] if client_id else "",
-                len(client_id),
-                refresh_token[-4:] if refresh_token else "",
-                len(refresh_token),
-            )
-        else:
-            log.warning("YouTube token yenileme başarısız (%s): %s", res.status_code, cevap_metni[:200])
-    except Exception as e:
-        log.warning("YouTube token alma hatası: %s", e)
+            cevap_metni = res.text
+            if "invalid_grant" in cevap_metni:
+                log.error(
+                    "YouTube Proje %d refresh token geçersiz (invalid_grant: %s). Google Cloud Console OAuth Consent Screen 'Testing' modunda ise jeton 7 günde iptal edilir; 'Publish App' (In production) yapılmalıdır.",
+                    p["proje_no"],
+                    cevap_metni[:150],
+                )
+            else:
+                log.warning("YouTube Proje %d token yenileme başarısız (%s): %s", p["proje_no"], res.status_code, cevap_metni[:200])
+        except Exception as e:
+            log.warning("YouTube Proje %d token alma hatası: %s", p["proje_no"], e)
     return None
 
 
@@ -115,22 +139,24 @@ def shorts_yukle(
     if not yol.exists() or yol.stat().st_size == 0:
         return {"durum": False, "hata": f"Video dosyası bulunamadı veya boş: {yol}"}
 
-    # 1. Günlük YouTube Kota Denetimi (Maksimum 5 video / gün = 8000 birim)
+    # 1. Günlük YouTube Kota Denetimi (Mevcut proje sayısına göre dinamik)
     yuklenen_bugun = gunluk_yukleme_sayisi_al()
-    if yuklenen_bugun >= YOUTUBE_GUNLUK_AZAMI_VIDEO:
+    azami_video = azami_gunluk_video()
+    if yuklenen_bugun >= azami_video:
         log.warning(
-            "YouTube günlük kota koruması: bugün zaten %d video yüklendi. Kota aşımını önlemek için atlanıyor.",
+            "YouTube günlük kota koruması: bugün zaten %d video yüklendi (azami: %d). Kota aşımını önlemek için atlanıyor.",
             yuklenen_bugun,
+            azami_video,
         )
         return {
             "durum": False,
-            "hata": f"YouTube günlük kota sınırına ({yuklenen_bugun}/{YOUTUBE_GUNLUK_AZAMI_VIDEO} video) ulaşıldı. Shorts atlandı.",
+            "hata": f"YouTube günlük kota sınırına ({yuklenen_bugun}/{azami_video} video) ulaşıldı. Shorts atlandı.",
             "kota_siniri": True,
         }
 
-    token = access_token_al()
-    if not token:
-        return {"durum": False, "hata": "YouTube erişim jetonu alınamadı."}
+    projeler = projeleri_getir()
+    if not projeler:
+        return {"durum": False, "hata": "YouTube API kimlik bilgileri eksik veya tanımlanmamış."}
 
     # Shorts Başlık & Açıklama Optimizasyonu (Emlak Ofisi Kimliği)
     # Hukuk bürosu jargonu yerine gayrimenkul & tapu & emlak odaklı dil
@@ -188,53 +214,84 @@ def shorts_yukle(
     # Ses miksi dene
     yuklenecek_yol = youtube_icin_sesli_video_hazirla(yol)
 
-    headers_init = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json; charset=UTF-8",
-        "X-Upload-Content-Type": "video/mp4",
-        "X-Upload-Content-Length": str(yuklenecek_yol.stat().st_size),
-    }
+    # Proje öncelik sırası: Bugün 5'ten fazla video yüklendiyse 2. projeyi ilk sıraya al
+    sirali_projeler = list(projeler)
+    if len(sirali_projeler) > 1 and yuklenen_bugun >= 5:
+        sirali_projeler.reverse()
 
-    try:
-        r_init = requests.post(
-            YOUTUBE_UPLOAD_URL,
-            headers=headers_init,
-            data=json.dumps(meta_payload),
-            timeout=20,
-        )
-        if r_init.status_code != 200 or "Location" not in r_init.headers:
-            return {"durum": False, "hata": f"Upload başlatılamadı: {r_init.text[:150]}"}
+    son_hata = ""
+    for idx, p in enumerate(sirali_projeler, 1):
+        token = access_token_al(p["proje_no"])
+        if not token:
+            son_hata = f"Proje {p['proje_no']} erişim jetonu alınamadı."
+            continue
 
-        upload_url = r_init.headers["Location"]
+        headers_init = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=UTF-8",
+            "X-Upload-Content-Type": "video/mp4",
+            "X-Upload-Content-Length": str(yuklenecek_yol.stat().st_size),
+        }
 
-        # 2. Binary Video Yüklemesi (3 denemeli)
-        for deneme in range(1, 4):
-            try:
-                with open(yuklenecek_yol, "rb") as f_video:
-                    headers_upload = {
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "video/mp4",
-                        "Content-Length": str(yuklenecek_yol.stat().st_size),
-                    }
-                    r_up = requests.put(upload_url, headers=headers_upload, data=f_video, timeout=120)
-
-                if r_up.status_code in (200, 201):
-                    veri = r_up.json()
-                    vid_id = veri.get("id")
-                    video_url = f"https://youtube.com/shorts/{vid_id}"
-                    log.info("YouTube Shorts yayını başarılı! URL: %s", video_url)
-                    gunluk_yukleme_sayisi_artir()
-                    return {"durum": True, "video_id": vid_id, "url": video_url}
-
-                if r_up.status_code in (500, 502, 503, 504):
-                    log.warning("YouTube video yükleme geçici hata [%d], tekrar deneniyor", r_up.status_code)
+        try:
+            r_init = requests.post(
+                YOUTUBE_UPLOAD_URL,
+                headers=headers_init,
+                data=json.dumps(meta_payload),
+                timeout=20,
+            )
+            if r_init.status_code != 200 or "Location" not in r_init.headers:
+                hata_metni = r_init.text
+                log.warning("YouTube Proje %d upload başlatılamadı (%s): %s", p["proje_no"], r_init.status_code, hata_metni[:200])
+                if "quotaExceeded" in hata_metni or "exceeded your quota" in hata_metni or r_init.status_code == 403:
+                    son_hata = f"Proje {p['proje_no']} kotası aşıldı ({r_init.status_code})"
+                    if idx < len(sirali_projeler):
+                        log.info("YouTube Proje %d kotası doldu, Proje %d deneniyor...", p["proje_no"], sirali_projeler[idx]["proje_no"])
+                        continue
+                son_hata = f"Upload başlatılamadı ({r_init.status_code}): {hata_metni[:150]}"
+                if idx < len(sirali_projeler):
                     continue
+                return {"durum": False, "hata": son_hata}
 
-                return {"durum": False, "hata": f"Video yüklenemedi [{r_up.status_code}]: {r_up.text[:200]}"}
-            except requests.RequestException as e:
-                log.warning("YouTube upload bağlantı hatası (deneme %d): %s", deneme, e)
+            upload_url = r_init.headers["Location"]
 
-        return {"durum": False, "hata": "YouTube video yükleme denemeleri tükendi."}
-    except Exception as e:
-        log.error("YouTube Shorts yükleme istisnası: %s", e)
-        return {"durum": False, "hata": str(e)}
+            # 2. Binary Video Yüklemesi (3 denemeli)
+            yukleme_basarili = False
+            for deneme in range(1, 4):
+                try:
+                    with open(yuklenecek_yol, "rb") as f_video:
+                        headers_upload = {
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "video/mp4",
+                            "Content-Length": str(yuklenecek_yol.stat().st_size),
+                        }
+                        r_up = requests.put(upload_url, headers=headers_upload, data=f_video, timeout=120)
+
+                    if r_up.status_code in (200, 201):
+                        veri = r_up.json()
+                        vid_id = veri.get("id")
+                        video_url = f"https://youtube.com/shorts/{vid_id}"
+                        log.info("YouTube Shorts yayını başarılı (Proje %d)! URL: %s", p["proje_no"], video_url)
+                        gunluk_yukleme_sayisi_artir()
+                        return {"durum": True, "video_id": vid_id, "url": video_url, "proje": p["proje_no"]}
+
+                    if r_up.status_code in (500, 502, 503, 504):
+                        log.warning("YouTube Proje %d video yükleme geçici hata [%d], tekrar deneniyor", p["proje_no"], r_up.status_code)
+                        continue
+
+                    son_hata = f"Video yüklenemedi [{r_up.status_code}]: {r_up.text[:200]}"
+                    break
+                except requests.RequestException as e:
+                    log.warning("YouTube Proje %d upload bağlantı hatası (deneme %d): %s", p["proje_no"], deneme, e)
+
+            if idx < len(sirali_projeler):
+                continue
+            return {"durum": False, "hata": son_hata or "YouTube video yükleme denemeleri tükendi."}
+        except Exception as e:
+            log.error("YouTube Shorts Proje %d istisnası: %s", p["proje_no"], e)
+            son_hata = str(e)
+            if idx < len(sirali_projeler):
+                continue
+            return {"durum": False, "hata": son_hata}
+
+    return {"durum": False, "hata": son_hata or "Hiçbir YouTube projesi ile video yüklenemedi."}

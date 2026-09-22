@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, List, Optional
+import unicodedata
+from typing import Any, Dict, List, Optional, Set
 
 from . import filtre
 
@@ -35,6 +36,128 @@ log = logging.getLogger(__name__)
 
 def _kucult(metin: str) -> str:
     return filtre.kucult(metin)
+
+
+def _sadelestir(metin: str) -> str:
+    """Türkçe karakterleri ve noktalamayı indirger."""
+    metin = metin.replace("İ", "i").replace("I", "i").replace("ı", "i")
+    metin = unicodedata.normalize("NFKD", metin)
+    metin = "".join(c for c in metin if not unicodedata.combining(c))
+    return re.sub(r"[^0-9a-z]", " ", metin.lower())
+
+
+def _kok(kelime: str) -> str:
+    """
+    Kaba kök: kesme işaretinden kes, kalanın ilk %70'ini al.
+    "İstanbul'a" -> "istanbul",  "Soruşturmasında" -> "sorustur"
+    """
+    k = _sadelestir(kelime.split("'")[0]).strip()
+    return k[: max(4, int(len(k) * 0.7))]
+
+
+def _sayilar(metin: str) -> Set[str]:
+    """Ayraçları temizlenmiş sayılar. '2.500' ve '2500' aynı sayılıyor."""
+    duz = metin.replace(".", "").replace(",", "")
+    return {s for s in re.findall(r"\d+", duz) if len(s) >= 1}
+
+
+_YAZIYLA_SAYI = {
+    "bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6,
+    "yedi": 7, "sekiz": 8, "dokuz": 9, "on": 10, "yirmi": 20,
+    "otuz": 30, "kırk": 40, "elli": 50, "altmış": 60, "yetmiş": 70,
+    "seksen": 80, "doksan": 90, "yüz": 100,
+}
+
+_CARPANLAR = {"bin": 1000, "milyon": 10 ** 6, "milyar": 10 ** 9}
+
+
+def sayi_esdegerleri(metin: str | None) -> Set[str]:
+    """
+    Kaynak metindeki sayıların BÜTÜN makul Türkçe yazımları.
+    "435 bin 683" -> 435683, "4 lira 62 kuruş" -> 462, vb.
+    """
+    m = str(metin or "")
+    sonuc = set(_sayilar(m))
+
+    obek = re.compile(r"(\d[\d.,]*)\s*(bin|milyon|milyar)?(?=\s|$|[^\w])", re.IGNORECASE)
+    parcalar = list(obek.finditer(m))
+    i = 0
+    while i < len(parcalar):
+        toplam = 0.0
+        onceki_carpan = None
+        j = i
+        while j < len(parcalar):
+            e = parcalar[j]
+            try:
+                taban = float(e.group(1).replace(".", "").replace(",", "."))
+            except ValueError:
+                break
+            carpan = _CARPANLAR.get((e.group(2) or "").lower(), 1)
+            if onceki_carpan is not None and carpan >= onceki_carpan:
+                break
+            if j > i and m[parcalar[j - 1].end():e.start()].strip():
+                break
+            toplam += taban * carpan
+            onceki_carpan = carpan
+            j += 1
+            if carpan == 1:
+                break
+        if j > i and toplam:
+            try:
+                sonuc.add(str(int(toplam)))
+            except (ValueError, OverflowError):
+                pass
+        artan = 0.0
+        for k in range(j - 1, i - 1, -1):
+            e = parcalar[k]
+            try:
+                taban = float(e.group(1).replace(".", "").replace(",", "."))
+            except ValueError:
+                break
+            artan += taban * _CARPANLAR.get((e.group(2) or "").lower(), 1)
+            try:
+                sonuc.add(str(int(artan)))
+            except (ValueError, OverflowError):
+                break
+        i = max(j, i + 1)
+
+    for e in re.finditer(r"(\d+)[,.](\d+)", m):
+        sonuc.update((e.group(1), e.group(2), e.group(1) + e.group(2)))
+
+    for e in re.finditer(r"(\d+)\s*(?:lira|tl|₺)\s*(\d+)\s*kuru", m, re.IGNORECASE):
+        sonuc.add(e.group(1) + e.group(2))
+
+    sade = _sadelestir(m)
+    for kelime, deger in _YAZIYLA_SAYI.items():
+        if re.search(r"\b" + _sadelestir(kelime).strip() + r"\b", sade):
+            sonuc.add(str(deger))
+
+    return sonuc
+
+
+def alintiyi_denetle(alinti: str, kaynak: str) -> bool:
+    """
+    Alıntı kaynak metinde gerçekten geçiyor mu (%85 ardışık kelime penceresi).
+    """
+    if not alinti or not kaynak:
+        return False
+
+    a_kelime = [_kok(k) for k in alinti.split() if len(k) > 2]
+    if len(a_kelime) < 3:
+        return False
+
+    k_sade = _sadelestir(kaynak)
+    k_kelime = [_kok(k) for k in kaynak.split() if len(k) > 2]
+
+    pencere = len(a_kelime) + 6
+    hedef = int(len(a_kelime) * 0.85)
+    for i in range(max(1, len(k_kelime) - pencere + 1)):
+        parca = set(k_kelime[i:i + pencere])
+        if sum(1 for k in a_kelime if k in parca) >= hedef:
+            return True
+
+    return _sadelestir(alinti).strip() in k_sade
+
 
 
 # Metinde kanun maddesi arayan desenler
@@ -157,6 +280,13 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     bos = [k for k in _ICI_BOS_KALIPLAR if k in manset]
     if bos:
         uyarilar.append(f"⚠️ İÇİ BOŞ MANŞET: \"{bos[0]}\" — konuyu duyuruyor ama sonucu saklıyor.")
+
+    # --- 6. ALINTI DOĞRULAMA (instabot standardı) ---
+    alinti = str(veri.get("alinti") or veri.get("alinti_metni") or "").strip()
+    if alinti and len(alinti) > 10 and brief:
+        kaynak_metin = str(brief.get("kaynak_metin") or brief.get("makale_metni") or brief.get("orijinal_ozet") or "").strip()
+        if kaynak_metin and not alintiyi_denetle(alinti, kaynak_metin):
+            uyarilar.append(f"⛔ UYDURMA ALINTI OLABİLİR: \"{alinti[:60]}...\" kaynak metinde birebir bulunamadı.")
 
     return uyarilar
 

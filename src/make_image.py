@@ -2890,23 +2890,45 @@ def haber_dailybrief_slayti_ciz(
 
         # 1. Arka Plan Fotoğrafını Hazırla
         bg_img: Optional[Image.Image] = None
-        if foto_yolu:
+        foto_kaynak = haber.get("foto_kaynak")
+
+        # Telegram'dan '📸 Gerçek Fotoğraf Ara' seçilmişse veya web fotoğrafı istendiyse
+        if foto_kaynak == "gercek":
+            try:
+                from . import fetch_web_image
+                sorgu = haber.get("manset") or haber.get("baslik") or ""
+                sonuc = fetch_web_image.fotograf_ara([sorgu, f"{sorgu} emlak", f"{sorgu} haber"])
+                if sonuc:
+                    bg_img, _ = sonuc
+                    log.info("Gerçek web basın fotoğrafı kullanılıyor.")
+            except Exception as we:
+                log.warning("Gerçek web fotoğrafı aranamadı: %s", we)
+
+        if not bg_img and foto_yolu:
             fp = Path(foto_yolu)
             if fp.exists() and fp.is_file():
                 try:
-                    bg_img = ImageOps.exif_transpose(Image.open(fp)).convert("RGB")
+                    img_ham = ImageOps.exif_transpose(Image.open(fp)).convert("RGB")
+                    # Instabot kalitesi: taranmış belge/tablo/PDF ve netlik denetimi
+                    from . import gorsel_kalite
+                    kaliteli, sebep = gorsel_kalite.gorsel_kalite_denetle(img_ham)
+                    if kaliteli:
+                        bg_img = gorsel_kalite.kristal_netlestir(img_ham)
+                    else:
+                        log.info("Haber fotoğrafı kalite süzgecinden geçemedi (%s), alternatif aranacak.", sebep)
                 except Exception as fe:
                     log.warning("Haber fotoğrafı açılamadı: %s", fe)
 
-        # Fotoğraf yoksa Pexels API'den emlak stok görseli ara
+        # Fotoğraf yoksa veya kalitesizse: Pexels API'den emlak stok görseli ara
         if not bg_img:
             try:
-                from . import fetch_stock
+                from . import fetch_stock, gorsel_kalite
                 arama_sorgu = haber.get("manset") or haber.get("baslik") or "real estate"
                 kat = haber.get("kategori") or haber.get("kategori_kodu") or "TAPU_VE_HUKUK"
                 stok_p = fetch_stock.stok_fotografi_ara(arama_sorgu, kategori_kodu=kat)
                 if stok_p and stok_p.exists():
-                    bg_img = ImageOps.exif_transpose(Image.open(stok_p)).convert("RGB")
+                    stok_img = ImageOps.exif_transpose(Image.open(stok_p)).convert("RGB")
+                    bg_img = gorsel_kalite.kristal_netlestir(stok_img)
             except Exception as se:
                 log.warning("Stok fotoğraf aranamadı: %s", se)
 
@@ -3418,6 +3440,65 @@ def haber_dailybrief_detay_slayti_ciz(
         return cikti_yolu
 
 
+def _sayfalari_dengeli_bol(
+    maddeler: List[Dict[str, Any]],
+    sayfa_sayisi: int = 2,
+    has_uzman_notu_son_sayfa: bool = True,
+) -> List[List[Dict[str, Any]]]:
+    """
+    Instabot c148a2a standardı: Maddeleri detay sayfaları arasında varyansı
+    minimize ederek ve yetim blok kalmasını önleyerek dengeli biçimde paylaştırır.
+    Açgözlü yaklaşımın 2. sayfayı tıkış tıkış doldurup 3. sayfada tek satır bırakmasını engeller.
+    """
+    if not maddeler:
+        return [[] for _ in range(sayfa_sayisi)]
+    n = len(maddeler)
+    if sayfa_sayisi <= 1 or n <= 1:
+        return [maddeler]
+
+    if sayfa_sayisi == 2:
+        uzman_agirligi = 90 if has_uzman_notu_son_sayfa else 0
+        en_iyi_cut = 1
+        en_iyi_fark = float("inf")
+
+        for cut in range(1, n):
+            p1 = maddeler[:cut]
+            p2 = maddeler[cut:]
+            h1 = sum(len(m.get("metin", "")) + 40 for m in p1)
+            h2 = sum(len(m.get("metin", "")) + 40 for m in p2) + uzman_agirligi
+            fark = abs(h1 - h2)
+            if fark < en_iyi_fark:
+                en_iyi_fark = fark
+                en_iyi_cut = cut
+
+        return [maddeler[:en_iyi_cut], maddeler[en_iyi_cut:]]
+
+    import itertools
+    en_iyi_bolum = None
+    en_iyi_skor = float("inf")
+    k = sayfa_sayisi
+    for cuts in itertools.combinations(range(1, n), k - 1):
+        idx = [0] + list(cuts) + [n]
+        parts = [maddeler[idx[i]:idx[i + 1]] for i in range(k)]
+        heights = []
+        for i, p in enumerate(parts):
+            h = sum(len(m.get("metin", "")) + 40 for m in p)
+            if i == k - 1 and has_uzman_notu_son_sayfa:
+                h += 90
+            heights.append(h)
+
+        h_avg = sum(heights) / k
+        var_cost = sum((h - h_avg) ** 2 for h in heights)
+        diff_cost = (max(heights) - min(heights)) * 50
+        bos_ceza = sum(100000 for p in parts if len(p) == 0)
+        skor = var_cost + diff_cost + bos_ceza
+        if skor < en_iyi_skor:
+            en_iyi_skor = skor
+            en_iyi_bolum = parts
+
+    return en_iyi_bolum if en_iyi_bolum is not None else [maddeler[:n//2], maddeler[n//2:]]
+
+
 def haber_dailybrief_slaytlari_uret(
     haber: Dict[str, Any],
     cikti_dizini: Optional[Path] = None,
@@ -3451,15 +3532,10 @@ def haber_dailybrief_slaytlari_uret(
         p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
         p3 = cikti_dizini / f"{cikti_onek}_dailybrief_s3.jpg"
 
-        if len(maddeler) >= 3:
-            s2_maddeler = maddeler[:2]
-            s3_maddeler = maddeler[2:3]
-        elif len(maddeler) == 2:
-            s2_maddeler = [maddeler[0]]
-            s3_maddeler = [maddeler[1]]
-        else:
-            s2_maddeler = maddeler
-            s3_maddeler = []
+        # Dengeli sayfalama optimizasyonu (c148a2a)
+        bolumler = _sayfalari_dengeli_bol(maddeler, sayfa_sayisi=2, has_uzman_notu_son_sayfa=True)
+        s2_maddeler = bolumler[0]
+        s3_maddeler = bolumler[1]
 
         haber_dailybrief_slayti_ciz(
             haber=haber,
