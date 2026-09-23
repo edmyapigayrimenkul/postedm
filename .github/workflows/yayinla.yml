@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Kodu Çek
         uses: actions/checkout@v4
@@ -97,6 +98,8 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+          # Siteye yalnız taslak bırakılır; canlı yayın kararı EDM panelindedir.
+          EDM_SITE_ICERIK_AKTARIMI: "1"
           # Dış girdi env ile geçer, run bloğuna gömülmez: ${{ }} kabuktan ÖNCE
           # metne yerleşir; tırnak ya da $(...) içeren bir değer komut olarak çalışır.
           TUR: ${{ github.event.client_payload.tur || inputs.tur || 'haber' }}
@@ -190,4 +193,3 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python -c "from src import telegram_bot; telegram_bot.mesaj_gonder('⚠️ <b>Yayın İşlemi İptal Edildi:</b> GitHub Actions kuyruğunda bekleyen işlem başka bir istek tarafından kesildi veya iptal edildi. Lütfen butona tekrar basarak deneyin.')"
-

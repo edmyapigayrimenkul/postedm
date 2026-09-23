@@ -11,6 +11,7 @@ import concurrent.futures
 import html as html_lib
 import json
 import logging
+import os
 import sys
 import threading
 import time
@@ -48,6 +49,23 @@ def _haber_yukle(ref_id: str):
         db_senkron.uzaktan_tazele()
         haber = db.haber_getir(int(ref_id))
     return haber
+
+
+def _site_taslagi_aktar(haber: dict | None) -> str:
+    """Sosyal yayından sonra siteye yalnız inceleme taslağı bırakır.
+
+    Yerel denemelerde veya henüz Worker tarafı kurulmadan bu yol kapalıdır;
+    sosyal paylaşımın sonucunu değiştirmez. GitHub işinde OIDC kimliğiyle açılır.
+    """
+    if not haber or os.environ.get("EDM_SITE_ICERIK_AKTARIMI") != "1":
+        return ""
+    try:
+        from src import site_icerik
+        sonuc = site_icerik.site_taslagi_gonder(haber)
+        return f"🌐 Site taslağı: incelemeye alındı (#{sonuc.get('id', '—')}) ✓"
+    except Exception as hata:
+        log.warning("Haber site taslağına aktarılamadı: %s", hata)
+        return "🌐 Site taslağı: oluşturulamadı; sosyal yayın etkilenmedi."
 
 
 def main() -> None:
@@ -233,9 +251,13 @@ def main() -> None:
             simdi = datetime.now(timezone.utc).isoformat()
             db.haber_guncelle(int(ref_id), durum="yayinlandi", yayin_zamani=simdi)
             db.onay_istegi_sonuclandir(tur, str(ref_id), "yayinlandi")
+            # Reels de haber tablosunda tutuluyor; ancak siteye yalnız editoryal
+            # haber metni gider. Video paylaşımı web bülteni oluşturmaz.
+            site_notu = _site_taslagi_aktar(haber) if tur == "haber" else ""
             tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
             log.info("%s #%s kullanıcı tarafından manuel paylaşıldı ve tamamlandı olarak işaretlendi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"✅ <b>{tur_adi} #{ref_id} paylaşıldı ve tamamlandı olarak arşivlendi. Tebrikler! 🎉</b>")
+            site_notu_ek = f"\n{site_notu}" if site_notu else ""
+            telegram_bot.mesaj_gonder(f"✅ <b>{tur_adi} #{ref_id} paylaşıldı ve tamamlandı olarak arşivlendi. Tebrikler! 🎉</b>{site_notu_ek}")
         elif tur == "ilan":
             ilan = db.ilan_getir(ref_id)
             if not ilan:
@@ -1044,6 +1066,10 @@ def main() -> None:
         if v_yolu and v_yolu.exists():
             guncelleme["video_yolu"] = str(v_yolu)
         db.haber_guncelle(int(ref_id), **guncelleme)
+        if herhangi_biri_basarili and tur == "haber":
+            site_notu = _site_taslagi_aktar(haber)
+            if site_notu:
+                rapor_satirlari.append(site_notu)
     elif tur == "ilan" and herhangi_biri_basarili:
         db.ilan_paylasildi_isaretle(ref_id)
 
