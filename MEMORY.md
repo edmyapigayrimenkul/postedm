@@ -74,9 +74,9 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 
 ## 4. TEKNİK MİMARİ & ÇALIŞMA AKIŞI
 
-1. **İçerik Hazırlığı & Cron (Sabah 09:00 TR):**
-   * Cloudflare Worker (`postedm/worker/`) içindeki `[triggers] crons = ["0 6 * * *"]` tetikleyicisi saniyesi şaşmadan uyanır.
-   * GitHub Actions'taki `.github/workflows/hazirla.yml` iş akışına `sabah_hazirla` sinyali yollar (böylece GitHub'ın yoğun saatlerdeki gecikmeleri aşılır).
+1. **İçerik Hazırlığı & Cron (günde 3 slot: 10:00 / 13:30 / 18:30 TR):**
+   * Tetikleyici GitHub cron'udur (`.github/workflows/hazirla.yml`). Worker'ın
+     `[triggers]` bölümü BİLEREK kapalı — ikisi birden açıksa aynı gün iki tur çalışır.
    * RSS taranır, Gemini kanca başlıklı 3 slaytlık analiz üretir ve görseller `src/make_image.py` ile çizilir.
    * Telegram grubuna `@PostEdmBot` üzerinden önizleme ve onay butonları (`✅ Yayına Al (IG + FB + Threads)`) iletilir.
 2. **Onay ve Yayınlama:**
@@ -93,7 +93,8 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 ## 5. GÜVENLİK VE GİT YÖNETİMİ
 
 * `.env` dosyası kesinlikle `.gitignore` içerisindedir ve commit edilmez.
-* Depo origin adresi temizdir: `https://github.com/edmyapigayrimenkul/postedm.git` (URL içine token gömülmez).
+* ⚠️ 2026-09-23 itibarıyla yerel klonun origin adresinde **düz metin PAT gömülü** (`git remote -v` onu basar).
+  Hedef: token değiştirilip URL'den çıkarılacak, kimlik bilgisi keychain/credential helper'da tutulacak.
 * Mac Keychain'deki eski `ozdogangringo-sketch` hesabı izole edilmiştir; push işlemleri dinamik olarak `.env` üzerinden yürütülür.
 
 ---
@@ -123,13 +124,49 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
      edilmeli. Ayrışma olduysa **depodaki sürüm doğrudur** — yerel üstüne
      yazılır (yedek alarak).
 
-5. **Veritabanı İkili Çakışma & Runner İzolasyonu:**
-   * `data/edm.db` ikili SQLite dosyasıdır; `git pull --rebase` çakışması repo'yu detached HEAD'de kilitler.
-   * `src/db_senkron.py` çakışma durumunda otomatik `--theirs` ile en taze runner veritabanını seçer, çözülemezse `rebase --abort` ile repoyu temiz bırakır.
+5. **Veritabanı Çakışması — satır düzeyinde birleştirme (2026-09-23):**
+   * `data/edm.db` ikili SQLite dosyasıdır. Eskiden çakışmada dosya bütünüyle `--theirs` ile
+     seçiliyordu: bir tarafın TÜM değişiklikleri siliniyordu (143 DB commit'inin 6'sında
+     kayıt geri gitti; 19fc02f'de 28 haber silindi).
+   * Artık `src/db_birlestir.py` üç yönlü satır birleştirmesi yapar; `db_senkron` çakışmada
+     bunu kullanır, birleşemezse push ETMEZ. 'yayinlandi' ve dolu yayın kimliği hiçbir
+     birleştirmede kaybolmaz.
    * `data/edm.db`'ye yazan her GitHub Actions workflow'unda `permissions: contents: write` bulunmalıdır.
 6. **Yazı Tipi & Eksik Glif Güvenliği:**
    * Inter ve Fraunces fontlarında bulunmayan ok ve emojiler (`➔`, `👉`, `📌`, `📈`, `🎯`) ekranda içi boş kare kutu (`.notdef`) olarak çıkar.
    * `src/make_image.py:_temizle_tipografi` bu glifleri daima güvenli unicode sembollerine (`→`, `◆`, `▲`, `▼`, `★`) dönüştürür.
-7. **Token Sağlık Kontrolü:**
+7. **Token Sağlık Kontrolü:** (canlı durum için Telegram'da `/saglik` — jetonları gerçekten dener)
    * Düzenli olarak `python scripts/token_kontrol.py` çalıştırılarak tüm API'ler ve Threads 60 günlük token durumu tek komutla denetlenir.
 
+
+---
+
+## 7. 2026-09-23 DENETİMİ — BÜTÜN AJANLAR İÇİN KURALLAR
+
+Bu kuralların her biri üretimde yaşanmış bir hatadan doğdu. Kod yazan her oturum
+(Claude, Codex, Gemini) uymalı; çoğu test ya da kancayla da zorlanıyor.
+
+1. **Kod commit'ine `data/edm.db` girmez.** Veritabanını yalnızca `db_senkron` commit'ler.
+   Yeni klonda bir kez: `python3 scripts/git_kancalari_kur.py` (pre-commit kancası +
+   birleştirme sürücüsü). `git add -A` / `commit -a` kullanma — başka oturumun
+   yarım kalmış değişikliklerini de süpürür (23 Eylül'de oldu).
+2. **Git kimliğini kalıcı değiştirme.** Bot kimliği yalnızca `db_senkron`'un kendi
+   süreç ortamında verilir; yerel kod commit'leri kullanıcının kimliğiyle atılır.
+3. **Testler üretim verisine dokunmaz.** Test modunda (`POSTEDM_TEST_MODU=1`) `.env`
+   yüklenmez, DB ve `.env` geçici kopyadır (`config.db_yolu`). Yeni test dosyası
+   ilk satırlarda test modunu açmalı. CI, testlerden sonra `data/edm.db` değişmişse kırmızı.
+4. **Gizli anahtar DB'ye yazılmaz, DB'den okunmaz** — DB git'e gidiyor. (TikTok
+   jetonları 57 commit boyunca depo geçmişine girdi.)
+5. **İçerik durumu `src/durum_kurali.py`'den geçer.** Kapalı içerik yayınlanmaz, yayındaki
+   içerik atla/çöpe at/yenile ile ezilmez, bir kanala iki kez gönderilmez.
+6. **Worker:** komut verebilecek sohbetler `IZINLI_SOHBETLER` secret'ında (boşsa her şey
+   reddedilir). Komutlar tam kelimeyle eşleşir (`startsWith("sil")` "Silivri 220"
+   mesajını silme komutu sayıyordu). Geri alınamaz işlemler onay mesajı ister.
+7. **Actions'ta dış girdi yalnızca `env:` ile geçer**, `run:` bloğuna `${{ }}` ile
+   gömülmez (kabuk enjeksiyonu). `tests/test_is_akisi_guvenligi.py` zorlar.
+8. **Ölçülemeyen değer uydurulmaz.** Rapor ve durum mesajları "ölçülmüyor/alınamadı"
+   yazar; 0 ya da sabit "✓ Aktif" basmaz. (Metrikler 12 gün boyunca sahte 0'dı.)
+9. **Site kuyruğu sözleşmesi:** boşken 204, iş varken JSON nesnesi, yetkisizse 401.
+   Bunun dışındaki her yanıt ARIZADIR ve hata yükseltmelidir — "boş kuyruk" sayılmaz.
+10. **Otomatik yayın yalnızca `dogrula` denetiminden temiz çıkan içerikte.** En ufak
+    uyarıda içerik onaya düşer.
