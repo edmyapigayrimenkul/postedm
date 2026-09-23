@@ -396,6 +396,11 @@ class TestHataDayaniklik(unittest.TestCase):
         self.assertTrue(teshis_token["tanindi"])
         self.assertEqual(teshis_audit["eylem"], "durum")
 
+        teshis_pending = hata_bildir.hatayi_analiz_et('{"error":{"code":"spam_risk_too_many_pending_share"}}')
+        self.assertTrue(teshis_pending["tanindi"])
+        self.assertIn("Gelen Kutusu", teshis_pending["ne_yapilir"])
+        self.assertEqual(teshis_pending["eylem"], "yeniden_yayinla")
+
         # 3. Site kuyruğu sözleşmesi (site/src/pages/api/postedm/kuyruk.ts): boşken 204,
         #    iş varken JSON nesnesi. JSON olmayan 200 bir ARIZADIR, "boş kuyruk" değil —
         #    15–17 Eylül'de alan adı bot Worker'ına bağlıyken tam bu yanıt

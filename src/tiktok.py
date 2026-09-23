@@ -212,6 +212,12 @@ def video_yukle(
 
         init_data = init_res.json()
         if init_res.status_code != 200 or init_data.get("error", {}).get("code") != "ok":
+            hata_kodu = str(init_data.get("error", {}).get("code") or "")
+            if "spam_risk_too_many_pending_share" in hata_kodu or "spam_risk_too_many_pending_share" in init_res.text:
+                return {
+                    "durum": False,
+                    "hata": "TikTok kotası: Uygulamanızda 5 adet bekleyen taslak var (spam_risk_too_many_pending_share). TikTok uygulamasını açıp gelen kutusundaki taslakları temizleyin veya paylaşın.",
+                }
             return {"durum": False, "hata": f"TikTok init hatası [{init_res.status_code}]: {init_res.text[:200]}"}
 
         upload_url = init_data["data"]["upload_url"]

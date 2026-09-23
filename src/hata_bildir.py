@@ -136,6 +136,13 @@ HATA_KATALOGU = [
         "eylem": "yeniden_yayinla",
     },
     {
+        "desen": r"spam_risk_too_many_pending_share",
+        "ne_oldu": "TikTok gelen kutunuzda 5 adet bekleyen (paylaşılmamış) taslak biriktiği için güvenlik kotasına takıldı.",
+        "neden": "TikTok API, bir hesaba 24 saat içinde en fazla 5 adet bekleyen gelen kutusu taslağı gönderilmesine izin verir. Önceki taslaklar onaylanmadığı veya silinmediği için sınır doldu.",
+        "ne_yapilir": "Telefonunuzdan TikTok uygulamasını açın: Gelen Kutusu (Inbox) / Taslaklar bölümüne girip bekleyen taslakları silin veya onaylayıp paylaşın. Kutuyu temizledikten sonra '🔄 Tekrar Yayınla' ile işlemi tamamlayabilirsiniz.",
+        "eylem": "yeniden_yayinla",
+    },
+    {
         "desen": r"unaudited_client|unaudited_client_can_only_post_to_private_accounts",
         "ne_oldu": "TikTok Sandbox/Denetim kısıtı nedeniyle video gelen kutusu taslağı olarak yüklendi.",
         "neden": "TikTok Developer uygulamasının App Audit incelemesi henüz onaylanmadığı için doğrudan herkese açık paylaşım kısıtlıdır.",
