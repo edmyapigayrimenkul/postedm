@@ -609,12 +609,6 @@ def main() -> None:
                         if tt_res.get("durum"):
                             if tt_res.get("taslak_mi"):
                                 rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Taslak Olarak Yüklendi (Uygulamadan Paylaşılacak) 📥")
-                                tt_baslik = tiktok.baslik_kur(baslik)
-                                telegram_bot.mesaj_gonder(
-                                    f"🎵 <b>TikTok Taslağı Gelen Kutusuna Yüklendi</b>\n\n"
-                                    f"📝 <i>Uygulamadan paylaşırken kullanabileceğiniz metin (kopyalamak için dokunun):</i>\n"
-                                    f"<pre><code>{html_lib.escape(tt_baslik)}</code></pre>"
-                                )
                             else:
                                 rapor_satirlari.append("🎵 <b>TikTok (Video):</b> Paylaşıldı ✓")
                         else:
@@ -634,12 +628,6 @@ def main() -> None:
                     if tt_res.get("durum"):
                         if tt_res.get("taslak_mi"):
                             rapor_satirlari.append("🎵 <b>TikTok:</b> Taslak Olarak Yüklendi (Uygulamadan Paylaşılacak) 📥")
-                            tt_baslik = tiktok.baslik_kur(baslik)
-                            telegram_bot.mesaj_gonder(
-                                f"🎵 <b>TikTok Taslağı Gelen Kutusuna Yüklendi</b>\n\n"
-                                f"📝 <i>Uygulamadan paylaşırken kullanabileceğiniz metin (kopyalamak için dokunun):</i>\n"
-                                f"<pre><code>{html_lib.escape(tt_baslik)}</code></pre>"
-                            )
                         else:
                             tur_etiket = "Tekil Resim" if tek_sayfa else "Carousel"
                             rapor_satirlari.append(f"🎵 <b>TikTok ({tur_etiket}):</b> Paylaşıldı ✓")
@@ -1003,15 +991,25 @@ def main() -> None:
     if not rapor_satirlari:
         raise RuntimeError(f"Geçerli yayın hedefi bulunamadı: {hedef}")
     hata_var = any("✗" in satir for satir in rapor_satirlari)
+    gecen_sure = (time.time() - baslangic_ts) if baslangic_ts > 0 else 0.0
 
     temiz_caption = html_lib.escape(caption.strip())
-
     caption_kutu = f"\n\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\n<pre><code>{temiz_caption}</code></pre>"
-    sonuc_metni = (
-        ("⚠️ <b>YAYIN KISMEN TAMAMLANDI</b>\n\n" if hata_var else "🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\n\n")
-        + f"<b>İçerik:</b> {html_lib.escape(baslik)}\n\n"
-        + "\n".join(rapor_satirlari)
-    )
+
+    baslik_icon = "⚠️" if hata_var else "🎉"
+    baslik_durum = "YAYIN KISMEN TAMAMLANDI" if hata_var else "YAYIN BAŞARIYLA TAMAMLANDI"
+
+    satirlar_sonuc = [
+        f"{baslik_icon} <b>{baslik_durum}</b>\n",
+        f"📌 <b>İçerik:</b> {html_lib.escape(baslik)}",
+    ]
+    if gecen_sure > 0:
+        satirlar_sonuc.append(f"⏱️ <b>Dağıtım Süresi:</b> {gecen_sure:.1f} sn")
+    satirlar_sonuc.append("\n📱 <b>Platform Sonuçları:</b>")
+    for r in rapor_satirlari:
+        satirlar_sonuc.append(f"• {r}")
+
+    sonuc_metni = "\n".join(satirlar_sonuc)
     if len(sonuc_metni) + len(caption_kutu) <= 3900:
         sonuc_metni += caption_kutu
         caption_ayri_gonder = False
