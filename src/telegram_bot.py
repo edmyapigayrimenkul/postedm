@@ -1512,7 +1512,7 @@ def haber_onayina_sun(haber_id: int) -> bool:
     if otorite_verisi and isinstance(otorite_verisi, dict):
         try:
             from . import dogrula
-            uyarilar = dogrula.denetle(otorite_verisi, otorite_verisi.get("_brief"))
+            uyarilar = dogrula.icerigi_denetle(otorite_verisi, haber)
             denetim_basligi = dogrula.uyari_basligi(uyarilar)
             if uyarilar:
                 log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
@@ -1890,7 +1890,14 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         manset=konu["baslik"],
     )
     temiz_caption = html_lib.escape(caption_metin.strip())
-    mesaj_metni = (
+    # Reels yolu yayın öncesi denetimden hiç geçmiyordu (#68 bu yoldan çıktı).
+    denetim_basligi = ""
+    try:
+        from . import dogrula
+        denetim_basligi = dogrula.uyari_basligi(dogrula.icerigi_denetle(veri))
+    except Exception as e:
+        log.warning("Reels denetimi çalıştırılamadı: %s", e)
+    mesaj_metni = denetim_basligi + (
         f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR (#{haber_id})</b>\n\n"
         f"📌 <b>Başlık:</b> {konu['baslik']}\n"
         f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n"
@@ -2155,6 +2162,20 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
         slayt_urlleri=json.dumps(slayt_urlleri) if slayt_urlleri else None,
         video_yolu=str(v_yolu) if v_yolu else None,
     )
+
+    # DOĞRULAMA KAPISI: otomatik yayın insan onayını atlıyor; bu yüzden en ufak
+    # denetim uyarısında (doğrulanmamış madde numarası, kaynaksız faiz/oran,
+    # abartı) yayın DURUR ve içerik onaya düşer. Finansta "dayanaksız rakam"
+    # da kritiktir: faiz ve kredi koşulları okuyanın parasını etkiler.
+    from . import dogrula
+    uyarilar = dogrula.icerigi_denetle(veri)
+    if oto_yayin and uyarilar:
+        log.warning("Finans #%d otomatik yayını durduruldu: %s", haber_id, "; ".join(uyarilar))
+        mesaj_gonder(
+            f"🛑 <b>Otomatik yayın durduruldu (#{haber_id})</b> — {len(uyarilar)} denetim uyarısı.\n"
+            "<i>İçerik onayına sunuluyor; uyarıları kontrol edip elle yayınla.</i>"
+        )
+        oto_yayin = False
 
     if not oto_yayin:
         return haber_onayina_sun(haber_id)

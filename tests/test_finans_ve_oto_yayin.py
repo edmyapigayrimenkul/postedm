@@ -127,5 +127,35 @@ class TestFinansVeOtoYayin(unittest.TestCase):
         dummy_img.unlink(missing_ok=True)
 
 
+class TestDogrulamaKapisi(unittest.TestCase):
+    """Otomatik yayın insan onayını atlıyor; kirli içerik otomatik çıkmamalı."""
+
+    def test_dogrulanmamis_madde_ve_kaynaksiz_oran_otomatik_yayini_durdurur(self):
+        dummy_img = KOK / "data/output/test_kapi_dummy.jpg"
+        dummy_img.parent.mkdir(parents=True, exist_ok=True)
+        dummy_img.write_bytes(b"dummy")
+        veri = {
+            "manset": "Konut kredisinde cayma hakkı",
+            "spot": "6502 sayılı Kanun md. 37 uyarınca faiz %45'i geçemez.",
+            "caption_instagram": "x", "caption_threads": "y",
+            "_brief": {"mevzuat": None, "yerel": None, "veri_kaynagi": None},
+        }
+        with (
+            patch("src.generate_text.konudan_uret", return_value=veri),
+            patch("src.make_image.otorite_gonderi_slaytlari_uret", return_value=[dummy_img]),
+            patch("src.upload_image.coklu_gorsel_yukle", return_value=["https://cdn.example.com/1.jpg"]),
+            patch("src.video.slaytlardan_reels_uret", return_value=None),
+            patch("subprocess.run") as yayin,
+            patch("src.telegram_bot.mesaj_gonder") as mesaj,
+            patch("src.telegram_bot.medya_grubu_gonder"),
+            patch("src.telegram_bot.haber_onayina_sun", return_value=True) as onay,
+        ):
+            telegram_bot.finans_icerigi_hazirla_ve_yayinla(oto_yayin=True)
+        yayin.assert_not_called()
+        onay.assert_called_once()
+        self.assertTrue(any("Otomatik yayın durduruldu" in c.args[0] for c in mesaj.call_args_list))
+        dummy_img.unlink(missing_ok=True)
+
+
 if __name__ == "__main__":
     unittest.main()

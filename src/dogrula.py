@@ -239,8 +239,11 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
             )
         else:
             # Brief'te mevzuat var; metindeki her madde onunla örtüşmeli
+            # Sayı KELİME olarak aranır: alt-dize araması "md. 9"u kaynaktaki
+            # "3194" içinde bulup doğrulanmış sayıyordu.
             kacak = [m for m in set(maddeler)
-                     if not any(p in dogrulanmis for p in re.findall(r"\d+(?:/\d+)?", m))]
+                     if not any(re.search(rf"(?<![\d/]){re.escape(p)}(?![\d/])", dogrulanmis)
+                                for p in re.findall(r"\d+(?:/\d+)?", m))]
             if kacak:
                 uyarilar.append(
                     f"⛔ EK MADDE: metinde {', '.join(sorted(kacak)[:3])} geçiyor ama "
@@ -289,6 +292,37 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
             uyarilar.append(f"⛔ UYDURMA ALINTI OLABİLİR: \"{alinti[:60]}...\" kaynak metinde birebir bulunamadı.")
 
     return uyarilar
+
+
+def kritik_var(uyarilar: List[str]) -> bool:
+    return any(u.startswith("⛔") for u in uyarilar)
+
+
+def haberden_brief(haber: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Haber içeriği için brief: doğrulama ölçütü KAYNAK METNİN KENDİSİ.
+
+    Konu bankası içeriğinde brief ayrı tutuluyor; haberde yoktu ve haber yolu
+    madde numarası/alıntı denetiminden hiç geçmiyordu. Burada kaynak metin hem
+    "doğrulanmış mevzuat" (madde numarası kaynakta geçiyor mu) hem de alıntı
+    karşılaştırması için kullanılır.
+    """
+    if not haber:
+        return None
+    kaynak = " ".join(str(haber.get(k) or "") for k in ("orijinal_baslik", "orijinal_ozet", "makale_metni")).strip()
+    if not kaynak:
+        return None
+    kucuk = _kucult(kaynak)
+    return {
+        "mevzuat": kaynak,
+        "veri_kaynagi": haber.get("kaynak") or "haber kaynağı",
+        "yerel": any(a in kucuk for a in _YEREL_ADLAR),
+        "makale_metni": kaynak,
+    }
+
+
+def icerigi_denetle(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None) -> List[str]:
+    """Tüm yolların ortak girişi: brief içerikte yoksa haberin kaynak metninden kurulur."""
+    return denetle(veri, veri.get("_brief") or haberden_brief(haber))
 
 
 def uyari_basligi(uyarilar: List[str]) -> str:
