@@ -12,12 +12,13 @@ from src import youtube
 
 
 class TestYouTubeMeta(unittest.TestCase):
+    @patch("src.youtube.projeleri_getir", return_value=[{"proje_no": 1, "client_id": "c1", "client_secret": "s1", "refresh_token": "r1"}])
     @patch("src.youtube.access_token_al", return_value="sahte_token")
     @patch("src.youtube.gunluk_yukleme_sayisi_al", return_value=0)
     @patch("src.youtube.gunluk_yukleme_sayisi_artir")
     @patch("src.youtube.youtube_icin_sesli_video_hazirla")
     @patch("requests.post")
-    def test_hukuk_kelimesi_arindirma_ve_emlak_etiketleri(self, mock_post, mock_ses, mock_artir, mock_sayi, mock_token):
+    def test_hukuk_kelimesi_arindirma_ve_emlak_etiketleri(self, mock_post, mock_ses, mock_artir, mock_sayi, mock_token, mock_projeler):
         mock_ses.return_value = MagicMock(stat=MagicMock(return_value=MagicMock(st_size=1024)))
         mock_init_resp = MagicMock(status_code=200, headers={"Location": "https://upload.url"})
         mock_post.return_value = mock_init_resp
