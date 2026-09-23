@@ -59,7 +59,11 @@ def youtube_icin_sesli_video_hazirla(video_yolu: Path | str) -> Path:
     """
     YouTube Shorts için: Videoya arka planda telifsiz, rahatsız etmeyen
     hafif bir emlak fon müziği miksler.
+    Eğer video zaten sesliyse (_sesli) mükerrer mikslenmez.
     """
+    p = Path(video_yolu)
+    if "_sesli" in p.stem or p.name.endswith("_sesli.mp4"):
+        return p
     from . import ses
     return ses.sesli_video_hazirla(video_yolu, ses_seviyesi=0.20)
 
@@ -212,7 +216,15 @@ def shorts_yukle(
     }
 
     # Ses miksi dene
-    yuklenecek_yol = youtube_icin_sesli_video_hazirla(yol)
+    yuklenecek_yol = Path(youtube_icin_sesli_video_hazirla(yol))
+    if not yuklenecek_yol.exists() or yuklenecek_yol.stat().st_size == 0:
+        return {"durum": False, "hata": f"Yüklenecek video dosyası bulunamadı veya boş: {yuklenecek_yol}"}
+
+    # Dosyayı tek seferde belleğe oku (Böylece bayt boyutu sabitlenir, Content-Length / Content-Range sapması imkansız olur)
+    video_bayt = yuklenecek_yol.read_bytes()
+    toplam_boyut = len(video_bayt)
+    if toplam_boyut == 0:
+        return {"durum": False, "hata": "YouTube yüklenecek video dosyası boş."}
 
     # Proje öncelik sırası: Bugün 5'ten fazla video yüklendiyse 2. projeyi ilk sıraya al
     sirali_projeler = list(projeler)
@@ -230,7 +242,7 @@ def shorts_yukle(
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json; charset=UTF-8",
             "X-Upload-Content-Type": "video/mp4",
-            "X-Upload-Content-Length": str(yuklenecek_yol.stat().st_size),
+            "X-Upload-Content-Length": str(toplam_boyut),
         }
 
         try:
@@ -259,13 +271,13 @@ def shorts_yukle(
             yukleme_basarili = False
             for deneme in range(1, 4):
                 try:
-                    with open(yuklenecek_yol, "rb") as f_video:
-                        headers_upload = {
-                            "Authorization": f"Bearer {token}",
-                            "Content-Type": "video/mp4",
-                            "Content-Length": str(yuklenecek_yol.stat().st_size),
-                        }
-                        r_up = requests.put(upload_url, headers=headers_upload, data=f_video, timeout=120)
+                    headers_upload = {
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "video/mp4",
+                        "Content-Length": str(toplam_boyut),
+                        "Content-Range": f"bytes 0-{toplam_boyut - 1}/{toplam_boyut}",
+                    }
+                    r_up = requests.put(upload_url, headers=headers_upload, data=video_bayt, timeout=120)
 
                     if r_up.status_code in (200, 201):
                         veri = r_up.json()

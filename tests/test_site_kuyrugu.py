@@ -36,6 +36,17 @@ class TestSiteKuyrugu(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "OIDC"):
                 site_kuyrugu._ayarlar()
 
+    def test_json_olmayan_yanit_bos_kuyruk_sayilmaz(self) -> None:
+        """HTML ya da boş gövde "kuyruk boş" değil, bir arızadır — sessizce yutulmamalı."""
+        for govde in ("<!DOCTYPE html><title>EDM</title>", ""):
+            cevap = Mock(status_code=200, text=govde, headers={"content-type": "text/html"})
+            cevap.raise_for_status = Mock()
+            cevap.json.side_effect = ValueError("json değil")
+            with patch.object(site_kuyrugu.requests, "get", return_value=cevap), \
+                 patch.dict(site_kuyrugu.os.environ, {"POSTEDM_API_ANAHTARI": "a"}):
+                with self.assertRaises(RuntimeError):
+                    site_kuyrugu.siradaki_isi_al()
+
     def test_bos_kuyruk_204_ile_sessizce_biter(self) -> None:
         cevap = Mock(status_code=204)
         with patch.dict(os.environ, {"EDM_SITE_API_ANAHTARI": "test-anahtari"}, clear=True):

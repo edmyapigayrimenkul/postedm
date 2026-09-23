@@ -62,14 +62,22 @@ def _ayarlar() -> tuple[str, Dict[str, str]]:
 def siradaki_isi_al() -> Optional[Dict[str, Any]]:
     adres, basliklar = _ayarlar()
     cevap = requests.get(adres, headers=basliklar, timeout=30)
-    if cevap.status_code == 204 or not (cevap.text or "").strip():
+    # Kuyruk boşken site 204 döner — boşluğun TEK işareti bu. Önceki sürüm boş
+    # gövdeli ya da JSON olmayan her yanıtı da "kuyruk boş" sayıyordu; 15–17 Eylül'de
+    # alan adı bot Worker'ına bağlanınca site kuyruğu bu yüzden sessizce boş göründü.
+    if cevap.status_code == 204:
         return None
     cevap.raise_for_status()
     try:
-        return cevap.json()
-    except Exception as e:
-        log.warning("Kuyruk yanıtı geçerli bir JSON objesi değil (%s): %s", e, (cevap.text or "")[:200])
-        return None
+        veri = cevap.json()
+    except ValueError:
+        raise RuntimeError(
+            f"Kuyruk ucu JSON olmayan yanıt döndü (HTTP {cevap.status_code}, "
+            f"{cevap.headers.get('content-type', '?')}): {(cevap.text or '')[:160]!r}"
+        )
+    if not isinstance(veri, dict):
+        raise RuntimeError(f"Kuyruk yanıtı nesne değil: {type(veri).__name__}")
+    return veri
 
 
 def sonucu_yaz(kuyruk_id: int, durum: str, sonuc: str = "", hata: str = "") -> None:

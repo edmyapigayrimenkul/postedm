@@ -66,6 +66,13 @@ HATA_KATALOGU = [
         "eylem": "tur_tekrar",
     },
     {
+        "desen": r"Content-Range|byte\(s\) in the request body|There should have been.*byte",
+        "ne_oldu": "YouTube Shorts video yüklemesinde dosya boyutu (bayt) uyuşmazlığı oluştu.",
+        "neden": "Video aktarılırken Google sunucusuna bildirilen dosya boyutu ile giden bayt sayısı eşleşmedi.",
+        "ne_yapilir": "'🔄 ▶️ Shorts'a Tekrar Yükle' butonuna basarak videoyu anında tekrar yükleyebilirsiniz.",
+        "eylem": "yeniden_yayinla",
+    },
+    {
         "desen": r"error_subcode[\"']?\s*:\s*459|checkpoint_url|log in to www\.facebook\.com and follow the instructions",
         "ne_oldu": "Meta (Facebook/Instagram) hesabı güvenlik kontrolüne (checkpoint) takıldı.",
         "neden": "Meta güvenlik politikası gereği tarayıcıdan www.facebook.com adresine giriş yaparak hesabınızı doğrulamanızı veya ekrandaki güvenlik uyarısını onaylamanızı istiyor.",

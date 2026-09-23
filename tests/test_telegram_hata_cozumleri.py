@@ -179,6 +179,19 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         self.assertIn("www.facebook.com", tani["ne_yapilir"])
         self.assertEqual(tani["eylem"], "yeniden_yayinla")
 
+    def test_hata_bildir_youtube_byte_uyusmazligi_teshisi(self):
+        """YouTube Content-Range bayt uyuşmazlığı hatasında spesifik yönlendirmenin yapıldığını doğrular."""
+        hata_raw = (
+            "Video yüklenemedi [400]: Invalid request.  There were 2715152 byte(s) (or more) in the request body.  "
+            "There should have been 2713945 byte(s) according to the Content-Range header."
+        )
+        tani = hata_bildir.hatayi_analiz_et(hata_raw)
+        self.assertTrue(tani["tanindi"])
+        self.assertIn("youtube", tani["ne_oldu"].lower())
+        self.assertIn("bayt", tani["ne_oldu"].lower())
+        self.assertIn("Shorts", tani["ne_yapilir"])
+        self.assertEqual(tani["eylem"], "yeniden_yayinla")
+
 
 if __name__ == "__main__":
     unittest.main()

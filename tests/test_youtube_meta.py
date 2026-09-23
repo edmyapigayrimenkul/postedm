@@ -28,6 +28,7 @@ class TestYouTubeMeta(unittest.TestCase):
 
         with patch.object(Path, "exists", return_value=True), \
              patch.object(Path, "stat", return_value=MagicMock(st_size=1024)), \
+             patch.object(Path, "read_bytes", return_value=b"x" * 1024), \
              patch("builtins.open", MagicMock()), \
              patch("requests.put", return_value=MagicMock(status_code=200, json=lambda: {"id": "vid123"})):
             res = youtube.shorts_yukle(
