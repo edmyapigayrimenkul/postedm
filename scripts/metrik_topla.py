@@ -50,6 +50,7 @@ def metrikleri_topla(haber_id_filtre: int | None = None) -> int:
 
     log.info("%d adet yayınlanmış içerik için metrik toplama başlatılıyor...", len(adaylar))
     toplanan_adet = 0
+    insights_hatalari: list[str] = []
 
     for h in adaylar:
         hid = h.get("id")
@@ -60,15 +61,18 @@ def metrikleri_topla(haber_id_filtre: int | None = None) -> int:
         try:
             metrikler = instagram.medya_metrikleri_al(post_id)
             if not metrikler:
-                log.debug("Haber #%d için Instagram metrikleri alınamadı (Post ID: %s)", hid, post_id)
+                log.warning("Haber #%d için Instagram metrikleri alınamadı (Post ID: %s)", hid, post_id)
                 continue
+            if metrikler.get("insights_hata"):
+                insights_hatalari.append(metrikler["insights_hata"])
 
-            reach = metrikler.get("reach", 0)
-            saved = metrikler.get("saved", 0)
-            shares = metrikler.get("shares", 0)
-            comments = metrikler.get("comments", 0)
-            likes = metrikler.get("likes", 0)
-            impressions = metrikler.get("impressions", 0)
+            # None = ölçülemedi. 0 yazmak "hiç erişim yok" demek olur — yanlış veri.
+            reach = metrikler.get("reach")
+            saved = metrikler.get("saved")
+            shares = metrikler.get("shares")
+            comments = metrikler.get("comments")
+            likes = metrikler.get("likes")
+            impressions = metrikler.get("impressions")
 
             db.metrik_kaydet(
                 haber_id=hid,
@@ -83,15 +87,33 @@ def metrikleri_topla(haber_id_filtre: int | None = None) -> int:
                 ham_veri=metrikler,
             )
             toplanan_adet += 1
+            g = lambda v: "?" if v is None else v  # noqa: E731
             log.info(
-                "İçerik #%d metrikleri kaydedildi: Erişim=%d, Kaydetme=%d, Paylaşım=%d, Beğeni=%d, Yorum=%d",
-                hid, reach, saved, shares, likes, comments
+                "İçerik #%d metrikleri kaydedildi: Erişim=%s, Kaydetme=%s, Paylaşım=%s, Beğeni=%s, Yorum=%s",
+                hid, g(reach), g(saved), g(shares), g(likes), g(comments)
             )
         except Exception as e:
             log.warning("İçerik #%d için metrik toplama hatası: %s", hid, e)
 
     db.wal_bosalt()
+    if "izin_yok" in insights_hatalari:
+        _izin_uyarisi_gonder(insights_hatalari.count("izin_yok"))
     return toplanan_adet
+
+
+def _izin_uyarisi_gonder(adet: int) -> None:
+    """Ölçüm körlüğü sessiz kalmasın — bu sorun 12 gün fark edilmedi."""
+    try:
+        from src import telegram_bot
+        telegram_bot.mesaj_gonder(
+            "⚠️ <b>Instagram ölçümü çalışmıyor</b>\n"
+            f"{adet} postun erişim/kayıt/paylaşım verisi alınamadı: jetonda "
+            "<code>instagram_manage_insights</code> izni yok (#10).\n"
+            "<i>Meta geliştirici panelinden bu izinle yeni jeton alınmalı; o zamana kadar "
+            "hangi içeriğin işe yaradığı ölçülemez.</i>"
+        )
+    except Exception as e:
+        log.warning("İzin uyarısı gönderilemedi: %s", e)
 
 
 def metrik_raporu_bas():
@@ -114,9 +136,10 @@ def metrik_raporu_bas():
     print("=" * 80)
     for r in rows:
         baslik = (r["manset"] or "Başlıksız")[:40]
+        g = lambda v: "?" if v is None else v  # noqa: E731 — None = ölçülemedi
         print(
-            f"ID #{r['haber_id']} | {r['platform'].upper():9} | Erişim: {r['reach']:4} | "
-            f"Kaydetme: {r['saved']:3} | Beğeni: {r['likes']:3} | {baslik}"
+            f"ID #{r['haber_id']} | {r['platform'].upper():9} | Erişim: {g(r['reach']):>4} | "
+            f"Kaydetme: {g(r['saved']):>3} | Beğeni: {g(r['likes']):>3} | {baslik}"
         )
     print("=" * 80 + "\n")
 

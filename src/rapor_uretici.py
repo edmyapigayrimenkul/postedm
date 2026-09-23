@@ -116,7 +116,8 @@ def sifirlanma_saatlik() -> str:
 def _github_token_al(token: Optional[str] = None) -> Optional[str]:
     """Sistem ortamından veya gh CLI üzerinden geçerli GitHub PAT tokenını alır."""
     sec_token = token or config.env_al("GITHUB_TOKEN") or config.env_al("GH_TOKEN") or config.env_al("GITHUB_PAT")
-    if not sec_token:
+    # Test modunda makinedeki gh oturumuna uzanılmaz: testler canlı API'ye gitmesin.
+    if not sec_token and not config.test_modu():
         try:
             p = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=3)
             if p.returncode == 0 and p.stdout.strip():
@@ -130,84 +131,72 @@ def github_actions_kullanimi(
     token: Optional[str] = None,
     repo: str = "edmyapigayrimenkul/postedm"
 ) -> Dict[str, Any]:
-    """GitHub API üzerinden bu ayki Actions koşularını ve faturalanan dakikayı hesaplar."""
-    now = datetime.now(timezone.utc)
-    bu_ay_basi = datetime(now.year, now.month, 1, tzinfo=timezone.utc).isoformat()
-    sec_token = _github_token_al(token)
+    """Bu ayın TÜM Actions çalıştırmalarından tahmini faturalanan dakika.
 
+    Önceki sürüm yalnızca ilk 100 çalıştırmayı sayıyordu (ayda ~500 var) ve
+    API hatasında "125 dk harcandı / 1.875 kaldı" gibi UYDURMA sayılar dönüyordu;
+    iş akışının actions:read izni olmadığı için pratikte hep uydurma sayı
+    görünüyordu. Ölçülemeyen değer None döner, rapor "alınamadı" yazar.
+    """
+    now = datetime.now(timezone.utc)
+    bu_ay_basi = datetime(now.year, now.month, 1, tzinfo=timezone.utc).strftime("%Y-%m-%d")
+    sec_token = _github_token_al(token)
     kota_toplam = 2000
 
-    if not sec_token:
-        return {
-            "toplam_kosu": 0,
-            "harcanan_dk": 120,
-            "kalan_dk": 1880,
-            "yuzde": 6.0,
-            "is_akislari": {"Site İlan": 40, "Testler": 30, "Yayınla": 25, "Hazırla": 15},
-            "kaynak": "tahmin",
-        }
+    def olculemedi(neden: str) -> Dict[str, Any]:
+        return {"toplam_kosu": None, "harcanan_dk": None, "kalan_dk": None, "yuzde": None,
+                "is_akislari": {}, "kaynak": neden}
 
-    url = f"https://api.github.com/repos/{repo}/actions/runs?created=>={bu_ay_basi}&per_page=100"
+    if not sec_token:
+        return olculemedi("jeton yok")
+
     headers = {
         "Authorization": f"Bearer {sec_token}",
         "Accept": "application/vnd.github+json",
         "User-Agent": "postedm-reporter",
     }
-
+    kosular: List[Dict[str, Any]] = []
     try:
-        r = requests.get(url, headers=headers, timeout=12)
-        if r.status_code != 200:
-            log.warning("GitHub API yanıtı [%d]: %s", r.status_code, r.text[:120])
-            return {
-                "toplam_kosu": 0,
-                "harcanan_dk": 125,
-                "kalan_dk": 1875,
-                "yuzde": 6.25,
-                "is_akislari": {},
-                "kaynak": "hata_fallback",
-            }
-
-        data = r.json()
-        runs = data.get("workflow_runs", [])
-        total_runs = data.get("total_count", len(runs))
-
-        by_wf: Dict[str, int] = {}
-        for run in runs:
-            w_name = run.get("name", "Diğer İşler")
-            st = run.get("run_started_at") or run.get("created_at")
-            up = run.get("updated_at")
-            if st and up and run.get("status") == "completed":
-                try:
-                    dt_s = datetime.fromisoformat(st.replace("Z", "+00:00"))
-                    dt_u = datetime.fromisoformat(up.replace("Z", "+00:00"))
-                    dur = max(0.0, (dt_u - dt_s).total_seconds())
-                    job_m = max(1, int((dur + 59) // 60))
-                    by_wf[w_name] = by_wf.get(w_name, 0) + job_m
-                except Exception:
-                    continue
-
-        harcanan_dk = sum(by_wf.values())
-        kalan_dk = max(0, kota_toplam - harcanan_dk)
-        gh_yuzde = (harcanan_dk / float(kota_toplam)) * 100.0
-
-        return {
-            "toplam_kosu": total_runs,
-            "harcanan_dk": harcanan_dk,
-            "kalan_dk": kalan_dk,
-            "yuzde": gh_yuzde,
-            "is_akislari": by_wf,
-            "kaynak": "canli_api",
-        }
+        for sayfa in range(1, 21):
+            r = requests.get(
+                f"https://api.github.com/repos/{repo}/actions/runs",
+                params={"created": f">={bu_ay_basi}", "per_page": 100, "page": sayfa},
+                headers=headers, timeout=12,
+            )
+            if r.status_code != 200:
+                log.warning("GitHub Actions kullanımı okunamadı [%d]: %s", r.status_code, r.text[:120])
+                return olculemedi(f"HTTP {r.status_code}")
+            parti = r.json().get("workflow_runs", [])
+            kosular.extend(parti)
+            if len(parti) < 100:
+                break
     except Exception as e:
         log.warning("GitHub Actions kullanım verisi alınamadı: %s", e)
-        return {
-            "toplam_kosu": 0,
-            "harcanan_dk": 125,
-            "kalan_dk": 1875,
-            "yuzde": 6.25,
-            "is_akislari": {},
-            "kaynak": "istisna_fallback",
-        }
+        return olculemedi(type(e).__name__)
+
+    by_wf: Dict[str, int] = {}
+    for run in kosular:
+        st = run.get("run_started_at") or run.get("created_at")
+        up = run.get("updated_at")
+        if not (st and up and run.get("status") == "completed"):
+            continue
+        try:
+            sure = (datetime.fromisoformat(up.replace("Z", "+00:00")) - datetime.fromisoformat(st.replace("Z", "+00:00"))).total_seconds()
+        except ValueError:
+            continue
+        # Faturalama iş başına dakikaya yuvarlar; iş akışları tek işli → yaklaşık.
+        ad = run.get("name", "Diğer")
+        by_wf[ad] = by_wf.get(ad, 0) + max(1, int((max(0.0, sure) + 59) // 60))
+
+    harcanan = sum(by_wf.values())
+    return {
+        "toplam_kosu": len(kosular),
+        "harcanan_dk": harcanan,
+        "kalan_dk": max(0, kota_toplam - harcanan),
+        "yuzde": harcanan / kota_toplam * 100.0,
+        "is_akislari": by_wf,
+        "kaynak": "canli_api",
+    }
 
 
 def yapay_zeka_kullanimi() -> Dict[str, Any]:
@@ -257,11 +246,16 @@ def yapay_zeka_kullanimi() -> Dict[str, Any]:
 
 
 def cloudflare_kullanimi() -> Dict[str, Any]:
-    """Cloudflare Workers, KV ve R2 kullanım ve limit istatistikleri."""
+    """Cloudflare kullanımı bu raporda ÖLÇÜLMÜYOR.
+
+    Önceki sürüm sabit "1.240 / 100.000 istek", "120 MB / 10 GB" basıyordu —
+    hiçbir ölçüme dayanmayan sayılar. Ölçmek için Actions'a Cloudflare API
+    jetonu (Account Analytics okuma) verilmesi gerekir.
+    """
     return {
-        "worker_istek": "1.240 / 100.000",
-        "kv_yazma": "42 / 1.000",
-        "r2_depolama": "120 MB / 10 GB",
+        "worker_istek": "ölçülmüyor",
+        "kv_yazma": "kullanılmıyor",
+        "r2_depolama": "ölçülmüyor",
         "sifirlanma": sifirlanma_gece_yarisi(),
     }
 
@@ -278,8 +272,8 @@ def github_rest_api_kullanimi() -> Dict[str, Any]:
             )
             if r.status_code == 200:
                 core = r.json().get("resources", {}).get("core", {})
-                kalan = core.get("remaining", 4985)
-                limit = core.get("limit", 5000)
+                kalan = core.get("remaining", 0)
+                limit = core.get("limit", 0)
                 reset_ts = core.get("reset", 0)
                 if reset_ts:
                     kalan_dk = max(1, int((datetime.fromtimestamp(reset_ts, timezone.utc) - datetime.now(timezone.utc)).total_seconds() // 60))
@@ -290,7 +284,7 @@ def github_rest_api_kullanimi() -> Dict[str, Any]:
         except Exception:
             pass
     return {
-        "istek": "4.985 / 5.000",
+        "istek": "alınamadı",
         "sifirlanma": sifirlanma_saatlik(),
     }
 
@@ -301,18 +295,21 @@ def sosyal_medya_ve_yayin_kotalari() -> Dict[str, Any]:
     son_24s = (now - timedelta(hours=24)).isoformat()
     bugun_basi = datetime(now.year, now.month, now.day, tzinfo=timezone.utc).isoformat()
 
+    # Önceki sürüm IG'yi eklenme tarihinden sayıyordu ve YouTube sorgusu var olmayan
+    # youtube_shorts_url sütununa bakıp HER ZAMAN hataya düşüp 0 dönüyordu.
     try:
         with db._baglanti_al() as conn:
             ig_24s = conn.execute(
-                "SELECT COUNT(*) FROM haberler WHERE eklenme_tarihi >= ? AND durum IN ('yayinlandi', 'yayinda')",
+                "SELECT COUNT(*) FROM haberler WHERE yayin_zamani >= ? AND instagram_post_id IS NOT NULL",
                 (son_24s,)
             ).fetchone()[0]
 
             yt_bugun = conn.execute(
-                "SELECT COUNT(*) FROM haberler WHERE eklenme_tarihi >= ? AND youtube_shorts_url IS NOT NULL",
+                "SELECT COUNT(*) FROM haberler WHERE yayin_zamani >= ? AND youtube_video_id IS NOT NULL",
                 (bugun_basi,)
             ).fetchone()[0]
-    except Exception:
+    except Exception as e:
+        log.warning("Yayın sayaçları okunamadı: %s", e)
         ig_24s = 0
         yt_bugun = 0
 
@@ -320,15 +317,23 @@ def sosyal_medya_ve_yayin_kotalari() -> Dict[str, Any]:
     yt_birim = yt_bugun * 1600
     yt_kalan_shorts = max(0, int((10000 - yt_birim) // 1600))
 
-    # Depolama / Boyut
+    # Depolama / Boyut — önceki sürümde git boyutu sabit "84.2 MB", ölçülemeyen
+    # değerler için de uydurma varsayılanlar (3.5 MB, 5.0 GB) vardı.
     db_yolu = KOK / "data" / "edm.db"
-    db_mb = (db_yolu.stat().st_size / (1024 * 1024)) if db_yolu.exists() else 3.5
-    git_mb = 84.2
+    db_mb = f"{db_yolu.stat().st_size / (1024 * 1024):.1f} MB" if db_yolu.exists() else "yok"
+    git_mb = "ölçülemedi"
+    try:
+        s = subprocess.run(["git", "count-objects", "-v"], cwd=KOK, capture_output=True, text=True, timeout=10)
+        alan = dict(satir.split(": ", 1) for satir in s.stdout.splitlines() if ": " in satir)
+        kb = int(alan.get("size", 0)) + int(alan.get("size-pack", 0))
+        git_mb = f"{kb / 1024:.1f} MB"
+    except Exception as e:
+        log.warning("Git boyutu ölçülemedi: %s", e)
     try:
         _, _, free = shutil.disk_usage(KOK)
-        disk_gb = free / (1024 ** 3)
+        disk_gb = f"{free / (1024 ** 3):.1f} GB"
     except Exception:
-        disk_gb = 5.0
+        disk_gb = "ölçülemedi"
 
     return {
         "ig_kullanilan": ig_24s,
@@ -336,10 +341,56 @@ def sosyal_medya_ve_yayin_kotalari() -> Dict[str, Any]:
         "yt_birim": yt_birim,
         "yt_kalan_shorts": yt_kalan_shorts,
         "yt_sifirlanma": sifirlanma_youtube(),
-        "db_mb": f"{db_mb:.1f} MB",
-        "git_mb": f"{git_mb:.1f} MB",
-        "disk_gb": f"{disk_gb:.1f} GB [✓]",
+        "db_mb": db_mb,
+        "git_mb": git_mb,
+        "disk_gb": disk_gb,
     }
+
+
+def jeton_durumlari() -> List[Tuple[str, str]]:
+    """Jetonları GERÇEKTEN dener. Önceki sürüm sabit "Meta Graph Aktif (54 gün)",
+    "TikTok Aktif ✓" basıyordu — insights izni yokken ve ölçüm körken bile."""
+    satirlar: List[Tuple[str, str]] = []
+
+    def dene(url: str, params: Dict[str, Any]) -> str:
+        try:
+            r = requests.get(url, params=params, timeout=8)
+            if r.ok:
+                return "geçerli ✓"
+            kod = (r.json().get("error") or {}).get("code", r.status_code)
+            return f"HATA ({kod}) ✗"
+        except Exception as e:
+            return f"denenemedi ({type(e).__name__})"
+
+    try:
+        from . import instagram
+        hid, tok = instagram._hesap_bilgileri()
+        satirlar.append(("Instagram", dene(f"{instagram.GRAPH_TABAN}/{hid}", {"fields": "username", "access_token": tok}) if tok else "tanımsız ✗"))
+        # En kritik izin: olmadan erişim/kayıt/paylaşım ölçülemez
+        with db._baglanti_al() as conn:
+            son = conn.execute("SELECT instagram_post_id FROM haberler WHERE instagram_post_id IS NOT NULL "
+                               "ORDER BY yayin_zamani DESC LIMIT 1").fetchone()
+        if tok and son:
+            m = instagram.medya_metrikleri_al(son[0]) or {}
+            hata = m.get("insights_hata")
+            satirlar.append(("IG Insights", "İZİN YOK ✗" if hata == "izin_yok" else (f"HATA ({hata}) ✗" if hata else "ölçülüyor ✓")))
+    except Exception as e:
+        satirlar.append(("Instagram", f"denenemedi ({type(e).__name__})"))
+
+    try:
+        from . import threads
+        uid, ttok = threads._hesap_bilgileri()
+        satirlar.append(("Threads", dene(f"{threads.THREADS_TABAN}/me", {"fields": "id", "access_token": ttok}) if ttok else "tanımsız ✗"))
+    except Exception as e:
+        satirlar.append(("Threads", f"denenemedi ({type(e).__name__})"))
+
+    # TikTok erişim jetonu 24 saatlik ve her yayında yenileniyor; burada yalnızca
+    # yenileme kimliklerinin tanımlı olduğuna bakılır.
+    tt = all(config.env_al(k) for k in ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REFRESH_TOKEN"))
+    satirlar.append(("TikTok", "kimlik var" if tt else "tanımsız ✗"))
+    r2 = all(config.env_al(k) for k in ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"))
+    satirlar.append(("Cloudflare R2", "tanımlı" if r2 else "tanımsız"))
+    return satirlar
 
 
 def icerik_ve_rezerv_durumu() -> Dict[str, Any]:
@@ -390,27 +441,33 @@ def kota_metni_uret(kategori: int | str = 1) -> str:
     # =========================================================================
     if kat_int == 1:
         gh = github_actions_kullanimi()
-        gh_bar = cizgi_bar(gh["yuzde"])
-        gh_satirlar: List[Tuple[str, str]] = [
-            ("Harcanan Sure", f"{gh['harcanan_dk']:,} dk (%{gh['yuzde']:.1f})"),
-            ("Kalan Sure", f"{gh['kalan_dk']:,} dk"),
-            ("Sifirlanma", sifirlanma_ay_basi()),
-            ("Ilerleme", f"[{gh_bar}]"),
-        ]
+        if gh["harcanan_dk"] is None:
+            gh_satirlar: List[Tuple[str, str]] = [
+                ("Durum", f"alınamadı ({gh['kaynak']})"),
+                ("Sifirlanma", sifirlanma_ay_basi()),
+            ]
+        else:
+            gh_satirlar = [
+                ("Harcanan ~", f"{gh['harcanan_dk']:,} dk (%{gh['yuzde']:.1f})"),
+                ("Kalan", f"{gh['kalan_dk']:,} dk"),
+                ("Calistirma", f"{gh['toplam_kosu']}"),
+                ("Sifirlanma", sifirlanma_ay_basi()),
+                ("Ilerleme", f"[{cizgi_bar(gh['yuzde'])}]"),
+            ]
         if gh.get("is_akislari"):
             sirali_wf = sorted(gh["is_akislari"].items(), key=lambda x: x[1], reverse=True)[:3]
             for adi, dk in sirali_wf:
                 temiz_ad = adi.replace(" (EDM)", "").replace("Site İlan Paylaşım Kuyruğu", "Site Ilan")[:12]
                 gh_satirlar.append((f"• {temiz_ad}", f"{dk} dk"))
 
+        # Gemini çağrı sayısı ve kota ölçülmüyor; önceki sürüm "bugünkü içerik × 2"
+        # ile uydurulmuş bir çağrı sayısını 1.500'lük varsayılan kotayla oranlıyordu.
         ai = yapay_zeka_kullanimi()
-        ai_bar = cizgi_bar(ai["gunluk_yuzde"])
         ai_satirlar: List[Tuple[str, str]] = [
-            ("Gunluk Cagri", f"{ai['gunluk_cagri']} / 1.500"),
-            ("Kalan Cagri", f"{ai['kalan_cagri']} (%{ai['gunluk_yuzde']:.1f})"),
-            ("Token Tuketim", f"~{ai['tahmini_token']:,}"),
-            ("Sifirlanma", sifirlanma_gece_yarisi()),
-            ("Ilerleme", f"[{ai_bar}]"),
+            ("Bugun Uretim", f"{ai['bugun_haber']} icerik"),
+            ("Bu Ay Uretim", f"{ai['bu_ay_haber']} icerik"),
+            ("Token (tahmini)", f"~{ai['tahmini_token']:,}"),
+            ("Cagri / Kota", "ölçülmüyor"),
             ("Model Katmani", "3.x Flash"),
         ]
 
@@ -429,7 +486,7 @@ def kota_metni_uret(kategori: int | str = 1) -> str:
         ]
 
         bolumler = [
-            ("GITHUB ACTIONS (2.000 dk)", gh_satirlar),
+            ("GH ACTIONS (varsayım 2.000 dk)", gh_satirlar),
             ("YAPAY ZEKA (Gemini AI)", ai_satirlar),
             ("CLOUDFLARE (Worker & KV)", cf_satirlar),
             ("GITHUB REST API", api_satirlar),
@@ -464,12 +521,7 @@ def kota_metni_uret(kategori: int | str = 1) -> str:
         ("Sifirlanma", sm_k["yt_sifirlanma"]),
     ]
 
-    token_satirlar: List[Tuple[str, str]] = [
-        ("Meta Graph", "Aktif (54 gun)"),
-        ("Threads API", "Aktif [✓]"),
-        ("TikTok Content", "Aktif [✓]"),
-        ("Cloudflare CDN", "Aktif [✓]"),
-    ]
+    token_satirlar: List[Tuple[str, str]] = jeton_durumlari()
 
     depo_satirlar: List[Tuple[str, str]] = [
         ("DB Boyutu", sm_k["db_mb"]),
@@ -482,7 +534,7 @@ def kota_metni_uret(kategori: int | str = 1) -> str:
         ("Bu Ay Yayin", f"{ic['yayinlanan_ay']} post"),
         ("Onay Bekleyen", f"{ic['bekleyen']} post"),
         ("Havuz & Bakir", f"{ic['bakir']} konu"),
-        ("Rezerv Omru", f"~{ic['kalan_hafta']} hafta"),
+        ("Rezerv Omru", f"~{ic['kalan_hafta']} hafta" if ic.get("kalan_hafta") else "ölçülemedi"),
     ]
 
     bolumler = [

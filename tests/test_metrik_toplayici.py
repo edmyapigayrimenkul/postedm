@@ -118,16 +118,35 @@ class TestMetrikToplayici(unittest.TestCase):
     @patch("src.instagram.requests.get")
     @patch("src.instagram._hesap_bilgileri", return_value=("17841400", "test_token"))
     def test_medya_metrikleri_al_hata_durumunda_sessiz_fallback(self, mock_hesap, mock_get):
-        """API hatasında veya token geçersizliğinde uygulama çökmemeli."""
+        """API hatasında çökmez; ölçülemeyen değer 0 DEĞİL None'dır ve neden taşınır.
+
+        Eski sürüm hata anında 0 yazıyordu: izin eksikliği (#10) yüzünden her postun
+        erişimi "0" kaydedildi ve ölçüm 12 gün boyunca fark edilmeden kör kaldı.
+        """
         mock_resp = MagicMock()
         mock_resp.status_code = 400
         mock_resp.text = "OAuthException: Invalid access token"
+        mock_resp.json.return_value = {"error": {"code": 190, "message": "Invalid access token"}}
         mock_get.return_value = mock_resp
 
         sonuc = instagram.medya_metrikleri_al("180123")
-        # Hata durumunda temel varsayılan 0 değerleriyle veya None döner, çökmez
         self.assertIsInstance(sonuc, dict)
-        self.assertEqual(sonuc["reach"], 0)
+        self.assertIsNone(sonuc["reach"])
+        self.assertIsNone(sonuc["saved"])
+        self.assertTrue(sonuc["insights_hata"])
+
+    @patch("src.instagram.requests.get")
+    @patch("src.instagram._hesap_bilgileri", return_value=("17841400", "test_token"))
+    def test_insights_izni_yoksa_ayirt_edilir(self, mock_hesap, mock_get):
+        izinsiz = MagicMock(status_code=400, text="(#10) Application does not have permission")
+        izinsiz.json.return_value = {"error": {"code": 10, "message": "Application does not have permission"}}
+        temel = MagicMock(status_code=200)
+        temel.json.return_value = {"like_count": 3, "comments_count": 0, "media_type": "IMAGE"}
+        mock_get.side_effect = [temel, izinsiz]
+        sonuc = instagram.medya_metrikleri_al("180123")
+        self.assertEqual(sonuc["likes"], 3)
+        self.assertIsNone(sonuc["reach"])
+        self.assertEqual(sonuc["insights_hata"], "izin_yok")
 
 
 if __name__ == "__main__":

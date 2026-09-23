@@ -33,6 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # Actions kullanımını okumak için. Olmadan API 403 dönüyor ve rapor
+      # (eski sürümde) uydurma "125 dk harcandı" sayısı gösteriyordu.
+      actions: read
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +50,9 @@ jobs:
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          # İzin (#10) eksikse gruba uyarı gider; ölçüm körlüğü 12 gün fark edilmedi.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scripts/metrik_topla.py
 
       - name: Durumu raporla
@@ -56,6 +62,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MESAJ_ID: ${{ github.event.client_payload.mesaj_id }}
           KATEGORI: ${{ github.event.client_payload.kategori }}
+          # Jeton satırları artık sabit "Aktif ✓" değil, gerçekten deneniyor
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: python scripts/gunluk_rapor.py
 
       - name: Veritabanını Kaydet

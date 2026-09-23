@@ -441,21 +441,26 @@ def story_yayinla(gorsel_url: str) -> Optional[str]:
 def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
     """
     Instagram Graph API üzerinden bir medyanın (post/carousel/reels)
-    erişim, kaydetme, beğeni, yorum vb. verilerini çeker.
-    Hata durumunda sessizce None döner, akışı aksatmaz.
+    erişim, kaydetme, paylaşım, beğeni ve yorum verilerini çeker.
+
+    Ölçülemeyen değer 0 DEĞİL None döner. Önceki sürüm insights hatasını DEBUG'da
+    yutup 0 yazıyordu; jetonda instagram_manage_insights izni hiç olmadığı için
+    ilk günden beri her postun erişimi "0" kaydedildi ve ölçüm kördü.
+    Hata nedeni sonuc["insights_hata"]'da taşınır.
     """
     hesap_id, token = _hesap_bilgileri()
     if not token or not medya_id:
         return None
 
-    sonuc = {
-        "likes": 0,
-        "comments": 0,
-        "reach": 0,
-        "saved": 0,
-        "shares": 0,
-        "impressions": 0,
+    sonuc: Dict[str, Any] = {
+        "likes": None,
+        "comments": None,
+        "reach": None,
+        "saved": None,
+        "shares": None,
+        "impressions": None,
         "media_type": "",
+        "insights_hata": None,
     }
 
     # 1. Temel post alanları (likes, comments, media_type)
@@ -473,19 +478,21 @@ def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
             sonuc["comments"] = veri.get("comments_count", 0)
             sonuc["media_type"] = veri.get("media_type", "")
         else:
-            log.debug("Instagram temel post verisi alınamadı [%d]: %s", r_temel.status_code, r_temel.text)
+            log.warning("Instagram temel post verisi alınamadı [%d]: %s", r_temel.status_code, r_temel.text[:200])
     except Exception as e:
-        log.debug("Instagram temel post sorgu hatası (%s): %s", medya_id, e)
+        log.warning("Instagram temel post sorgu hatası (%s): %s", medya_id, e)
 
-    # 2. Insights metrikleri (reach, saved, shares, total_interactions)
+    # 2. Insights metrikleri. "shares" önceden hiç istenmiyordu (hep 0 kaldı).
+    #    Bir medya türü bir metriği desteklemezse API tüm isteği reddeder;
+    #    o durumda daha dar küme denenir.
     url_insights = f"{GRAPH_TABAN}/{medya_id}/insights"
-    params_insights = {
-        "metric": "reach,saved,total_interactions",
-        "access_token": token,
-    }
-
     try:
-        r_ins = requests.get(url_insights, params=params_insights, timeout=12)
+        r_ins = None
+        for metrik in ("reach,saved,shares,total_interactions", "reach,saved"):
+            r_ins = requests.get(url_insights, params={"metric": metrik, "access_token": token}, timeout=12)
+            hata = (r_ins.json().get("error") or {}) if r_ins.status_code != 200 else {}
+            if r_ins.status_code == 200 or hata.get("code") != 100:
+                break
         if r_ins.status_code == 200:
             data = r_ins.json().get("data", [])
             for item in data:
@@ -506,9 +513,19 @@ def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
                 elif m_name == "impressions":
                     sonuc["impressions"] = m_val
         else:
-            log.debug("Instagram insights verisi alınamadı [%d]: %s", r_ins.status_code, r_ins.text)
+            hata = (r_ins.json().get("error") or {}) if r_ins is not None else {}
+            if hata.get("code") == 10:
+                sonuc["insights_hata"] = "izin_yok"
+                log.warning(
+                    "Instagram insights İZNİ YOK (#10): jetonda instagram_manage_insights "
+                    "olmadan erişim/kayıt/paylaşım ölçülemez. Medya %s", medya_id,
+                )
+            else:
+                sonuc["insights_hata"] = f"http_{r_ins.status_code}"
+                log.warning("Instagram insights alınamadı [%d]: %s", r_ins.status_code, r_ins.text[:200])
     except Exception as e:
-        log.debug("Instagram insights sorgu hatası (%s): %s", medya_id, e)
+        sonuc["insights_hata"] = type(e).__name__
+        log.warning("Instagram insights sorgu hatası (%s): %s", medya_id, e)
 
     return sonuc
 

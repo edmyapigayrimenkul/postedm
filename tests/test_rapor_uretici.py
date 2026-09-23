@@ -68,10 +68,10 @@ class TestRaporUretici(unittest.TestCase):
     def test_github_actions_kullanimi_fallback_token_yok(self):
         with patch.dict(os.environ, {}, clear=True):
             res = rapor_uretici.github_actions_kullanimi(token=None)
-            self.assertIn("harcanan_dk", res)
-            self.assertIn("kalan_dk", res)
-            self.assertIn("yuzde", res)
-            self.assertEqual(res["kaynak"], "tahmin")
+            # Ölçülemeyen değer uydurulmaz: eski sürüm burada "120 dk harcandı" dönüyordu
+            self.assertIsNone(res["harcanan_dk"])
+            self.assertIsNone(res["kalan_dk"])
+            self.assertEqual(res["kaynak"], "jeton yok")
 
     def test_github_actions_kullanimi_canli_api_mock(self):
         mock_response = MagicMock()
@@ -145,7 +145,8 @@ class TestRaporUretici(unittest.TestCase):
     def test_kota_metni_uret_kategori_1(self):
         metin = rapor_uretici.kota_metni_uret(kategori=1)
         self.assertIn("EDM BULUT, AI & API KOTALARI", metin)
-        self.assertIn("GITHUB ACTIONS (2.000 dk)", metin)
+        self.assertIn("GH ACTIONS (varsayım 2.000 dk)", metin)
+        self.assertNotIn("1.240 / 100.000", metin)  # eski sabit, uydurma Cloudflare sayısı
         self.assertIn("YAPAY ZEKA (Gemini AI)", metin)
         self.assertIn("CLOUDFLARE (Worker & KV)", metin)
         self.assertIn("GITHUB REST API", metin)
