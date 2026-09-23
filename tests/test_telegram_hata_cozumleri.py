@@ -163,6 +163,19 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         finally:
             son_hata_dosyasi.unlink(missing_ok=True)
 
+    def test_hata_bildir_meta_checkpoint_teshisi(self):
+        """Meta checkpoint (error_subcode 459) hatasında spesifik yönlendirmenin yapıldığını doğrular."""
+        hata_raw = (
+            '{"error": {"message": "You cannot access the app till you log in to www.facebook.com and follow the instructions given.", '
+            '"type": "OAuthException", "code": 190, "error_subcode": 459, '
+            '"error_data": "{\\"checkpoint_url\\":\\"https:\\\\/\\\\/www.facebook.com\\"}"}}'
+        )
+        tani = hata_bildir.hatayi_analiz_et(hata_raw)
+        self.assertTrue(tani["tanindi"])
+        self.assertIn("checkpoint", tani["ne_oldu"].lower())
+        self.assertIn("www.facebook.com", tani["ne_yapilir"])
+        self.assertEqual(tani["eylem"], "yeniden_yayinla")
+
 
 if __name__ == "__main__":
     unittest.main()

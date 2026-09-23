@@ -66,6 +66,13 @@ HATA_KATALOGU = [
         "eylem": "tur_tekrar",
     },
     {
+        "desen": r"error_subcode[\"']?\s*:\s*459|checkpoint_url|log in to www\.facebook\.com and follow the instructions",
+        "ne_oldu": "Meta (Facebook/Instagram) hesabı güvenlik kontrolüne (checkpoint) takıldı.",
+        "neden": "Meta güvenlik politikası gereği tarayıcıdan www.facebook.com adresine giriş yaparak hesabınızı doğrulamanızı veya ekrandaki güvenlik uyarısını onaylamanızı istiyor.",
+        "ne_yapilir": "Tarayıcıdan www.facebook.com adresine giriş yapın ve çıkan güvenlik/doğrulama adımını onaylayın. Ardından paylaşıma devam edebilirsiniz.",
+        "eylem": "yeniden_yayinla",
+    },
+    {
         "desen": r"Error validating access token|Session has expired|OAuthException",
         "ne_oldu": "Sosyal medya erişim yetkisinin (Token) süresi dolmuş veya geçersiz.",
         "neden": "Meta veya Threads güvenlik politikaları gereği jeton yenilemesi gerekiyor.",
