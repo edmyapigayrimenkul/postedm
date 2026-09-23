@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 from . import config, db, fetch_listings, generate_text, komutlar, konu_bankasi, make_image, upload_image
+from .sutun import SUTUN_ADLARI
 
 log = logging.getLogger(__name__)
 
@@ -1154,15 +1155,6 @@ def icerik_incele_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
         ]
     }
     return metin, butonlar
-
-
-SUTUN_ADLARI = {
-    "S1": "Tapu & Hukuk",
-    "S2": "Kiracı & Ev Sahibi",
-    "S3": "Arsa & İmar",
-    "S4": "Rakam & Bölge",
-    "S5": "Finans & Kredi",
-}
 
 
 def havuz_mesaji() -> str:

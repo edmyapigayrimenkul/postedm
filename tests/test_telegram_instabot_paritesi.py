@@ -163,9 +163,8 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
             pixel = cerceveli.getpixel((540, test_y))
             self.assertEqual(pixel, (255, 255, 255), f"y={test_y} noktasında alt renk bozulmuş: {pixel}")
 
-    def test_poller_ve_worker_tum_butonlar_kapsami(self):
-        """Poller ve Worker'ın tüm instabot menü ve buton aksiyonlarını desteklediği doğrulanır."""
-        poller_py = (KOK / "scripts/telegram_poller.py").read_text(encoding="utf-8")
+    def test_worker_tum_butonlar_kapsami(self):
+        """Worker tüm menü ve buton aksiyonlarını destekler (tek işleyici)."""
         worker_js = (KOK / "worker/index.js").read_text(encoding="utf-8")
 
         zorunlu_aksiyonlar = [
@@ -192,7 +191,6 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         ]
 
         for aksiyon in zorunlu_aksiyonlar:
-            self.assertIn(aksiyon, poller_py, f"Poller eksik aksiyon: {aksiyon}")
             self.assertIn(aksiyon, worker_js, f"Worker eksik aksiyon: {aksiyon}")
 
 

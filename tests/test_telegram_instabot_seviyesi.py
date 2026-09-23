@@ -238,22 +238,15 @@ class TestTelegramInstabotSeviyesi(unittest.TestCase):
         for onemli in ["arastir", "dosya", "incele", "sonpostlar", "ayar", "yayin_kontrol", "kurtar"]:
             self.assertIn(onemli, menu_komut_isimleri, f"Komut menüsünde eksik: {onemli}")
 
-    def test_worker_ve_poller_paritesi(self):
-        """Cloudflare Worker ile Telegram Poller komut ve callback paritesi denetlenir."""
+    def test_worker_kritik_komutlari_isliyor(self):
+        """Komut ve butonların tek işleyicisi Worker (scripts/telegram_poller.py kaldırıldı:
+        webhook açıkken getUpdates 409 döner, poller hiç çalışamıyordu ama bu test onu
+        Worker'la senkron tutmaya zorluyordu)."""
         worker_js = (KOK / "worker/index.js").read_text(encoding="utf-8")
-        poller_py = (KOK / "scripts/telegram_poller.py").read_text(encoding="utf-8")
-
-        # Kritik komutlar hem worker'da hem poller'da yer almalı
-        kritik_komutlar = ["/arastir", "/dosya", "/incele", "/sonpostlar", "/ayar", "/yayin_kontrol", "/kurtar"]
-        for cmd in kritik_komutlar:
+        for cmd in ["/arastir", "/dosya", "/incele", "/sonpostlar", "/ayar", "/yayin_kontrol", "/kurtar"]:
             self.assertIn(cmd, worker_js, f"Worker index.js eksik komut: {cmd}")
-            self.assertIn(cmd, poller_py, f"Poller py eksik komut: {cmd}")
-
-        # Kritik callback prefixleri
-        kritik_callbackler = ["ayarsec:", "incele:", "yayin_kontrol:", "kurtar:", "retry_kanal:"]
-        for cb in kritik_callbackler:
+        for cb in ["ayarsec:", "incele:", "yayin_kontrol:", "kurtar:", "retry_kanal:"]:
             self.assertIn(cb, worker_js, f"Worker index.js eksik callback: {cb}")
-            self.assertIn(cb, poller_py, f"Poller py eksik callback: {cb}")
 
 
 if __name__ == "__main__":

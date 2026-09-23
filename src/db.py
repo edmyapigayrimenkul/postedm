@@ -158,10 +158,19 @@ def tablolari_olustur() -> None:
                 ("tiktok_publish_id", "TEXT"),
                 ("facebook_post_id", "TEXT"),
                 ("video_yolu", "TEXT"),
+                ("sutun", "TEXT"),  # S1–S5, analiz için — bkz. src/sutun.py
             ]
             for ad, tip in haber_ek_kolonlar:
                 if ad not in kolonlar:
                     conn.execute(f"ALTER TABLE haberler ADD COLUMN {ad} {tip}")
+
+            # Sütunu boş kayıtları doldur. INSERT'ler birçok yerde ham SQL ile
+            # yapıldığı için tek tek yakalamak yerine burada tamamlanıyor.
+            from . import sutun as _sutun
+            for satir in conn.execute("SELECT id, kategori, kaynak FROM haberler WHERE sutun IS NULL").fetchall():
+                s = _sutun.sutun_bul(satir["kategori"], satir["kaynak"])
+                if s:
+                    conn.execute("UPDATE haberler SET sutun = ? WHERE id = ?", (s, satir["id"]))
 
             ilan_kolonlari = [row["name"] for row in conn.execute("PRAGMA table_info(ilanlar)").fetchall()]
             if "kategori" not in ilan_kolonlari:
