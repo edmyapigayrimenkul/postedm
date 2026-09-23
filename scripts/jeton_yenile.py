@@ -98,7 +98,12 @@ def main() -> int:
             if refresh_token.github_secret_guncelle(yeni, GITHUB_SECRET_ADI):
                 satirlar.append("   ↳ GitHub Secret güncellendi")
             else:
-                satirlar.append("   ℹ️ GitHub Secret güncellenemedi (SECRET_YAZMA_PAT tanımlanmalı)")
+                # Önceden yalnızca "ℹ️" notuydu ve iş yeşil bitiyordu: yenilenen jeton
+                # kayboluyor, secret'taki eski jeton 60 günde sessizce ölüyordu.
+                # 14 ve 21 Eylül çalışmalarında bu yüzden secret hiç güncellenmedi.
+                sorunlu = True
+                satirlar.append("   ❌ GitHub Secret GÜNCELLENEMEDİ — yenilenen jeton kaydedilmedi; "
+                                "SECRET_YAZMA_PAT (Secrets: yazma izinli) eksik veya geçersiz")
         else:
             sorunlu = True
             d = refresh_token.threads_token_durumu()
@@ -109,6 +114,14 @@ def main() -> int:
     m = refresh_token.meta_token_durumu()
     if m.get("gecerli"):
         satirlar.append(f"✅ Instagram/Facebook — {m.get('mesaj', 'aktif')}")
+        # Jeton geçerli olup insights izni olmayabilir: ölçüm 12 gün bu yüzden kördü.
+        insights = _insights_durumu()
+        if insights is False:
+            sorunlu = True
+            satirlar.append("   ❌ Insights izni YOK — erişim/kayıt/paylaşım ölçülemiyor "
+                            "(jetona instagram_manage_insights eklenmeli)")
+        elif insights:
+            satirlar.append("   ↳ Insights ölçülüyor")
     else:
         sorunlu = True
         satirlar.append(f"❌ Instagram/Facebook — {m.get('mesaj')}")
@@ -167,6 +180,22 @@ def main() -> int:
 
     # Sorun varsa job kırmızı olsun — sessiz başarısızlık olmasın
     return 1 if sorunlu else 0
+
+
+def _insights_durumu():
+    """Son yayınlanan IG postunda insights'ı dener. True/False; denenemezse None."""
+    try:
+        from src import db, instagram
+        with db._baglanti_al() as conn:
+            son = conn.execute("SELECT instagram_post_id FROM haberler WHERE instagram_post_id IS NOT NULL "
+                               "ORDER BY yayin_zamani DESC LIMIT 1").fetchone()
+        if not son:
+            return None
+        sonuc = instagram.medya_metrikleri_al(son[0]) or {}
+        return sonuc.get("insights_hata") != "izin_yok"
+    except Exception as e:
+        log.warning("Insights denetimi çalıştırılamadı: %s", e)
+        return None
 
 
 if __name__ == "__main__":

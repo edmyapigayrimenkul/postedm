@@ -93,9 +93,14 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 ## 5. GÜVENLİK VE GİT YÖNETİMİ
 
 * `.env` dosyası kesinlikle `.gitignore` içerisindedir ve commit edilmez.
-* ⚠️ 2026-09-23 itibarıyla yerel klonun origin adresinde **düz metin PAT gömülü** (`git remote -v` onu basar).
-  Hedef: token değiştirilip URL'den çıkarılacak, kimlik bilgisi keychain/credential helper'da tutulacak.
-* Mac Keychain'deki eski `ozdogangringo-sketch` hesabı izole edilmiştir; push işlemleri dinamik olarak `.env` üzerinden yürütülür.
+* Origin adresi temiz: `https://github.com/edmyapigayrimenkul/postedm.git` — URL'ye token GÖMÜLMEZ.
+  (2026-09-23'e kadar süresiz, admin yetkili bir PAT gömülüydü; iptal ediliyor.)
+* **Push yolu: düz `git push`.** Bu Mac'te github.com kimliğini `gh auth git-credential` verir;
+  gh'deki `ozdogangringo-sketch` hesabı postedm'de yazma yetkili ortak çalışandır.
+  `.env`'deki token'la push YAPILMAZ; `~/.git-credentials` (düz metin) kullanılmaz.
+* Token'lar amaca göre ayrı ve süreli (edmyapigayrimenkul hesabı, yalnız postedm):
+  `edm-dispatch` (Contents: yazma) → iki Worker'ın tetikleme secret'ı;
+  `edm-secret-yazici` (Secrets: yazma) → Actions `SECRET_YAZMA_PAT`, jeton yenilemenin secret'lara yazması için.
 
 ---
 
