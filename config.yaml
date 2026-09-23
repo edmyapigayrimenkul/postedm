@@ -97,7 +97,9 @@ haberler:
       agirlik: 6
       kategori: "ekonomi"
     - ad: "TRT Haber Ekonomi"
-      url: "https://www.trthaber.com/xml_mobile.php?tur=xml_genel&kategori=ekonomi"
+      # Eski xml_mobile.php adresi 200 dönüp BOŞ besleme veriyordu (Kaynak Sağlığı
+      # 22 Eylül'den beri kırmızıydı); güncel RSS adresi bu.
+      url: "https://www.trthaber.com/ekonomi_articles.rss"
       agirlik: 8
       kategori: "ekonomi"
     - ad: "Habertürk Ekonomi"
