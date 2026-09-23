@@ -64,7 +64,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.instagram, "tekil_gorsel_yayinla") as ig_tekil,
             patch.object(yayinla.instagram, "story_yayinla", return_value="ig-s123") as ig_story,
             patch.object(yayinla.tiktok, "foto_yayinla", return_value={"durum": True, "publish_id": "tt-p123"}) as tt_foto,
-            patch.object(yayinla.threads, "zincir_paylas", return_value="th-z123") as th_zincir,
+            patch.object(yayinla.threads, "zincir_paylas_sonuc", return_value={"kok_id": "th-z123", "yayinlanan": 2, "toplam": 2, "eksik": []}) as th_zincir,
             patch.object(yayinla.video, "slaytlardan_reels_uret", return_value=self.dummy_video),
             patch.object(yayinla.ses, "sesli_video_hazirla", return_value=self.dummy_video) as ses_hazirla,
             patch.object(yayinla.facebook, "paylas", return_value="fb-p123") as fb_paylas,
@@ -209,7 +209,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.db, "haber_getir", return_value=haber),
             patch.object(yayinla.db, "haber_guncelle"),
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
-            patch.object(yayinla.threads, "zincir_paylas", return_value="th-chain-45") as th_zincir,
+            patch.object(yayinla.threads, "zincir_paylas_sonuc", return_value={"kok_id": "th-chain-45", "yayinlanan": 2, "toplam": 2, "eksik": []}) as th_zincir,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
             patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):
@@ -239,7 +239,7 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
             patch("src.make_image.otorite_gonderi_slaytlari_uret", return_value=mock_besleme_yollari) as mock_make_image,
             patch.object(yayinla.upload_image, "coklu_gorsel_yukle", return_value=["https://cdn.com/yeni_4x5_1.jpg", "https://cdn.com/yeni_4x5_2.jpg"]),
-            patch.object(yayinla.threads, "zincir_paylas", return_value="th-chain-native") as th_zincir,
+            patch.object(yayinla.threads, "zincir_paylas_sonuc", return_value={"kok_id": "th-chain-native", "yayinlanan": 2, "toplam": 2, "eksik": []}) as th_zincir,
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
             patch.object(yayinla.telegram_bot, "sonucu_yaz"),
         ):

@@ -892,11 +892,19 @@ def main() -> None:
             else:
                 sayfalar = threads.metinleri_slaytlara_dagit(haber if tur in ("haber", "reels") else {"manset": baslik, "spot": caption}, threads_urller)
                 if len(sayfalar) > 1:
-                    t_id = threads.zincir_paylas(sayfalar)
+                    zincir = threads.zincir_paylas_sonuc(sayfalar)
+                    t_id = zincir["kok_id"]
                     with _lock:
                         threads_id = t_id
-                        if t_id:
-                            rapor_satirlari.append(f"🧵 <b>Threads:</b> {len(sayfalar)} parçalı 4:5 zincir paylaşıldı ✓")
+                        if t_id and not zincir["eksik"]:
+                            rapor_satirlari.append(f"🧵 <b>Threads:</b> {zincir['yayinlanan']} parçalı 4:5 zincir paylaşıldı ✓")
+                        elif t_id:
+                            # Planlanan sayı değil, gerçekten yayınlanan sayı raporlanır
+                            eksik = ", ".join(str(n) for n in zincir["eksik"])
+                            rapor_satirlari.append(
+                                f"🧵 <b>Threads:</b> zincir EKSİK — {zincir['yayinlanan']}/{zincir['toplam']} parça "
+                                f"yayında, {eksik}. parça yayınlanamadı ✗"
+                            )
                         else:
                             rapor_satirlari.append("🧵 <b>Threads:</b> Hata oluştu ✗")
                 else:

@@ -309,18 +309,29 @@ def metinleri_slaytlara_dagit(
 
 
 def zincir_paylas(sayfalar: List[Dict[str, str]]) -> Optional[str]:
+    """Zinciri yayınlar, kök gönderi kimliğini döner (geriye uyumlu arayüz)."""
+    return zincir_paylas_sonuc(sayfalar)["kok_id"]
+
+
+def zincir_paylas_sonuc(sayfalar: List[Dict[str, str]]) -> Dict[str, Any]:
     """
     Threads'te 4:5 görselleri ve her sayfanın metnini parça parça
     birbirine bağlı bir yanıt zinciri (Thread Chain) olarak yayınlar.
+
+    Kaç parçanın GERÇEKTEN yayınlandığını da döner: {"kok_id", "yayinlanan",
+    "toplam", "eksik"}. Önceki arayüz yalnızca kök kimliği dönüyordu ve rapor
+    planlanan sayıyı basıyordu — #241'de 6 parçanın 4'ü yayınlandığı halde
+    "6 parçalı zincir paylaşıldı ✓" yazdı; eksik olanlar kapanış slaytlarıydı.
     """
+    sonuc: Dict[str, Any] = {"kok_id": None, "yayinlanan": 0, "toplam": len(sayfalar or []), "eksik": []}
     kullanici_id, token = _hesap_bilgileri()
     if not kullanici_id or not token:
         log.warning("Threads kimlik bilgileri eksik (.env kontrol edin).")
-        return None
+        return sonuc
 
     if not sayfalar:
         log.warning("Zincir için sayfa verisi bulunamadı.")
-        return None
+        return sonuc
 
     url = f"{THREADS_TABAN}/{kullanici_id}/threads"
     kok_id: Optional[str] = None
@@ -345,6 +356,7 @@ def zincir_paylas(sayfalar: List[Dict[str, str]]) -> Optional[str]:
         cid = _konteyner_olustur(url, payload)
         if not cid or not _konteyner_bekle(cid, token):
             log.warning("Threads zincir parçası %d hazırlanamadı.", idx + 1)
+            sonuc["eksik"].append(idx + 1)
             continue
 
         yeni_id = _yayina_al(cid, kullanici_id, token)
@@ -352,14 +364,17 @@ def zincir_paylas(sayfalar: List[Dict[str, str]]) -> Optional[str]:
             if not kok_id:
                 kok_id = yeni_id
             onceki_id = yeni_id
+            sonuc["yayinlanan"] += 1
             log.info("Threads zincir parçası %d yayınlandı: ID=%s", idx + 1, yeni_id)
         else:
             log.warning("Threads zincir parçası %d yayına alınamadı.", idx + 1)
+            sonuc["eksik"].append(idx + 1)
 
         if idx < len(sayfalar) - 1:
             time.sleep(CONTAINER_ARASI_SANIYE)
 
-    return kok_id
+    sonuc["kok_id"] = kok_id
+    return sonuc
 
 
 def post_baglantisi(post_id: str) -> str:
