@@ -40,8 +40,9 @@ def metin_ayristir(metin: str) -> Tuple[Optional[int], str, Optional[str]]:
       - 'Yeni Başlık | Yeni Açıklama'
       - 'Yeni Başlık\nYeni Açıklama'
       - 'Yeni Başlık'
+      - 'başlık: Yeni Başlık'  (Worker yalnızca açık sözdizimini iletir)
     """
-    metin = metin.strip()
+    metin = re.sub(r"^ba[sş]l[ıi]k\s*:\s*", "", metin.strip(), flags=re.IGNORECASE)
     sira = None
     eslesme = re.match(r"^([1-9]|10)\s*[:\.\-]\s*(.+)$", metin, re.DOTALL)
     if eslesme:

@@ -7,6 +7,11 @@ workers_dev = true
 #   TELEGRAM_BOT_TOKEN   — answerCallbackQuery ve mesaj düzenleme için
 #   GITHUB_TOKEN         — repository_dispatch tetiklemek için (repo yetkisi)
 #   WEBHOOK_SECRET       — Telegram'ın X-Telegram-Bot-Api-Secret-Token başlığı
+#   IZINLI_SOHBETLER     — komut verebilecek sohbet kimlikleri, virgülle (grup kimliği
+#                          eksi işaretli). İlki bildirim sohbeti. BOŞSA HİÇBİR KOMUT
+#                          ÇALIŞMAZ. secret_token isteğin Telegram'dan geldiğini
+#                          kanıtlar, kimin yazdığını değil; bu liste olmadan bota
+#                          özelden yazan herkes /finans, /sil tetikleyebiliyordu.
 #
 # ⚠️ WEBHOOK_SECRET olmadan Worker HER isteği reddeder (fail-closed).
 #    Telegram tarafı setWebhook'a secret_token ile aynı değerle kurulmalı:

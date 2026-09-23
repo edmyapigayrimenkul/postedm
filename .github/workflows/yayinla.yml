@@ -69,6 +69,8 @@ jobs:
             python -c "import os; from src import telegram_bot; m, b = telegram_bot.icerik_incele_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           elif [ "$EYLEM" = "sonpostlar" ]; then
             python -c "from src import telegram_bot; m, b = telegram_bot.son_postlar_raporu(); telegram_bot.mesaj_gonder(m, reply_markup=b)"
+          elif [ "$EYLEM" = "havuz" ]; then
+            python -c "from src import telegram_bot; telegram_bot.mesaj_gonder(telegram_bot.havuz_mesaji())"
           elif [ "$EYLEM" = "yayin_kontrol" ]; then
             python -c "import os; from src import telegram_bot; m, b = telegram_bot.yayin_kontrol_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           fi
@@ -95,11 +97,13 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+          # Dış girdi env ile geçer, run bloğuna gömülmez: ${{ }} kabuktan ÖNCE
+          # metne yerleşir; tırnak ya da $(...) içeren bir değer komut olarak çalışır.
+          TUR: ${{ github.event.client_payload.tur || inputs.tur || 'haber' }}
+          ID: ${{ github.event.client_payload.id || inputs.id || '' }}
+          HEDEF: ${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}
+          MESAJ_ID: ${{ github.event.client_payload.mesaj_id || '' }}
         run: |
-          TUR="${{ github.event.client_payload.tur || inputs.tur || 'haber' }}"
-          ID="${{ github.event.client_payload.id || inputs.id || '' }}"
-          HEDEF="${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}"
-          MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
           python scripts/yayinla.py --tur "$TUR" ${ID:+--id "$ID"} --hedef "$HEDEF" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
 
       - name: Metin Düzenle (Telegram Reply)
@@ -113,10 +117,11 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+          # Telegram'dan gelen serbest metin ve görünen ad — asla run bloğuna gömülmez.
+          MESAJ_ID: ${{ github.event.client_payload.mesaj_id }}
+          METIN: ${{ github.event.client_payload.metin }}
+          BASAN: ${{ github.event.client_payload.gonderen || '' }}
         run: |
-          MESAJ_ID="${{ github.event.client_payload.mesaj_id }}"
-          METIN="${{ github.event.client_payload.metin }}"
-          BASAN="${{ github.event.client_payload.gonderen || '' }}"
           python scripts/metin_duzenle.py --mesaj-id "$MESAJ_ID" --metin "$METIN" --gonderen "$BASAN"
 
       - name: Özel İçerik Üretimi (/link veya /ozel)
@@ -133,10 +138,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+          TUR: ${{ github.event.client_payload.tur }}
+          URL: ${{ github.event.client_payload.url || '' }}
+          METIN: ${{ github.event.client_payload.metin || '' }}
         run: |
-          TUR="${{ github.event.client_payload.tur }}"
-          URL="${{ github.event.client_payload.url || '' }}"
-          METIN="${{ github.event.client_payload.metin || '' }}"
           python scripts/ozel_uret.py --tur "$TUR" ${URL:+--url "$URL"} ${METIN:+--metin "$METIN"}
 
       - name: Slayt Operasyonu (Taşıma / Silme / AI Başlık)
@@ -153,10 +158,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_DOMAIN: ${{ secrets.R2_PUBLIC_DOMAIN }}
+          EYLEM: ${{ github.event.client_payload.eylem }}
+          SIRA: ${{ github.event.client_payload.sira }}
+          MESAJ_ID: ${{ github.event.client_payload.mesaj_id || '' }}
         run: |
-          EYLEM="${{ github.event.client_payload.eylem }}"
-          SIRA="${{ github.event.client_payload.sira }}"
-          MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
           python scripts/slayt_islem.py --eylem "$EYLEM" --sira "$SIRA" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
 
       - name: Veritabanını Kaydet
@@ -170,11 +175,11 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TUR: ${{ github.event.client_payload.tur || inputs.tur || 'haber' }}
+          ID: ${{ github.event.client_payload.id || inputs.id || '' }}
+          HEDEF: ${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}
+          MESAJ_ID: ${{ github.event.client_payload.mesaj_id || '' }}
         run: |
-          TUR="${{ github.event.client_payload.tur || inputs.tur || 'haber' }}"
-          ID="${{ github.event.client_payload.id || inputs.id || '' }}"
-          HEDEF="${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}"
-          MESAJ_ID="${{ github.event.client_payload.mesaj_id || '' }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -m src.hata_bildir --islem "Yayınla" --tur "$TUR" --id "$ID" --hedef "$HEDEF" --mesaj-id "$MESAJ_ID" --run-url "$RUN_URL"
 

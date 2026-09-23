@@ -11,8 +11,9 @@ export default {
 
     // TikTok OAuth Callback Yakalayıcı (PKCE Yetkilendirme)
     if (reqUrl.pathname === "/tiktok-callback") {
-      const code = reqUrl.searchParams.get("code") || "";
-      const error = reqUrl.searchParams.get("error_description") || reqUrl.searchParams.get("error") || "";
+      // Parametreler kullanıcı kontrolünde: kaçışsız basılırsa yansıtmalı XSS olur.
+      const code = htmlKacis(reqUrl.searchParams.get("code") || "");
+      const error = htmlKacis(reqUrl.searchParams.get("error_description") || reqUrl.searchParams.get("error") || "");
       const icerik = code
         ? `<div style="background:#161b22;border:1px solid #30363d;padding:15px;font-size:20px;font-family:monospace;color:#7ee787;display:inline-block;border-radius:6px;margin:20px 0;user-select:all;">${code}</div><p style="color:#8b949e;">Yukarıdaki kodu kopyalayıp terminaldeki sihirbaza yapıştırın.</p>`
         : `<div style="color:#f85149;margin:20px 0;">Hata: ${error || "Yetkilendirme kodu alınamadı"}</div>`;
@@ -171,19 +172,6 @@ export default {
     }
 
     // Site Paylaşım Kuyruğu API'si (/api/postedm/kuyruk)
-    if (reqUrl.pathname === "/api/postedm/kuyruk") {
-      if (request.method === "GET") {
-        return new Response(null, { status: 204 });
-      }
-      if (request.method === "POST") {
-        return new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(null, { status: 204 });
-    }
-
     if (request.method !== "POST") {
       return new Response("EDM Telegram Webhook Aktif", { status: 200 });
     }
@@ -196,6 +184,18 @@ export default {
 
     try {
       const update = await request.json();
+
+      // GÜVENLİK: yalnızca izinli sohbetler komut verebilir.
+      // secret_token isteğin Telegram'dan geldiğini kanıtlar, KİMİN yazdığını değil.
+      // Bu kontrol yokken bota özelden yazan herhangi biri /finans ile onaysız
+      // yayın, /sil ile geri alınamaz silme tetikleyebiliyordu.
+      // Liste boşsa hiçbir komut çalışmaz (fail-closed).
+      const gelenSohbet = update.callback_query?.message?.chat?.id ?? update.message?.chat?.id;
+      if (!sohbetIzinliMi(env, gelenSohbet)) {
+        if (update.callback_query) await callbackYanitla(env, update.callback_query.id, "Yetkisiz");
+        // 200 dönülür: 4xx/5xx'te Telegram aynı güncellemeyi tekrar tekrar yollar.
+        return new Response("OK");
+      }
 
       // =====================================================================
       // 1. BUTON TIKLAMALARI (CALLBACK QUERY)
@@ -325,7 +325,7 @@ export default {
             "Otomatik paylaşımlar durduruldu. İstediğiniz zaman 'Devam Ettir' ile başlatabilirsiniz.",
             { inline_keyboard: [[{ text: "▶️ Devam Ettir", callback_data: "devam_et" }, { text: "← Kontrol Paneli", callback_data: "panel" }]] }
           );
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "duraklat", saat: parseInt(saat, 10) });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "duraklat", saat: parseInt(saat, 10) });
           return new Response("OK");
         }
 
@@ -336,7 +336,7 @@ export default {
             "Otomatik paylaşımlar belirlenen günlerde sabah 10:00'da onaya sunulacaktır.",
             kontrolMerkeziMenusu()
           );
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "devam_et" });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "devam_et" });
           return new Response("OK");
         }
 
@@ -347,28 +347,34 @@ export default {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: "⏰ Bekleyen onaylar taranıyor, onay bekleyen varsa hatırlatılacak..." }),
           });
-          await tetikleGitHub(env, "hatirlat", { zorla: true });
+          await tetikle(env, chatId, "hatirlat", { zorla: true });
           return new Response("OK");
         }
 
-        if (data === "durum" || data === "saglik_testi" || data === "havuz_durum") {
+        // Önceki sürüm burada sabit "%100 sağlıklı çalışıyor" metni basıyordu —
+        // metrikler sıfır yazarken ve CI kırmızıyken bile. Durum mesajı takvimi
+        // anlatır; sağlık ve havuz gerçek veriden, Actions üzerinden gelir.
+        if (data === "durum") {
           await cevapVer();
-          await mesajiGuncelle(
-            "📊 <b>EDM SİSTEM & YAYIN DURUMU</b>\n\n" +
-            "• <b>Otomasyon:</b> 🟢 Aktif (Haftanın 7 Günü, Günde 3 Farklı Gönderi)\n" +
-            "  - <i>Sabah 10:00:</i> 1. Bilgilendirici (Rotasyon: Nedir Doğrusu, Vaka, Net Cevap, B1)\n" +
-            "  - <i>Öğle 13:30:</i> 2. EDM Gayrimenkul Sözlüğü\n" +
-            "  - <i>Akşam 18:30:</i> 3. Taze Haber & Gündem (veya Bilgilendirici Fallback)\n\n" +
-            "• <b>Bağlı Platformlar:</b>\n" +
-            "  ✅ Instagram (Post & Reels)\n" +
-            "  ✅ Threads\n" +
-            "  ✅ Facebook\n" +
-            "  ✅ TikTok (v2 API Bağlı)\n" +
-            "  ✅ YouTube Shorts\n\n" +
-            "• <b>Domain & Web Portalı:</b> 🌐 <a href=\"https://edmyapigayrimenkul.com\">edmyapigayrimenkul.com</a>\n\n" +
-            "<i>Tüm sistemler, Cloudflare Worker ve API bağlantıları %100 sağlıklı çalışıyor.</i>",
-            { inline_keyboard: [[{ text: "← Kontrol Paneline Dön", callback_data: "panel" }, { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" }]] }
-          );
+          await mesajiGuncelle(durumMetni(), {
+            inline_keyboard: [[
+              { text: "🩺 Canlı Sağlık Raporu", callback_data: "saglik_testi" },
+              { text: "← Kontrol Paneli", callback_data: "panel" },
+            ]],
+          });
+          return new Response("OK");
+        }
+
+        if (data === "saglik_testi") {
+          await cevapVer("Rapor hazırlanıyor");
+          await sohbeteGonder(env, chatId, SAGLIK_BEKLEME_METNI);
+          await tetikle(env, chatId, "rapor", { kategori: "menu" });
+          return new Response("OK");
+        }
+
+        if (data === "havuz_durum") {
+          await cevapVer("Havuz sayılıyor");
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "havuz" });
           return new Response("OK");
         }
 
@@ -397,27 +403,27 @@ export default {
             }
           }
           await butonlariGuncelle(keyboard);
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "ayar_degistir", anahtar: key, deger: val });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "ayar_degistir", anahtar: key, deger: val });
           return new Response("OK");
         }
 
         if (data === "sonpostlar") {
           await cevapVer("Son postlar getiriliyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "sonpostlar", mesaj_id: messageId });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "sonpostlar", mesaj_id: messageId });
           return new Response("OK");
         }
 
         if (data.startsWith("incele:")) {
           const refId = data.split(":")[1];
           await cevapVer("İçerik inceleniyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "incele", id: refId, mesaj_id: messageId });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "incele", id: refId, mesaj_id: messageId });
           return new Response("OK");
         }
 
         if (data.startsWith("yayin_kontrol:")) {
           const refId = data.split(":")[1];
           await cevapVer("Yayın kontrol ediliyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "yayin_kontrol", id: refId, mesaj_id: messageId });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "yayin_kontrol", id: refId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -425,7 +431,7 @@ export default {
           const refId = data.split(":")[1];
           await cevapVer("Tüm kanallar için kurtarılıyor...");
           await mesajiGuncelle(`🚀 <b>İçerik #${refId}</b> tüm kanallar için kurtarılıyor ve yayınlanıyor...`);
-          await tetikleGitHub(env, "yayinla", { hedef: "hepsi", id: refId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { hedef: "hepsi", id: refId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -433,7 +439,7 @@ export default {
           const [_, kanal, refId] = data.split(":");
           await cevapVer(`${kanal.toUpperCase()} için tekrar deneniyor...`);
           await mesajiGuncelle(`🔄 <b>İçerik #${refId}</b> için <b>${kanal.toUpperCase()}</b> yayını tekrarlanıyor...`);
-          await tetikleGitHub(env, "yayinla", { hedef: kanal, id: refId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { hedef: kanal, id: refId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -462,7 +468,7 @@ export default {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ chat_id: chatId, text: `🎬 <b>EDM Reels Videosu</b> hazırlanıyor, videonuz ve metniniz birazdan gruba iletilecek...`, parse_mode: "HTML" }),
             });
-            await tetikleGitHub(env, "sabah_hazirla", { format_turu: "reels", kaynak: "hizli_uret_reels" });
+            await tetikle(env, chatId, "sabah_hazirla", { format_turu: "reels", kaynak: "hizli_uret_reels" });
             return new Response("OK");
           }
           if (format === "rotasyon") {
@@ -471,7 +477,7 @@ export default {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ chat_id: chatId, text: `⏳ <b>Günün Gönderisi (Bilgilendirici Rotasyon)</b> hazırlanıyor, onayınıza sunulacak...`, parse_mode: "HTML" }),
             });
-            await tetikleGitHub(env, "sabah_hazirla", { slot: "bilgilendirici", kaynak: "hizli_uret_rotasyon" });
+            await tetikle(env, chatId, "sabah_hazirla", { slot: "bilgilendirici", kaynak: "hizli_uret_rotasyon" });
             return new Response("OK");
           }
           if (format === "haber") {
@@ -480,7 +486,7 @@ export default {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ chat_id: chatId, text: `🌐 <b>Taze Sektörel Haberler</b> taranıyor ve içerik hazırlanıyor...`, parse_mode: "HTML" }),
             });
-            await tetikleGitHub(env, "sabah_hazirla", { slot: "haber", kaynak: "hizli_uret_haber" });
+            await tetikle(env, chatId, "sabah_hazirla", { slot: "haber", kaynak: "hizli_uret_haber" });
             return new Response("OK");
           }
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -488,7 +494,7 @@ export default {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: `⏳ <b>${format.toUpperCase()}</b> formatında içerik hazırlanıyor, onayınıza sunulacak...`, parse_mode: "HTML" }),
           });
-          await tetikleGitHub(env, "sabah_hazirla", { format_turu: format, kaynak: "hizli_uret_butonu" });
+          await tetikle(env, chatId, "sabah_hazirla", { format_turu: format, kaynak: "hizli_uret_butonu" });
           return new Response("OK");
         }
 
@@ -568,7 +574,7 @@ export default {
           } else {
             await mesajiGuncelle(`🚀 <b>${baslikEtiketi} yayına alınıyor...</b>\nSeçili Kanallar: <code>${hedef.toUpperCase()}</code>`);
           }
-          await tetikleGitHub(env, "yayinla", {
+          await tetikle(env, chatId, "yayinla", {
             tur,
             hedef,
             id: icerikId,
@@ -582,7 +588,7 @@ export default {
           const mId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
           await cevapVer("Manuel paket hazırlanıyor...");
           await mesajiGuncelle(`📲 <b>Manuel Paylaşım Paketi hazırlanıyor...</b>\nAçıklama metni ve yönlendirme butonları birazdan iletilecek.`);
-          await tetikleGitHub(env, "yayinla", { tur: "haber", id: mId, hedef: "manuel_paket", mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { tur: "haber", id: mId, hedef: "manuel_paket", mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -592,7 +598,7 @@ export default {
           const mId = (data.startsWith("yenile:") && data.split(":").length > 2 ? data.split(":")[2] : "") || icerikIdBul();
           await cevapVer("Metin düzenleniyor...");
           await mesajiGuncelle(`✍️ <b>İçerik için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "yayinla", { hedef: eylem, id: mId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { hedef: eylem, id: mId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -602,7 +608,7 @@ export default {
           const fId = icerikIdBul();
           await cevapVer("Görsel güncelleniyor...");
           await mesajiGuncelle(`🖼️ <b>Görsel güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "yayinla", { hedef: eylem, id: fId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { hedef: eylem, id: fId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -617,7 +623,7 @@ export default {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: `🎨 İçerik <b>${format.toUpperCase()}</b> formatına dönüştürülüyor...`, parse_mode: "HTML" }),
           });
-          await tetikleGitHub(env, "format_donustur", { format_turu: format, id: fmtId, haber_id: fmtId, mesaj_id: messageId });
+          await tetikle(env, chatId, "format_donustur", { format_turu: format, id: fmtId, haber_id: fmtId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -626,7 +632,7 @@ export default {
           const ertId = icerikIdBul();
           await cevapVer("Yayın 1 saat ertelendi");
           await mesajiGuncelle(`⏰ <b>Yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>`);
-          await tetikleGitHub(env, "yayinla", { hedef: "ertele", id: ertId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { hedef: "ertele", id: ertId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -646,7 +652,7 @@ export default {
             }
           }
           if (!refId) refId = icerikIdBul();
-          await tetikleGitHub(env, "yayinla", { tur, id: refId, hedef: "iptal", mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { tur, id: refId, hedef: "iptal", mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -655,7 +661,7 @@ export default {
           const copId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
           await cevapVer("Taslak çöpe atıldı, konu havuza iade edildi");
           await mesajiGuncelle(`🗑️ <b>Taslak çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
-          await tetikleGitHub(env, "yayinla", { hedef: "cope_at", id: copId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { hedef: "cope_at", id: copId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -675,9 +681,33 @@ export default {
             }
           }
           if (!refId) refId = icerikIdBul();
-          await cevapVer("Yayından kaldırma işlemi başlatıldı");
-          await mesajiGuncelle(`🗑️ <b>Yayından Kaldırılıyor...</b>\n<i>İçerik #${refId || ""} sosyal medya kanallarından siliniyor...</i>`);
-          await tetikleGitHub(env, "yayinla", { tur, id: refId, hedef: "kaldir", mesaj_id: messageId });
+          if (!/^\d+$/.test(refId)) {
+            await cevapVer("İçerik numarası bulunamadı");
+            return new Response("OK");
+          }
+          // Geri alınamaz işlem: tek dokunuşla değil, ayrı bir onay mesajıyla yürür.
+          // Orijinal rapor mesajı ve butonları olduğu gibi kalır.
+          await cevapVer("Onay gerekiyor");
+          await sohbeteGonder(env, chatId, kaldirmaOnayMetni(refId), kaldirmaOnayMenusu(tur, refId));
+          return new Response("OK");
+        }
+
+        // L3. KALDIRMA ONAYI — yalnızca onay mesajındaki "Evet" butonu siler
+        if (data.startsWith("kaldir_onay:")) {
+          const [, tur, refId] = data.split(":");
+          if (!/^(haber|reels|ilan)$/.test(tur || "") || !/^\d+$/.test(refId || "")) {
+            await cevapVer("Geçersiz istek");
+            return new Response("OK");
+          }
+          await cevapVer("Yayından kaldırma başlatıldı");
+          await mesajiGuncelle(`🗑️ <b>İçerik #${refId} yayından kaldırılıyor...</b>\n<i>Facebook ve Threads'ten siliniyor; Instagram için ayrı talimat gelecek.</i>`);
+          await tetikle(env, chatId, "yayinla", { tur, id: refId, hedef: "kaldir", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data === "kaldir_vazgec") {
+          await cevapVer("Vazgeçildi");
+          await mesajiGuncelle("↩️ <b>Kaldırma iptal edildi.</b> İçerik yayında kalmaya devam ediyor.");
           return new Response("OK");
         }
 
@@ -685,12 +715,12 @@ export default {
         if (data.startsWith("ilan_sec:")) {
           const ilanId = data.split(":")[1];
           await cevapVer();
-          await tetikleGitHub(env, "hazirla_ilan", { ilan_id: ilanId });
+          await tetikle(env, chatId, "hazirla_ilan", { ilan_id: ilanId });
           return new Response("OK");
         }
         if (data === "ilan_menu_yenile") {
           await cevapVer();
-          await tetikleGitHub(env, "ilan_menusu", {});
+          await tetikle(env, chatId, "ilan_menusu", {});
           return new Response("OK");
         }
 
@@ -704,7 +734,7 @@ export default {
           const [eylem, sira] = data.split(":");
           await cevapVer("Slayt işlemi başlatıldı...");
           await mesajiGuncelle(`⏳ <b>Slayt güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
-          await tetikleGitHub(env, "slayt_islem", {
+          await tetikle(env, chatId, "slayt_islem", {
             eylem,
             sira: parseInt(sira, 10),
             mesaj_id: messageId,
@@ -735,7 +765,7 @@ export default {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: chatId, text: "🧹 Askıda bekleyen onaylar taranıp temizleniyor...", parse_mode: "HTML" }),
           });
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "tur_temizle" });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "tur_temizle" });
           return new Response("OK");
         }
 
@@ -752,7 +782,7 @@ export default {
           if (messageId) {
             await mesajiGuncelle("🔄 <b>Kota güncelleniyor...</b>\n<i>Bulut, yapay zeka ve sosyal medya kotaları taranıyor...</i>");
           }
-          await tetikleGitHub(env, "rapor", { mesaj_id: messageId, kategori: kategori });
+          await tetikle(env, chatId, "rapor", { mesaj_id: messageId, kategori: kategori });
           return new Response("OK");
         }
       }
@@ -762,7 +792,14 @@ export default {
       // =====================================================================
       if (update.message?.text) {
         const rawText = update.message.text.trim();
-        const text = rawText.split("@")[0].trim().toLowerCase();
+        // Komut = ilk kelime ("@botadi" eki atılmış). Eşleşme HER ZAMAN tam kelimeyle:
+        // eski startsWith("sil") kontrolü "Silivri 220 m2 arsa var" mesajını
+        // #220'yi silme komutu sayıyordu.
+        const kelimeler = rawText.split(/\s+/);
+        const komut = (kelimeler[0] || "").split("@")[0].toLowerCase();
+        const arguman = kelimeler.slice(1);
+        const argumanMetni = rawText.replace(/^\S+\s*/, "");  // satır sonlarını korur
+        const text = [komut, ...arguman.map((a) => a.toLowerCase())].join(" ");
         const chatId = update.message.chat?.id;
 
         const mesajGonder = async (metin, replyMarkup = null) => {
@@ -781,20 +818,21 @@ export default {
         };
 
         // --- Yanıtlanan Mesajlar (Reply): Doğrudan başlık/metin düzenleme ---
-        if (update.message.reply_to_message) {
+        // Önceden bot mesajına verilen HER yanıt ("güzel olmuş" dahil) o içeriğin
+        // yeni manşeti oluyordu. Artık yalnızca açık düzenleme sözdizimi sayılır:
+        //   "3: Yeni başlık"  ·  "başlık: Yeni başlık"  ·  "Yeni başlık | Yeni açıklama"
+        if (update.message.reply_to_message?.from?.is_bot && duzenlemeSozdizimiMi(rawText)) {
           const replyId = update.message.reply_to_message.message_id;
           const replyMetin = rawText;
           const gonderen = update.message.from ? `${update.message.from.first_name || ""} ${update.message.from.username ? "@" + update.message.from.username : ""}`.trim() : "";
 
-          if (!replyMetin.startsWith("/")) {
-            await mesajGonder("✍️ Yeni metin işleniyor, slaytlar yeniden çiziliyor...");
-            await tetikleGitHub(env, "metin_duzenle", {
-              mesaj_id: replyId,
-              metin: replyMetin,
-              gonderen: gonderen,
-            });
-            return new Response("OK");
-          }
+          await mesajGonder("✍️ Yeni metin işleniyor, slaytlar yeniden çiziliyor...");
+          await tetikle(env, chatId, "metin_duzenle", {
+            mesaj_id: replyId,
+            metin: replyMetin,
+            gonderen: gonderen,
+          });
+          return new Response("OK");
         }
 
         if (text === "/panel" || text === "/menu" || text === "panel" || text === "menu") {
@@ -808,68 +846,57 @@ export default {
         }
 
         if (text === "/durum" || text === "durum") {
-          await mesajGonder(
-            "📊 <b>EDM SİSTEM & YAYIN DURUMU</b>\n\n" +
-            "• <b>Otomasyon:</b> 🟢 Aktif (Haftanın 7 Günü, Günde 2 İçerik)\n" +
-            "  - <i>Sabah 10:00:</i> 1 Otorite Postu (4:5 Görsel / Carousel)\n" +
-            "  - <i>Akşam 18:30:</i> 1 Dikey Video (9:16 Reels / Shorts / TikTok)\n\n" +
-            "• <b>Bağlı Platformlar:</b>\n" +
-            "  ✅ Instagram (Post & Reels)\n" +
-            "  ✅ Threads\n" +
-            "  ✅ Facebook\n" +
-            "  ✅ TikTok (v2 API Bağlı)\n" +
-            "  ✅ YouTube Shorts\n\n" +
-            "• <b>Domain & Web Portalı:</b> 🌐 <a href=\"https://edmyapigayrimenkul.com\">edmyapigayrimenkul.com</a>\n\n" +
-            "<i>Tüm sistemler, Cloudflare Worker ve API bağlantıları %100 sağlıklı çalışıyor.</i>",
-            { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }, { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" }]] }
-          );
+          await mesajGonder(durumMetni(), {
+            inline_keyboard: [[
+              { text: "🩺 Canlı Sağlık Raporu", callback_data: "saglik_testi" },
+              { text: "🎛 Kontrol Paneli", callback_data: "panel" },
+            ]],
+          });
           return new Response("OK");
         }
 
         if (text === "/hatirlat" || text === "hatirlat") {
           await mesajGonder("⏰ Bekleyen onaylar taranıyor, onay bekleyen varsa hatırlatılacak...");
-          await tetikleGitHub(env, "hatirlat", { zorla: true });
+          await tetikle(env, chatId, "hatirlat", { zorla: true });
           return new Response("OK");
         }
 
         // /link <URL> — Web linkinden otorite postu üretir
-        if (rawText.startsWith("/link")) {
-          const url = rawText.slice(5).trim();
+        if (komut === "/link") {
+          const url = argumanMetni.trim();
           if (!url.startsWith("http")) {
             await mesajGonder("⚠️ Lütfen geçerli bir web linki girin:\n<code>/link https://...</code>");
             return new Response("OK");
           }
           await mesajGonder(`🌐 <b>Link taranıyor ve özel içerik hazırlanıyor...</b>\n<code>${url.slice(0, 70)}...</code>`);
-          await tetikleGitHub(env, "ozel_uret", { tur: "link", url });
+          await tetikle(env, chatId, "ozel_uret", { tur: "link", url });
           return new Response("OK");
         }
 
         // /ozel <metin> veya /konu <metin> — Serbest konudan içerik üretir
-        if (rawText.startsWith("/ozel") || rawText.startsWith("/konu")) {
-          const metin = rawText.replace(/^\/(ozel|konu)\s*/i, "").trim();
+        if (komut === "/ozel" || komut === "/konu") {
+          const metin = argumanMetni.trim();
           if (metin.length < 5) {
             await mesajGonder("⚠️ Lütfen üretmek istediğiniz konuyu yazın:\n<code>/ozel Hisseli tapuda şufa hakkı...</code>");
             return new Response("OK");
           }
           await mesajGonder(`✍️ <b>Özel konu için içerik hazırlanıyor...</b>\n<i>"${metin.slice(0, 100)}..."</i>`);
-          await tetikleGitHub(env, "ozel_uret", { tur: "ozel", metin });
+          await tetikle(env, chatId, "ozel_uret", { tur: "ozel", metin });
           return new Response("OK");
         }
 
         // /temizle — Askıda bekleyen onayları temizler
-        if (text === "/temizle" || text === "temizle") {
+        if (text === "/temizle") {
           await mesajGonder("🧹 Askıda bekleyen onaylar temizleniyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "tur_temizle" });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "tur_temizle" });
           return new Response("OK");
         }
 
         // /kaldir, /sil — Yayındaki içeriği sosyal medyadan geri alır
-        if (text.startsWith("/kaldir") || text.startsWith("kaldir") || text.startsWith("/sil") || text.startsWith("sil")) {
-          const parcalar = text.split(/\s+/);
-          const refId = parcalar.length > 1 ? parcalar[1] : "";
-          if (refId && /^\d+$/.test(refId)) {
-            await mesajGonder(`🗑️ <b>İçerik #${refId} yayından kaldırılıyor...</b>\n<i>Sosyal medya kanallarından siliniyor...</i>`);
-            await tetikleGitHub(env, "yayinla", { tur: "haber", id: refId, hedef: "kaldir" });
+        if (komut === "/kaldir" || komut === "/sil") {
+          const refId = arguman.length === 1 ? arguman[0] : "";
+          if (/^\d+$/.test(refId)) {
+            await mesajGonder(kaldirmaOnayMetni(refId), kaldirmaOnayMenusu("haber", refId));
           } else {
             await mesajGonder("⚠️ Lütfen yayından kaldırılacak ID'yi belirtin:\nÖrn: <code>/kaldir 170</code>");
           }
@@ -877,11 +904,7 @@ export default {
         }
 
         // /rapor, /kullanim, /kota — Detaylı sistem, GitHub Actions ve yapay zeka kota tablosu
-        if (
-          text.startsWith("/rapor") || text.startsWith("rapor") ||
-          text.startsWith("/kullanim") || text.startsWith("kullanim") ||
-          text.startsWith("/kota") || text.startsWith("kota")
-        ) {
+        if (["/rapor", "rapor", "/kullanim", "kullanim", "/kota", "kota"].includes(komut)) {
           const parcalar = text.split(/\s+/);
           let kategori = "menu";
           if (parcalar.length > 1) {
@@ -890,84 +913,67 @@ export default {
             else if (p === "2" || p === "sosyal" || p === "yayin") kategori = "2";
           }
           await mesajGonder("📈 <b>Kota ve Sistem Durumu taranıyor...</b>\nBulut altyapısı, yapay zeka tokenları ve yayın limitleri alınıyor...");
-          await tetikleGitHub(env, "rapor", { kategori: kategori });
+          await tetikle(env, chatId, "rapor", { kategori: kategori });
           return new Response("OK");
         }
 
         if (text === "/gonderi" || text === "/yeni" || text === "/uret" || text === "/hazirla") {
           await mesajGonder("⏳ Günün konusu hazırlanıyor ve onayınıza sunulacak...");
-          await tetikleGitHub(env, "sabah_hazirla", { slot: "bilgilendirici", kaynak: "telegram_komut" });
+          await tetikle(env, chatId, "sabah_hazirla", { slot: "bilgilendirici", kaynak: "telegram_komut" });
           return new Response("OK");
         }
 
         if (text === "/haber" || text === "/sondakika") {
           await mesajGonder("🌐 Taze sektörel haber taranıyor ve post hazırlanıyor...");
-          await tetikleGitHub(env, "sabah_hazirla", { slot: "haber", kaynak: "telegram_komut" });
+          await tetikle(env, chatId, "sabah_hazirla", { slot: "haber", kaynak: "telegram_komut" });
           return new Response("OK");
         }
 
         if (text === "/sozluk") {
           await mesajGonder("⏳ <b>EDM Gayrimenkul Sözlüğü</b> içeriği hazırlanıyor...");
-          await tetikleGitHub(env, "sabah_hazirla", { format_turu: "sozluk", kaynak: "slash_sozluk" });
+          await tetikle(env, chatId, "sabah_hazirla", { format_turu: "sozluk", kaynak: "slash_sozluk" });
           return new Response("OK");
         }
 
         if (text === "/dogrusu") {
           await mesajGonder("⏳ <b>Nedir Doğrusu?</b> içeriği hazırlanıyor...");
-          await tetikleGitHub(env, "sabah_hazirla", { format_turu: "nedir_dogrusu", kaynak: "slash_dogrusu" });
+          await tetikle(env, chatId, "sabah_hazirla", { format_turu: "nedir_dogrusu", kaynak: "slash_dogrusu" });
           return new Response("OK");
         }
 
         if (text === "/vaka") {
           await mesajGonder("⏳ <b>Hukuki Vaka Analizi</b> içeriği hazırlanıyor...");
-          await tetikleGitHub(env, "sabah_hazirla", { format_turu: "vaka", kaynak: "slash_vaka" });
+          await tetikle(env, chatId, "sabah_hazirla", { format_turu: "vaka", kaynak: "slash_vaka" });
           return new Response("OK");
         }
 
         if (text === "/soru") {
           await mesajGonder("⏳ <b>Net Cevap Rehberi</b> içeriği hazırlanıyor...");
-          await tetikleGitHub(env, "sabah_hazirla", { format_turu: "net_cevap", kaynak: "slash_soru" });
+          await tetikle(env, chatId, "sabah_hazirla", { format_turu: "net_cevap", kaynak: "slash_soru" });
           return new Response("OK");
         }
 
         if (text === "/reels" || text === "/video") {
           await mesajGonder("🎬 <b>EDM Reels Videosu (9:16 Dikey)</b> hazırlanıyor, birazdan video ve metin gruba iletilecek...");
-          await tetikleGitHub(env, "sabah_hazirla", { format_turu: "reels", kaynak: "slash_reels" });
+          await tetikle(env, chatId, "sabah_hazirla", { format_turu: "reels", kaynak: "slash_reels" });
           return new Response("OK");
         }
 
         if (text === "/ilanlar" || text === "/ilan" || text === "ilanlar" || text === "ilan") {
           await mesajGonder("🏡 <b>Portföy İlan Menüsü</b> hazırlanıyor, birazdan gruba sunulacak...");
-          await tetikleGitHub(env, "ilan_menusu", {});
+          await tetikle(env, chatId, "ilan_menusu", {});
           return new Response("OK");
         }
 
         if (text === "/saglik" || text === "/saglik_testi" || text === "saglik") {
-          await mesajGonder(
-            "🩺 <b>EDM SİSTEM & API SAĞLIK RAPORU</b>\n\n" +
-            "• <b>Cloudflare Webhook:</b> 🟢 Çalışıyor (Latency ~20ms)\n" +
-            "• <b>GitHub Actions API:</b> 🟢 Bağlı & Tetiklenebilir\n" +
-            "• <b>Telegram Bot API:</b> 🟢 Aktif (v7.x)\n" +
-            "• <b>Meta Graph API (Instagram/Threads/FB):</b> 🟢 Tokenlar Tanımlı\n" +
-            "• <b>TikTok v2 Content Posting API:</b> 🟢 PKCE Yetkili\n" +
-            "• <b>YouTube Data API:</b> 🟢 Aktif\n" +
-            "• <b>Veritabanı & Konu Havuzu:</b> 🟢 Sağlıklı\n\n" +
-            "<i>Sistemde herhangi bir kesinti veya blokaj bulunmamaktadır.</i>",
-            { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
-          );
+          await mesajGonder(SAGLIK_BEKLEME_METNI);
+          await tetikle(env, chatId, "rapor", { kategori: "menu" });
           return new Response("OK");
         }
 
         if (text === "/havuz" || text === "/havuz_durum" || text === "havuz") {
-          await mesajGonder(
-            "📚 <b>EDM İÇERİK & KONU HAVUZU</b>\n\n" +
-            "• <b>S1 (Tapu & Mevzuat Rehberi):</b> 30+ Konu\n" +
-            "• <b>S2 (İmar & Parsel Analizi):</b> 25+ Konu\n" +
-            "• <b>S3 (Yatırım & Finans / Rayiç):</b> 25+ Konu\n" +
-            "• <b>S4 (Arsa & Arazi Değerleme):</b> 20+ Konu\n\n" +
-            "<i>Havuzdaki konular haftalık rotasyon ve format çeşitliliği ile sırayla üretilir.</i>",
-            { inline_keyboard: [[{ text: "✍️ Sıradaki Konuyu Üret", callback_data: "hizli_uret:sozluk" }, { text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
-          );
+          await mesajGonder("📚 <b>Konu havuzu sayılıyor...</b>");
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "havuz" });
           return new Response("OK");
         }
 
@@ -978,37 +984,37 @@ export default {
 
         if (text === "/devam") {
           await mesajGonder("🟢 <b>Otomatik akış tekrar aktif edildi.</b> Paylaşımlar takvime göre devam edecek.");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "devam_et" });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "devam_et" });
           return new Response("OK");
         }
 
-        if (rawText.startsWith("/arastir")) {
-          const metin = rawText.replace(/^\/arastir\s*/i, "").trim();
+        if (komut === "/arastir") {
+          const metin = argumanMetni.trim();
           if (metin.length < 3) {
             await mesajGonder("⚠️ Lütfen araştırmak istediğiniz konuyu yazın:\n<code>/arastir 2026 tapu harcı muafiyeti şartları</code>");
             return new Response("OK");
           }
           await mesajGonder(`🔍 <b>Derin araştırma başlatıldı...</b>\n<i>"${metin.slice(0, 100)}..."</i>`);
-          await tetikleGitHub(env, "ozel_uret", { tur: "arastir", metin });
+          await tetikle(env, chatId, "ozel_uret", { tur: "arastir", metin });
           return new Response("OK");
         }
 
-        if (rawText.startsWith("/dosya") || rawText.startsWith("/kronoloji")) {
-          const metin = rawText.replace(/^\/(dosya|kronoloji)\s*/i, "").trim();
+        if (komut === "/dosya" || komut === "/kronoloji") {
+          const metin = argumanMetni.trim();
           if (metin.length < 3) {
             await mesajGonder("⚠️ Lütfen dosya konusunu yazın:\n<code>/dosya Kentsel Dönüşüm Hukuki Süreci</code>");
             return new Response("OK");
           }
           await mesajGonder(`📂 <b>Özel dosya ve süreç analizi hazırlanıyor...</b>\n<i>"${metin.slice(0, 100)}..."</i>`);
-          await tetikleGitHub(env, "ozel_uret", { tur: "dosya", metin });
+          await tetikle(env, chatId, "ozel_uret", { tur: "dosya", metin });
           return new Response("OK");
         }
 
-        if (text.startsWith("/incele") || text.startsWith("incele")) {
+        if (komut === "/incele" || komut === "incele") {
           const parcalar = text.split(/\s+/);
           if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
             await mesajGonder(`🔎 <b>İçerik #${parcalar[1]}</b> inceleniyor...`);
-            await tetikleGitHub(env, "bot_yonetim", { eylem: "incele", id: parcalar[1] });
+            await tetikle(env, chatId, "bot_yonetim", { eylem: "incele", id: parcalar[1] });
             return new Response("OK");
           }
           await mesajGonder("⚠️ Lütfen incelenecek ID'yi belirtin: <code>/incele 104</code>");
@@ -1017,26 +1023,26 @@ export default {
 
         if (text === "/sonpostlar" || text === "/son_postlar" || text === "sonpostlar") {
           await mesajGonder("📰 <b>Son yayınlanan postlar</b> taranıyor...");
-          await tetikleGitHub(env, "bot_yonetim", { eylem: "sonpostlar" });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "sonpostlar" });
           return new Response("OK");
         }
 
-        if (text.startsWith("/kurtar")) {
+        if (komut === "/kurtar") {
           const parcalar = text.split(/\s+/);
           if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
             await mesajGonder(`🚀 <b>İçerik #${parcalar[1]}</b> tüm kanallar için kurtarılıyor ve yayınlanıyor...`);
-            await tetikleGitHub(env, "yayinla", { hedef: "hepsi", id: parcalar[1] });
+            await tetikle(env, chatId, "yayinla", { hedef: "hepsi", id: parcalar[1] });
             return new Response("OK");
           }
           await mesajGonder("⚠️ Lütfen kurtarılacak ID'yi belirtin: <code>/kurtar 104</code>");
           return new Response("OK");
         }
 
-        if (text.startsWith("/yayin_kontrol")) {
+        if (komut === "/yayin_kontrol") {
           const parcalar = text.split(/\s+/);
           if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
             await mesajGonder(`📡 <b>İçerik #${parcalar[1]}</b> için yayın durumu kontrol ediliyor...`);
-            await tetikleGitHub(env, "bot_yonetim", { eylem: "yayin_kontrol", id: parcalar[1] });
+            await tetikle(env, chatId, "bot_yonetim", { eylem: "yayin_kontrol", id: parcalar[1] });
             return new Response("OK");
           }
           await mesajGonder("⚠️ Lütfen kontrol edilecek ID'yi belirtin: <code>/yayin_kontrol 104</code>");
@@ -1091,7 +1097,11 @@ export default {
 
       return new Response("OK");
     } catch (err) {
-      return new Response(`Hata: ${err.message}`, { status: 500 });
+      // 200 dönülür: 5xx'te Telegram güncellemeyi yeniden yollar ve aynı
+      // dispatch (ör. yayınla) ikinci kez tetiklenir. Hata log'a ve gruba gider.
+      console.error("Webhook hatası:", err?.stack || err);
+      await bildirimGonder(env, `⚠️ <b>Worker hatası:</b> <code>${htmlKacis(String(err?.message || err)).slice(0, 300)}</code>`);
+      return new Response("OK");
     }
   },
 
@@ -1394,3 +1404,117 @@ async function hamHataOku(env) {
   }
 }
 
+
+// =====================================================================
+// GÜVENLİK VE BİLDİRİM YARDIMCILARI
+// =====================================================================
+
+function htmlKacis(metin) {
+  return String(metin ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// IZINLI_SOHBETLER: virgülle ayrılmış sohbet kimlikleri (grup kimliği eksi işaretli).
+// İlk kimlik bildirim sohbetidir. Boşsa hiçbir sohbet izinli değildir.
+function izinliSohbetler(env) {
+  return String(env.IZINLI_SOHBETLER || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function sohbetIzinliMi(env, sohbetId) {
+  if (sohbetId === undefined || sohbetId === null) return false;
+  return izinliSohbetler(env).includes(String(sohbetId));
+}
+
+async function callbackYanitla(env, callbackId, metin) {
+  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackId, text: metin }),
+  });
+}
+
+async function sohbeteGonder(env, sohbetId, metin, replyMarkup = null) {
+  if (!sohbetId) return;
+  const body = { chat_id: sohbetId, text: metin, parse_mode: "HTML", disable_web_page_preview: true };
+  if (replyMarkup) body.reply_markup = replyMarkup;
+  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function bildirimGonder(env, metin) {
+  try {
+    await sohbeteGonder(env, izinliSohbetler(env)[0], metin);
+  } catch (e) {
+    console.error("Bildirim gönderilemedi:", e);
+  }
+}
+
+// tetikleGitHub'ın sonucu önceden hiçbir yerde okunmuyordu: dispatch başarısız
+// olunca kullanıcı "yayına alınıyor..." görüp hiçbir şey olmadığını bilmiyordu.
+async function tetikle(env, sohbetId, eventType, clientPayload) {
+  let tamam = false;
+  try {
+    tamam = await tetikleGitHub(env, eventType, clientPayload);
+  } catch (e) {
+    console.error("Dispatch hatası:", e);
+  }
+  if (!tamam) {
+    await sohbeteGonder(
+      env,
+      sohbetId || izinliSohbetler(env)[0],
+      `⚠️ <b>İşlem başlatılamadı</b> (<code>${htmlKacis(eventType)}</code>).\n` +
+        "<i>GitHub Actions tetiklenemedi — Worker'daki GITHUB_TOKEN süresi dolmuş veya yetkisi eksik olabilir. Butona tekrar basmadan önce kontrol et.</i>"
+    );
+  }
+  return tamam;
+}
+
+// Açık düzenleme sözdizimi: "3: Başlık" · "başlık: Başlık" · "Başlık | Açıklama"
+function duzenlemeSozdizimiMi(metin) {
+  const m = String(metin || "").trim();
+  if (!m || m.startsWith("/")) return false;
+  return /^(?:[1-9]|10)\s*:/.test(m) || /^ba[sş]l[ıi]k\s*:/i.test(m) || m.includes("|");
+}
+
+function kaldirmaOnayMetni(refId) {
+  return (
+    `⚠️ <b>İçerik #${htmlKacis(refId)} yayından kaldırılsın mı?</b>\n\n` +
+    "• Facebook ve Threads'ten <b>kalıcı olarak silinir</b>, geri alınamaz.\n" +
+    "• Instagram API silmeye izin vermiyor; bağlantısı gönderilir, uygulamadan elle silersin."
+  );
+}
+
+function kaldirmaOnayMenusu(tur, refId) {
+  return {
+    inline_keyboard: [[
+      { text: `🗑️ Evet, #${refId} kaldır`, callback_data: `kaldir_onay:${tur}:${refId}` },
+      { text: "↩️ Vazgeç", callback_data: "kaldir_vazgec" },
+    ]],
+  };
+}
+
+function durumMetni() {
+  return (
+    "📊 <b>EDM YAYIN TAKVİMİ</b>\n\n" +
+    "• <b>10:00</b> — Bilgilendirici (rotasyon: Nedir Doğrusu · Vaka · Net Cevap · B1)\n" +
+    "• <b>13:30</b> — Emlak Sözlüğü\n" +
+    "• <b>18:30</b> — Haber & Gündem (uygun haber yoksa bilgilendirici)\n\n" +
+    "Her içerik önce bu gruba onaya gelir.\n\n" +
+    "<i>Bu mesaj takvimi gösterir, sistemin sağlığını değil. Gerçek durum için " +
+    "“Canlı Sağlık Raporu”na bas — kanallar, jetonlar ve son çalışmalar gerçekten denetlenir.</i>"
+  );
+}
+
+const SAGLIK_BEKLEME_METNI =
+  "🩺 <b>Canlı sağlık raporu hazırlanıyor...</b>\n" +
+  "<i>Kanallar, jetonlar ve son çalışmalar denetleniyor; sonuç birkaç dakika içinde gelir.</i>";

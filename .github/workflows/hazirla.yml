@@ -67,8 +67,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          # Dış girdi env ile geçer; run bloğuna (hele Python kaynağına) gömülmez.
+          ILAN_ID: ${{ github.event.client_payload.ilan_id }}
         run: |
-          python -c "from src.telegram_bot import ilan_postunu_hazirla_ve_sor; ilan_postunu_hazirla_ve_sor('${{ github.event.client_payload.ilan_id }}')"
+          python -c "import os; from src.telegram_bot import ilan_postunu_hazirla_ve_sor; ilan_postunu_hazirla_ve_sor(os.environ['ILAN_ID'])"
 
       # Format dönüştürme (Kullanıcı Telegram'dan farklı bir formata çevirirse)
       - name: Format Dönüştür ve Onaya Sun
@@ -78,8 +80,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          HABER_ID: ${{ github.event.client_payload.haber_id }}
+          FORMAT: ${{ github.event.client_payload.format_turu }}
         run: |
-          python scripts/hazirla.py --format-degistir "${{ github.event.client_payload.haber_id }}" --format "${{ github.event.client_payload.format_turu }}"
+          python scripts/hazirla.py --format-degistir "$HABER_ID" --format "$FORMAT"
 
       # Günlük 3 Slot İçeriği (Slot 1 Bilgilendirici / Slot 2 Sözlük / Slot 3 Haber + Fallback)
       - name: Günlük İçerik Hazırla ve Paylaş
@@ -108,26 +112,28 @@ jobs:
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          SLOT: ${{ github.event.client_payload.slot }}
+          FORMAT: ${{ github.event.client_payload.format_turu }}
+          HEDEF: ${{ inputs.hedef }}
+          ZAMANLAMA: ${{ github.event.schedule }}
         run: |
-          SLOT="${{ github.event.client_payload.slot }}"
-          FORMAT="${{ github.event.client_payload.format_turu }}"
           if [ -n "$SLOT" ]; then
             python scripts/hazirla.py --slot "$SLOT"
-          elif [ "${{ github.event.schedule }}" = "0 7 * * *" ]; then
+          elif [ "$ZAMANLAMA" = "0 7 * * *" ]; then
             python scripts/hazirla.py --slot bilgilendirici
-          elif [ "${{ github.event.schedule }}" = "30 10 * * *" ]; then
+          elif [ "$ZAMANLAMA" = "30 10 * * *" ]; then
             python scripts/hazirla.py --slot sozluk
-          elif [ "${{ github.event.schedule }}" = "30 15 * * *" ]; then
+          elif [ "$ZAMANLAMA" = "30 15 * * *" ]; then
             python scripts/hazirla.py --slot haber
-          elif [ "${{ inputs.hedef }}" = "slot_bilgilendirici" ]; then
+          elif [ "$HEDEF" = "slot_bilgilendirici" ]; then
             python scripts/hazirla.py --slot bilgilendirici
-          elif [ "${{ inputs.hedef }}" = "slot_sozluk" ]; then
+          elif [ "$HEDEF" = "slot_sozluk" ]; then
             python scripts/hazirla.py --slot sozluk
-          elif [ "${{ inputs.hedef }}" = "slot_haber" ] || [ "${{ inputs.hedef }}" = "haber" ]; then
+          elif [ "$HEDEF" = "slot_haber" ] || [ "$HEDEF" = "haber" ]; then
             python scripts/hazirla.py --slot haber
-          elif [ "${{ inputs.hedef }}" = "reels" ] || [ "$FORMAT" = "reels" ]; then
+          elif [ "$HEDEF" = "reels" ] || [ "$FORMAT" = "reels" ]; then
             python scripts/hazirla.py --reels
-          elif [ "${{ inputs.hedef }}" = "finans" ] || [ "$FORMAT" = "finans" ]; then
+          elif [ "$HEDEF" = "finans" ] || [ "$FORMAT" = "finans" ]; then
             python scripts/hazirla.py --finans --oto-yayin
           elif [ -n "$FORMAT" ]; then
             python scripts/hazirla.py --format "$FORMAT"

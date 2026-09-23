@@ -1156,6 +1156,36 @@ def icerik_incele_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
     return metin, butonlar
 
 
+SUTUN_ADLARI = {
+    "S1": "Tapu & Hukuk",
+    "S2": "Kiracı & Ev Sahibi",
+    "S3": "Arsa & İmar",
+    "S4": "Rakam & Bölge",
+    "S5": "Finans & Kredi",
+}
+
+
+def havuz_mesaji() -> str:
+    """Konu havuzunun GERÇEK durumu. Worker'daki eski /havuz yanıtı sabit ve
+    yanlış etiketli sayılar basıyordu ("S2 İmar & Parsel 25+ konu")."""
+    o = konu_bankasi.durum_ozeti()
+    satirlar = [
+        "📚 <b>EDM KONU HAVUZU</b>\n",
+        f"• Toplam: <b>{o['toplam']}</b> · Kullanılmış: <b>{o['kullanilmis']}</b> · Bakir: <b>{o['bakir']}</b>\n",
+        "<b>Bakir konuların sütunlara dağılımı:</b>",
+    ]
+    for kod, adet in o["bakir_sutun_dagilimi"].items():
+        satirlar.append(f"• {kod} {SUTUN_ADLARI.get(kod, '')}: <b>{adet}</b>")
+    if o.get("kalan_gun"):
+        satirlar.append(
+            f"\n⏳ Son 14 günde günde ~{o['gunluk_tuketim']} konu tüketildi; "
+            f"bu hızla havuz <b>~{o['kalan_gun']} gün</b> yeter."
+        )
+    else:
+        satirlar.append("\n⏳ Son 14 günde konu tüketilmedi.")
+    return "\n".join(satirlar)
+
+
 def son_postlar_raporu() -> Tuple[str, Dict[str, Any]]:
     """Son 5 içeriği ve yayın durumlarını listeler."""
     with db._baglanti_al() as conn:

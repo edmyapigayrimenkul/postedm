@@ -427,10 +427,17 @@ def durum_ozeti() -> Dict[str, Any]:
     sutun_dagilim: Dict[str, int] = {}
     for k in bakir:
         sutun_dagilim[k["sutun"]] = sutun_dagilim.get(k["sutun"], 0) + 1
+    # Tüketim hızı varsayılmıyor, son 14 günden ölçülüyor: takvim haftada 5
+    # içerikten günde 3 slota çıktığında sabit "/5" hesabı havuzu olduğundan
+    # üç kat uzun gösteriyordu.
+    son_14 = sum(1 for t in gecmis.values() if _gun_farki(t) <= 14)
+    gunluk = son_14 / 14
     return {
         "toplam": len(havuz),
         "kullanilmis": len(gecmis),
         "bakir": len(bakir),
         "bakir_sutun_dagilimi": dict(sorted(sutun_dagilim.items())),
-        "kalan_hafta": round(len(bakir) / 5, 1),
+        "gunluk_tuketim": round(gunluk, 2),
+        "kalan_gun": round(len(bakir) / gunluk) if gunluk else None,
+        "kalan_hafta": round(len(bakir) / gunluk / 7, 1) if gunluk else None,
     }
