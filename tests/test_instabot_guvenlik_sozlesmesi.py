@@ -15,6 +15,9 @@ kesinlikle tekrarlanmayacağını denetler:
 """
 
 import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
+import os
 import re
 import sqlite3
 import unittest
@@ -136,10 +139,15 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
         self.assertIn("Yayın İşlemi İptal Edildi", yayinla_yml)
 
     def test_06_tiktok_inbox_draft_kopyalanabilir_metin(self):
-        """TikTok taslak modunda yüklendiğinde Telegram'a kopyalanabilir açıklama metni gönderildiğini doğrular."""
+        """TikTok taslağa düştüğünde kopyalanabilir açıklama sonuç raporunda TEK kutu olarak gider.
+
+        98ed129'dan önce TikTok için ayrıca ikinci bir mesaj atılıyordu; aynı metin
+        iki kez geliyordu. Niyet korunuyor (kopyalanabilir metin), tekrar yok.
+        """
         yayinla_kod = (KOK / "scripts" / "yayinla.py").read_text(encoding="utf-8")
         self.assertIn("tt_res.get(\"taslak_mi\")", yayinla_kod)
-        self.assertIn("<pre><code>{html_lib.escape(tt_baslik)}</code></pre>", yayinla_kod)
+        self.assertIn("<pre><code>{temiz_caption}</code></pre>", yayinla_kod)
+        self.assertNotIn("TikTok Taslağı Gelen Kutusuna Yüklendi", yayinla_kod)
 
     def test_07_video_stereo_aac_sessiz_iz(self):
         """src/video.py içinde stereo AAC anullsrc ses izi ve faststart moov atomu bulunduğunu doğrular."""

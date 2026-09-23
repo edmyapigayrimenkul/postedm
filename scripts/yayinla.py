@@ -21,10 +21,33 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, facebook, generate_text, hata_bildir, instagram, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
+from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
+
+
+# Yalnızca yayında OLMAYAN içeriğe uygulanabilen işlemler.
+TASLAK_ISLEMLERI = frozenset({
+    "reddet", "iptal", "cope_at", "yenile",
+    "metin_ozetle", "metin_detaylandir", "metin_yenile",
+    "foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai", "foto_ilk",
+})
+# Her durumda anlamlı olan yönetim işlemleri. "tamamla" elle paylaşılan içeriği
+# kaydetmenin yolu; kaldırma ise kendi içinde yayında olup olmadığına bakar.
+YONETIM_ISLEMLERI = frozenset({"ertele", "kaldir", "sil", "manuel_paket", "tamamla", "manuel_tamam"})
+
+
+def _haber_yukle(ref_id: str):
+    try:
+        haber = db.haber_getir(int(ref_id))
+    except (TypeError, ValueError):
+        return None
+    if not haber:
+        from src import db_senkron
+        db_senkron.uzaktan_tazele()
+        haber = db.haber_getir(int(ref_id))
+    return haber
 
 
 def main() -> None:
@@ -60,6 +83,24 @@ def main() -> None:
         return "hepsi" in hedefler or bool(hedefler.intersection(adaylar))
 
     log.info("Yayın süreci başlatılıyor: Tür=%s, ID=%s, Hedef=%s", tur, ref_id, hedef)
+
+    # DURUM KORUMASI — kurallar ve gerekçe: src/durum_kurali.py
+    # Telegram'daki her buton, mesaj ne kadar eski olursa olsun buraya ulaşır.
+    # Önce içeriğin bugünkü durumuna bakılır; butonun gösterdiği değil.
+    if tur in ("haber", "reels"):
+        mevcut = _haber_yukle(ref_id)
+        if mevcut:
+            if hedef in TASLAK_ISLEMLERI:
+                engel = durum_kurali.taslak_islem_engeli(mevcut, hedef)
+            elif hedef in YONETIM_ISLEMLERI:
+                engel = None
+            else:
+                engel = durum_kurali.yayin_engeli(mevcut)
+            if engel:
+                log.warning("Durum koruması işlemi durdurdu: #%s durum=%s hedef=%s", ref_id, mevcut.get("durum"), hedef)
+                telegram_bot.mesaj_gonder(engel)
+                db.wal_bosalt()
+                return
 
     # 0. Reddet / İptal Aksiyonu (Havuza döner)
     if hedef in ("reddet", "iptal"):
@@ -249,7 +290,9 @@ def main() -> None:
                 if hedef == "metin_ozetle":
                     ek_talimat = "Metinleri daha vurucu, kısa ve net bir özet olarak hazırla."
                 elif hedef == "metin_detaylandir":
-                    ek_talimat = "İçeriğe daha fazla hukuki derinlik, mevzuat maddeleri ve hak arama yolları ekle."
+                    # "mevzuat maddeleri ekle" talimatı uydurma madde numarasına davetiyeydi.
+                    ek_talimat = ("İçeriğe daha fazla hukuki derinlik ve hak arama yolları ekle. "
+                                  "Brief'te veya kaynakta geçmeyen kanun/madde numarası YAZMA.")
                 else:
                     ek_talimat = "Farklı bir anlatım açısı ve taze bir üslupla baştan hazırla."
                 log.info("Metin eylemi (%s) uygulanıyor: #%s", hedef, ref_id)
@@ -554,6 +597,21 @@ def main() -> None:
         hedef_kanallar.append("facebook_reels" if reels_modu else "facebook")
     if hedef_mi("yt", "youtube", "shorts", "video"):
         hedef_kanallar.append("youtube")
+
+    # Aynı kanala ikinci kez gönderme: "tekrar dene", "kurtar" ya da iki kez
+    # basılan "Yayınla" yalnızca henüz yayında OLMAYAN kanallara gider.
+    if haber:
+        zaten_yayinda = durum_kurali.tekrar_gonderilmeyecekler(haber, hedef_kanallar)
+        if zaten_yayinda:
+            hedef_kanallar = [k for k in hedef_kanallar if k not in zaten_yayinda]
+            log.info("#%s zaten yayında olan kanallar atlandı: %s", ref_id, zaten_yayinda)
+            telegram_bot.mesaj_gonder(
+                f"ℹ️ <b>#{ref_id}</b> şu kanallarda zaten yayında, tekrar gönderilmedi: "
+                f"<code>{', '.join(zaten_yayinda)}</code>"
+            )
+        if not hedef_kanallar:
+            db.wal_bosalt()
+            return
 
     toplam_adim = max(1, len(hedef_kanallar))
     durum_haritasi: dict[str, str] = {k: "⏱️ Sırada" for k in hedef_kanallar}
@@ -962,12 +1020,9 @@ def main() -> None:
     # 5. Veritabanını Güncelle
     herhangi_biri_basarili = any("✓" in satir for satir in rapor_satirlari)
     if tur in ("haber", "reels"):
-        guncelleme = {}
-        if herhangi_biri_basarili:
-            guncelleme["durum"] = "yayinlandi"
+        guncelleme = {"durum": durum_kurali.sonraki_durum(haber.get("durum") if haber else None, herhangi_biri_basarili)}
+        if herhangi_biri_basarili and not (haber and haber.get("yayin_zamani")):
             guncelleme["yayin_zamani"] = datetime.now(timezone.utc).isoformat()
-        else:
-            guncelleme["durum"] = "hata"
         if ig_id:
             guncelleme["instagram_post_id"] = ig_id
         if threads_id:
