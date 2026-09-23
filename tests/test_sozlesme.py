@@ -783,9 +783,14 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             mock_ertele.assert_called_once_with("haber", "55", dakika=60)
             self.assertIn("ertelendi", mock_mesaj.call_args[0][0].lower())
 
-    def test_tiktok_turkce_hashtag_ve_db_yedegi(self) -> None:
-        """TikTok baslik_kur Türkçe karakter duyarlı olmalı; token_yenile DB ayarından okuyabilmeli."""
-        from src import tiktok
+    def test_tiktok_turkce_hashtag_ve_jeton_yalnizca_ortamda(self) -> None:
+        """TikTok baslik_kur Türkçe karakter duyarlı olmalı; jetonlar DB'ye ASLA yazılmaz.
+
+        Önceden token_yenile ayarlar tablosuna yazıyordu; data/edm.db git'e gittiği
+        için gerçek jetonlar 57 commit boyunca depo geçmişine girdi. Bu testin eski
+        hali de gerçek .env'i "yeni_access_123" ile eziyordu.
+        """
+        from src import db, tiktok
         from unittest.mock import patch
 
         # 1. Hashtag tekilleştirme: #silivri ve sabitler arasındaki #Silivri tekilleşmeli
@@ -793,14 +798,24 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         self.assertIn("#silivri", baslik.lower())
         self.assertEqual(baslik.lower().count("#silivri"), 1)
 
-        # 2. DB fallback
-        with patch.object(tiktok.config, "env_al", return_value=None), \
-             patch.object(tiktok.db, "ayar_oku", side_effect=lambda k: "fake_" + k if "tiktok" in k else None), \
-             patch("requests.post") as mock_post:
+        # 2. Jeton ortamdan okunur, yenilenen jeton DB'ye yazılmaz
+        ortam = {"TIKTOK_CLIENT_KEY": "k", "TIKTOK_CLIENT_SECRET": "s", "TIKTOK_REFRESH_TOKEN": "r"}
+        with patch.object(tiktok.config, "env_al", side_effect=lambda a, v="": ortam.get(a, v)), \
+             patch.object(db, "ayar_yaz") as ayar_yaz, \
+             patch("requests.post") as mock_post, \
+             patch.dict("os.environ", {}, clear=False):
             mock_post.return_value.status_code = 200
-            mock_post.return_value.json.return_value = {"access_token": "yeni_access_123", "refresh_token": "yeni_refresh_456"}
-            token = tiktok.token_yenile()
-            self.assertEqual(token, "yeni_access_123")
+            mock_post.return_value.json.return_value = {"access_token": "yeni_access_123", "refresh_token": "r"}
+            self.assertEqual(tiktok.token_yenile(), "yeni_access_123")
+            yazilan = [c.args[0] for c in ayar_yaz.call_args_list]
+            self.assertFalse([k for k in yazilan if "token" in k], f"jeton DB'ye yazıldı: {yazilan}")
+
+        # 3. Ortamda kimlik yoksa DB'ye bakılmaz, yenileme yapılmaz
+        with patch.object(tiktok.config, "env_al", return_value=""), \
+             patch.object(db, "ayar_oku", side_effect=AssertionError("DB'den jeton okunmamalı")), \
+             patch("requests.post") as mock_post:
+            self.assertIsNone(tiktok.token_yenile())
+            mock_post.assert_not_called()
 
     def test_haber_dedup_turkce_karakter(self) -> None:
         """_baslik_anahtari İ/I harflerini düzgün eşleştirmeli."""

@@ -2,6 +2,9 @@
 tests/test_ozel_icerik_ve_slayt_islem.py — Özel İçerik Üretimi ve Slayt Operasyonları Testleri
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import json
 import tempfile
 import unittest

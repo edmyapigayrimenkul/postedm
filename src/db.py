@@ -17,7 +17,7 @@ from . import config
 
 log = logging.getLogger(__name__)
 
-DB_YOLU = config.yol_al("data/edm.db")
+DB_YOLU = config.db_yolu()  # test modunda geçici kopya — bkz. config.db_yolu
 
 
 @contextmanager

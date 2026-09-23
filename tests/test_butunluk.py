@@ -26,6 +26,9 @@ sessiz kalır; yalnızca KESİN hatalar raporlanır.
 
 from __future__ import annotations
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import ast
 import inspect
 import sys

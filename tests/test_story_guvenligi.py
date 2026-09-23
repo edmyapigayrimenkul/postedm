@@ -3,6 +3,9 @@ tests/test_story_guvenligi.py
 Story görsel hazırlama ve 9:16 native uyumluluk birim testleri.
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import json
 import unittest
 from pathlib import Path

@@ -4,6 +4,9 @@ tests/test_dailybrief_tasarim.py — Instabot DailyBrief Haber Tasarımı ve Sab
 
 from __future__ import annotations
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import tempfile
 import unittest
 from pathlib import Path

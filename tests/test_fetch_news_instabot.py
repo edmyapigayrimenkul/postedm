@@ -9,6 +9,9 @@ Test kapsamı:
 5. DailyBrief haber slayt üretimi (slaytlari_uret format_turu='dailybrief')
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import tempfile
 import unittest
 from pathlib import Path

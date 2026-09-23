@@ -34,10 +34,17 @@ TIKTOK_INBOX_INIT_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video
 
 
 def token_yenile() -> Optional[str]:
-    """TIKTOK_REFRESH_TOKEN ile yeni bir 24 saatlik Access Token alır."""
-    client_key = config.env_al("TIKTOK_CLIENT_KEY") or db.ayar_oku("tiktok_client_key")
-    client_secret = config.env_al("TIKTOK_CLIENT_SECRET") or db.ayar_oku("tiktok_client_secret")
-    refresh_token = config.env_al("TIKTOK_REFRESH_TOKEN") or db.ayar_oku("tiktok_refresh_token")
+    """TIKTOK_REFRESH_TOKEN ile yeni bir 24 saatlik Access Token alır.
+
+    Jetonlar YALNIZCA ortamda (GitHub secret / yerel .env) durur. Önceden
+    ayarlar tablosuna da yazılıyordu; data/edm.db git'e commit edildiği için
+    erişim ve yenileme jetonları 57 commit boyunca depo geçmişine girdi.
+    Yenileme jetonu yenilemede değişmiyor (geçmişte doğrulandı); erişim jetonu
+    24 saatlik, her çalıştırmada 401 alınınca yeniden üretiliyor.
+    """
+    client_key = config.env_al("TIKTOK_CLIENT_KEY")
+    client_secret = config.env_al("TIKTOK_CLIENT_SECRET")
+    refresh_token = config.env_al("TIKTOK_REFRESH_TOKEN")
 
     if not client_key or not client_secret or not refresh_token:
         log.warning("TikTok API kimlik bilgileri eksik (CLIENT_KEY / SECRET / REFRESH_TOKEN).")
@@ -60,13 +67,10 @@ def token_yenile() -> Optional[str]:
             yeni_token = veri["access_token"]
             yeni_refresh = veri.get("refresh_token")
             os.environ["TIKTOK_ACCESS_TOKEN"] = yeni_token
-
-            # DB ve .env güncelle
-            db.ayar_yaz("tiktok_access_token", yeni_token)
             if yeni_refresh:
                 os.environ["TIKTOK_REFRESH_TOKEN"] = yeni_refresh
-                db.ayar_yaz("tiktok_refresh_token", yeni_refresh)
 
+            # Yerelde .env güncellenir (test modunda geçici kopya). Veritabanına YAZILMAZ.
             try:
                 from . import refresh_token as rt
                 rt.env_guncelle("TIKTOK_ACCESS_TOKEN", yeni_token)
@@ -130,7 +134,7 @@ def video_yukle(
     if not yol.exists() or yol.stat().st_size == 0:
         return {"durum": False, "hata": f"Video dosyası bulunamadı veya boş: {yol}"}
 
-    token = config.env_al("TIKTOK_ACCESS_TOKEN") or db.ayar_oku("tiktok_access_token") or token_yenile()
+    token = config.env_al("TIKTOK_ACCESS_TOKEN") or token_yenile()
     if not token:
         return {"durum": False, "hata": "TikTok erişim jetonu alınamadı."}
 
@@ -257,7 +261,7 @@ def foto_yayinla(
     if not gorsel_urlleri:
         return {"durum": False, "hata": "Fotoğraf URL'si bulunamadı."}
 
-    token = config.env_al("TIKTOK_ACCESS_TOKEN") or db.ayar_oku("tiktok_access_token") or token_yenile()
+    token = config.env_al("TIKTOK_ACCESS_TOKEN") or token_yenile()
     if not token:
         return {"durum": False, "hata": "TikTok erişim jetonu alınamadı."}
 

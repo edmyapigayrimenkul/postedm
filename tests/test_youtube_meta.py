@@ -3,6 +3,9 @@ tests/test_youtube_meta.py
 YouTube metadata ve emlak ofisi kimliği testleri.
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import json
 import unittest
 from pathlib import Path

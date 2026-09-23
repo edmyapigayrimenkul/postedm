@@ -1,0 +1,4 @@
+# data/edm.db ikili ama birleştirilebilir: satır düzeyinde üç yönlü birleştirme.
+# Sürücü tanımı klona özeldir; kurmak için: python3 scripts/git_kancalari_kur.py
+# CI'da db_senkron aynı birleştirmeyi doğrudan çağırır.
+data/edm.db merge=edmdb -diff

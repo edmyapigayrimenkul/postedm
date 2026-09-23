@@ -77,3 +77,14 @@ jobs:
         run: |
           node --check worker/index.js
           npx wrangler deploy --dry-run worker/index.js --config worker/wrangler.toml
+
+      # Worker'ı gerçekten çağırır: yetkisiz sohbet, "Silivri 220" gibi yanlış
+      # komut eşleşmesi, onaysız silme, serbest yanıtla manşet ezme.
+      - name: Worker güvenlik testleri
+        run: node --test tests/*.test.mjs
+
+      # Testler üretim veritabanına dokunmamalı (config.db_yolu test modunda
+      # geçici kopya verir). Eskiden dokunuyordu: üretim DB'sine 60 sahte
+      # "yayinlandi" kaydı ve 21 sahte metrik sızdı.
+      - name: Testler data/edm.db'yi değiştirmedi
+        run: git diff --exit-code --stat -- data/edm.db

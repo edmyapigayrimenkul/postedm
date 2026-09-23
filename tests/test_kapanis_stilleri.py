@@ -3,6 +3,9 @@ tests/test_kapanis_stilleri.py
 10 Farklı Kapanış Tasarım Konsepti + Editoryal Düzen Testleri
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import unittest
 from pathlib import Path
 from PIL import Image

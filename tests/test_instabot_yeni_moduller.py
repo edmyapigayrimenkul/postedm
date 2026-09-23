@@ -9,6 +9,9 @@ Test Edilen Modüller:
 5. src/youtube.py: projeleri_getir, azami_gunluk_video ve 2. proje kota failover altyapısı.
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import unittest
 from PIL import Image, ImageDraw
 

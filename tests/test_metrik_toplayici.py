@@ -2,6 +2,9 @@
 tests/test_metrik_toplayici.py — Sessiz Analitik Veri Toplayıcı Testleri
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import json
 import unittest
 from datetime import datetime, timedelta, timezone

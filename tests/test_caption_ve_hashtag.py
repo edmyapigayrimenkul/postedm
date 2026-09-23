@@ -2,6 +2,9 @@
 tests/test_caption_ve_hashtag.py — Açıklamalara Hook, Soru ve Hashtag Standardı Testleri
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import unittest
 from unittest.mock import MagicMock, patch
 

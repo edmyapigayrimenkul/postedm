@@ -157,15 +157,18 @@ def main():
     env_path.write_text("\n".join(yeni_satirlar) + "\n", encoding="utf-8")
     print("💾 .env dosyası güncellendi!")
 
-    # Veritabanına da yaz
+    # Veritabanına YAZILMAZ: data/edm.db git'e gidiyor, jetonlar depo geçmişine
+    # girer. Üretimin okuduğu yer GitHub secret'ları.
     try:
-        from src import db
-        db.ayar_yaz("tiktok_access_token", access_token)
+        from src import refresh_token as rt
+        tamam = rt.github_secret_guncelle(access_token, "TIKTOK_ACCESS_TOKEN")
         if refresh_token:
-            db.ayar_yaz("tiktok_refresh_token", refresh_token)
-        print("💾 SQLite ayarlar tablosu güncellendi!")
+            tamam = rt.github_secret_guncelle(refresh_token, "TIKTOK_REFRESH_TOKEN") and tamam
+        print("💾 GitHub secret'ları güncellendi!" if tamam else
+              "⚠️ GitHub secret'ları güncellenemedi — TIKTOK_ACCESS_TOKEN ve TIKTOK_REFRESH_TOKEN'ı\n"
+              "   depo ayarlarından (Settings → Secrets → Actions) elle güncelle.")
     except Exception as e:
-        print(f"⚠️ DB'ye yazılamadı: {e}")
+        print(f"⚠️ GitHub secret'ları güncellenemedi ({e}); depo ayarlarından elle güncelle.")
 
     print("=" * 65)
 

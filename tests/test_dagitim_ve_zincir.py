@@ -1,6 +1,9 @@
 """
 Dağıtım matrisi, Threads zincir paylaşımı ve platform kontrolleri testleri.
 """
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import sys
 import unittest
 from unittest.mock import patch, MagicMock

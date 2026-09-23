@@ -10,6 +10,9 @@ Bu test modülü Doğukan'ın bildirdiği sorunları agresif senaryolarla sınar
   5. filtre modülü tipografi ve kaçış dizisi temizliği
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import re
 import unittest
 from pathlib import Path

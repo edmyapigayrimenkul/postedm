@@ -1,6 +1,9 @@
 """
 Okunabilirlik, kontrast ve motor yönlendirme testleri.
 """
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import unittest
 from pathlib import Path
 import tempfile

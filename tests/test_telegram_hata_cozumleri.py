@@ -8,6 +8,9 @@ tests/test_telegram_hata_cozumleri.py — Telegram Hata Düzeltmeleri Doğrulama
 
 from __future__ import annotations
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import json
 import os
 import tempfile

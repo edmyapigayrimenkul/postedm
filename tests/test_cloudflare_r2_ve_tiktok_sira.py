@@ -2,6 +2,9 @@
 tests/test_cloudflare_r2_ve_tiktok_sira.py — Cloudflare R2 CDN ve TikTok Öncelikli Paylaşım Sıralaması Testleri
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import datetime
 import json
 import sys

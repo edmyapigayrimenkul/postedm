@@ -11,6 +11,9 @@ Kullanıcı İstekleri:
 7. YouTube: Her zaman Shorts (video) ve arkaplan sesli.
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import json
 import sys
 import unittest
