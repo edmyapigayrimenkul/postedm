@@ -396,7 +396,11 @@ class TestHataDayaniklik(unittest.TestCase):
         self.assertTrue(teshis_token["tanindi"])
         self.assertEqual(teshis_audit["eylem"], "durum")
 
-        # 3. Boş ve HTML kuyruk yanıtı (Site İlan Paylaşım Kuyruğu dayanıklılığı)
+        # 3. Site kuyruğu sözleşmesi (site/src/pages/api/postedm/kuyruk.ts): boşken 204,
+        #    iş varken JSON nesnesi. JSON olmayan 200 bir ARIZADIR, "boş kuyruk" değil —
+        #    15–17 Eylül'de alan adı bot Worker'ına bağlıyken tam bu yanıt
+        #    ("EDM Telegram Webhook Aktif") boş kuyruk sayıldı ve site ilanları
+        #    sessizce paylaşılmadı. Dayanıklılık = yüksek sesle hata vermek.
         from scripts import site_kuyrugunu_isle
         with patch.object(site_kuyrugunu_isle.requests, "get", return_value=MagicMock(status_code=204, text="")):
             with patch.dict(os.environ, {"EDM_SITE_API_ANAHTARI": "test"}):
@@ -404,7 +408,8 @@ class TestHataDayaniklik(unittest.TestCase):
 
         with patch.object(site_kuyrugunu_isle.requests, "get", return_value=MagicMock(status_code=200, text="EDM Telegram Webhook Aktif", json=MagicMock(side_effect=json.decoder.JSONDecodeError("err", "doc", 0)))):
             with patch.dict(os.environ, {"EDM_SITE_API_ANAHTARI": "test"}):
-                self.assertIsNone(site_kuyrugunu_isle.siradaki_isi_al())
+                with self.assertRaises(RuntimeError):
+                    site_kuyrugunu_isle.siradaki_isi_al()
 
     def test_13_mesajdan_icerik_bul_dayaniklik(self):
         """mesajdan_icerik_bul fonksiyonu sqlite3.Row ve ilan aramalarında hata vermemeli."""
