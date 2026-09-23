@@ -41,17 +41,9 @@ def _r2_bilgileri() -> tuple[str, str, str, str, str] | None:
     bucket = (config.env_al("R2_BUCKET_NAME") or "edm-media").strip()
     domain = (config.env_al("R2_PUBLIC_DOMAIN") or "media.edmyapigayrimenkul.com").strip().rstrip("/")
 
-    # Ortam değişkeni yoksa veritabanındaki ayarlar tablosundan oku
-    if not (acc_id and key_id and sec_key):
-        try:
-            from . import db
-            acc_id = acc_id or str(db.ayar_oku("r2_account_id") or "").strip()
-            key_id = key_id or str(db.ayar_oku("r2_access_key_id") or "").strip()
-            sec_key = sec_key or str(db.ayar_oku("r2_secret_access_key") or "").strip()
-            bucket = str(db.ayar_oku("r2_bucket_name") or bucket).strip()
-            domain = str(db.ayar_oku("r2_public_domain") or domain).strip().rstrip("/")
-        except Exception:
-            pass
+    # Gizli anahtarlar YALNIZCA ortamdan. Önceki sürüm yedek olarak ayarlar
+    # tablosuna bakıyordu; data/edm.db git'e commit edildiği için oraya konan
+    # anahtar depo geçmişine girer (TikTok jetonlarında 57 commit boyunca oldu).
 
     if acc_id and key_id and sec_key and bucket:
         return acc_id, key_id, sec_key, bucket, domain

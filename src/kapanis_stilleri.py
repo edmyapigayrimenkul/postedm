@@ -17,6 +17,7 @@ Desteklenen 11 Stil:
 """
 
 from __future__ import annotations
+import logging
 import math
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -37,6 +38,8 @@ GECICI_DIZIN = config.yol_al("data/output")
 GEN = 1080
 YUK = 1350
 KENAR = 72
+
+log = logging.getLogger(__name__)
 
 
 def __getattr__(name: str) -> Any:
@@ -155,8 +158,9 @@ def ciz_01_luks_kartvizit(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yo
     try:
         b_ik = _vektor_ikon_uret("bookmark", 18, RENK_KIRMIZI)
         canvas.paste(b_ik, (KENAR + pad_k, y + 12), b_ik)
-    except Exception:
-        pass
+    except Exception as e:
+        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+        log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     draw.text((KENAR + pad_k + 24, y + 13), k_metin, font=f_k, fill=RENK_KOYU)
 
     # Havada Süzülen Lüks Kartvizit
@@ -302,8 +306,9 @@ def ciz_03_split_screen(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu
     try:
         b_ik = _vektor_ikon_uret("bookmark", 20, RENK_KIRMIZI)
         canvas.paste(b_ik, (KENAR, y - 2), b_ik)
-    except Exception:
-        pass
+    except Exception as e:
+        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+        log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     draw.text((KENAR + 28, y), b["kaydet"], font=_font_yukle(FONT_MONO_BOLD, 15), fill=RENK_KOYU)
 
     by = split_y + 54
@@ -604,8 +609,9 @@ def ciz_08_iletisim_terminali(veri: Dict[str, Any], sayfa: str = "04 / 04", cikt
         try:
             ik = _vektor_ikon_uret(ik_ad, 28, RENK_KIRMIZI)
             canvas.paste(ik, (KENAR + 10, terminal_y + 16), ik)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+            log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
         draw.text((KENAR + 62, terminal_y + 12), baslik, font=_font_yukle(FONT_MONO_BOLD, 14), fill=RENK_KIRMIZI)
         draw.text((KENAR + 62, terminal_y + 32), deger, font=_font_yukle(FONT_MONO_BOLD if ik_ad == "phone" else FONT_SANS_BOLD, 26 if ik_ad == "phone" else 22), fill=RENK_KOYU)
         draw.text((KENAR + 62, terminal_y + 64), aciklama, font=_font_yukle(FONT_SANS_MEDIUM, 17), fill=RENK_SILIK)
@@ -787,8 +793,9 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     try:
         ik = _vektor_ikon_uret("bookmark", ik_sz, RENK_KIRMIZI)
         canvas.paste(ik, (KENAR + 24, y_cta + (card_h - ik_sz) // 2), ik)
-    except Exception:
-        pass
+    except Exception as e:
+        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+        log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
 
     tx = KENAR + 24 + ik_sz + 16
     draw.text((tx, y_cta + 24), "BU REHBERİ KAYDEDİN", font=_font_yukle(FONT_SANS_BOLD, 23), fill=RENK_KOYU)
@@ -810,8 +817,9 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
         try:
             ik = _vektor_ikon_uret(ic_name, ik_sz_r, RENK_KIRMIZI)
             canvas.paste(ik, (rx + 16, py + (pill_h - ik_sz_r) // 2), ik)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+            log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
         draw.text((rx + 16 + ik_sz_r + 12, py + 12), text, font=f_rp, fill=RENK_KOYU)
 
     # 5. ALTA DAYALI (DOCKED TO BOTTOM) İLETİŞİM BLOĞU
@@ -853,15 +861,17 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     try:
         web_ik = _vektor_ikon_uret("web", ik_sz_c, RENK_KIRMIZI)
         canvas.paste(web_ik, (KENAR, by + 2), web_ik)
-    except Exception:
-        pass
+    except Exception as e:
+        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+        log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     draw.text((KENAR + ik_sz_c + 10, by), b["site"], font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KOYU)
 
     try:
         mail_ik = _vektor_ikon_uret("mail", ik_sz_c, RENK_KIRMIZI)
         canvas.paste(mail_ik, (mail_x, by + 2), mail_ik)
-    except Exception:
-        pass
+    except Exception as e:
+        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+        log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     draw.text((mail_x + ik_sz_c + 10, by), b["eposta"], font=_font_yukle(FONT_MONO, 18), fill=RENK_SILIK)
 
     # 6. SAĞ TARAF: BÜYÜTÜLMÜŞ KOYU BORDO QR KOD (200px, #7A0D0D, TAŞMAYAN SIKI BEYAZ ZEMİN)
@@ -893,8 +903,9 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
             emblem = emblem.resize((logo_sz, logo_sz), Image.Resampling.LANCZOS)
             pos_l = ((qr_sz - logo_sz) // 2, (qr_sz - logo_sz) // 2)
             qr_img.paste(emblem, pos_l, emblem)
-        except Exception:
-            pass
+        except Exception as e:
+            # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
+            log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
 
     canvas.paste(qr_img.convert("RGB"), (qr_x, qr_y))
 
