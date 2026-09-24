@@ -86,7 +86,7 @@ def main() -> None:
     parser.add_argument("--konu-madenle", action="store_true",
                         help="Rehber haberleri konu bankası adaylarına çevirir")
     parser.add_argument("--slot", choices=["bilgilendirici", "sozluk", "haber"],
-                        help="Günlük 3 slot akışından birini çalıştırır: bilgilendirici, sozluk, haber")
+                        help="bilgilendirici = günün tek içeriği; sozluk = elle sözlük; haber = haber önerileri")
     parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap", "b1", "reels"],
                         help="Belirli bir formatta otorite içeriği üretir")
     parser.add_argument("--reels", action="store_true", help="Günün konusundan dikey Reels videosu üretir")
@@ -94,11 +94,24 @@ def main() -> None:
     parser.add_argument("--oto-yayin", action="store_true", help="Onay sormadan doğrudan tüm kanallarda otomatik yayınlar")
     parser.add_argument("--format-degistir", dest="format_degistir_id", type=int,
                         help="Mevcut bir haber/içerik kaydının formatını değiştirip yeniden sunar")
+    parser.add_argument("--haber-oneri", action="store_true",
+                        help="Taze haberleri tarihleriyle Telegram'a öneri olarak düşürür (içerik üretmez)")
+    parser.add_argument("--haberden", dest="haberden_id", type=int,
+                        help="Önerilen haberi (\"İçeriğe çevir\") triyajdan geçirip içerik olarak onaya sunar")
     args = parser.parse_args()
+
+    # İnsan "İçeriğe çevir" dediyse duraklatma sorulmaz: bu bir elle istek
+    if args.haberden_id:
+        from src import haber_oneri
+        haber_oneri.haberden_icerige(args.haberden_id)
+        return
 
     # Bot duraklatma denetimi (Kullanıcı Telegram'dan duraklatmışsa atla)
     duraklatildi, kalan = telegram_bot.bot_duraklatildi_mi()
-    if duraklatildi and not args.durum and not args.slot and not args.format_turu and not args.format_degistir_id and not args.reels and not args.finans:
+    if duraklatildi and args.haber_oneri:
+        log.info("Bot duraklatılmış (%s); haber önerisi atlanıyor.", kalan)
+        return
+    if duraklatildi and not args.durum and not args.slot and not args.format_turu and not args.format_degistir_id and not args.reels and not args.finans and not args.haber_oneri:
         log.info("Bot kullanıcı tarafından duraklatılmış (%s). Otomatik hazırlık atlanıyor.", kalan)
         return
 
@@ -120,6 +133,11 @@ def main() -> None:
         log.info("Onay bekleyen konu adayı: %d", len(bekleyen))
         for a in bekleyen[:8]:
             log.info("   [%s/%s] %s", a.get("sutun"), a.get("bicim"), (a.get("baslik") or "")[:64])
+        return
+
+    if args.haber_oneri:
+        from src import haber_oneri
+        haber_oneri.onerileri_gonder(tara=True)
         return
 
     if args.slot:

@@ -1,0 +1,80 @@
+# =========================================================
+#  HABER ÖNERİSİ
+#
+#  2026-09-24 kararı: içerik günde BİR (hazirla.yml, 10:00 TR); emlak
+#  haberleri ondan bağımsız, günde dört kez taranıp Telegram'a ÖNERİ
+#  olarak düşer — başlık, kaynak, yayın tarihi ("3 saat önce") ve iki
+#  düğmeyle: "📝 İçeriğe çevir" (hazirla.yml → haber_uret) ve "✖ Geç".
+#  İçerik üretmez; hangi haberin içeriğe çevrileceğine insan karar verir.
+#
+#  Saatler TR: 09:17, 13:17, 17:17, 21:17. Dakika :17 — GitHub cron'ları
+#  tam saatte yığılıyor ve gecikiyor. Telegram'dan /haber ya da paneldeki
+#  "Haber" düğmesi aynı işi hemen yapar (repository_dispatch: haber_oneri).
+#
+#  Kota: 4 koşu/gün × ~2 dk ≈ 240 dk/ay. Kaldırılan iki içerik slotu
+#  (13:30 sözlük, 18:30 haber) bundan fazlasını geri kazandırıyor.
+# =========================================================
+
+name: Haber Önerisi
+
+on:
+  schedule:
+    - cron: "17 6,10,14,18 * * *"
+  repository_dispatch:
+    types: [haber_oneri]
+  workflow_dispatch:
+
+# Veritabanına yazar (öneri durumu + günlük sayaç): içerik akışlarıyla aynı kuyruk
+concurrency:
+  group: edm-veritabani
+  cancel-in-progress: false
+
+jobs:
+  oneri:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Haberleri tara ve öner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ELLE: ${{ github.event_name != 'schedule' }}
+        run: |
+          if [ "$ELLE" = "true" ]; then
+            python scripts/hazirla.py --slot haber
+          else
+            python scripts/hazirla.py --haber-oneri
+          fi
+
+      - name: Veritabanını Kaydet
+        if: always()
+        run: |
+          python scripts/db_kaydet.py "db: haber onerileri guncellendi"
+
+      - name: Hata bildir
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+          if not (t and c):
+              raise SystemExit(0)
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
+              "chat_id": c, "parse_mode": "HTML",
+              "text": f"🔴 <b>{'Haber Önerisi'} BAŞARISIZ</b>\n\n"
+                      f'<a href="{url}">Log</a>',
+          })
+          PY

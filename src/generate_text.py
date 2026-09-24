@@ -114,7 +114,7 @@ MUTLAK KURALLAR:
      * "Noter onaylı feragatname" → "Noterden 'hisse istemiyorum' yazısı (feragatname)"
      * "Fiili taksim" → "Arazide kimin nereyi kullandığı krokisi"
      * "Düşük rayiç bedel tuzağı" → "Tapuda gerçek ödenen parayı yazdırmamak"
-   - Pasif bürokrasi dili ("yapılmalıdır", "özen gösterilmelidir") KESİNLİKLE YASAKTIR. Doğrudan okuyucuya hitap et: "İsteyin", "Yazdırın", "Kontrol edin", "Haber vermezseniz hisseniz gider".
+   - Pasif bürokrasi dili ("yapılmalıdır", "özen gösterilmelidir") KESİNLİKLE YASAKTIR. Doğrudan okuyucuya hitap et: "İsteyin", "Yazdırın", "Kontrol edin", "Noterden bildirin".
    - Okuyan kişi 3 saniyede "Bunu yapmazsam ne olur?" ve "Nasıl korunurum?" sorularının cevabını tek nefeste anlamalıdır.
 4. BOŞ TAVSİYE VE GENEL GEÇER NASİHAT VERME:
    "Uzmana danışın", "avukatınıza başvurun", "dikkatli olun", "araştırma yapın",
@@ -125,7 +125,9 @@ MUTLAK KURALLAR:
    Kuru tavsiye yerine DOĞRUDAN eylemi yaz:
    - Resmi merci: Belediye İmar İşleri Müdürlüğü, Tapu ve Kadastro Müdürlüğü, Noter, Sulh Hukuk Mahkemesi.
    - Belge adı: 1/1000 Uygulama İmar Planı, TAKBİS tapu kaydı (şerhler ve beyanlar hanesi), Aplikasyon krokisi, Yapı Kullanma İzin Belgesi (İskân), Zemin etüt raporu.
-   - Yasal süre ve oran: 2 yıllık hak düşürücü süre, 90 günlük dava açma hakkı, en fazla %%45 DOP kesintisi (İmar K. md. 18), 10 yıllık tahliye süresi.
+   - Yasal süre ve oran: YALNIZCA brief'teki GÜNCEL MADDE METNİNDE yazan süre ve oran.
+     (Burada bilerek örnek süre verilmiyor: prompttaki örnek süreler modele eski
+     hukuku ezberletti ve #142'de aynen yayına çıktı.)
    - Test adımı: "Tapu kütüğünde kamulaştırma veya şufa şerhi sorgulayın", "Belediyeden parselin terk veya ifraz şartını teyit edin", "Noter kanalıyla ihtarname gönderin".
 6. KANUN MADDESİ UYDURMA. Brief'te "DOĞRULANMIŞ MEVZUAT" verildiyse yalnızca onu,
    aynen yaz. Verilmediyse madde numarası YAZMA — "ilgili mevzuat", "yürürlükteki
@@ -140,37 +142,57 @@ MUTLAK KURALLAR:
 9. Görsel metinlerinde ortalama cümle uzunluğu 12 kelimeyi geçmesin. Uzun cümle
    1080 piksellik karede okunmuyor.
 10. Brief'teki "AÇI" içeriğin merkezidir. Konuyu genel geçer anlatma; o açıyı işle.
+11. GÜNCEL HUKUK ÖNCELİKLİDİR. Eğitim bilgin eskimiş olabilir: önalım süresi,
+    kentsel dönüşüm çoğunluğu, tacir kiracı istisnası son yıllarda değişti.
+    Brief'teki güncel madde metniyle çelişen her bilgiyi at. Metinde olmayan
+    süreyi, oranı, çoğunluğu, istisnayı YAZMA.
+12. KESİNLİK KANUN KADAR OLUR. Kanun "kural olarak", "şartıyla", "…ebilir" diyorsa
+    sen de koşulu yaz. Kanunun "dava açılabilir" dediği yerde "kaybedersiniz",
+    "iptal edilebilir" dediği yerde "geri alınır", "ceza kesilebilir" dediği
+    yerde "katlanır" YAZMA. "Asla", "kesinlikle", "her durumda" yalnızca kanun
+    metni de mutlak konuşuyorsa.
+13. KAVRAMLARI KARIŞTIRMA. Kaparo (bağlanma parası) ile cayma parası, vergi ziyaı
+    cezası ile kaçakçılık suçu, tüketici kredisi ile konut finansmanı farklı
+    hükümlere tabidir. Brief hangisini anlatıyorsa yalnızca onu anlat.
 
 MANŞET YAPISI (üç parça):
-  manset_parca_1  → beyaz görünecek açılış. DOĞRUDAN AKSİYON ve DURUMU kurar (Title Case, örn: "Arsa Alırken", "Tapuyu İmzalamadan", "Kira Kontratında", "Hisseli Tapuda"). ASLA "Muhtelif", "Genel olarak", "Birtakım" gibi bürokratik, pasif veya kuru kelimelerle başlama.
-  manset_vurgu    → KIRMIZI görünecek kanca, BÜYÜK HARF. Okuyanın durduğu yer (BÜYÜK HARF, örn: "İMAR DURUMU YOKSA", "BU İMZAYI ATARSANIZ", "FERAGATNAME YOKSA").
-  manset_parca_2  → beyaz görünecek kapanış. SONUCU ve RİSKİ söyler (İlk harfi büyük / Title Case, örn: "Paranız Çöp Olur", "Tüm Birikiminiz Gider", "Evden Çıkartılırsınız").
+  manset_parca_1  → beyaz görünecek açılış. DOĞRUDAN DURUMU kurar. CÜMLE DÜZENİNDE yazılır:
+                    yalnızca ilk harf ve özel adlar büyük (örn: "Arsa alırken", "Tapuyu imzalamadan",
+                    "Hisseli tapuda"). Başlık Düzeni (Her Kelimesi Büyük) YASAK — akışta özensiz duruyor.
+                    "Muhtelif", "Genel olarak", "Birtakım" gibi kuru kelimelerle başlama.
+  manset_vurgu    → KIRMIZI görünecek kanca, BÜYÜK HARF. Okuyanın durduğu yer; BİLGİ taşır
+                    (örn: "İMAR DURUMU YOKSA", "FERAGATNAME YOKSA", "RUHSATA TABİDİR").
+  manset_parca_2  → beyaz görünecek kapanış, KÜÇÜK HARFLE başlar. Kanunun öngördüğü SONUCU söyler
+                    ve bu sonuç güncel kanun metnine göre HARFİYEN doğru olmalıdır (kural 12).
+                    Korku fiili ("gider", "yanar", "çöp olur") yalnızca kanundaki sonuç gerçekten buysa.
 
 ÜÇ PARÇA BİRLEŞTİĞİNDE TAM VE BİTMİŞ BİR CÜMLE OLMALIDIR.
 En sık yapılan hata, cümleyi şartla bırakıp sonucu yazmamaktır:
   YANLIŞ: "Ev kiralarken" + "BU İMZAYI" + "unutursanız"     → sonuç yok, cümle askıda
-  DOĞRU : "Ev kiralarken" + "BU İMZAYI" + "atarsanız evden çıkarsınız"
-  DOĞRU : "Arsa alırken"  + "İMAR DURUMU YOKSA" + "paranız çöp olur"
-  DOĞRU : "Hisseli tapuda" + "ŞUFA TUZAĞI" + "iki yıl peşinizi bırakmaz"
-Okuyan üçüncü satırı bitirdiğinde riskin ne olduğunu anlamış olmalı.
+  YANLIŞ: "Arsa alırken"  + "İMAR DURUMU YOKSA" + "paranız çöp olur" → abartı, kanunda böyle bir sonuç yok
+  DOĞRU : "Arsa alırken"  + "İMAR DURUMU YOKSA" + "ne aldığınızı bilemezsiniz"
+  DOĞRU : "Tarlaya prefabrik" + "RUHSATA TABİDİR" + "yoksa mühürlenir"
+Okuyan üçüncü satırı bitirdiğinde sonucun ne olduğunu anlamış olmalı.
 
 Her parça tek satırdır ve %(manset_satir)d KARAKTERİ AŞAMAZ. Aşarsa görselde taşar.
 Kanca kalıbı brief'te verilir. Kalıplar KOPYALANACAK İFADE DEĞİL, cümlenin
 biçimidir. Aşağıdaki örnek ifadeleri olduğu gibi yazma; konuya ait kendi
 kelimelerinle aynı biçimi kur.
 
-  eksik_imza    → şart + eksik olan şeyin ADI + sonuç
-                  ör. "Hisseli tapuda" + "FERAGATNAME YOKSA" + "payınız gider"
+  (Süre ve rakam kalıplarında örnek YOK, yer tutucu var: köşeli parantezin
+   içine brief'teki güncel madde metninden gelen bilgi yazılır.)
+  eksik_imza    → şart + eksik olan şeyin ADI + kanundaki sonuç
+                  ör. "[işlem yaparken]" + "[EKSİK BELGENİN ADI] YOKSA" + "[kanundaki sonucu]"
   sure          → sürenin kendisi vurgudur + o sürede ne olacağı
-                  ör. "Satıştan sonra" + "İKİ YIL BOYUNCA" + "dava açılabilir"
+                  ör. "[olaydan sonra]" + "[MADDE METNİNDEKİ SÜRE]" + "[o sürede ne yapılabilir]"
   yaygin_yanlis → yaygın inanış + DOĞRUSUNUN KENDİSİ + sonucu
-                  ör. "Tarlaya tiny house" + "RUHSATA TABİDİR" + "yoksa yıkılır"
+                  ör. "Tarlaya prefabrik" + "RUHSATA TABİDİR" + "yoksa mühürlenir"
                   (vurgu kısmına "ASLINDA TAM TERSİ" gibi kalıp cümle YAZMA;
                    oraya doğru bilginin kendisi gelir)
   rakam         → rakamın kendisi vurgudur + hangi şartla geçerli
-                  ör. "Arsa konuttan" + "%%65 DAHA UCUZ" + "ama imar şartıyla"
+                  ör. "[konu]" + "[KAYNAKTAKİ RAKAM]" + "[hangi şartla]" — kaynağı yoksa bu kalıbı kullanma
   kim_hakli     → taraf sorusu + KİMİN HAKLI OLDUĞU + kısa gerekçe
-                  ör. "Depozitoyu kim çeker?" + "TEK BAŞINA ÇEKEMEZ" + "rıza şart"
+                  ör. "Depozitoyu kim çeker?" + "TEK BAŞINA ÇEKEMEZ" + "rıza ya da karar gerekir"
   belge         → belgenin adı + engellenen işlem + sonucu
                   ör. "İmar durumu belgesi" + "OLMADAN" + "arsa değeri bilinmez"
 
@@ -179,20 +201,23 @@ manset_vurgu her zaman BİLGİ taşır — kalıp söz değil.
 CAPTION KURALLARI (HER PLATFORM İÇİN ZORUNLU 4 BLOK):
 1. İLK SATIR - HOOK (KANCA METNİ):
    - Açıklamanın ilk satırı akışta kaydırmayı anında durduran, merak veya farkındalık uyandıran güçlü bir kanca cümlesiyle başlar.
-   - Örn: "Tapuda bu tek bir imzayı atlarsanız, satın aldığınız mülk iki yıl sonra elinizden gidebilir." veya "Tarla veya arsa bakarken imar durumunda çoğu kişinin atladığı büyük bir risk var."
+   - Örn: "Tarla veya arsa bakarken imar durumunda çoğu kişinin atladığı bir belge var."
+     (Hook'taki iddia da kanun kadar kesin olur; süre ve sonuç yalnızca brief'ten.)
    - Asla "DİKKAT!", "ŞOK!", "ÖNEMLİ DUYURU" gibi ucuz ve tıklama tuzağı ifadeler kullanma. Sakin otoriteyle doğrudan gerçeği söyle.
 2. GÖVDE:
    - Konuyu halk dilinde, akıcı, kısa ve net cümlelerle (6-10 kelime) 2-3 kısa paragrafta açıkla.
-3. KAPANIS CÜMLESİ - ETKİLEŞİM SORUSU (?):
-   - Metnin son cümlesi mutlaka okuyucuya doğrudan hitap eden, yoruma ve kendi deneyimini paylaşmaya teşvik eden samimi bir soru olmalıdır.
-   - Örn: "Siz daha önce mülk alımında veya hisseli tapuda benzer bir durumla karşılaştınız mı? Yorumlarda buluşalım." veya "Sizce bölgenizde arsa yatırımı mı yoksa konut mu daha avantajlı? Fikirlerinizi paylaşın."
+3. KAPANIŞ — KAYDET / GÖNDER ÇAĞRISI (SORU YOK):
+   - Soru sorma. 22 gönderinin 22'si soruyla bitti ve hiçbirine yorum gelmedi.
+   - Son cümle içeriğin KİME ve NE ZAMAN yarayacağını söyleyip kaydetmeye ya da
+     o kişiye göndermeye çağırır. Örn: "Hisseli tapusu olan birine gönderin."
+     veya "Tapu randevusundan önce açıp bakmak için kaydedin."
 4. HASHTAG BLOĞU (EN FAZLA 5 ADET):
-   - Çoğu sosyal medya platformu en fazla 5 etiketi kabul eder veya verimli görür. Bu yüzden ASLA 5'ten fazla hashtag yazma (en fazla 3-5 adet).
-   - Sorunun ardından 1 satır boşluk bırakılarak eklenir.
-   - Örn: #EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım
-- Threads: Karakter sınırı katıdır (%(threads)d karakter altı). Hook + kısa özet + etkileşim sorusu + 3-4 hashtag şeklinde tek nefeslik yaz.
+   - Konuya özel 2-3 etiket yaz: konunun kendi terimi (#ÖnalımHakkı, #HisseliTapu,
+     #İmarDurumu, #KiraArtışı). Marka ve bölge etiketini sistem ekler.
+   - #Gayrimenkul, #Yatırım, #Emlak gibi herkesin kullandığı genel etiket YAZMA.
+- Threads: Karakter sınırı katıdır (%(threads)d karakter altı). Hook + kısa özet + kaydet/gönder çağrısı + 2-3 etiket, tek nefeste.
 - Facebook: Instagram metninin biraz daha detaylı ve açıklayıcı hali (en fazla 5 hashtag).
-- Hiçbir caption'da "link bio'da" yazma; hesapta henüz yönlendirme yok.
+- Site adresi ve telefonu sistem ekler; sen yazma. "Link bio'da" yazma.
 """ % BUTCE
 
 
@@ -263,9 +288,9 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 9,
-  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf çözüm anlat, etkileşim sorusu (?) ile bitir ve en fazla 5 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + en fazla 5 hashtag.",
-  "caption_threads": "≤%(threads)d karakter. Hook + kısa gövde + soru (?) + 3-4 hashtag."
+  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf çözüm anlat, kaydet/gönder çağrısıyla bitir (soru sorma), konuya özel 2-3 hashtag ekle.",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + kaydet/gönder çağrısı + konuya özel 2-3 hashtag.",
+  "caption_threads": "≤%(threads)d karakter. Hook + kısa gövde + kaydet/gönder çağrısı + 2-3 konu etiketi."
 }""" % BUTCE
 
 _SEMA_B2 = """BİÇİM: B2 — KARŞILAŞTIRMA (3 slayt)
@@ -304,9 +329,9 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı"
   },
   "onem_puani": 8,
-  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf karşılaştırmayı ve stratejiyi anlat, soru (?) ile bitir ve en fazla 5 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + soru (?) + en fazla 5 hashtag.",
-  "caption_threads": "≤%(threads)d karakter. Hook + kısa karşılaştırma + soru (?) + 3-4 hashtag."
+  "caption_instagram": "Hook ile başla, 2-3 kısa paragraf karşılaştırmayı ve stratejiyi anlat, kaydet/gönder çağrısıyla bitir (soru sorma), konuya özel 2-3 hashtag ekle.",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + kaydet/gönder çağrısı + konuya özel 2-3 hashtag.",
+  "caption_threads": "≤%(threads)d karakter. Hook + kısa karşılaştırma + kaydet/gönder çağrısı + 2-3 konu etiketi."
 }
 Ölçüt başlıkları ≤24, değerler ≤26 karakter olsun; kolona sığması gerekiyor.
 
@@ -355,9 +380,9 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 7,
-  "caption_instagram": "Hook ile başla, net cevabı ve yasal çerçeveyi 2-3 kısa paragrafta açıkla, soru (?) ile bitir ve en fazla 5 hashtag ekle (#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım).",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + net cevap ve çözüm + soru (?) + en fazla 5 hashtag.",
-  "caption_threads": "≤%(threads)d karakter. Hook + net cevap + soru (?) + 3-4 hashtag."
+  "caption_instagram": "Hook ile başla, net cevabı ve yasal çerçeveyi 2-3 kısa paragrafta açıkla, kaydet/gönder çağrısıyla bitir (soru sorma), konuya özel 2-3 hashtag ekle.",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + net cevap ve çözüm + kaydet/gönder çağrısı + konuya özel 2-3 hashtag.",
+  "caption_threads": "≤%(threads)d karakter. Hook + net cevap + kaydet/gönder çağrısı + 2-3 konu etiketi."
 }
 kart_1 sık yapılan yanlışı, kart_2 doğru yasal çerçeveyi anlatır.
 slayt_3_cozum maddeleri atılması gereken somut adımları listeler.""" % BUTCE
@@ -658,6 +683,76 @@ def manset_birlestir(veri: Dict[str, Any]) -> str:
     ).strip()
 
 
+# Kapanış çağrısı konuya göre seçilir: okuyana içeriğin KİME ve NE ZAMAN
+# yarayacağını söyler. 2026-09-24 denetimi: 22 caption'ın 22'si soruyla
+# bitiyordu ve hiçbirine yorum gelmemişti; "kaydet" ise hiç geçmiyordu.
+# Sıra önemli: ilk eşleşen kazanır, özgül olan üstte.
+KAPANIS_CAGRILARI: List[Tuple[Tuple[str, ...], str]] = [
+    (("önalım", "şufa", "hisseli", "paydaş", "hissedar"), "Hisseli tapusu olan birine gönderin."),
+    (("miras", "intikal", "veraset", "mirasçı"), "Miras işlemi bekleyen birine gönderin."),
+    (("kiracı", "kira", "ev sahibi", "tahliye", "depozito"), "Kira sözleşmesini yenilemeden önce açıp bakmak için kaydedin."),
+    (("arsa", "tarla", "imar", "ifraz", "parsel", "tiny house", "prefabrik", "ruhsat"), "Arsaya bakmaya gideceğiniz gün açmak için kaydedin."),
+    (("kredi", "faiz", "banka", "dask", "ekspertiz", "sigorta"), "Kredi başvurusundan önce açıp bakmak için kaydedin."),
+    (("tapu", "harç", "kaparo", "kapora", "satış"), "Tapu randevusundan önce açıp bakmak için kaydedin."),
+]
+VARSAYILAN_KAPANIS = "Lazım olacağı gün bulmak için kaydedin."
+ILAN_KAPANIS = "Yerinde görmek için arayın."
+_CAGRI_IZLERI = ("kaydedin", "kaydet", "gönderin", "paylaşın", "arayın")
+
+# Konuya özel etiketler. Genel etiketler (#Gayrimenkul, #Yatırım) milyonlarca
+# gönderinin arasında kayboluyor; konunun kendi terimi aranan şey.
+KONU_ETIKETLERI: List[Tuple[Tuple[str, ...], str]] = [
+    (("önalım", "şufa"), "#ÖnalımHakkı"),
+    (("hisseli", "paydaş", "hissedar"), "#HisseliTapu"),
+    (("miras", "intikal", "veraset"), "#Miras"),
+    (("kentsel dönüşüm", "riskli yapı"), "#KentselDönüşüm"),
+    (("kat irtifak", "iskân", "iskan", "yapı kullanma"), "#İskan"),
+    (("kaparo", "kapora", "cayma parası"), "#Kaparo"),
+    (("tapu harc", "harç"), "#TapuHarcı"),
+    (("tahliye",), "#Tahliye"),
+    (("depozito", "güvence bedeli"), "#Depozito"),
+    (("kira artış", "tüfe", "kira zammı", "kira bedeli"), "#KiraArtışı"),
+    (("kiracı", "ev sahibi", "kira sözleşme"), "#KiraSözleşmesi"),
+    (("tiny house", "prefabrik", "konteyner"), "#TinyHouse"),
+    (("ifraz", "hisselendirme", "tarım arazisi", "tarla"), "#TarlaAlırken"),
+    (("imar", "parselasyon", "düzenleme ortaklık"), "#İmarDurumu"),
+    (("ruhsat",), "#YapıRuhsatı"),
+    (("konut kredisi", "kredi"), "#KonutKredisi"),
+    (("dask",), "#DASK"),
+    (("ekspertiz", "eksper"), "#Ekspertiz"),
+    (("zilyetlik", "tapusuz", "kazandırıcı zamanaşımı"), "#TapusuzArazi"),
+    (("vergi", "değer artış"), "#EmlakVergisi"),
+]
+GENEL_ETIKETLER = {"#gayrimenkul", "#yatırım", "#yatirim", "#emlak", "#keşfet", "#kesfet", "#fyp", "#arsa"}
+
+
+def _kapanis_cagrisi(govde_kucuk: str, kategori_ust: str) -> str:
+    if "ILAN" in kategori_ust:
+        return ILAN_KAPANIS
+    for kelimeler, cagri in KAPANIS_CAGRILARI:
+        if any(k in govde_kucuk for k in kelimeler):
+            return cagri
+    return VARSAYILAN_KAPANIS
+
+
+def konu_etiketleri(metin: str, azami: int = 3) -> List[str]:
+    kucuk = filtre.kucult(metin or "")
+    etiketler: List[str] = []
+    for kelimeler, etiket in KONU_ETIKETLERI:
+        if etiket not in etiketler and any(k in kucuk for k in kelimeler):
+            etiketler.append(etiket)
+        if len(etiketler) >= azami:
+            break
+    return etiketler
+
+
+def _iletisim_satiri() -> str:
+    web = (config.ayar_al("kurum.web_sitesi") or "https://edmyapigayrimenkul.com")
+    web = re.sub(r"^https?://", "", web).rstrip("/")
+    tel = config.ayar_al("kurum.telefon") or ""
+    return f"{web} · {tel}".strip(" ·")
+
+
 def caption_zenginlestir(
     caption: str,
     kategori_kodu: Optional[str] = None,
@@ -666,13 +761,15 @@ def caption_zenginlestir(
     manset: Optional[str] = None,
 ) -> str:
     """
-    Açıklama metnini (caption) kurumsal EDM 4 bloklu standart mimarisine dönüştürür:
-    1. Blok: Hook (Kaydırmayı anında durduran kanca)
-    2. Blok: Gövde (Halk dilinde, akıcı kısa paragraflar)
-    3. Blok: Etkileşim Sorusu (Yorum ve tartışmayı teşvik eden samimi soru (?))
-    4. Blok: Hashtag Bloğu (Marka, bölge ve konuya özel temiz etiketler)
+    Açıklama metnini EDM caption standardına getirir:
+    1. Hook (ilk satır)
+    2. Gövde
+    3. Kapanış çağrısı — konuya göre "kaydedin / gönderin" (SORU DEĞİL)
+    4. Site ve telefon satırı
+    5. Etiketler: marka + bölge + konunun kendi terimleri (genel etiket yok)
 
-    İdempotenttir: Zaten zenginleştirilmiş bir metne tekrar uygulandığında soru veya hashtag tekrarlamaz.
+    İdempotenttir: yayın anında tekrar çağrılır; ikinci kez çağrı, etiket
+    veya iletişim satırı eklemez.
     """
     ham = filtre.markdown_temizle(caption or "").strip()
     ham = _unlemleri_kaldir(ham).strip()
@@ -681,84 +778,50 @@ def caption_zenginlestir(
     if not ham:
         return ""
 
-    # 1. Mevcut hashtag'leri ayıkla ve metnin sonundaki hashtag bloğunu gövdeden ayır
+    iletisim = _iletisim_satiri()
+    web_kisa = iletisim.split(" · ")[0] if iletisim else ""
+
+    # 1. Mevcut hashtag'leri ve (önceki turdan kalan) iletişim satırını ayıkla
     mevcut_etiketler = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", ham)
     govde = re.sub(r"(?:[\s\n]*#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+)+$", "", ham).strip()
     govde = re.sub(r"^(?:Açıklama|Instagram|Facebook|Threads|Caption|Metin|Post)\s*:\s*", "", govde, flags=re.IGNORECASE).strip()
-
+    if web_kisa:
+        govde = "\n".join(s for s in govde.split("\n") if web_kisa not in s).strip()
     if not govde:
         govde = manset or ham
 
-    # 2. Hook Kontrolü: Eğer ilk satır çok kısaysa (<25 karakter) ve manşet varsa manşetle zenginleştir
+    # 2. Hook: ilk satır çok kısaysa manşetle güçlendir
     satirlar = [s.strip() for s in govde.split("\n") if s.strip()]
     if satirlar and len(satirlar[0]) < 25 and manset and manset.strip() not in satirlar[0]:
         govde = f"{manset.strip()}\n\n{govde}"
 
-    # 3. Kapanış Sorusu (?) Kontrolü
-    soru = ""
-    son_kisim = govde[-250:] if len(govde) > 250 else govde
-    if "?" not in son_kisim:
-        kategori_ust = (kategori_kodu or "").upper()
-        govde_kucuk = filtre.kucult(govde)
-
-        if any(w in govde_kucuk for w in ["şufa", "hisseli", "hisse", "tapu", "miras", "paydaş", "intikal", "ferağ"]):
-            soru = "Siz tapu işlemlerinizde veya hisseli mülk alımında benzer bir durumla karşılaştınız mı? Yorumlarda buluşalım."
-        elif any(w in govde_kucuk for w in ["kira", "kiracı", "ev sahibi", "tahliye", "kontrat", "depozito"]):
-            soru = "Sizce kira ve tahliye süreçlerinde en çok nelere dikkat edilmeli? Deneyimlerinizi yorumlarda paylaşın."
-        elif any(w in govde_kucuk for w in ["arsa", "tarla", "imar", "ifraz", "parsel", "tiny house", "ruhsat"]):
-            soru = "Silivri veya Trakya genelinde arsa bakarken imar durumunda en çok neye dikkat ediyorsunuz? Fikirlerinizi yazın."
-        elif any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "mevduat", "bddk", "enflasyon", "ekspertiz"]):
-            soru = "Sizce şu anki piyasa şartlarında arsa yatırımı mı yoksa mevduat veya konut mu daha avantajlı? Ne düşünüyorsunuz?"
-        elif "ILAN" in kategori_ust or any(w in govde_kucuk for w in ["satılık", "kiralık", "portföy", "m²"]):
-            soru = "Bu portföyümüz hakkında detaylı bilgi ve yerinde inceleme için bize hemen ulaşabilirsiniz. Ne düşünüyorsunuz?"
-        elif "ARSA" in kategori_ust:
-            soru = "Silivri ve Trakya'da arsa alırken en çok hangi bölgeyi tercih ediyorsunuz? Yorumlarda paylaşın."
-        elif "EV_SAHIBI" in kategori_ust:
-            soru = "Sizce kiracı ve ev sahibi ilişkilerinde en sağlıklı çözüm nedir? Yorumlarda buluşalım."
-        elif "FINANS" in kategori_ust:
-            soru = "Siz birikiminizi değerlendirirken gayrimenkulü hangi sırada tutuyorsunuz? Yorumlarda buluşalım."
-        else:
-            soru = "Siz bu konuda ne düşünüyorsunuz? Görüş ve tecrübelerinizi yorumlarda bekliyoruz."
-
-        govde = f"{govde}\n\n{soru}"
+    # 3. Kapanış: sondaki soru paragrafı atılır, yerine kaydet/gönder çağrısı gelir
+    paragraflar = [p.strip() for p in re.split(r"\n\s*\n", govde) if p.strip()]
+    # "…yaşadınız mı? Yorumlarda buluşalım." kalıbı soruyla bitmiyor ama soru paragrafı
+    if len(paragraflar) > 1 and "?" in paragraflar[-1] and len(paragraflar[-1]) < 250:
+        paragraflar = paragraflar[:-1]
+    govde = "\n\n".join(paragraflar)
+    kategori_ust = (kategori_kodu or "").upper()
+    govde_kucuk = filtre.kucult(govde)
+    son_kisim = filtre.kucult(paragraflar[-1] if paragraflar else "")
+    cagri = ""
+    if not any(iz in son_kisim for iz in _CAGRI_IZLERI):
+        cagri = _kapanis_cagrisi(govde_kucuk, kategori_ust)
+        govde = f"{govde}\n\n{cagri}"
     else:
-        for p in reversed(govde.split("\n")):
-            p_strip = p.strip()
-            if "?" in p_strip:
-                soru = p_strip
-                break
+        cagri = paragraflar[-1]
 
-    # 4. Hashtag Bloğunu Hazırla
+    # 4. Etiketler: marka + bölge (config) + modelin özgül etiketleri + konu terimleri
     platform_key = platform.lower()
     sabitler_ayar = config.ayar_al(f"sosyal.sabit_hashtagler.{platform_key}") or config.ayar_al("sosyal.sabit_hashtagler.instagram")
-    varsayilan_sabitler = [
-        "#EDMYapıGayrimenkul",
-        "#Silivri",
-        "#Gayrimenkul",
-        "#Arsa",
-        "#Yatırım",
-    ]
-    sabit_liste = sabitler_ayar if (sabitler_ayar and isinstance(sabitler_ayar, list)) else varsayilan_sabitler
-
-    konu_etiketleri: List[str] = []
-    kategori_ust = (kategori_kodu or "").upper()
-    govde_kucuk = filtre.kucult(ham or govde)
-    if soru and filtre.kucult(soru) in govde_kucuk:
-        govde_kucuk = govde_kucuk.replace(filtre.kucult(soru), "")
-
-    if "FINANS" in kategori_ust or any(w in govde_kucuk for w in ["kredi", "faiz", "banka", "finans", "bddk"]):
-        konu_etiketleri.extend(["#KonutKredisi", "#EmlakYatırımı"])
-    if "TAPU" in kategori_ust or any(w in govde_kucuk for w in ["tapu", "şufa", "hisseli", "miras", "hisse", "paydaş"]):
-        konu_etiketleri.extend(["#TapuRehberi", "#HisseliTapu"])
-    if "EV_SAHIBI" in kategori_ust or "KIRA" in kategori_ust or any(w in govde_kucuk for w in ["kira", "kiracı", "tahliye", "ev sahibi"]):
-        konu_etiketleri.extend(["#KiraSözleşmesi", "#EvSahibiKiracı"])
-    if "ARSA" in kategori_ust or "IMAR" in kategori_ust or any(w in govde_kucuk for w in ["arsa", "tarla", "parsel", "imar", "tiny house"]):
-        konu_etiketleri.extend(["#SilivriArsa", "#TrakyaArsa", "#İmar"])
-
-    # Marka ve bölgeyi her zaman önceliklendir (sabit listenin ilk 2'si), ardından konu ve mevcut etiketler, sonra kalan sabitler
-    oncelikli_sabitler = sabit_liste[:2] if len(sabit_liste) >= 2 else sabit_liste
-    kalan_sabitler = sabit_liste[2:] if len(sabit_liste) >= 2 else []
-    tum_adaylar = oncelikli_sabitler + mevcut_etiketler + konu_etiketleri + kalan_sabitler
+    sabit_liste = sabitler_ayar if (sabitler_ayar and isinstance(sabitler_ayar, list)) else ["#EDMYapıGayrimenkul", "#Silivri"]
+    ozgul = [t for t in mevcut_etiketler if filtre.kucult(t) not in GENEL_ETIKETLER]
+    konu = konu_etiketleri(f"{manset or ''} {govde}")
+    if platform_key == "threads":
+        # Threads bir gönderide tek konu etiketini bağlar; o da konunun kendisi olsun
+        tum_adaylar = konu + ozgul + sabit_liste
+    else:
+        tum_adaylar = sabit_liste[:2] + ozgul + konu + sabit_liste[2:]
 
     gorulen = set()
     nihai_etiketler: List[str] = []
@@ -771,50 +834,37 @@ def caption_zenginlestir(
             gorulen.add(k)
             nihai_etiketler.append(t)
 
-    # 5. Platform Uyarlaması
+    # 5. Platform uyarlaması
     if platform_key == "tiktok":
         from . import tiktok
         kanca_baslik = satirlar[0] if satirlar else (manset or govde)
         return tiktok.baslik_kur(kanca_baslik, nihai_etiketler)
 
     if platform_key == "threads":
-        th_etiketler = nihai_etiketler[:4]
-        tag_str = " ".join(th_etiketler)
-
-        if len(govde) + len(tag_str) + 2 <= 480:
-            return f"{govde}\n\n{tag_str}".strip()
-
-        th_etiketler = nihai_etiketler[:2]
-        tag_str = " ".join(th_etiketler)
-        if len(govde) + len(tag_str) + 2 <= 480:
-            return f"{govde}\n\n{tag_str}".strip()
-
-        # Metin çok uzunsa: soruyu ve etiketleri koruyarak ana gövdeyi kısalt
-        if soru and soru in govde:
-            ana_metin = govde.rsplit(soru, 1)[0].strip()
-            kalan_yer = 480 - len(soru) - len(tag_str) - 8
-            if kalan_yer > 40:
-                kirpilmis = ana_metin[:kalan_yer]
-                son_bosluk = kirpilmis.rfind(" ")
-                if son_bosluk > 30:
-                    kirpilmis = kirpilmis[:son_bosluk]
-                govde = f"{kirpilmis.strip()}...\n\n{soru}"
-                return f"{govde}\n\n{tag_str}".strip()
-
-        kalan_yer = 480 - len(tag_str) - 6
-        if kalan_yer > 80:
-            kirpilmis = govde[:kalan_yer]
+        azami = 480
+        tag_str = " ".join(nihai_etiketler[:3])
+        # Threads'te site adresi tıklanabilir; telefon yer kaplıyor, yalnız adres
+        ek = f"\n\n{web_kisa}" if web_kisa else ""
+        for etiketler, ek_satir in ((nihai_etiketler[:3], ek), (nihai_etiketler[:2], ek), (nihai_etiketler[:2], "")):
+            tag_str = " ".join(etiketler)
+            aday = f"{govde}{ek_satir}\n\n{tag_str}".strip()
+            if len(aday) <= azami:
+                return aday
+        # Metin çok uzunsa: kapanış çağrısını ve etiketleri koruyarak gövdeyi kısalt
+        ana_metin = govde.rsplit(cagri, 1)[0].strip() if cagri and cagri in govde else govde
+        kalan_yer = azami - len(cagri) - len(tag_str) - 10
+        if kalan_yer > 40:
+            kirpilmis = ana_metin[:kalan_yer]
             son_bosluk = kirpilmis.rfind(" ")
-            if son_bosluk > 60:
+            if son_bosluk > 30:
                 kirpilmis = kirpilmis[:son_bosluk]
-            govde = kirpilmis.strip() + "..."
-            return f"{govde}\n\n{tag_str}".strip()
-        else:
-            return f"{govde[:475].strip()}..."
+            return f"{kirpilmis.strip()}…\n\n{cagri}\n\n{tag_str}".strip()
+        return f"{govde[:azami - 3].strip()}…"
 
     secilen_etiketler = nihai_etiketler[:5]
     tag_str = " ".join(secilen_etiketler)
-    return f"{govde}\n\n{tag_str}".strip()
+    ek = f"\n\n{iletisim}" if iletisim else ""
+    return f"{govde}{ek}\n\n{tag_str}".strip()
 
 
 def _captionlari_zenginlestir(veri: Dict[str, Any]) -> Dict[str, Any]:
@@ -903,7 +953,40 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
     return veri2
 
 
-def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def _kritik_duzelt(veri: Dict[str, Any], girdi: str, bicim: str,
+                   tamamla: Any) -> Dict[str, Any]:
+    """Kritik denetim bulgusu varsa modele bulguları gösterip BİR kez daha yazdırır.
+
+    Son söz yayın kapısında (telegram_bot.haber_onayina_sun): bu tur yalnızca
+    düzeltilebilir hatayı yayından önce düzeltme şansı. Model çoğu zaman eski
+    hukuku yazıyor; güncel madde metni brief'te zaten var, bulguyla birlikte
+    gösterilince düzeltiyor.
+    """
+    from . import dogrula
+    kritikler = [u for u in dogrula.denetle(veri, veri.get("_brief")) if u.startswith("⛔")]
+    if not kritikler:
+        return veri
+    log.warning("Kritik denetim bulgusu, düzeltme turu: %s", "; ".join(kritikler))
+    onarim = (
+        girdi
+        + "\n\nÖNCEKİ DENEMEN YAYIN DENETİMİNDEN KALDI:\n"
+        + "\n".join(f"- {u}" for u in kritikler)
+        + "\n\nBu içeriği aynı şemayla BAŞTAN yaz. Brief'teki güncel madde metninde "
+        "geçmeyen süre, oran, çoğunluk, madde numarası ya da karar numarası YAZMA. "
+        "Emin olmadığın bilgiyi çıkar; yerine koşulu anlat."
+    )
+    yeni = _uret(onarim, bicim, sicaklik=0.4)
+    if not yeni:
+        return veri
+    tamamla(yeni)
+    kalan = [u for u in dogrula.denetle(yeni, yeni.get("_brief")) if u.startswith("⛔")]
+    if kalan:
+        log.warning("Düzeltme turundan sonra hâlâ kritik bulgu var: %s", "; ".join(kalan))
+    return yeni
+
+
+def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
+                 ek_talimat: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Konu bankası kaydından slayt içeriği üretir. Faz 1'in ana giriş noktası."""
     from . import konu_bankasi
 
@@ -913,6 +996,8 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
         + "\n\nBu brief'i yukarıdaki biçim şemasına göre işle. "
         "AÇI alanındaki bakış açısı içeriğin merkezi olsun."
     )
+    if ek_talimat:
+        girdi += f"\n\nEK EDİTORYAL TALİMAT: {ek_talimat}"
     if format_turu in ("nedir_dogrusu", "dogrusu"):
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NEDİR DOĞRUSU? (DOĞRU BİLİNEN YANLIŞLAR)' formatında üret. "
@@ -921,7 +1006,8 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
             "'dogru_metin': (Kanunen ve hukuken işin esası ve yasal dayanak maddesi - 2-3 cümle. "
             "Yargıtay kararı numarası veya tarihi YAZMA: brief'te içtihat yok, uydurulmuş karar "
             "numarası gerçek bir ofisin hesabında ağır sorumluluktur), "
-            "'altin_kural': (EDM Altın Kuralı: Kısa ve net uzman tavsiyesi) alanlarını MUTLAKA doldur."
+            "'altin_kural': (EDM kuralı: tek cümlelik somut tavsiye) alanlarını MUTLAKA doldur. "
+            "Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz; her adım ayrı slayt olur."
         )
     elif format_turu in ("sozluk", "sozluk_uret"):
         girdi += (
@@ -933,35 +1019,43 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
         )
     elif format_turu in ("vaka", "emsal_karar"):
         girdi += (
-            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'HUKUKİ VAKA ANALİZİ' formatında üret. "
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'ÖRNEK OLAY' formatında üret. "
             "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / ÖRNEK OLAY', "
             "'yargitay_kaynak': (Yalnızca brief'teki mevzuat maddesi; Yargıtay esas/karar numarası UYDURMA), "
-            "'manset': (Çarpıcı başlık), 'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma), "
-            "'yargitay_hukmu': (Kanun maddesine göre sonuç; belirli bir mahkeme kararına atıf yapma), "
-            "'cikarilacak_ders': (Yatırımcının çıkarması gereken ders) alanlarını MUTLAKA doldur."
+            "'manset': (Çarpıcı başlık, cümle düzeninde), 'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma), "
+            "'yargitay_hukmu': (Güncel kanun metnine göre sonuç; belirli bir mahkeme kararına atıf yapma), "
+            "'cikarilacak_ders': (Okuyanın çıkarması gereken ders) alanlarını MUTLAKA doldur. "
+            "Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz."
         )
     elif format_turu in ("net_cevap", "soru", "kim_hakli"):
         girdi += (
-            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NET CEVAP REHBERİ' formatında üret. "
-            "JSON nesnesinde 'format_turu': 'net_cevap', 'soru': (Net soru?), 'net_cevap': 'CEVAP: ...', "
-            "'aciklama': (Gerekçe ve hukuki açıklama), 'tavsiye_metin': (Resmi adım ve tavsiye) alanlarını MUTLAKA doldur."
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NET CEVAP' formatında üret. "
+            "JSON nesnesinde 'format_turu': 'net_cevap', 'soru': (okuyanın kafasındaki soru, en fazla 70 karakter), "
+            "'net_cevap': (kapakta EN BÜYÜK yazı olacak cevap: 'Hayır.', 'Evet, ama …' gibi başlayan, cümle "
+            "düzeninde TEK kısa cümle, en fazla 70 karakter; 'CEVAP:' yazma), "
+            "'aciklama': (gerekçe, 1-2 cümle, güncel madde metnine dayalı), 'tavsiye_metin': (resmi adım) alanlarını "
+            "MUTLAKA doldur. Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz."
         )
 
-    veri = _uret(girdi, bicim)
-    if veri:
-        veri.setdefault("bicim", bicim)
+    def tamamla(v: Dict[str, Any]) -> None:
+        v.setdefault("bicim", bicim)
         if format_turu:
-            veri["format_turu"] = format_turu
-        veri["konu_kodu"] = konu["kod"]
+            v["format_turu"] = format_turu
+        v["konu_kodu"] = konu["kod"]
         # Brief'i sakla: dogrula.py metindeki mevzuat ve yerel bağ iddialarını
-        # bununla karşılaştırıyor. Onay önizlemesinde uyarı olarak görünüyor.
-        veri["_brief"] = {
+        # bununla karşılaştırıyor.
+        v["_brief"] = {
             "mevzuat": konu.get("mevzuat"),
             "yerel": konu.get("yerel"),
             "veri_kaynagi": konu.get("veri_kaynagi"),
         }
         # Güncel madde metni DB'ye yazılmaz (git'e gidiyor, şişer); dogrula.py
         # denetim anında "mevzuat" atfından önbellekli olarak çeker.
+
+    veri = _uret(girdi, bicim)
+    if veri:
+        tamamla(veri)
+        veri = _kritik_duzelt(veri, girdi, bicim, tamamla)
     return veri
 
 
@@ -1023,9 +1117,51 @@ def otorite_icerigi_uret(
     return veri
 
 
+def _bankadaki_konu(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Kayıt konu bankasından üretildiyse o konuyu döner."""
+    from . import konu_bankasi
+    kod = None
+    try:
+        kod = (json.loads(haber.get("detay_metni") or "{}") or {}).get("konu_kodu")
+    except (TypeError, ValueError):
+        kod = None
+    if not kod:
+        m = re.search(r"//\s*(S\d-\d{3})", str(haber.get("kaynak") or ""))
+        kod = m.group(1) if m else None
+    if not kod:
+        return None
+    return next((k for k in konu_bankasi.havuzu_yukle() if k.get("kod") == kod), None)
+
+
 def haber_metinleri_uret(haber: Dict[str, Any], ek_talimat: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """Geriye dönük uyumlu haber girişi — B5 biçimine yönlendirir."""
-    return otorite_icerigi_uret(haber, bicim="B5", ek_talimat=ek_talimat)
+    """Kaydın metnini yeniden üretir ("Yenile", "Özetle", "Detaylandır").
+
+    Konu bankası içeriği KENDİ brief'iyle yeniden üretilir. Önceden her kayıt
+    B5 haber yorumuna düşüyordu: brief ve güncel madde metni kayboluyor, model
+    "DOĞRULANMIŞ MEVZUAT: yok" talimatıyla ve açısız yazıyordu.
+    """
+    konu = _bankadaki_konu(haber)
+    if not konu:
+        return otorite_icerigi_uret(haber, bicim="B5", ek_talimat=ek_talimat)
+    try:
+        onceki = json.loads(haber.get("detay_metni") or "{}") or {}
+    except (TypeError, ValueError):
+        onceki = {}
+    veri = konudan_uret(konu, format_turu=onceki.get("format_turu"), ek_talimat=ek_talimat)
+    if not veri:
+        return None
+    for k in ("foto_kaynak", "saf_editoryal", "foto_degistir", "kapanis_stili"):
+        if k in onceki:
+            veri[k] = onceki[k]
+    if haber.get("id"):
+        db.haber_guncelle(
+            haber["id"],
+            manset=manset_birlestir(veri),
+            detay_metni=json.dumps(veri, ensure_ascii=False),
+            ig_caption=veri.get("caption_instagram"),
+            threads_metin=veri.get("caption_threads"),
+        )
+    return veri
 
 
 def ilan_metinleri_uret(ilan: Dict[str, Any]) -> Optional[Dict[str, Any]]:

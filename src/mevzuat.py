@@ -142,6 +142,19 @@ def atiflari_coz(atif: Optional[str]) -> Tuple[List[Tuple[int, List[str]]], List
 # Getirme ve önbellek
 # ---------------------------------------------------------------------------
 
+def atif_satiri(metin: Optional[str], azami_kanun: int = 4) -> Optional[str]:
+    """Serbest metindeki kanun atıflarını brief'in `mevzuat` alanına uygun satıra çevirir.
+
+    /arastir, /ozel ve /dosya içerikleri modelin hafızasından yazılıyordu ve hiçbir
+    kanun metnine bağlanmıyordu: süre/oran denetiminin ölçütü yoktu. Bu satır
+    brief'e girince güncel madde metni de girer ve denetim onunla yapılır.
+    """
+    cozulen, _ = atiflari_coz(metin)
+    if not cozulen:
+        return None
+    return "; ".join(f"{no} sayılı Kanun md. {', '.join(maddeler)}" for no, maddeler in cozulen[:azami_kanun])
+
+
 def _ca_paketi() -> str:
     paket = Path(tempfile.gettempdir()) / "edm_mevzuat_ca.pem"
     if not paket.exists() and ARA_SERTIFIKA.exists():
@@ -269,6 +282,24 @@ def _sayiya(soz: str) -> Optional[int]:
             return None
         toplam += _BIRLER[soz]
     return toplam or None
+
+
+_ORAN = re.compile(rf"(?:%\s*(\d+(?:[.,]\d+)?)|\byüzde\s*(\d+(?:[.,]\d+)?|{_SAYI_SOZ}))", re.I)
+
+
+def oran_ifadeleri(metin: str) -> set:
+    """'%45', 'yüzde 45', 'yüzde kırkbeş' → {'45'}. Kanun metni oranı yazıyla verir."""
+    kucuk = (metin or "").replace("İ", "i").replace("I", "ı").lower()
+    sonuc = set()
+    for rakam, sonra in _ORAN.findall(kucuk):
+        ham = (rakam or sonra).replace(",", ".")
+        if re.fullmatch(r"\d+(?:\.\d+)?", ham):
+            sonuc.add(ham.rstrip("0").rstrip(".") if "." in ham else ham)
+        else:
+            n = _sayiya(ham)
+            if n is not None:
+                sonuc.add(str(n))
+    return sonuc
 
 
 def sure_ifadeleri(metin: str) -> set:

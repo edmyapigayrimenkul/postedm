@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from . import config, db, db_senkron, fetch_article, generate_text, telegram_bot
+from . import config, db, db_senkron, fetch_article, generate_text, mevzuat, telegram_bot
 
 log = logging.getLogger("ozel_icerik")
 
@@ -171,6 +171,8 @@ def konudan_ozel_icerik_uret(konu_metni: str) -> Optional[int]:
         "bicim": "B1",
         "onem_puani": 9,
         "kaynak": "EDM Gayrimenkul Uzmanı",
+        # Metinde kanun atfı varsa güncel madde metni brief'e girer, denetim onunla yapılır
+        "mevzuat": mevzuat.atif_satiri(konu_metni),
     }
 
     veri = generate_text.konudan_uret(konu_dict)
@@ -226,7 +228,10 @@ def arastir_icerik_uret(konu: str) -> Optional[int]:
         f"\"{konu}\"\n\n"
         f"Bu konuyu Tapu Kanunu, Medeni Kanun, Kat Mülkiyeti Kanunu veya ilgili güncel mevzuat hükümleriyle "
         f"somut, net ve vatandaşın hemen anlayabileceği pratik tavsiyelerle analiz et. "
-        f"Temel sorun, kanuni hüküm ve yapılması gereken adımları özetle."
+        f"Temel sorun, kanuni hüküm ve yapılması gereken adımları özetle. "
+        f"Dayandığın her hükmü '<kanun numarası> sayılı Kanun md. <madde>' biçiminde yaz "
+        f"(ör. '4721 sayılı Kanun md. 733'); emin olmadığın madde numarasını YAZMA. "
+        f"Bu atıflar kanunun güncel metniyle karşılaştırılacak."
     )
     sistem = "Sen EDM Yapı & Gayrimenkul Baş Danışmanısın. Cevabın net, otoriter ve hukuken sağlam olmalıdır."
 
@@ -255,6 +260,9 @@ def arastir_icerik_uret(konu: str) -> Optional[int]:
         "bicim": "B1",
         "onem_puani": 10,
         "kaynak": "EDM Hukuk & Araştırma Masası",
+        # Araştırma modelin hafızasından yazılıyor; atıfları güncel metne bağlanmazsa
+        # eski hukuk denetimsiz geçer (önalım "2 yıl", kentsel dönüşüm "üçte iki").
+        "mevzuat": mevzuat.atif_satiri(arastirma_ozeti),
     }
 
     veri = generate_text.konudan_uret(konu_dict)
@@ -307,7 +315,9 @@ def dosya_icerik_uret(konu: str) -> Optional[int]:
         f"Sen EDM Yapı & Gayrimenkul Baş Danışmanısın. Aşağıdaki konu hakkında adım adım süreç analizi yap:\n"
         f"\"{konu}\"\n\n"
         f"Bu süreci: 1. Başlangıç & Kritik Sorun, 2. Yasal / İdari Süreç Aşamaları, 3. Vatandaşın Korunması & Çözüm Yolu "
-        f"başlıklarıyla net ve kapsamlı biçimde açıkla."
+        f"başlıklarıyla net ve kapsamlı biçimde açıkla. "
+        f"Dayandığın her hükmü '<kanun numarası> sayılı Kanun md. <madde>' biçiminde yaz; "
+        f"emin olmadığın madde numarasını YAZMA."
     )
     sistem = "Sen EDM Yapı & Gayrimenkul Baş Danışmanısın. Detaylı, net ve rehber niteliğinde yaz."
 
@@ -336,6 +346,7 @@ def dosya_icerik_uret(konu: str) -> Optional[int]:
         "bicim": "B1",
         "onem_puani": 10,
         "kaynak": "EDM Dosya Masası",
+        "mevzuat": mevzuat.atif_satiri(analiz),
     }
 
     veri = generate_text.konudan_uret(konu_dict)

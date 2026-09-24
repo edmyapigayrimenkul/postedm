@@ -80,6 +80,25 @@ def rapor_uret() -> tuple[str, bool]:
         if ig or th:
             satirlar.append(f"  Instagram {ig} · Threads {th}")
 
+    # --- Takipçi: büyüme ölçülmüyordu (2026-09-24 denetimi) ---
+    try:
+        from src import takipci
+        degisim = takipci.degisim(gun=7)
+    except Exception as e:
+        log.warning("Takipçi değişimi okunamadı: %s", e)
+        degisim = {}
+    if degisim:
+        def _bicim(k: str) -> str:
+            d = degisim.get(k)
+            if not d:
+                return "?"
+            fark = d.get("fark")
+            return f"{d['sayi']}" + (f" ({fark:+d}/7g)" if fark is not None else "")
+        satirlar.append("")
+        satirlar.append("<b>TAKİPÇİ</b>")
+        satirlar.append(f"  Instagram {_bicim('instagram')} · Threads {_bicim('threads')}")
+        satirlar.append(f"  YouTube {_bicim('youtube')} · Facebook {_bicim('facebook')}")
+
     # --- Konu bankası ---
     ozet = konu_bankasi.durum_ozeti()
     satirlar.append("")

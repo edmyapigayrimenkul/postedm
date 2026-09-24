@@ -213,11 +213,14 @@ def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6) -> Optional[Dict[str
     sonuc = generate_text._json_coz(ham) if ham else None
     if not sonuc:
         log.warning("Triyaj yanıtı çözülemedi: %s", str(haber.get("orijinal_baslik"))[:60])
+        haber["_red_gerekcesi"] = "model yanıtı çözülemedi"
         return None
 
     kabul, gerekce, guven = _karar_ver(sonuc)
     if not kabul:
         log.info("Triyaj reddetti (%s): %s", gerekce, str(haber.get("orijinal_baslik"))[:60])
+        # İnsan "İçeriğe çevir" dediğinde gerekçe gruba yazılır (haber_oneri)
+        haber["_red_gerekcesi"] = gerekce.split(":", 1)[-1]
         if gerekce.startswith("konu-adayi:"):
             haber["_konu_adayi"] = True   # çağıran konu bankası yoluna yönlendirsin
         return None

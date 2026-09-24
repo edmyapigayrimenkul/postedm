@@ -120,6 +120,22 @@ def main() -> None:
                 db.wal_bosalt()
                 return
 
+            # YAYIN KAPISI yayın anında da çalışır: kapıdan önce onaya sunulmuş,
+            # ya da onaydan sonra elle düzenlenmiş içerik denetimsiz çıkmasın.
+            # Elle paylaşım paketi de yayındır — insan onu doğrudan paylaşıyor.
+            if hedef not in TASLAK_ISLEMLERI and (hedef not in YONETIM_ISLEMLERI or hedef == "manuel_paket"):
+                try:
+                    detay = json.loads(mevcut.get("detay_metni") or "null")
+                except ValueError:
+                    detay = None
+                gecti, _ = telegram_bot.yayin_kapisi(
+                    int(ref_id), mevcut, telegram_bot._denetim_verisi(mevcut, detay),
+                    durum_yaz=not durum_kurali.yayinda_mi(mevcut),
+                )
+                if not gecti:
+                    db.wal_bosalt()
+                    return
+
     # 0. Reddet / İptal Aksiyonu (Havuza döner)
     if hedef in ("reddet", "iptal"):
         if tur in ("haber", "reels"):

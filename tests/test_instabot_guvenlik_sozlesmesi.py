@@ -218,10 +218,10 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
         d2 = haber_puanlama.degerlendir("YENİ PROJEDE FİYAT LİSTESİ AÇIKLANDI", "")
         self.assertFalse(d2.gecti, "FİYAT LİSTESİ içeren haber elenmedi!")
 
-        # 3. generate_text.caption_zenginlestir büyük harfli metinde doğru soruyu ve hashtag'i seçmeli
+        # 3. caption_zenginlestir büyük harfli metinde de konuyu tanımalı: kira çağrısı ve etiketi
         cap = generate_text.caption_zenginlestir("KİRA VE TAHLİYE SÖZLEŞMESİ", kategori_kodu="EV_SAHIBI")
-        self.assertIn("kira", cap.lower())
-        self.assertIn("?", cap)
+        self.assertIn("Kira sözleşmesini yenilemeden önce", cap)
+        self.assertIn("#Tahliye", cap)
 
     def test_11_fetch_article_capa_yontemi_kurtarma(self):
         """

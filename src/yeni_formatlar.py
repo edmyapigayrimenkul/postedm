@@ -1,9 +1,13 @@
 """
 src/yeni_formatlar.py — EDM 4 Temel Format Görsel Motoru
 1. EDM EMLAK SÖZLÜĞÜ (Kireç Bej Zemin, Dev Fraunces Kelime, Kitap Filigranı, Tırnaklı Hukuki Tanım)
-2. NEDİR DOĞRUSU? (Kırmızı Gradient Zemin, Dev Şehir Efsanesi Hook, Beyaz Alt Zemin, Alta Dayalı Altın Kural)
-3. GERÇEK HUKUKİ VAKA ANALİZİ (Siyah Editoryal Zemin, Fraunces Manşet, Fraunces Hüküm, Alta Dayalı Ders Kartı)
-4. NET CEVAP REHBERİ / SORU-CEVAP (Beyaz Zemin, Fraunces Soru, '?' Filigranı, Net Cevap Rozeti, Alta Dayalı Tavsiye)
+2. NEDİR DOĞRUSU? (Mürekkep üst: yanlış inanış, Kağıt alt: doğrusu) + adım slaytları + kapanış
+3. ÖRNEK OLAY (Siyah Editoryal Zemin, Fraunces Manşet, Kanuna Göre Sonuç, Alta Dayalı Ders Kartı) + adım slaytları + kapanış
+4. NET CEVAP (Kağıt zemin; cevap sayfanın en büyük yazısı) + adım slaytları + kapanış
+
+Sözlük tek kare kalır; diğer üçü 2026-09-24'ten beri çok slaytlıdır — tek kareler
+her kanalda en düşük erişimdeydi. Zorunlu alan yoksa üretim durur (EksikIcerik);
+koddaki genel cümleyle doldurulmaz.
 """
 
 from __future__ import annotations
@@ -33,7 +37,9 @@ RENK_KIREC_BORDER = (212, 212, 206)
 RENK_KURSUN = (138, 139, 143)
 RENK_CIZGI_ACIK = (220, 220, 216)
 RENK_CIZGI_KOYU = (45, 48, 56)
-RENK_ALTIN = (235, 175, 55)  # Sıcak, prestijli altın sarısı (#EBAF37)
+# Alt bilgi kartı: eskiden amber (#EBAF37) — marka dışıydı. Çubuk kırmızı, etiket kireç.
+RENK_KART_CUBUK = (240, 0, 13)
+RENK_KART_ETIKET = (228, 228, 225)
 
 FONT_FRAUNCES = config.yol_al("assets/fonts/Fraunces.ttf")
 FONT_SANS_BOLD = config.yol_al("assets/fonts/PlusJakartaSans-Bold.ttf")
@@ -157,7 +163,8 @@ def uret_sozluk(
     img_temp = Image.new("RGB", (10, 10))
     d_temp = ImageDraw.Draw(img_temp)
     puf_satirlar = make_image._metin_sar(puf_metin, f_puf_govde, kullanilabilir_w - 56, d_temp)
-    h_kutu = 52 + (len(puf_satirlar) * 44) + 24
+    # Madde yoksa kart yok (eskiden "Mevzuat Uyarısı: …" diye genel bir cümle basılıyordu)
+    h_kutu = (52 + (len(puf_satirlar) * 44) + 24) if puf_metin.strip() else 0
     kutu_y = alt_y - 26 - h_kutu
 
     # 2. Terim: BOLD FRAUNCES BLACK (136px -> 68px)
@@ -241,14 +248,15 @@ def uret_sozluk(
         draw.text((x_pos, curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
         curr_y += line_h_tanim
 
-    # Alta dayalı öneri kartı (Koyu Zemin + Altın Sarısı Vurgu)
-    draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
-    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_ALTIN)
-    draw.text((kenar + 28, kutu_y + 18), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_ALTIN)
-    py = kutu_y + 52
-    for s in puf_satirlar:
-        draw.text((kenar + 28, py), s, font=f_puf_govde, fill=RENK_BEYAZ)
-        py += 44
+    # Alta dayalı öneri kartı — yalnızca madde varsa
+    if h_kutu:
+        draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
+        draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
+        draw.text((kenar + 28, kutu_y + 18), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
+        py = kutu_y + 52
+        for s in puf_satirlar:
+            draw.text((kenar + 28, py), s, font=f_puf_govde, fill=RENK_BEYAZ)
+            py += 44
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -316,11 +324,14 @@ def uret_nedir_dogrusu(
     yanlis_metin: str,
     dogru_metin: str,
     altin_kural: str,
+    sayfa_no: str = "01 / 01",
 ) -> Path:
     w, h = GENISLIK, YUKSEKLIK
     arr = np.zeros((h, w, 3), dtype=np.uint8)
-    r1, g1, b1 = (120, 8, 14)  # Koyu Bordo / Derin EDM Kırmızısı
-    r2, g2, b2 = 255, 255, 255
+    # Üst: mürekkep (yanlış inanış), alt: kağıt (doğrusu). Eskiden üst bordo, alt
+    # saf beyazdı — akış kırmızıya boğuluyordu; marka oranı %5 kırmızı.
+    r1, g1, b1 = RENK_MUREKKEP
+    r2, g2, b2 = 244, 244, 243
     y_start = 480
     y_end = 640
     arr[:y_start, :] = [r1, g1, b1]
@@ -345,7 +356,8 @@ def uret_nedir_dogrusu(
     if len(kural_satirlar) > 3:
         f_kural_govde = make_image._font_yukle(FONT_SANS_BOLD, 26)
         kural_satirlar = make_image._metin_sar(altin_kural or "", f_kural_govde, kullanilabilir_w - 52, d_temp)
-    h_kutu = 48 + (len(kural_satirlar) * 40) + 20
+    # Kural yoksa kart da yok: eskiden koddaki genel bir cümle basılıyordu
+    h_kutu = (48 + (len(kural_satirlar) * 40) + 20) if (altin_kural or "").strip() else 0
 
     alt_bar_y = yer["alt_bar"]
     kutu_y = alt_bar_y - 26 - h_kutu
@@ -399,10 +411,11 @@ def uret_nedir_dogrusu(
     overlay_draw = ImageDraw.Draw(overlay)
     cx_carpi = GENISLIK - 45
     cy_carpi = ku + 280
-    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, boy=300, renk=(255, 255, 255, 45), kalinlik=46)
+    ciz_vektor_carpi_filigran(overlay_draw, cx=cx_carpi, cy=cy_carpi, boy=300, renk=(240, 0, 13, 70), kalinlik=46)
     cx_tik = GENISLIK - 65
     cy_tik = dogru_y + 135
-    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=320, renk=(34, 197, 94, 52), kalinlik=46)
+    # Yeşil tik marka dışıydı; kağıtta mürekkep filigran
+    ciz_tik_filigran(overlay_draw, cx=cx_tik, cy=cy_tik, boy=320, renk=(18, 19, 22, 26), kalinlik=46)
 
     # Paragraf başı '“' filigranı (puntoyla orantılı)
     f_quote_size = int(best_punto * 1.85)
@@ -413,8 +426,8 @@ def uret_nedir_dogrusu(
     draw = ImageDraw.Draw(canvas)
 
     konu_baslik = kategori_temizle(konu)
-    make_image._rozet_ciz(draw, kenar, ku, f"NEDİR DOĞRUSU? // {konu_baslik.upper()}", bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20)
-    make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=285, golge=True, kirmizi_zemin=True)
+    make_image._rozet_ciz(draw, kenar, ku, f"NEDİR DOĞRUSU? // {konu_baslik.upper()}", bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20)
+    make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=285, golge=True, kirmizi_zemin=False)
 
     # Yanlış Metni: SAĞA DOĞRU TAM GENİŞLİK (kullanilabilir_w) + TİPOGRAFİK TIRNAKLAR
     temiz_yanlis = re.sub(r"""^[\s"'“”‘’]+|[\s"'“”‘’]+$""", '', yanlis_metin or "")
@@ -452,19 +465,25 @@ def uret_nedir_dogrusu(
         draw.text((x_pos, curr_dy), s, font=f_dogru, fill=RENK_MUREKKEP)
         curr_dy += line_h_dogru
 
-    # Altın Kural Kartı (Alta dayalı - Altın Sarısı Vurgu)
-    draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(55, 58, 66), width=1)
-    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_ALTIN)
-    draw.text((kenar + 28, kutu_y + 18), "EDM ALTIN KURALI:", font=f_kural_baslik, fill=RENK_ALTIN)
-    ky = kutu_y + 52
-    for s in kural_satirlar:
-        draw.text((kenar + 28, ky), s, font=f_kural_govde, fill=RENK_BEYAZ)
-        ky += 40
+    # "DOĞRUSU" etiketi: kağıt zeminde kırmızı yalnızca 18px üstü kalın metinde
+    draw.text((kenar, dogru_y - 44), "DOĞRUSU", font=make_image._font_yukle(FONT_MONO_BOLD, 22), fill=RENK_LOGO_KIRMIZI)
+
+    # EDM kuralı kartı (alta dayalı) — yalnızca model bir kural yazdıysa
+    if h_kutu:
+        draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(55, 58, 66), width=1)
+        draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
+        draw.text((kenar + 28, kutu_y + 18), "EDM KURALI:", font=f_kural_baslik, fill=RENK_KART_ETIKET)
+        ky = kutu_y + 52
+        for s in kural_satirlar:
+            draw.text((kenar + 28, ky), s, font=f_kural_govde, fill=RENK_BEYAZ)
+            ky += 40
 
     # Footer
     draw.line([(kenar, alt_bar_y), (GENISLIK - kenar, alt_bar_y)], fill=RENK_CIZGI_ACIK, width=1)
-    draw.text((kenar, alt_bar_y + 26), "EDM YAPI & GAYRİMENKUL // HUKUK & GERÇEK", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
-    draw.text((GENISLIK - kenar - 170, alt_bar_y + 26), "NEDİR DOĞRUSU?", font=make_image._font_yukle(FONT_MONO_BOLD, 19), fill=RENK_MUREKKEP)
+    draw.text((kenar, alt_bar_y + 26), "EDM YAPI & GAYRİMENKUL // NEDİR DOĞRUSU", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
+    sf = make_image._font_yukle(FONT_MONO_BOLD, 19)
+    sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
+    draw.text((GENISLIK - kenar - sw, alt_bar_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -472,7 +491,7 @@ def uret_nedir_dogrusu(
 
 
 # =============================================================================
-# 3. FORMAT: GERÇEK HUKUKİ VAKA ANALİZİ (SLAYT 1 & SLAYT 2)
+# 3. FORMAT: ÖRNEK OLAY (SLAYT 1 & SLAYT 2)
 # =============================================================================
 def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, manset: str, olay_detay: str, sayfa_no: str = "01 / 02") -> Path:
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
@@ -487,18 +506,20 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     logo_w = 285
     logo_x = GENISLIK - kenar - logo_w
     azami_rozet_w = logo_x - kenar - 30
-    rozet_metni = f"GERÇEK HUKUKİ VAKA // {vaka_kodu.upper()}"
+    # "Gerçek hukuki vaka" yanıltıcıydı: anlatılan tipik bir örnek olay, dava değil
+    rozet_metni = f"ÖRNEK OLAY // {vaka_kodu.upper()}"
     make_image._rozet_ciz(draw, kenar, ku, rozet_metni, bg_color=(32, 35, 42), fg_color=RENK_BEYAZ, font_boyut=20, max_w=azami_rozet_w)
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=logo_w, golge=True, kirmizi_zemin=False)
 
     alt_y = yer["alt_bar"]
     draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
     f_kaynak_alt = make_image._font_yukle(FONT_MONO, 17)
-    kaynak_metni = f"KAYNAK: {yargitay_kaynak}"
+    kaynak_metni = f"DAYANAK: {yargitay_kaynak}" if (yargitay_kaynak or "").strip() else "EDM YAPI & GAYRİMENKUL // ÖRNEK OLAY"
     if len(kaynak_metni) > 55:
         kaynak_metni = kaynak_metni[:52] + "…"
     draw.text((kenar, alt_y + 26), kaynak_metni, font=f_kaynak_alt, fill=RENK_KURSUN)
-    draw.text((GENISLIK - kenar - 90, alt_y + 26), sayfa_no, font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_BEYAZ)
+    sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
+    draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
 
     ust_sinir = yer["ust"] - 15
     kaydir_kutusu_h = 64
@@ -572,14 +593,15 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_CIZGI_KOYU, width=2)
     curr_y += 28
 
-    draw.text((kenar, curr_y), "// MAHKEMEYE YANSIYAN OLAY:", font=f_etiket, fill=RENK_KURSUN)
+    # Anlatılan tipik bir örnek; mahkemeye yansımış gibi sunmak yanıltıcıydı
+    draw.text((kenar, curr_y), "// ÖRNEK OLAY:", font=f_etiket, fill=RENK_KURSUN)
     curr_y += 36
     for s in olay_satirlar:
         draw.text((kenar, curr_y), s, font=f_olay, fill=(225, 230, 240))
         curr_y += leading_olay
 
     draw.rounded_rectangle([(kenar, kaydir_y), (GENISLIK - kenar, kaydir_y + kaydir_kutusu_h)], radius=10, fill=RENK_LOGO_KIRMIZI)
-    draw.text((kenar + 24, kaydir_y + 18), "KAYDIRIN // YARGITAY HÜKMÜ VE ALINACAK DERS ››", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_BEYAZ)
+    draw.text((kenar + 24, kaydir_y + 18), "KAYDIRIN // KANUNA GÖRE SONUÇ VE ALINACAK DERS ››", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_BEYAZ)
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -609,15 +631,17 @@ def uret_vaka_slayt2(
     logo_w = 285
     logo_x = GENISLIK - kenar - logo_w
     azami_rozet_w = logo_x - kenar - 30
-    rozet_metni = rozet_baslik or f"GERÇEK HUKUKİ VAKA // {vaka_kodu.upper()} - KARAR"
+    rozet_metni = rozet_baslik or f"ÖRNEK OLAY // {vaka_kodu.upper()} — SONUÇ"
     make_image._rozet_ciz(draw, kenar, ku, rozet_metni, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20, max_w=azami_rozet_w)
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=logo_w, golge=True, kirmizi_zemin=False)
 
     alt_y = yer["alt_bar"]
     draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
-    alt_txt = alt_arsiv_metni or "EDM HUKUK ARŞİVİ // ÖRNEK OLAY"
+    # "Hukuk arşivi" avukatlık algısı yaratıyordu; biz emlak ofisiyiz
+    alt_txt = alt_arsiv_metni or "EDM YAPI & GAYRİMENKUL // ÖRNEK OLAY"
     draw.text((kenar, alt_y + 26), alt_txt, font=make_image._font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
-    draw.text((GENISLIK - kenar - 90, alt_y + 26), sayfa_no, font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_LOGO_KIRMIZI)
+    sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
+    draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
 
     punto_ders = 29
     leading_ders = 41
@@ -631,7 +655,7 @@ def uret_vaka_slayt2(
         ders_satirlar = make_image._metin_sar(cikarilacak_ders, f_ders_govde, kullanilabilir_w - 56, draw)
 
     f_ders_etiket = make_image._font_yukle(FONT_MONO_BOLD, 21)
-    h_kutu = 54 + (len(ders_satirlar) * leading_ders) + 20
+    h_kutu = (54 + (len(ders_satirlar) * leading_ders) + 20) if (cikarilacak_ders or "").strip() else 0
     kutu_alt_bosluk = 26
     kutu_y = alt_y - kutu_alt_bosluk - h_kutu
 
@@ -673,15 +697,17 @@ def uret_vaka_slayt2(
         draw.text((kenar, curr_y), s, font=f_hukum, fill=RENK_BEYAZ)
         curr_y += leading_hukum
 
-    draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=(28, 32, 42), outline=(55, 65, 85), width=1)
-    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_ALTIN)
-    ders_etiket_txt = ders_baslik or "BU DAVADAN ÇIKARILACAK DERS:"
-    draw.text((kenar + 28, kutu_y + 18), ders_etiket_txt, font=f_ders_etiket, fill=RENK_ALTIN)
+    if h_kutu:
+        draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=(28, 32, 42), outline=(55, 65, 85), width=1)
+        draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
+        # Dava değil örnek olay: "bu davadan" yanıltıcıydı
+        ders_etiket_txt = ders_baslik or "BU ÖRNEKTEN ÇIKARILACAK DERS:"
+        draw.text((kenar + 28, kutu_y + 18), ders_etiket_txt, font=f_ders_etiket, fill=RENK_KART_ETIKET)
 
-    dy = kutu_y + 52
-    for s in ders_satirlar:
-        draw.text((kenar + 28, dy), s, font=f_ders_govde, fill=RENK_BEYAZ)
-        dy += leading_ders
+        dy = kutu_y + 52
+        for s in ders_satirlar:
+            draw.text((kenar + 28, dy), s, font=f_ders_govde, fill=RENK_BEYAZ)
+            dy += leading_ders
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -825,8 +851,8 @@ def uret_net_cevap_tek_kare(cikti_yolu: Path, kategori: str, soru: str, net_ceva
 
     # EDM Uzman Tavsiyesi Kartı (Alta dayalı - Altın Sarısı Vurgu)
     draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
-    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_ALTIN)
-    draw.text((kenar + 28, kutu_y + 18), "EDM UZMAN TAVSİYESİ:", font=f_tavsiye_baslik, fill=RENK_ALTIN)
+    draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
+    draw.text((kenar + 28, kutu_y + 18), "EDM UZMAN TAVSİYESİ:", font=f_tavsiye_baslik, fill=RENK_KART_ETIKET)
     ty = kutu_y + 52
     for s in tavsiye_satirlar:
         draw.text((kenar + 28, ty), s, font=f_tavsiye_govde, fill=RENK_BEYAZ)
@@ -843,8 +869,191 @@ def uret_net_cevap_tek_kare(cikti_yolu: Path, kategori: str, soru: str, net_ceva
 
 
 # =============================================================================
+# 4b. NET CEVAP KAPAĞI (2026-09-24)
+# =============================================================================
+def _cumle_duzeni(metin: str) -> str:
+    """Tamamı büyük harfle gelen metni cümle düzenine çeker (Türkçe İ/ı doğru)."""
+    harfler = [c for c in metin if c.isalpha()]
+    if not harfler or not all(c.isupper() for c in harfler):
+        return metin
+    kucuk = metin.replace("I", "ı").replace("İ", "i").lower()
+
+    def buyut(m: "re.Match[str]") -> str:
+        h = m.group(2)
+        return m.group(1) + ("İ" if h == "i" else h.upper())
+
+    # Metnin ve her cümlenin ilk harfi büyük ("Hayır. Önce …")
+    return re.sub(r"(^|[.!?]\s+)(\w)", buyut, kucuk)
+
+
+def uret_net_cevap_kapak(
+    cikti_yolu: Path,
+    kategori: str,
+    soru: str,
+    net_cevap: str,
+    gerekce: str,
+    sayfa_no: str = "01 / 01",
+) -> Path:
+    """Net Cevap kapağı: soru küçük, CEVAP sayfanın en büyük yazısı.
+
+    Eski tek kare tasarımda cevap, sorunun altında 22 piksellik mono bir
+    şeritteydi — formatın varlık sebebi olan cevap telefonda okunmuyordu
+    (2026-09-24 denetimi). Kağıt zemin, mürekkep yazı; kırmızı yalnızca
+    cevabın üstündeki kısa çizgide (marka oranı %5 kırmızı).
+    """
+    cevap = re.sub(r"^\s*CEVAP\s*[:：]\s*", "", net_cevap or "", flags=re.IGNORECASE).strip()
+    cevap = _cumle_duzeni(cevap)
+    soru = (soru or "").strip()
+    gerekce = (gerekce or "").strip()
+
+    with make_image.tuval("besleme"):
+        canvas, draw, p = make_image._slayt_cercevesi(
+            "kagit", f"NET CEVAP // {kategori_temizle(kategori)}",
+            "EDM YAPI & GAYRİMENKUL // NET CEVAP", sayfa_no,
+        )
+        yer = make_image._yerlesim()
+        kenar = yer["kenar"]
+        genislik = make_image.GENISLIK - 2 * kenar
+        ust, alt = yer["ust"], yer["alt"]
+        alan = alt - ust
+
+        def olc(metin: str, font_yolu: Path, punto: int, satir_carpani: float):
+            f = make_image._font_yukle(font_yolu, punto)
+            satirlar = make_image._metin_sar(metin, f, genislik, draw) if metin else []
+            return f, satirlar, int(punto * satir_carpani)
+
+        secim = None
+        for c_p in range(112, 51, -4):
+            for s_p, g_p in ((46, 36), (42, 34), (38, 31), (36, 29)):
+                fs, ss, lhs = olc(soru, FONT_FRAUNCES, s_p, 1.22)
+                fc, sc, lhc = olc(cevap, FONT_FRAUNCES, c_p, 1.1)
+                fg, sg, lhg = olc(gerekce, FONT_SANS_MEDIUM, g_p, 1.42)
+                h = len(ss) * lhs + 34 + 8 + 40 + len(sc) * lhc + (44 + len(sg) * lhg if sg else 0)
+                if h <= alan and len(sc) <= 5 and len(ss) <= 3:
+                    secim = (fs, ss, lhs, fc, sc, lhc, fg, sg, lhg, h)
+                    break
+            if secim:
+                break
+        if secim is None:
+            # Sığmıyorsa en küçük boyutta gerekçe kısalır; cevap asla kesilmez
+            fs, ss, lhs = olc(soru, FONT_FRAUNCES, 36, 1.22)
+            fc, sc, lhc = olc(cevap, FONT_FRAUNCES, 52, 1.1)
+            fg, sg, lhg = olc(gerekce, FONT_SANS_MEDIUM, 29, 1.42)
+            kalan = alan - (len(ss) * lhs + 82 + len(sc) * lhc + 44)
+            sg = sg[: max(0, kalan // lhg)]
+            secim = (fs, ss, lhs, fc, sc, lhc, fg, sg, lhg, alan)
+        fs, ss, lhs, fc, sc, lhc, fg, sg, lhg, h = secim
+
+        # İri "?" filigranı sağ üstte, kireç tonunda
+        overlay = Image.new("RGBA", (make_image.GENISLIK, make_image.YUKSEKLIK), (0, 0, 0, 0))
+        ImageDraw.Draw(overlay).text(
+            (make_image.GENISLIK - kenar - 190, ust - 60), "?",
+            font=make_image._font_yukle(FONT_FRAUNCES, 300), fill=(18, 19, 22, 16),
+        )
+        canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
+        draw = ImageDraw.Draw(canvas)
+
+        y = ust + max(0, (alan - h) // 3)
+        for satir in ss:
+            draw.text((kenar, y), satir, font=fs, fill=p["govde"])
+            y += lhs
+        y += 34
+        draw.rectangle([(kenar, y), (kenar + 96, y + 8)], fill=make_image.RENK_KIRMIZI)
+        y += 8 + 40
+        for satir in sc:
+            draw.text((kenar, y), satir, font=fc, fill=p["ana"])
+            y += lhc
+        if sg:
+            y += 44
+            for satir in sg:
+                draw.text((kenar, y), satir, font=fg, fill=p["govde"])
+                y += lhg
+
+    cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(cikti_yolu, "JPEG", quality=95)
+    return cikti_yolu
+
+
+# =============================================================================
 # OTOMATİK ŞABLON SEÇİCİ VE ÜRETİCİ DİSPATCHER
 # =============================================================================
+class EksikIcerik(ValueError):
+    """Formatın zorunlu alanı modelden gelmedi.
+
+    Eskiden boş alan koddaki genel bir cümleyle doldurulurdu; #157'de ekspertiz
+    konusuna "Yargıtay yerleşik içtihatları uyarınca…" diye sabit bir hüküm
+    basıldı. Uydurmak yerine üretim durur.
+    """
+
+
+def _ilk_dolu(*degerler: Any) -> str:
+    for d in degerler:
+        if isinstance(d, str) and d.strip():
+            return d.strip()
+    return ""
+
+
+def _kartlar(veri: Dict[str, Any]) -> List[Dict[str, Any]]:
+    s2 = veri.get("slayt_2_detay") or {}
+    if not isinstance(s2, dict):
+        return []
+    kartlar = [k for k in (s2.get("kartlar") or []) if isinstance(k, dict)]
+    if not kartlar:
+        kartlar = [k for k in (s2.get("kart_1"), s2.get("kart_2")) if isinstance(k, dict)]
+    return kartlar
+
+
+def _adimlar(veri: Dict[str, Any]) -> List[Dict[str, str]]:
+    s3 = veri.get("slayt_3_cozum") or {}
+    ham = s3.get("maddeler") if isinstance(s3, dict) else None
+    sonuc: List[Dict[str, str]] = []
+    for i, m in enumerate(ham or [], start=1):
+        if isinstance(m, dict) and _ilk_dolu(m.get("baslik"), m.get("aciklama")):
+            sonuc.append({"no": str(m.get("no") or f"{i:02d}"), "baslik": _ilk_dolu(m.get("baslik")),
+                          "aciklama": _ilk_dolu(m.get("aciklama"))})
+        elif isinstance(m, str) and m.strip():
+            baslik, _, aciklama = m.partition(":")
+            sonuc.append({"no": f"{i:02d}", "baslik": baslik.strip(), "aciklama": aciklama.strip()})
+    return sonuc[:5]
+
+
+def _sayfa(sira: int, toplam: int) -> str:
+    etiket = f"{sira:02d} / {toplam:02d}"
+    return etiket if sira >= toplam else f"{etiket}  ›"
+
+
+def _devam_slaytlari(
+    veri: Dict[str, Any],
+    adimlar: List[Dict[str, str]],
+    cikti_dizini: Path,
+    cikti_onek: str,
+    bas_sira: int,
+    toplam: int,
+) -> List[Path]:
+    """Format kapağından sonraki slaytlar: her adım ayrı sayfa + kapanış.
+
+    Tek kare formatlar (Nedir Doğrusu, Net Cevap, Vaka) her kanalda en düşük
+    erişimdeydi; çok slaytlı B1 en yüksekti (2026-09-24 denetimi). Adımlar
+    kağıt zeminde — akış mürekkep ve kırmızıya boğuluyordu.
+    """
+    yollar: List[Path] = []
+    normal = make_image.veriyi_normalize_et(veri)
+    rozet = _ilk_dolu((veri.get("slayt_3_cozum") or {}).get("baslik_vurgu") if isinstance(veri.get("slayt_3_cozum"), dict) else "",
+                      veri.get("rozet_metni"), "ATILACAK ADIMLAR")
+    with make_image.tuval("besleme"):
+        for i, m in enumerate(adimlar):
+            sira = bas_sira + i
+            yol = cikti_dizini / f"{cikti_onek}_{sira:02d}_adim.jpg"
+            yollar.append(make_image.slayt_adim(
+                "kagit", rozet, m["no"], m["baslik"], m["aciklama"], len(adimlar),
+                "EDM YAPI & GAYRİMENKUL // DANIŞMANLIK", _sayfa(sira, toplam), yol,
+            ))
+        normal["_toplam_slayt"] = toplam
+        yol = cikti_dizini / f"{cikti_onek}_{toplam:02d}_kapanis.jpg"
+        yollar.append(make_image.slayt_kapanis(normal, _sayfa(toplam, toplam), yol))
+    return yollar
+
+
 def slaytlari_uret(
     veri: Dict[str, Any],
     cikti_dizini: Optional[Path] = None,
@@ -852,163 +1061,99 @@ def slaytlari_uret(
     format_turu: Optional[str] = None,
     olcu: str = "besleme",
 ) -> List[Path]:
-    """İçerik verisini inceleyip 4 yeni formattan en uygun olanı seçerek slaytları üretir.
-    Hem doğrudan yeni format şemalarını (sozluk, nedir_dogrusu, net_cevap, vaka) hem de geriye dönük uyumluluk adaptörünü destekler.
+    """İçerik verisinden formatın slaytlarını üretir.
+
+    Sözlük tek karedir. Nedir Doğrusu, Net Cevap ve Vaka kendi kapak(lar)ının
+    ardından adım slaytlarına ve kapanışa açılır. Tanınmayan biçim standart
+    B1 carousel'e gider.
+
+    Zorunlu alan yoksa `EksikIcerik` fırlatır — koddaki genel cümleyle doldurmaz.
     """
     if cikti_dizini is None:
         cikti_dizini = config.yol_al("data/output/gonderiler")
+    cikti_dizini = Path(cikti_dizini)
     cikti_dizini.mkdir(parents=True, exist_ok=True)
 
     format_turu = str(format_turu or veri.get("format_turu") or veri.get("format") or "").lower()
     kat_ham = veri.get("kategori") or veri.get("kategori_kodu") or "TAPU VE HUKUK"
     kategori = kategori_temizle(kat_ham)
     brief = veri.get("_brief", {}) or {}
+    kartlar = _kartlar(veri)
+    adimlar = _adimlar(veri)
 
-    # =========================================================================
-    # A) DOĞRUDAN YENİ FORMAT ŞEMALARI & GÜÇLENDİRİLMİŞ ÇIKARIM
-    # =========================================================================
-    # 1. DOĞRUDAN SÖZLÜK
+    # 1. SÖZLÜK — tek kare kalır (kullanıcı kararı, 2026-09-24)
     if format_turu in ("sozluk", "sozluk_uret") or ("terim" in veri and ("tanim_metni" in veri or "tanim" in veri)):
+        terim = _ilk_dolu(veri.get("terim"), veri.get("manset_vurgu"))
+        tanim = _ilk_dolu(veri.get("tanim_metni"), veri.get("tanim"), veri.get("spot"))
+        if not terim or not tanim:
+            raise EksikIcerik("Sözlük: terim ya da tanım üretilmedi")
+        maddeler = [m for m in (veri.get("puf_maddeleri") or veri.get("maddeler") or []) if str(m).strip()]
+        if not maddeler:
+            maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
         p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
-        terim = (veri.get("terim") or veri.get("manset_vurgu") or veri.get("manset_parca_1") or "GAYRİMENKUL HUKUKU").strip()
-        tanim = (veri.get("tanim_metni") or veri.get("tanim") or veri.get("spot") or "").strip()
-        maddeler = veri.get("puf_maddeleri") or veri.get("maddeler") or []
-        if not maddeler:
-            s3 = veri.get("slayt_3_cozum", {})
-            if isinstance(s3, dict):
-                for m in s3.get("maddeler", [])[:3]:
-                    if isinstance(m, dict):
-                        maddeler.append(f"{m.get('baslik', '')}: {m.get('aciklama', '')}".strip(": "))
-                    else:
-                        maddeler.append(str(m))
-        if not maddeler:
-            maddeler = ["Mevzuat Uyarısı: Kanuni süreleri kaçırmamak adına yasal takvimleri takip edin."]
         uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler)
-        log.info("Yeni Format Üretildi (NATIVE SÖZLÜK): %s", p1)
+        log.info("Format üretildi (SÖZLÜK): %s", p1)
         return [p1]
 
-    # 2. DOĞRUDAN NEDİR DOĞRUSU?
+    # 2. NEDİR DOĞRUSU
     if format_turu in ("nedir_dogrusu", "dogrusu", "yaygin_yanlis") or ("yanlis_metin" in veri and "dogru_metin" in veri):
-        p1 = cikti_dizini / f"{cikti_onek}_nedir_dogrusu.jpg"
-        konu_raw = veri.get("konu") or veri.get("rozet_metni") or kat_ham
-        konu = kategori_temizle(konu_raw)
+        # Manşet ya da spot "yanlış" diye kullanılamaz: onlar DOĞRU bilgiyi taşır
+        yanlis = _ilk_dolu(veri.get("yanlis_metin"), (kartlar[0].get("aciklama") if kartlar else ""))
+        dogru = _ilk_dolu(veri.get("dogru_metin"), (kartlar[1].get("aciklama") if len(kartlar) > 1 else ""), veri.get("spot"))
+        if not yanlis or not dogru:
+            raise EksikIcerik("Nedir Doğrusu: yanlış inanış ya da doğrusu üretilmedi")
+        toplam = 1 + len(adimlar) + 1
+        p1 = cikti_dizini / f"{cikti_onek}_01_nedir_dogrusu.jpg"
+        konu = kategori_temizle(veri.get("konu") or veri.get("rozet_metni") or kat_ham)
+        uret_nedir_dogrusu(p1, konu=konu, yanlis_metin=yanlis, dogru_metin=dogru,
+                           altin_kural=_ilk_dolu(veri.get("altin_kural")), sayfa_no=_sayfa(1, toplam))
+        yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam)
+        log.info("Format üretildi (NEDİR DOĞRUSU, %d slayt)", len(yollar))
+        return yollar
 
-        yanlis = (veri.get("yanlis_metin") or "").strip()
-        if not yanlis:
-            s2 = veri.get("slayt_2_detay", {})
-            if isinstance(s2, dict):
-                k1 = s2.get("kart_1", {})
-                if isinstance(k1, dict) and "aciklama" in k1:
-                    yanlis = k1.get("aciklama", "").strip()
-                elif "kartlar" in s2 and s2["kartlar"]:
-                    yanlis = s2["kartlar"][0].get("aciklama", "").strip()
-            if not yanlis:
-                yanlis = f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')}".strip()
-            if not yanlis or len(yanlis) < 10:
-                yanlis = (veri.get("spot") or "Tapu senedi her şeyin tek ve kesin garantisidir.")[:120].strip()
-
-        dogru = (veri.get("dogru_metin") or "").strip()
-        if not dogru:
-            s2 = veri.get("slayt_2_detay", {})
-            if isinstance(s2, dict):
-                k2 = s2.get("kart_2", {})
-                if isinstance(k2, dict) and "aciklama" in k2:
-                    dogru = k2.get("aciklama", "").strip()
-                elif "kartlar" in s2 and len(s2["kartlar"]) > 1:
-                    dogru = s2["kartlar"][1].get("aciklama", "").strip()
-            if not dogru:
-                dogru = (veri.get("spot") or "").strip()
-
-        altin = (veri.get("altin_kural") or "").strip()
-        if not altin:
-            s3 = veri.get("slayt_3_cozum", {})
-            if isinstance(s3, dict):
-                maddeler = s3.get("maddeler", [])
-                if maddeler:
-                    m0 = maddeler[0]
-                    if isinstance(m0, dict):
-                        altin = f"{m0.get('baslik', '')}: {m0.get('aciklama', '')}".strip(": ")
-                    else:
-                        altin = str(m0).strip()
-            if not altin:
-                cta = veri.get("slayt_4_cta", {})
-                if isinstance(cta, dict) and "aciklama" in cta:
-                    altin = cta.get("aciklama", "").strip()
-            if not altin:
-                altin = "Noter onayı ve tapu sicil şerhi olmadan hiçbir sözlü taahhüde güvenmeyin."
-
-        uret_nedir_dogrusu(p1, konu=konu, yanlis_metin=yanlis, dogru_metin=dogru, altin_kural=altin)
-        log.info("Yeni Format Üretildi (NATIVE NEDİR DOĞRUSU): %s", p1)
-        return [p1]
-
-    # 3. DOĞRUDAN NET CEVAP REHBERİ
+    # 3. NET CEVAP
     if format_turu in ("net_cevap", "soru", "kim_hakli") or ("soru" in veri and "net_cevap" in veri and "aciklama" in veri):
-        p1 = cikti_dizini / f"{cikti_onek}_net_cevap.jpg"
-        soru = (veri.get("soru") or f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')}").strip()
+        soru = _ilk_dolu(veri.get("soru"))
+        cevap = _ilk_dolu(veri.get("net_cevap"),
+                          " ".join(x for x in (veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x))
+        if not soru or not cevap:
+            raise EksikIcerik("Net Cevap: soru ya da cevap üretilmedi")
         if not soru.endswith("?"):
             soru += "?"
-        net_cevap = (veri.get("net_cevap") or veri.get("manset_parca_2") or "CEVAP: ŞARTA BAĞLIDIR").strip()
-        if not net_cevap.upper().startswith("CEVAP"):
-            net_cevap = f"CEVAP: {net_cevap.upper()}"
-        aciklama = (veri.get("aciklama") or veri.get("spot") or "").strip()
-        tavsiye = (veri.get("tavsiye_metin") or veri.get("tavsiye") or "").strip()
-        if not tavsiye:
-            s3 = veri.get("slayt_3_cozum", {})
-            if isinstance(s3, dict):
-                m = s3.get("maddeler", [])
-                if m:
-                    tavsiye = (m[0].get("aciklama", "") if isinstance(m[0], dict) else str(m[0])).strip()
-        if not tavsiye:
-            tavsiye = "İşlem yapmadan önce belediye imar ve tapu müdürlüğünden teyit alın."
-        uret_net_cevap_tek_kare(p1, kategori=kategori, soru=soru, net_cevap=net_cevap, aciklama=aciklama, tavsiye_metin=tavsiye)
-        log.info("Yeni Format Üretildi (NATIVE NET CEVAP): %s", p1)
-        return [p1]
+        tavsiye = _ilk_dolu(veri.get("tavsiye_metin"), veri.get("tavsiye"))
+        if not adimlar and tavsiye:
+            adimlar = [{"no": "01", "baslik": "Ne yapmalı", "aciklama": tavsiye}]
+        toplam = 1 + len(adimlar) + 1
+        p1 = cikti_dizini / f"{cikti_onek}_01_net_cevap.jpg"
+        uret_net_cevap_kapak(p1, kategori=kat_ham, soru=soru, net_cevap=cevap,
+                             gerekce=_ilk_dolu(veri.get("aciklama"), veri.get("spot")), sayfa_no=_sayfa(1, toplam))
+        yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam)
+        log.info("Format üretildi (NET CEVAP, %d slayt)", len(yollar))
+        return yollar
 
-    # 4. DOĞRUDAN VAKA ANALİZİ
+    # 4. ÖRNEK OLAY (vaka)
     if format_turu in ("vaka", "emsal_karar") or ("yargitay_hukmu" in veri and "cikarilacak_ders" in veri):
-        p1 = cikti_dizini / f"{cikti_onek}_vaka_s1.jpg"
-        p2 = cikti_dizini / f"{cikti_onek}_vaka_s2.jpg"
-        vaka_raw = veri.get("vaka_kodu") or veri.get("konu_kodu") or "01 / ÖRNEK OLAY"
-        vaka_kodu = kategori_temizle(vaka_raw)
-        kaynak = (veri.get("yargitay_kaynak") or veri.get("yasal_dayanak") or brief.get("mevzuat") or "Yargıtay Emsal İçtihadı").strip()
-        manset = (veri.get("manset") or f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')} {veri.get('manset_parca_2', '')}").strip()
-        if not manset or len(manset) < 10:
-            manset = (veri.get("spot") or "")[:75].strip()
-        olay = (veri.get("olay_detay") or veri.get("spot") or "").strip()
-        hukum = (veri.get("yargitay_hukmu") or "").strip()
-        if not hukum:
-            s2 = veri.get("slayt_2_detay", {})
-            if isinstance(s2, dict):
-                kartlar = s2.get("kartlar", [])
-                if kartlar:
-                    hukum = kartlar[0].get("aciklama", "").strip()
-                elif "kart_1" in s2 or "kart_2" in s2:
-                    k1 = s2.get("kart_1", {})
-                    k2 = s2.get("kart_2", {})
-                    p1_txt = f"{k1.get('baslik', '')}: {k1.get('aciklama', '')}".strip(": ") if k1 else ""
-                    p2_txt = f"{k2.get('baslik', '')}: {k2.get('aciklama', '')}".strip(": ") if k2 else ""
-                    hukum = f"{p1_txt} | {p2_txt}".strip(" |")
-        if not hukum:
-            hukum = "Yargıtay yerleşik içtihatları uyarınca, resmi tescil ve bildirim yapılmayan işlemler iyi niyetli üçüncü kişilere karşı ileri sürülemez."
+        olay = _ilk_dolu(veri.get("olay_detay"), veri.get("spot"))
+        hukum = _ilk_dolu(veri.get("yargitay_hukmu"), (kartlar[0].get("aciklama") if kartlar else ""))
+        if not olay or not hukum:
+            raise EksikIcerik("Örnek olay: olay ya da kanuna göre sonuç üretilmedi")
+        manset = _ilk_dolu(veri.get("manset"), " ".join(
+            x for x in (veri.get("manset_parca_1"), veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x))
+        # Dayanak yalnızca içerikte ya da brief'te varsa; "Yargıtay Emsal İçtihadı" yedeği uydurmaydı
+        kaynak = _ilk_dolu(veri.get("yargitay_kaynak"), veri.get("yasal_dayanak"), brief.get("mevzuat"))
+        vaka_kodu = kategori_temizle(veri.get("vaka_kodu") or veri.get("konu_kodu") or kat_ham)
+        toplam = 2 + len(adimlar) + 1
+        p1 = cikti_dizini / f"{cikti_onek}_01_vaka.jpg"
+        p2 = cikti_dizini / f"{cikti_onek}_02_vaka.jpg"
+        uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset or olay[:75],
+                         olay_detay=olay, sayfa_no=_sayfa(1, toplam))
+        uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum,
+                         cikarilacak_ders=_ilk_dolu(veri.get("cikarilacak_ders")), sayfa_no=_sayfa(2, toplam))
+        yollar = [p1, p2] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 3, toplam)
+        log.info("Format üretildi (ÖRNEK OLAY, %d slayt)", len(yollar))
+        return yollar
 
-        ders = (veri.get("cikarilacak_ders") or "").strip()
-        if not ders:
-            s3 = veri.get("slayt_3_cozum", {})
-            if isinstance(s3, dict):
-                maddeler = s3.get("maddeler", [])
-                if maddeler:
-                    m0 = maddeler[0]
-                    ders = (m0.get("aciklama", "") if isinstance(m0, dict) else str(m0)).strip()
-        if not ders:
-            ders = "Tapu devirlerinde sözleşmelerinizi noter onaylı yapın ve tapu siciline mutlaka şerh işleyin."
-
-        uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset, olay_detay=olay, sayfa_no="01 / 02")
-        uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum, cikarilacak_ders=ders, sayfa_no="02 / 02")
-        log.info("Yeni Format Üretildi (NATIVE VAKA ANALİZİ): %s, %s", p1, p2)
-        return [p1, p2]
-
-    # 5. DAILYBRIEF HABER FORMATI (Instabot Paritesi: Gerçek/Stok Fotoğraf + Okuma Perdesi + Manşet)
-    # Seçenek 2 (Dinamik 2 veya 3 Slayt): Zengin teknik haberler 3 slayt, kısa haberler 2 slayt
+    # 5. DAILYBRIEF HABER FORMATI
     if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") in ("haber", "B5"):
         foto_yolu = veri.get("foto_yolu") or veri.get("gorsel_yolu")
         slaytlar = make_image.haber_dailybrief_slaytlari_uret(
@@ -1018,137 +1163,10 @@ def slaytlari_uret(
             olcu=olcu,
             foto_yolu=foto_yolu,
         )
-        log.info("Yeni Format Üretildi (DAILYBRIEF HABER %d Slayt): %s", len(slaytlar), ", ".join(str(p) for p in slaytlar))
+        log.info("Format üretildi (HABER, %d slayt)", len(slaytlar))
         return slaytlar
 
-    # =========================================================================
-    # B) ESKİ BİÇİMLERDEN (B1, B2, B3) AKILLI ADAPTASYON (FALLBACK)
-    # =========================================================================
-    bicim = veri.get("bicim", "B1")
-    brief = veri.get("_brief", {}) or {}
-    kanca = brief.get("kanca_kalip", "")
-
-    # B1. NEDİR DOĞRUSU? (B2 veya kanca_kalip == 'yaygin_yanlis')
-    if bicim == "B2" or kanca == "yaygin_yanlis" or "yanlis" in kanca:
-        p1 = cikti_dizini / f"{cikti_onek}_nedir_dogrusu.jpg"
-        yanlis = f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')}".strip()
-        if not yanlis or len(yanlis) < 10:
-            yanlis = veri.get("spot", "Tapu senedi her şeyin tek ve kesin garantisidir.")[:80]
-        
-        dogru = ""
-        s2 = veri.get("slayt_2_detay", {})
-        if isinstance(s2, dict):
-            kartlar = s2.get("kartlar", [])
-            if kartlar:
-                dogru = kartlar[0].get("aciklama", "")
-            elif "kart_2" in s2 or "kart_1" in s2:
-                k = s2.get("kart_2") or s2.get("kart_1", {})
-                dogru = f"{k.get('baslik', '')}: {k.get('aciklama', '')}".strip(": ")
-        if not dogru:
-            dogru = veri.get("spot", "")
-        
-        altin_kural = ""
-        s3 = veri.get("slayt_3_cozum", {})
-        if isinstance(s3, dict):
-            maddeler = s3.get("maddeler", [])
-            if maddeler:
-                m0 = maddeler[0]
-                if isinstance(m0, dict):
-                    altin_kural = f"{m0.get('baslik', '')}: {m0.get('aciklama', '')}".strip(": ")
-                else:
-                    altin_kural = str(m0)
-        if not altin_kural:
-            altin_kural = "Noter onayı ve tapu sicil şerhi olmadan hiçbir sözlü taahhüde güvenmeyin."
-
-        konu_raw = veri.get("konu") or veri.get("rozet_metni") or kat_ham
-        konu = kategori_temizle(konu_raw)
-        uret_nedir_dogrusu(p1, konu=konu, yanlis_metin=yanlis, dogru_metin=dogru, altin_kural=altin_kural)
-        log.info("Yeni Format Üretildi (NEDİR DOĞRUSU): %s", p1)
-        return [p1]
-
-    # B2. NET CEVAP REHBERİ (B3 veya kanca_kalip in ('kim_hakli', 'soru'))
-    elif bicim == "B3" or kanca in ("kim_hakli", "soru") or "?" in veri.get("manset_parca_1", ""):
-        p1 = cikti_dizini / f"{cikti_onek}_net_cevap.jpg"
-        soru = f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')}".strip()
-        if not soru.endswith("?"):
-            soru += "?"
-        net_cevap = veri.get("manset_parca_2", "CEVAP: ŞARTA BAĞLIDIR")
-        if not net_cevap.upper().startswith("CEVAP"):
-            net_cevap = f"CEVAP: {net_cevap.upper()}"
-        aciklama = veri.get("spot", "")
-        
-        tavsiye = ""
-        s3 = veri.get("slayt_3_cozum", {})
-        if isinstance(s3, dict):
-            maddeler = s3.get("maddeler", [])
-            if maddeler:
-                m0 = maddeler[0]
-                tavsiye = m0.get("aciklama", "") if isinstance(m0, dict) else str(m0)
-        if not tavsiye:
-            tavsiye = "İşlem yapmadan önce belediye imar ve tapu müdürlüğünden teyit alın."
-
-        uret_net_cevap_tek_kare(p1, kategori=kategori, soru=soru, net_cevap=net_cevap, aciklama=aciklama, tavsiye_metin=tavsiye)
-        log.info("Yeni Format Üretildi (NET CEVAP): %s", p1)
-        return [p1]
-
-    # B3. GERÇEK HUKUKİ VAKA ANALİZİ (B1 - Risk Dosyası / Emsal Karar)
-    elif bicim == "B1" or "hukuk" in kategori.lower() or "dava" in veri.get("manset_vurgu", "").lower():
-        p1 = cikti_dizini / f"{cikti_onek}_vaka_s1.jpg"
-        p2 = cikti_dizini / f"{cikti_onek}_vaka_s2.jpg"
-        manset = f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')} {veri.get('manset_parca_2', '')}".strip()
-        if not manset or len(manset) < 10:
-            manset = veri.get("spot", "")[:75]
-        kaynak = veri.get("yasal_dayanak") or brief.get("mevzuat") or "Yargıtay Emsal İçtihadı"
-        olay = veri.get("spot", "")
-        
-        hukum = ""
-        s2 = veri.get("slayt_2_detay", {})
-        if isinstance(s2, dict):
-            kartlar = s2.get("kartlar", [])
-            if kartlar:
-                hukum = kartlar[0].get("aciklama", "")
-            elif "kart_1" in s2 or "kart_2" in s2:
-                k1 = s2.get("kart_1", {})
-                k2 = s2.get("kart_2", {})
-                p1_txt = f"{k1.get('baslik', '')}: {k1.get('aciklama', '')}".strip(": ") if k1 else ""
-                p2_txt = f"{k2.get('baslik', '')}: {k2.get('aciklama', '')}".strip(": ") if k2 else ""
-                hukum = f"{p1_txt} | {p2_txt}".strip(" |")
-        if not hukum:
-            hukum = "Yargıtay yerleşik içtihatları uyarınca, resmi tescil ve bildirim yapılmayan işlemler iyi niyetli üçüncü kişilere karşı ileri sürülemez."
-
-        ders = ""
-        s3 = veri.get("slayt_3_cozum", {})
-        if isinstance(s3, dict):
-            maddeler = s3.get("maddeler", [])
-            if maddeler:
-                m0 = maddeler[0]
-                ders = m0.get("aciklama", "") if isinstance(m0, dict) else str(m0)
-        if not ders:
-            ders = "Tapu devirlerinde sözleşmelerinizi noter onaylı yapın ve tapu siciline mutlaka şerh işleyin."
-
-        vaka_raw = veri.get("konu_kodu", "01 / ÖRNEK OLAY")
-        vaka_kodu = kategori_temizle(vaka_raw)
-        uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset, olay_detay=olay, sayfa_no="01 / 02")
-        uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum, cikarilacak_ders=ders, sayfa_no="02 / 02")
-        log.info("Yeni Format Üretildi (VAKA ANALİZİ): %s, %s", p1, p2)
-        return [p1, p2]
-
-    # B4. SÖZLÜK (Terim veya genel format)
-    else:
-        p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
-        terim = veri.get("manset_vurgu") or veri.get("manset_parca_1") or "GAYRİMENKUL HUKUKU"
-        tanim = veri.get("spot", "")
-        maddeler = []
-        s3 = veri.get("slayt_3_cozum", {})
-        if isinstance(s3, dict):
-            for m in s3.get("maddeler", [])[:3]:
-                if isinstance(m, dict):
-                    maddeler.append(f"{m.get('baslik', '')}: {m.get('aciklama', '')}".strip(": "))
-                else:
-                    maddeler.append(str(m))
-        if not maddeler:
-            maddeler = ["Mevzuat Uyarısı: Kanuni süreleri kaçırmamak adına yasal takvimleri takip edin."]
-
-        uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler)
-        log.info("Yeni Format Üretildi (EDM SÖZLÜK): %s", p1)
-        return [p1]
+    # Tanınmayan biçim: standart çok slaytlı carousel. Eskiden B1/B2/B3 veri
+    # tek karelik formatlara "uyarlanıyor", eksik alanlar sabit cümlelerle
+    # dolduruluyordu (bkz. EksikIcerik).
+    return make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=cikti_onek, olcu=olcu)

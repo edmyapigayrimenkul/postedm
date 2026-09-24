@@ -40,7 +40,12 @@ class TestKanalStandartlari(unittest.TestCase):
         im = Image.new("RGB", (100, 100), color="blue")
         im.save(self.dummy_img, "JPEG")
 
+        # Kanal yönlendirmesi testi; yayın kapısının kendisi test_sifir_tolerans'ta
+        self._kapi = patch("src.telegram_bot.yayin_kapisi", return_value=(True, []))
+        self._kapi.start()
+
     def tearDown(self):
+        self._kapi.stop()
         self.dummy_video.unlink(missing_ok=True)
         self.dummy_img.unlink(missing_ok=True)
 

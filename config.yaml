@@ -151,27 +151,23 @@ tasarim:
     pin_sembol: "assets/logos/pin-sembol.png"
 
 sosyal:
+  # Yalnızca marka ve bölge sabit; kalan etiketler konunun kendi terimleri
+  # (generate_text.KONU_ETIKETLERI). 2026-09-24 denetimi: #Gayrimenkul #Yatırım
+  # gibi genel etiketler her postta tekrarlanıyordu, konuya özel etiket en fazla
+  # iki kez geçmişti.
   sabit_hashtagler:
     instagram:
       - "#EDMYapıGayrimenkul"
       - "#Silivri"
-      - "#Gayrimenkul"
-      - "#Arsa"
-      - "#Yatırım"
-    threads:
+    facebook:
       - "#EDMYapıGayrimenkul"
       - "#Silivri"
-      - "#Gayrimenkul"
-      - "#Yatırım"
+    threads:
+      - "#Silivri"
     youtube:
       - "#Shorts"
-      - "#Emlak"
-      - "#Gayrimenkul"
       - "#Silivri"
-      - "#Yatırım"
+      - "#EDMYapıGayrimenkul"
     tiktok:
-      - "#keşfet"
-      - "#emlak"
       - "#silivri"
-      - "#arsa"
-      - "#yatırım"
+      - "#emlak"

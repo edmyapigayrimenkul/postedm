@@ -36,19 +36,20 @@ class TestOkunabilirlikVeYonlendirme(unittest.TestCase):
                     'aciklama': 'Tapuda gerçek satış bedelini yazmazsanız vergi ziyaı cezası kesilir.'
                 },
                 'kart_2': {
-                    'baslik': 'Ön Alım Davası Riski',
-                    'aciklama': 'Hissedar tapudaki düşük fiyattan gayrimenkulü elinizden alabilir.'
+                    'baslik': 'Önalımda bedel rayiç değer',
+                    'aciklama': 'Önalımda payın bedelini hâkim rayiç değer olarak belirler.'
                 }
             },
             'slayt_3_cozum': {
                 'maddeler': [
-                    {'baslik': 'Gerçek Bedeli Beyan Edin', 'aciklama': 'Rayiç değil, ödenen reel tutarı yazın.'}
+                    {'baslik': 'Gerçek Bedeli Beyan Edin', 'aciklama': 'Ödenen gerçek tutarı tapuya yazdırın.'}
                 ]
             }
         }
-        
+
+        # Örnek olay: 2 olay slaytı + 1 adım + kapanış (2026-09-24'ten beri çok slaytlı)
         slaytlar = yeni_formatlar.slaytlari_uret(ornek_b1, cikti_dizini=self.tmp_dir, cikti_onek='test_vaka')
-        self.assertEqual(len(slaytlar), 2)
+        self.assertEqual(len(slaytlar), 4)
         for s in slaytlar:
             self.assertTrue(Path(s).exists())
             self.assertGreater(Path(s).stat().st_size, 10000)
@@ -100,8 +101,9 @@ class TestOkunabilirlikVeYonlendirme(unittest.TestCase):
                 ]
             }
         }
+        # Kapak + 1 adım + kapanış
         slaytlar = yeni_formatlar.slaytlari_uret(ornek_b3, cikti_dizini=self.tmp_dir, cikti_onek='test_nd')
-        self.assertEqual(len(slaytlar), 1)
+        self.assertEqual(len(slaytlar), 3)
         p = Path(slaytlar[0])
         self.assertTrue(p.exists())
         self.assertGreater(p.stat().st_size, 15000)
@@ -124,14 +126,26 @@ class TestOkunabilirlikVeYonlendirme(unittest.TestCase):
         ornek_cevap = {
             'bicim': 'B3',
             'format_turu': 'net_cevap',
-            'manset_parca_1': 'Tarlaya Tiny House',
-            'manset_vurgu': 'Koymak Yasal mı?',
-            'manset_parca_2': 'ŞARTA BAĞLI',
+            'soru': 'Tarlaya tiny house koymak yasal mı',
+            'manset_vurgu': 'RUHSATA TABİDİR',
+            'manset_parca_2': 'yoksa mühürlenir',
             'spot': 'Sabit temelli yapılar ruhsata tabidir.',
         }
+        # Kapak + kapanış (adım yok)
         slaytlar_c = yeni_formatlar.slaytlari_uret(ornek_cevap, cikti_dizini=self.tmp_dir, cikti_onek='test_cevap')
-        self.assertEqual(len(slaytlar_c), 1)
-        self.assertTrue(Path(slaytlar_c[0]).exists())
+        self.assertEqual(len(slaytlar_c), 2)
+        self.assertTrue(all(Path(s).exists() for s in slaytlar_c))
+
+    def test_zorunlu_alan_yoksa_uydurma_yerine_durur(self):
+        """Eksik alan koddaki genel cümleyle doldurulmaz (#157: sabit 'Yargıtay' hükmü yayına çıktı)."""
+        for eksik in (
+            {'format_turu': 'vaka', 'olay_detay': 'Bir olay.'},                 # hüküm yok
+            {'format_turu': 'nedir_dogrusu', 'dogru_metin': 'Doğrusu şu.'},     # yanlış inanış yok
+            {'format_turu': 'net_cevap', 'aciklama': 'Gerekçe.'},               # soru/cevap yok
+            {'format_turu': 'sozluk', 'terim': 'İFRAZ'},                        # tanım yok
+        ):
+            with self.assertRaises(yeni_formatlar.EksikIcerik, msg=str(eksik)):
+                yeni_formatlar.slaytlari_uret(eksik, cikti_dizini=self.tmp_dir, cikti_onek='test_eksik')
 
 
 if __name__ == '__main__':

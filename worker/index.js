@@ -481,12 +481,14 @@ export default {
             return new Response("OK");
           }
           if (format === "haber") {
+            // Haber artık içerik üretmez, ÖNERİ düşürür (2026-09-24): içerik günde bir,
+            // haber ondan bağımsız; hangisinin içeriğe çevrileceğine insan karar verir.
             await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ chat_id: chatId, text: `🌐 <b>Taze Sektörel Haberler</b> taranıyor ve içerik hazırlanıyor...`, parse_mode: "HTML" }),
+              body: JSON.stringify({ chat_id: chatId, text: `🌐 <b>Taze emlak haberleri</b> taranıyor; öneriler tarihleriyle birazdan düşecek...`, parse_mode: "HTML" }),
             });
-            await tetikle(env, chatId, "sabah_hazirla", { slot: "haber", kaynak: "hizli_uret_haber" });
+            await tetikle(env, chatId, "haber_oneri", { kaynak: "hizli_uret_haber" });
             return new Response("OK");
           }
           await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -495,6 +497,30 @@ export default {
             body: JSON.stringify({ chat_id: chatId, text: `⏳ <b>${format.toUpperCase()}</b> formatında içerik hazırlanıyor, onayınıza sunulacak...`, parse_mode: "HTML" }),
           });
           await tetikle(env, chatId, "sabah_hazirla", { format_turu: format, kaynak: "hizli_uret_butonu" });
+          return new Response("OK");
+        }
+
+        // C2. HABER ÖNERİSİ DÜĞMELERİ
+        if (data === "noop") {
+          await cevapVer("");
+          return new Response("OK");
+        }
+        if (data.startsWith("haber_uret:")) {
+          const haberId = data.split(":")[1];
+          if (!/^\d+$/.test(haberId)) {
+            await cevapVer("Geçersiz haber");
+            return new Response("OK");
+          }
+          await cevapVer("İçerik hazırlanıyor");
+          await butonlariGuncelle([[{ text: "⏳ İçeriğe çevriliyor…", callback_data: "noop" }]]);
+          await tetikle(env, chatId, "haber_uret", { haber_id: haberId });
+          return new Response("OK");
+        }
+        if (data.startsWith("haber_gec:")) {
+          // Yalnızca düğmeler kalkar: kayıt zaten 'onerildi', bir daha önerilmez.
+          // Bunun için bir Actions koşusu harcamaya gerek yok.
+          await cevapVer("Geçildi");
+          await butonlariGuncelle([[{ text: "✖ Geçildi", callback_data: "noop" }]]);
           return new Response("OK");
         }
 
@@ -924,8 +950,8 @@ export default {
         }
 
         if (text === "/haber" || text === "/sondakika") {
-          await mesajGonder("🌐 Taze sektörel haber taranıyor ve post hazırlanıyor...");
-          await tetikle(env, chatId, "sabah_hazirla", { slot: "haber", kaynak: "telegram_komut" });
+          await mesajGonder("🌐 Taze emlak haberleri taranıyor; öneriler tarihleriyle birazdan düşecek...");
+          await tetikle(env, chatId, "haber_oneri", { kaynak: "telegram_komut" });
           return new Response("OK");
         }
 

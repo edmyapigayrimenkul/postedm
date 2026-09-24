@@ -1,9 +1,11 @@
 """
 dogrula.py — Yayın Öncesi İçerik Denetimi
 
-Onay mesajı gönderilmeden ÖNCE çalışır ve uyarıları mesajın başına koyar.
-Otomatik eleme YAPMAZ — insan onayı son söz olarak kalır. Amaç onaylayan
-kişiye "şuna bir daha bak" demek.
+Onay mesajı gönderilmeden ÖNCE çalışır. İki tür bulgu var:
+  ⛔ kritik — kaynakta olmayan madde, süre, çoğunluk, oran, içtihat ya da kaynak
+     adresi açılmayan haber. İçerik ONAYA BİLE SUNULMAZ (2026-09-24 kararı:
+     yalan bilgiye müsamaha yok). Üretimde bir kez düzeltme turu denenir.
+  ⚠️ uyarı — onaylayan kişiye "şuna bir daha bak" der, yayını kilitlemez.
 
 instabot'un `dogrula.py`'sinden uyarlandı; denetimler emlak içeriğine göre
 yeniden yazıldı.
@@ -191,15 +193,92 @@ _BOS_TAVSIYELER = [
 _YEREL_ADLAR = ["silivri", "trakya", "çatalca", "çorlu", "çerkezköy",
                 "tekirdağ", "edirne", "kırklareli", "selimpaşa", "alibey"]
 
+_DUYGU_ATFI = re.compile(
+    r"gurur|coşku|moral kaynağı|motivasyon kaynağı|sevinç kaynağı|"
+    r"tüm (Türkiye|ülke|dünya)'?d[ae]", re.IGNORECASE)
 
-def _tum_metin(veri: Dict[str, Any]) -> str:
-    """Görselde çizilen tüm metinleri tek dizede toplar (caption hariç)."""
+_TOREN_DILI = re.compile(
+    r"tarihin?in en (önemli|büyük|prestijli|unutulmaz)|prestijli başarı|"
+    r"kayda geçiyor|altın harflerle|başarılarından biri olarak|"
+    r"zaferle birlikte|bölgenin parlayan yıldızı|yatırımcıların gözdesi|"
+    r"fırsat kapısı|göz kamaştır", re.IGNORECASE)
+
+_SOMUT_SAYI = re.compile(r"\d")
+
+_ETIKET_FIILLERI = {
+    "bitti", "erdi", "edildi", "oldu", "başladı", "açıklandı",
+    "yapıldı", "geldi", "gitti", "kaldı", "düştü", "çıktı",
+    "verildi", "alındı", "yükseldi", "kesildi", "uzatıldı",
+    "sona", "kalktı", "sürüyor", "ediyor", "gerekiyor",
+}
+
+_ETIKET_SAYI_EKLERI = re.compile(
+    r"^(ya[sş][ıi]nda|ma[cç]l[ıi]k|sezonluk|ki[sş]ilik|katl[ıi]|"
+    r"puanl[ıi]k|haneli|gunluk )", re.IGNORECASE)
+
+
+def bos_ovgu_mu(cumle: str) -> bool:
+    """
+    Bu cümle bilgi taşımayan bir övgü veya yapay tören dili mi?
+    Bilgi veren somut sayılı ifadeler korunur.
+    """
+    metin = (cumle or "").strip()
+    if not metin:
+        return False
+    if _DUYGU_ATFI.search(metin):
+        return True
+    return bool(_TOREN_DILI.search(metin)) and not _SOMUT_SAYI.search(metin)
+
+
+def ovguyu_ele(cumle: str) -> str:
+    """İçi boş övgüyse boş dize döner — çağıran taraf o bloğu basmaz."""
+    if bos_ovgu_mu(cumle):
+        log.info("içi boş övgü elendi: %s", (cumle or "")[:80])
+        return ""
+    return cumle
+
+
+def vurgu_zayif_mi(deger: str | None, etiket: str | None) -> str | None:
+    """
+    Vurgu rakamı kancaya veya slayta basılmaya değer mi?
+    Zayıfsa sebebi döner (loglanabilsin diye), güçlüyse None.
+    """
+    d = (deger or "").strip()
+    e = (etiket or "").strip()
+    if not d:
+        return None
+
+    # ① Çıplak tek haneli sayı — büyüklük/çarpıcılık duygusu yok
+    if re.fullmatch(r"\d", d):
+        return "çıplak tek haneli sayı"
+
+    # ② Etiket rakama yapışan ekle başlıyor ("38 yaşındaki …")
+    if _ETIKET_SAYI_EKLERI.match(_sadelestir(e).strip()):
+        return "etiket rakama yapışan ekle başlıyor"
+
+    # ③ Etiket cümle — açık fiille bitiyor
+    son = (e.split() or [""])[-1].strip(".,;:").casefold()
+    if son in _ETIKET_FIILLERI:
+        return "etiket cümle parçası (fiille bitiyor)"
+
+    return None
+
+
+def _tum_metin(veri: Dict[str, Any], captionlar: bool = False) -> str:
+    """Görselde çizilen tüm metinleri tek dizede toplar.
+
+    `captionlar=True` açıklama metinlerini de katar. Hukuki iddia denetimi
+    (madde, süre, çoğunluk, oran) onlarla çalışır: Threads'te okunan şey
+    caption'ın kendisi; #142'deki "2 yıl" hem görselde hem caption'daydı.
+    Marka sesi denetimleri görselle sınırlı kalır — caption'daki hashtag ve
+    kapanış çağrısı orada yanlış alarm üretir.
+    """
     parcalar: List[str] = []
 
     def topla(d: Any) -> None:
         if isinstance(d, dict):
             for k, v in d.items():
-                if k.startswith("_") or k.startswith("caption"):
+                if k.startswith("_") or (k.startswith("caption") and not captionlar):
                     continue
                 topla(v)
         elif isinstance(d, list):
@@ -247,9 +326,12 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     uyarilar: List[str] = []
     metin = _tum_metin(veri)
     kucuk = _kucult(metin)
+    # Hukuki iddialar caption'da da aynı sorumluluğu taşır
+    hukuki = _tum_metin(veri, captionlar=True)
+    hukuki_kucuk = _kucult(hukuki)
 
     # --- 1. UYDURMA MEVZUAT (en kritik) ---
-    maddeler = _maddeleri_bul(metin)
+    maddeler = _maddeleri_bul(hukuki)
     if maddeler:
         dogrulanmis = _kucult(str((brief or {}).get("mevzuat") or ""))
         if not dogrulanmis:
@@ -278,7 +360,7 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     kanun_metni = _kanun_metni(brief)
     if kanun_metni:
         from . import mevzuat as _mevzuat
-        kacak_sure = sorted(_mevzuat.sure_ifadeleri(metin) - _mevzuat.sure_ifadeleri(kanun_metni))
+        kacak_sure = sorted(_mevzuat.sure_ifadeleri(hukuki) - _mevzuat.sure_ifadeleri(kanun_metni))
         if kacak_sure:
             ornek = ", ".join(f"{n} {b}" for n, b in kacak_sure[:3])
             uyarilar.append(
@@ -286,17 +368,27 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
                 f"(ya da haber kaynağında) böyle bir süre yok. Eski hukuk ya da uydurma olabilir."
             )
         kanun_kucuk = _kucult(kanun_metni)
-        kacak_cogunluk = [c for c in _mevzuat.CUNLUK_IFADELERI if c in kucuk and c not in kanun_kucuk]
+        kacak_cogunluk = [c for c in _mevzuat.CUNLUK_IFADELERI if c in hukuki_kucuk and c not in kanun_kucuk]
         if kacak_cogunluk:
             uyarilar.append(
                 f"⛔ ÇOĞUNLUK KAYNAKTA YOK: \"{kacak_cogunluk[0]}\" geçiyor ama güncel metinde bu çoğunluk yok."
+            )
+    elif brief is not None:
+        # Ölçüt metin yok (yönetmeliğe dayanan konu, atıfsız özel içerik): süre
+        # doğrulanamıyor. Kilitlemez ama onaylayanın gözünden kaçmasın.
+        from . import mevzuat as _mevzuat
+        dogrulanamayan = sorted(_mevzuat.sure_ifadeleri(hukuki))
+        if dogrulanamayan:
+            ornek = ", ".join(f"{n} {b}" for n, b in dogrulanamayan[:3])
+            uyarilar.append(
+                f"⚠️ SÜRE DOĞRULANAMADI: {ornek} — karşılaştırılacak kanun metni yok, elle teyit edin."
             )
 
     # --- 1c. UYDURMA İÇTİHAT ---
     # Esas/karar numarası ya da daire + yıl/sayı kalıbı: brief'te yoksa uydurulmuştur.
     ictihatlar = re.findall(
         r"(?:\bE\.\s*\d{4}/\d+|\bK\.\s*\d{4}/\d+|\d{1,2}\.\s*(?:Hukuk|Ceza)\s+Dairesi[^.,;]{0,30}\d{4}/\d+|\bHGK[^.,;]{0,30}\d{4}/\d+)",
-        metin,
+        hukuki,
     )
     kaynaklar = " ".join(str((brief or {}).get(k) or "") for k in ("mevzuat", "mevzuat_metni", "makale_metni"))
     uydurma_ictihat = [i for i in ictihatlar if i not in kaynaklar]
@@ -306,13 +398,29 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
         )
 
     # --- 2. DAYANAKSIZ RAKAM ---
-    oranlar = re.findall(r"%\s?\d+|\byüzde\s+\d+", metin)
-    tutarlar = re.findall(r"\b\d[\d.]*\s*(?:milyon|bin)\s*(?:TL|lira)", metin, re.IGNORECASE)
-    if (oranlar or tutarlar) and not (brief or {}).get("veri_kaynagi"):
-        ornek = (oranlar + tutarlar)[:3]
-        uyarilar.append(
-            f"⚠️ DAYANAKSIZ RAKAM: {', '.join(ornek)} geçiyor ama brief'te veri kaynağı yok."
-        )
+    # Oran ve tutar kaynağında (kanun metni ya da haber metni) geçmiyorsa
+    # uydurulmuştur; "yalan bilgiye müsamaha yok" kararıyla (2026-09-24) bu artık
+    # KRİTİK. Kaynak metin yoksa ve brief bir veri kaynağı da göstermiyorsa aynı.
+    # Brief'te veri kaynağı (TÜİK, TCMB…) varsa rakam dışarıdan doğrulanamaz,
+    # onaylayan kişiye uyarı olarak kalır.
+    from . import mevzuat as _mevzuat_o
+    oranlar = _mevzuat_o.oran_ifadeleri(hukuki)
+    tutarlar = re.findall(r"\b\d[\d.,]*\s*(?:milyon|milyar|bin)?\s*(?:TL|lira|₺)", hukuki, re.IGNORECASE)
+    if oranlar or tutarlar:
+        veri_kaynagi = (brief or {}).get("veri_kaynagi")
+        kaynak_sayilar = _mevzuat_o.oran_ifadeleri(kanun_metni) | sayi_esdegerleri(kanun_metni) if kanun_metni else set()
+        kacak_oran = sorted(o for o in oranlar if o not in kaynak_sayilar)
+        kacak_tutar = [t for t in tutarlar if not (_sayilar(t) & kaynak_sayilar)]
+        kacak = [f"%{o}" for o in kacak_oran] + kacak_tutar
+        if kacak and not veri_kaynagi:
+            uyarilar.append(
+                f"⛔ RAKAM KAYNAKTA YOK: {', '.join(kacak[:3])} geçiyor ama ne kanun metninde "
+                f"ne haber kaynağında var, brief'te veri kaynağı da yok."
+            )
+        elif kacak:
+            uyarilar.append(
+                f"⚠️ DAYANAKSIZ RAKAM: {', '.join(kacak[:3])} — \"{veri_kaynagi}\" kaynağından elle teyit edin."
+            )
 
     # --- 3. ZORLAMA YEREL BAĞ ---
     gecen_yerel = [a for a in _YEREL_ADLAR if a in kucuk]
@@ -331,6 +439,11 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     bos_tavsiyeler = [b for b in _BOS_TAVSIYELER if b in kucuk]
     if bos_tavsiyeler:
         uyarilar.append(f"⚠️ BOŞ TAVSİYE (FLUFF): \"{bos_tavsiyeler[0]}\" geçiyor — genel geçer tavsiye yerine somut resmi merci, belge adı veya yasal süre belirtin.")
+    for cumle in re.split(r"[.!?\n]+", metin):
+        c_temiz = cumle.strip()
+        if c_temiz and bos_ovgu_mu(c_temiz):
+            uyarilar.append(f"⚠️ BOŞ ÖVGÜ / TÖREN DİLİ: \"{c_temiz[:50]}\" — bilgi taşımayan övgü yerine somut veri verin.")
+            break
 
     # --- 5. İÇİ BOŞ MANŞET ---
     manset = _kucult(" ".join(str(veri.get(k) or "") for k in
@@ -409,9 +522,52 @@ def kaynak_denetle(haber: Optional[Dict[str, Any]]) -> List[str]:
     return []
 
 
+def _haber_mi(haber: Optional[Dict[str, Any]]) -> bool:
+    return bool(haber) and not str(haber.get("kaynak") or "").startswith("EDM")
+
+
+def _birlesik_brief(veri: Dict[str, Any], haber: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Haberden üretilmiş içerikte ölçüt İKİ kaynaktır: haber metni ve (varsa)
+    triyajın bulduğu kanun maddesinin güncel metni.
+
+    Önceden içerik brief'i (triyaj) varsa haber metni hiç kullanılmıyordu: haberde
+    "30 gün askı" yazıyor, içerik "15 gün" diyor — süre kanun atfına karşı
+    denetleniyordu, haberin kendisine değil.
+    """
+    brief = veri.get("_brief")
+    haber_brief = haberden_brief(haber) if _haber_mi(haber) else None
+    if not brief:
+        return haber_brief
+    if not haber_brief:
+        return brief
+    birlesik = dict(brief)
+    birlesik["mevzuat"] = f"{brief.get('mevzuat') or ''} {haber_brief['mevzuat']}".strip()
+    birlesik["mevzuat_metni"] = f"{haber_brief['mevzuat_metni']}\n{_kanun_metni(brief)}".strip()
+    birlesik["makale_metni"] = haber_brief["makale_metni"]
+    birlesik["veri_kaynagi"] = brief.get("veri_kaynagi") or haber_brief["veri_kaynagi"]
+    birlesik["yerel"] = brief.get("yerel") or haber_brief["yerel"]
+    return birlesik
+
+
 def icerigi_denetle(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None) -> List[str]:
     """Tüm yolların ortak girişi: brief içerikte yoksa haberin kaynak metninden kurulur."""
-    return kaynak_denetle(haber) + denetle(veri, veri.get("_brief") or haberden_brief(haber))
+    return kaynak_denetle(haber) + denetle(veri, _birlesik_brief(veri, haber))
+
+
+def yayin_engeli_metni(haber_id: Any, uyarilar: List[str]) -> str:
+    """Kritik bulgu varsa içerik onaya bile sunulmaz; gruba giden açıklama.
+
+    2026-09-24 kararı: yalan bilgiye müsamaha yok. Önceden kritik uyarı onay
+    mesajının başına yazılıp içerik yine de "Yayınla" butonuyla sunuluyordu;
+    #142 ve #68 bu uyarı sistemi olmadan, #170 uyarı çıksa bile yayınlanabilirdi.
+    """
+    kritikler = [u for u in uyarilar if u.startswith("⛔")]
+    return (
+        f"🛑 <b>İçerik #{haber_id} durduruldu — yayına sunulmadı.</b>\n\n"
+        + "\n".join(kritikler[:5])
+        + "\n\n<i>Kaynakta olmayan bilgi yayınlanmıyor. Konu kilitlendi; "
+          "aşağıdaki düğmeyle sıradaki konudan yeni içerik üretebilirsin.</i>"
+    )
 
 
 def uyari_basligi(uyarilar: List[str]) -> str:

@@ -69,8 +69,9 @@ def _bilgileri_derle(veri: Dict[str, Any]) -> Dict[str, str]:
     """Veri sözlüğünden ve config'den tüm iletişim parametrelerini temizleyip derler."""
     cta = veri.get("slayt_4_cta") or {}
     s1 = _temizle_tipografi(str(cta.get("slogan_parca_1") or "Doğru adımlarla"))
-    s2 = _temizle_tipografi(str(cta.get("slogan_vurgu") or "GÜVENLİ KİRALAMA"))
-    aciklama = _temizle_tipografi(str(cta.get("aciklama") or "Silivri ve Trakya genelinde mülk yönetimi ve hukuki süreçlerinizde yanınızdayız."))
+    # Yedek konu bağımsız olmalı: "GÜVENLİ KİRALAMA" tapu ve arsa içeriğinde de basılıyordu
+    s2 = _temizle_tipografi(str(cta.get("slogan_vurgu") or "YATIRIM ORTAĞINIZ"))
+    aciklama = _temizle_tipografi(str(cta.get("aciklama") or "Silivri ve Trakya genelinde tapudan imara, mülkünüzün her adımında yanınızdayız."))
     kaydet = _temizle_tipografi(str(
         cta.get("kaydet_metni")
         or veri.get("kaydet_metni")

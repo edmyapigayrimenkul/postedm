@@ -157,6 +157,11 @@ def main():
     adet = metrikleri_topla(haber_id_filtre=args.haber_id)
     log.info("İşlem tamamlandı. Toplam %d içerik metriği kaydedildi.", adet)
 
+    if not args.haber_id:
+        # Günlük takipçi sayısı: gönderi metrikleri vardı, büyüme hiç ölçülmüyordu
+        from src import takipci
+        takipci.kaydet()
+
 
 if __name__ == "__main__":
     main()

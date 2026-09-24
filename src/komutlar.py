@@ -83,7 +83,7 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
     {"command": "haber", "description": "📰 Taze sektörel haber tara ve post yap"},
     {"command": "sozluk", "description": "📖 EDM Gayrimenkul Sözlüğü postu üret"},
     {"command": "dogrusu", "description": "⚖️ Nedir Doğrusu? (Efsane vs Gerçek) üret"},
-    {"command": "vaka", "description": "📂 Hukuki Vaka Analizi (2 Slayt Carousel) üret"},
+    {"command": "vaka", "description": "📂 Örnek Olay (çok slaytlı) üret"},
     {"command": "soru", "description": "❓ Net Cevap Rehberi (Soru & Hüküm) üret"},
     {"command": "ilanlar", "description": "🏡 Portföyden tek tıkla ilan seçip paylaş"},
 

@@ -45,33 +45,54 @@ GUN_FORMATLARI: Dict[int, str] = {
     6: "net_cevap",
 }
 
-# 3 Slot Günlük Plan - Slot 1 Bilgilendirici Rotasyon Formatları:
-# Her gün sırayla döner: nedir_dogrusu -> vaka -> net_cevap -> b1 -> nedir_dogrusu ...
+# Günde TEK içerik (2026-09-24 kararı; önceden günde 3 slot vardı). Format
+# altı günlük bir döngüde döner. B1 iki kez: denetimde her kanalda en yüksek
+# erişim çok slaytlı B1'deydi. Sözlük tek kare kaldığı için döngüde bir kez.
 BILGILENDIRICI_FORMATLAR: List[str] = [
+    "b1",
     "nedir_dogrusu",
-    "vaka",
     "net_cevap",
     "b1",
+    "vaka",
+    "sozluk",
 ]
 
 
-def siradaki_bilgilendirici_format() -> str:
-    """Bilgilendirici format rotasyonundaki sıradaki formatı belirler.
-    nedir_dogrusu -> vaka -> net_cevap -> b1 -> nedir_dogrusu ...
-    """
+def _son_sira() -> Optional[int]:
+    """Döngüde en son kullanılan sıra. Aynı format iki kez geçtiği için sıra
+    numarası tutulur; eski kayıtta yalnızca format adı vardı."""
+    ham = db.ayar_oku("bilgilendirici_sira")
+    try:
+        sira = int(str(ham))
+        if 0 <= sira < len(BILGILENDIRICI_FORMATLAR):
+            return sira
+    except (TypeError, ValueError):
+        pass
     son_format = db.ayar_oku("son_bilgilendirici_format")
     if son_format in BILGILENDIRICI_FORMATLAR:
-        idx = BILGILENDIRICI_FORMATLAR.index(son_format)
-        siradaki = BILGILENDIRICI_FORMATLAR[(idx + 1) % len(BILGILENDIRICI_FORMATLAR)]
-    else:
-        siradaki = BILGILENDIRICI_FORMATLAR[0]
-    return siradaki
+        return BILGILENDIRICI_FORMATLAR.index(son_format)
+    return None
+
+
+def _siradaki_sira() -> int:
+    son = _son_sira()
+    return 0 if son is None else (son + 1) % len(BILGILENDIRICI_FORMATLAR)
+
+
+def siradaki_bilgilendirici_format() -> str:
+    """Döngüdeki sıradaki format: b1 → nedir_dogrusu → net_cevap → b1 → vaka → sozluk → b1 …"""
+    return BILGILENDIRICI_FORMATLAR[_siradaki_sira()]
 
 
 def bilgilendirici_format_kaydet(format_turu: str) -> None:
-    """Kullanılan bilgilendirici formatı kaydeder."""
-    if format_turu in BILGILENDIRICI_FORMATLAR:
-        db.ayar_yaz("son_bilgilendirici_format", format_turu)
+    """Kullanılan formatı döngüdeki sırasıyla kaydeder."""
+    if format_turu not in BILGILENDIRICI_FORMATLAR:
+        return
+    sira = _siradaki_sira()
+    if BILGILENDIRICI_FORMATLAR[sira] != format_turu:
+        sira = BILGILENDIRICI_FORMATLAR.index(format_turu)
+    db.ayar_yaz("bilgilendirici_sira", str(sira))
+    db.ayar_yaz("son_bilgilendirici_format", format_turu)
 
 
 def gun_icin_format(gun: Optional[int] = None) -> str:

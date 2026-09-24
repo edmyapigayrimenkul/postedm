@@ -32,7 +32,12 @@ class TestCloudflareR2VeTikTokSira(unittest.TestCase):
         self.dummy_vid = KOK / "data/output/test_r2_vid.mp4"
         self.dummy_vid.write_bytes(b"dummy video data")
 
+        # Kanal yönlendirmesi testi; yayın kapısının kendisi test_sifir_tolerans'ta
+        self._kapi = patch("src.telegram_bot.yayin_kapisi", return_value=(True, []))
+        self._kapi.start()
+
     def tearDown(self):
+        self._kapi.stop()
         self.dummy_img.unlink(missing_ok=True)
         self.dummy_vid.unlink(missing_ok=True)
 

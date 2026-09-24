@@ -49,7 +49,9 @@ RENK_YESIL = (34, 197, 94)        # Yeşil onay/savunma rengi
 RENK_METIN_GOVDE = (245, 247, 250)    # Kristal netliğinde, yüksek kontrastlı gövde rengi
 RENK_KIRMIZI_CANLI = (255, 59, 48)   # #ff3b30 (Koyu zeminde parlayan canlı mercan kırmızısı)
 RENK_KIRMIZI_VURGU = (255, 45, 55)   # #ff2d37 (Manşetlerde difüzyon gölgesiyle parlayan kırmızı)
-RENK_ALTIN = (234, 179, 8)           # #eab308 (Kurumsal Altın / Uzman Notu Vurgusu)
+# Uzman notu kartı: eskiden amber (#eab308) — marka dışıydı. Çubuk kırmızı, etiket kireç.
+RENK_UZMAN_CUBUK = RENK_KIRMIZI
+RENK_UZMAN_ETIKET = (228, 228, 225)
 
 
 # Doğrulanmış Türkçe Destekli Font Yolları
@@ -1969,8 +1971,8 @@ def otorite_slayt_2_detay(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
 
     # 2. Bölüm Manşeti
     detay_veri = veri.get("slayt_2_detay") or {}
-    baslik_1 = detay_veri.get("baslik_satir_1") or "Hukuki Boyut ve"
-    baslik_vurgu = detay_veri.get("baslik_vurgu") or "TARAFLARIN HAKLARI"
+    baslik_1 = detay_veri.get("baslik_satir_1") or ""
+    baslik_vurgu = detay_veri.get("baslik_vurgu") or ""
 
     satirlar = [
         (baslik_1, RENK_BEYAZ),
@@ -1979,18 +1981,10 @@ def otorite_slayt_2_detay(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     _difuzyon_golgeli_metin(canvas, satirlar, kenar_bosluk, 140, _font_yukle(FONT_SANS_BOLD, 52), satir_araligi=64)
 
     # 3. İki Kartlı Yapı (Varsa kart_1 & kart_2, yoksa standart problem kutuları)
-    k1 = detay_veri.get("kart_1") or {
-        "etiket": "EV SAHİBİNİN TUTUMU // YASAL ÇERÇEVE",
-        "renk": "kirmizi",
-        "baslik": "Beyaza Atılan İmzanın Sonuçları",
-        "aciklama": "Kiracı tahliye taahhütnamesini tarih kısmını boş bırakarak imzaladıysa sonuçlarına katlanmak zorundadır. Ev sahibinin tarihi sonradan doldurması belgeyi geçersiz kılmaz.",
-    }
-    k2 = detay_veri.get("kart_2") or {
-        "etiket": "KİRACININ SAVUNMASI // BASKI & ZAMANLAMA",
-        "renk": "yesil",
-        "baslik": "Kira Sözleşmesiyle Aynı Gün İmzalandıysa",
-        "aciklama": "Taahhütnamenin kontratla aynı anda veya eve girmeden önce bir ön şart olarak imzalatıldığı ispatlanırsa, Yargıtay sözleşmeyi irade fesadı gerekçesiyle hükümsüz sayabilmektedir.",
-    }
+    # Kart yoksa boş kalır. Eskiden her konuya kira/tahliye taahhütnamesi
+    # hakkında sabit iki kart (biri "Yargıtay … hükümsüz sayabilmektedir") basılıyordu.
+    k1 = detay_veri.get("kart_1") or {}
+    k2 = detay_veri.get("kart_2") or {}
 
     # Kart Boyutları & Fontlar (Önemli adımlar ekranlarıyla tam uyumlu modern Sans tipografi)
     font_kart_baslik = _font_yukle(FONT_SANS_BOLD, 38)
@@ -2214,8 +2208,9 @@ def otorite_slayt_3_cozum(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         _logo_yerlestir(canvas, beyaz=True, y=55, lw=285)
         draw.line([(kenar_bosluk, 105), (GENISLIK - kenar_bosluk, 105)], fill=RENK_CIZGI_KOYU, width=1)
 
-        baslik_ust = cozum_veri.get("baslik_ust") or "Şufa Davasından Korunmak İçin"
-        baslik_vurgu = cozum_veri.get("baslik_vurgu") or "3 Hayati Güvenlik Adımı"
+        # Yedek başlık konuya özgü olmamalı (eskisi her konuya "Şufa davasından korunmak" yazıyordu)
+        baslik_ust = cozum_veri.get("baslik_ust") or ""
+        baslik_vurgu = cozum_veri.get("baslik_vurgu") or "Atılacak adımlar"
         satirlar_ust = _metin_sar(baslik_ust, _font_yukle(FONT_SANS_BOLD, 46), kullanilabilir_w, draw)
         by = 135
         for su in satirlar_ust:
@@ -2224,11 +2219,10 @@ def otorite_slayt_3_cozum(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         draw.text((kenar_bosluk, by), baslik_vurgu, font=_font_yukle(FONT_SANS_BOLD, 46), fill=RENK_KIRMIZI_CANLI)
         by += 68
 
-        maddeler = cozum_veri.get("maddeler") or [
-            {"no": "01", "baslik": "Noterden Feragatname Alın", "aciklama": "Satıştan önce tüm hissedarlardan noter onaylı feragatname temin edin."},
-            {"no": "02", "baslik": "Satışı Noterle Tebliğ Edin", "aciklama": "Satıştan hemen sonra ihtarname çekerek 3 aylık hak düşürücü süreyi başlatın."},
-            {"no": "03", "baslik": "Gerçek Bedeli Beyan Edin", "aciklama": "Tapuda bedeli düşük gösterirseniz hissedarlar o bedelle mülkü elinizden alabilir."},
-        ]
+        # Adım yoksa adım da yok. Eskiden sabit üç adım basılıyordu; üçüncüsü
+        # ("bedeli düşük gösterirseniz hissedarlar o bedelle mülkü alabilir")
+        # 7571 sayılı Kanunla (24.12.2025) yanlış hâle geldi: önalımda bedel artık rayiç değer.
+        maddeler = cozum_veri.get("maddeler") or []
 
         # Adım kartları da ölçülüp dağıtılır (Önemli adımlar ekranlarıyla aynı Sans tipografi)
         font_adim_baslik = _font_yukle(FONT_SANS_BOLD, 38)
@@ -3134,7 +3128,7 @@ def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]
     if not maddeler:
         s3 = haber.get("slayt_3_cozum")
         if isinstance(s3, dict) and s3.get("maddeler"):
-            renk_sira = ["kirmizi", "turkuaz", "yesil"]
+            renk_sira = ["kirmizi", "kirec", "kirec"]
             maddeler = [
                 {
                     "etiket": m.get("baslik", "DETAY").upper(),
@@ -3150,40 +3144,35 @@ def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]
             if k1 and k2:
                 maddeler = [
                     {"etiket": k1.get("etiket") or k1.get("baslik") or "NE OLDU", "metin": k1.get("aciklama", ""), "renk": "kirmizi"},
-                    {"etiket": k2.get("etiket") or k2.get("baslik") or "BÖLGESEL ETKİ", "metin": k2.get("aciklama", ""), "renk": "turkuaz"},
+                    {"etiket": k2.get("etiket") or k2.get("baslik") or "BÖLGESEL ETKİ", "metin": k2.get("aciklama", ""), "renk": "kirec"},
                 ]
     if not maddeler:
         detay_ham = haber.get("detay") or haber.get("detay_metni") or haber.get("spot") or haber.get("orijinal_ozet") or ""
         cumleler = [c.strip() for c in re.split(r"(?<=[.!?])\s+", detay_ham) if len(c.strip()) > 8]
-        if len(cumleler) >= 3:
-            maddeler = [
-                {"etiket": "KAPSANAN BÖLGE VE PARSELLER", "metin": cumleler[0], "renk": "kirmizi"},
-                {"etiket": "YASAL VE TEKNİK AYRINTILAR", "metin": cumleler[1], "renk": "turkuaz"},
-                {"etiket": "YÜRÜRLÜK VE UYGULAMA KOŞULLARI", "metin": " ".join(cumleler[2:]), "renk": "yesil"},
-            ]
-        elif len(cumleler) == 2:
-            maddeler = [
-                {"etiket": "KAPSANAN BÖLGE VE PARSELLER", "metin": cumleler[0], "renk": "kirmizi"},
-                {"etiket": "YASAL VE TEKNİK AYRINTILAR", "metin": cumleler[1], "renk": "turkuaz"},
-            ]
-        elif cumleler:
-            maddeler = [
-                {"etiket": "HABERİN AYRINTILARI", "metin": cumleler[0], "renk": "kirmizi"},
-            ]
-        else:
-            maddeler = [
-                {"etiket": "HABERİN AYRINTILARI", "metin": "Sektörü ve mülk sahiplerini doğrudan ilgilendiren yasal düzenleme yürürlüğe girdi.", "renk": "kirmizi"},
-            ]
+        # Cümleler haberin kendisinden gelir; etiketleri NÖTR. Önceden her habere
+        # "KAPSANAN BÖLGE VE PARSELLER", "ASKI SÜRESİ VE İTİRAZ MERKEZİ" gibi imar
+        # etiketleri basılıyordu — cümle o konuda olmasa da (#170, #171).
+        # Metin yoksa madde de yok: "Sektörü ve mülk sahiplerini doğrudan
+        # ilgilendiren yasal düzenleme yürürlüğe girdi" yedeği uydurmaydı.
+        parcalar = cumleler[:2] + ([" ".join(cumleler[2:])] if len(cumleler) > 2 else [])
+        maddeler = [
+            {"etiket": f"AYRINTI {i:02d}", "metin": c, "renk": "kirmizi" if i == 1 else "kirec"}
+            for i, c in enumerate(parcalar, start=1)
+        ]
 
-    varsayilan_etiketler = ["KAPSANAN BÖLGE VE PARSELLER", "YAPILAŞMA VE İMAR ŞARTLARI", "ASKI SÜRESİ VE İTİRAZ MERKEZİ", "KRİTİK UYARI"]
+    varsayilan_etiketler = [f"AYRINTI {i:02d}" for i in range(1, 5)]
+    # Marka paleti: kırmızı yalnızca ilk vurguda, gerisi kireç. Turkuaz, yeşil ve
+    # amber marka dışıydı (kurumsal kimlik: %70 nötr / %25 mürekkep / %5 kırmızı).
+    KIREC = (228, 228, 225)
     renk_sozlugu = {
         "kirmizi": (240, 0, 13),
-        "turkuaz": (6, 182, 212),
-        "yesil": (16, 185, 129),
-        "amber": (226, 170, 88),
-        "sari": (226, 170, 88),
+        "kirec": KIREC,
+        "turkuaz": KIREC,
+        "yesil": KIREC,
+        "amber": KIREC,
+        "sari": KIREC,
     }
-    varsayilan_renk_listesi = [(240, 0, 13), (6, 182, 212), (16, 185, 129), (226, 170, 88)]
+    varsayilan_renk_listesi = [(240, 0, 13), KIREC, KIREC, KIREC]
 
     temiz = []
     for idx, m in enumerate(maddeler):
@@ -3269,6 +3258,15 @@ def haber_dailybrief_detay_slayti_ciz(
     - İsteğe bağlı EDM Uzman Değerlendirmesi & Yatırımcı Tavsiyesi kartı (goster_uzman_notu=True).
     - 4:5 tuvaline göre hizalı, 9:16 Story/Reels ile tam güvenli alan uyumlu.
     """
+    # Uzman notu yalnızca içerikte varsa çizilir. Eskiden yoksa her habere
+    # "askı panolarından kontrol edin; itiraz süresini kaçırmayın" basılıyordu —
+    # haber imarla ilgili olmasa da.
+    uzman_notu = (haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
+    if not uzman_notu and isinstance(haber.get("slayt_4_cta"), dict):
+        uzman_notu = str(haber["slayt_4_cta"].get("aciklama", "")).strip()
+    if not uzman_notu:
+        goster_uzman_notu = False
+
     with tuval(olcu):
         genislik = GENISLIK
         yukseklik = YUKSEKLIK
@@ -3401,12 +3399,6 @@ def haber_dailybrief_detay_slayti_ciz(
         y_kursur = ust_y + 85
 
         if goster_uzman_notu:
-            uzman_notu = (haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
-            if not uzman_notu and isinstance(haber.get("slayt_4_cta"), dict):
-                uzman_notu = str(haber["slayt_4_cta"].get("aciklama", "")).strip()
-            if not uzman_notu:
-                uzman_notu = "Parselinizin güncel imar ve tapu kayıtlarını askı panolarından vakit kaybetmeden kontrol edin; itiraz süresini kaçırmayın."
-
             uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
             if len(uzman_satirlari) > 4 and uzman_lh >= 50:
                 font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
@@ -3462,8 +3454,8 @@ def haber_dailybrief_detay_slayti_ciz(
         # 6. EDM Uzman Değerlendirmesi Kartı Çizimi (goster_uzman_notu=True ise)
         if goster_uzman_notu:
             draw.rounded_rectangle([(kenar, uzman_kart_y), (genislik - kenar, uzman_kart_y + uzman_kart_h)], radius=14, fill=(20, 24, 34), outline=(55, 65, 85), width=1)
-            draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 8, uzman_kart_y + uzman_kart_h)], radius=3, fill=RENK_ALTIN)
-            draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_ALTIN)
+            draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 8, uzman_kart_y + uzman_kart_h)], radius=3, fill=RENK_UZMAN_CUBUK)
+            draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_UZMAN_ETIKET)
 
             uy = uzman_kart_y + pad_y + 26 + 14
             for s in uzman_satirlari:

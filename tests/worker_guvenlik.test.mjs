@@ -235,3 +235,34 @@ test("sahte kuyruk ucu artık yok", async () => {
   const c = await worker.fetch(new Request("https://worker.test/api/postedm/kuyruk"), ENV);
   assert.notEqual(c.status, 204);
 });
+
+// --- Haber önerisi (2026-09-24): haber içerik üretmez, öneri düşer ---
+
+test("/haber içerik üretmez, haber önerisi iş akışını tetikler", async () => {
+  await worker.fetch(istek(mesaj("/haber")), ENV);
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].event_type, "haber_oneri");
+});
+
+test("İçeriğe çevir yalnızca sayısal kimlikle ve haber_uret olarak tetiklenir", async () => {
+  await worker.fetch(istek(buton("haber_uret:245")), ENV);
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].event_type, "haber_uret");
+  assert.equal(dispatchler[0].client_payload.haber_id, "245");
+  assert.ok(telegramlar.some((t) => t.yontem === "editMessageReplyMarkup"), "düğmeler kilitlenmedi");
+
+  dispatchler = [];
+  await worker.fetch(istek(buton("haber_uret:245;rm")), ENV);
+  assert.equal(dispatchler.length, 0);
+});
+
+test("Geç düğmesi Actions koşusu harcamaz, yalnızca düğmeleri kaldırır", async () => {
+  await worker.fetch(istek(buton("haber_gec:245")), ENV);
+  assert.equal(dispatchler.length, 0);
+  assert.ok(telegramlar.some((t) => t.yontem === "editMessageReplyMarkup"));
+});
+
+test("izinsiz sohbetten İçeriğe çevir tetiklenmez", async () => {
+  await worker.fetch(istek(buton("haber_uret:245", YABANCI)), ENV);
+  assert.equal(dispatchler.length, 0);
+});

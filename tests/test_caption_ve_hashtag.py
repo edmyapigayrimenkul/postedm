@@ -1,5 +1,5 @@
 """
-tests/test_caption_ve_hashtag.py — Açıklamalara Hook, Soru ve Hashtag Standardı Testleri
+tests/test_caption_ve_hashtag.py — Açıklamalara Hook, Kapanış Çağrısı ve Hashtag Standardı Testleri
 """
 
 import os
@@ -12,114 +12,106 @@ from src import generate_text, telegram_bot
 
 
 class TestCaptionVeHashtag(unittest.TestCase):
+    """2026-09-24 kararı: caption soruyla değil kaydet/gönder çağrısıyla biter,
+    site ve telefon satırı taşır, genel etiket (#Gayrimenkul, #Yatırım) yerine
+    konunun kendi terimini etiketler."""
+
     def test_caption_zenginlestir_temel(self):
-        """Düz bir metne kanca, etkileşim sorusu ve hashtagler eklenmeli."""
         duz_metin = (
             "Hisseli tapularda diğer ortakların yasal ön alım hakkı vardır. "
-            "Noterden feragatname almadan yapılan satışlarda ortaklar tapu bedeli üzerinden hisseyi geri alabilir."
+            "Noterden feragatname almadan yapılan satışlarda ortaklar hisseyi alıcıdan alabilir."
         )
         zengin = generate_text.caption_zenginlestir(duz_metin, kategori_kodu="TAPU_VE_HUKUK", platform="instagram")
 
-        # 1. Kanca ilk satırda olmalı
         satirlar = [s.strip() for s in zengin.split("\n") if s.strip()]
-        self.assertTrue(len(satirlar) >= 3)
         self.assertIn("Hisseli tapularda", satirlar[0])
+        self.assertNotIn("?", zengin)
+        self.assertIn("Hisseli tapusu olan birine gönderin.", zengin)
+        self.assertIn("edmyapigayrimenkul.com", zengin)
+        self.assertIn("0536 343 41 97", zengin)
 
-        # 2. Soru işareti (?) bulunmalı
-        self.assertIn("?", zengin)
-        self.assertTrue(any("?" in s for s in satirlar))
-
-        # 3. Hashtag bloğu ve marka etiketleri bulunmalı (azami 5 adet)
         import re
         etiketler = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", zengin)
         self.assertLessEqual(len(etiketler), 5)
-        self.assertIn("#EDMYapıGayrimenkul", zengin)
-        self.assertIn("#Silivri", zengin)
-        self.assertIn("#Gayrimenkul", zengin)
+        self.assertIn("#EDMYapıGayrimenkul", etiketler)
+        self.assertIn("#Silivri", etiketler)
+        self.assertIn("#HisseliTapu", etiketler)
+        self.assertNotIn("#Gayrimenkul", etiketler)
+        self.assertNotIn("#Yatırım", etiketler)
 
     def test_caption_zenginlestir_idempotent(self):
-        """Zaten zenginleştirilmiş bir metin tekrar işlendiğinde mükerrer soru ve etiket oluşmamalı."""
+        """Yayın anında tekrar çağrılır: soru paragrafı atılır, çağrı/etiket/iletişim tekrarlanmaz."""
         metin = (
-            "Tapuda bu imzayı atlarsanız mülkünüz elinizden gidebilir.\n\n"
-            "Tüm hissedarlardan noter onaylı feragatname almayı unutmayın.\n\n"
+            "Tapuda bu imzayı atlarsanız hissenizi satamayabilirsiniz.\n\n"
+            "Tüm hissedarlardan noter onaylı feragatname isteyin.\n\n"
             "Siz daha önce hisseli tapu alımında benzer bir durum yaşadınız mı? Yorumlarda buluşalım.\n\n"
             "#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Arsa #Yatırım"
         )
-        tekrar = generate_text.caption_zenginlestir(metin, kategori_kodu="TAPU_VE_HUKUK", platform="instagram")
+        bir = generate_text.caption_zenginlestir(metin, kategori_kodu="TAPU_VE_HUKUK", platform="instagram")
+        iki = generate_text.caption_zenginlestir(bir, kategori_kodu="TAPU_VE_HUKUK", platform="instagram")
+        self.assertEqual(bir, iki)
+        self.assertNotIn("?", bir)
+        self.assertEqual(bir.count("gönderin"), 1)
+        self.assertEqual(bir.count("edmyapigayrimenkul.com"), 1)
+        self.assertEqual(bir.count("#EDMYapıGayrimenkul"), 1)
+        self.assertNotIn("#Gayrimenkul ", bir + " ")
 
-        # Soru sayısı 1 olmalı (iki kez soru eklenmemeli)
-        self.assertEqual(tekrar.count("?"), 1)
+    def test_konuya_ozel_cagri_ve_etiketler(self):
+        kira = generate_text.caption_zenginlestir(
+            "Kira kontratında tahliye taahhütnamesinin tarihi boş bırakılırsa geçersiz sayılabilir.",
+            kategori_kodu="EV_SAHIBI_VE_KIRACI")
+        self.assertIn("Kira sözleşmesini yenilemeden önce", kira)
+        self.assertIn("#Tahliye", kira)
 
-        # Hashtag tekilleşmeli
-        self.assertEqual(tekrar.count("#EDMYapıGayrimenkul"), 1)
-        self.assertEqual(tekrar.count("#Silivri"), 1)
+        arsa = generate_text.caption_zenginlestir(
+            "Tarla vasfındaki arazilere imar planı olmadan yapı ruhsatı verilmez.",
+            kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE")
+        self.assertIn("Arsaya bakmaya gideceğiniz gün", arsa)
+        self.assertTrue("#İmarDurumu" in arsa or "#TarlaAlırken" in arsa)
 
-    def test_kategoriye_ozel_soru_ve_hashtagler(self):
-        """Kira, arsa, tapu ve finans kategorilerine göre hedeflenmiş soru ve etiket seçilmeli."""
-        # A. Kira konusu
-        kira_metni = "Kira kontratında tahliye taahhütnamesinin tarihi boş bırakılırsa ne olur."
-        kira_zengin = generate_text.caption_zenginlestir(kira_metni, kategori_kodu="EV_SAHIBI_VE_KIRACI")
-        self.assertIn("?", kira_zengin)
-        self.assertTrue("kira" in kira_zengin.lower() or "tahliye" in kira_zengin.lower())
-        self.assertIn("#KiraSözleşmesi", kira_zengin)
-
-        # B. Arsa / İmar konusu
-        arsa_metni = "Tarla vasfındaki arazilere imar planı olmadan yapı ruhsatı verilmez."
-        arsa_zengin = generate_text.caption_zenginlestir(arsa_metni, kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE")
-        self.assertIn("?", arsa_zengin)
-        self.assertTrue("arsa" in arsa_zengin.lower() or "imar" in arsa_zengin.lower())
-        self.assertTrue("#SilivriArsa" in arsa_zengin or "#İmar" in arsa_zengin)
-
-        # C. Finans konusu
-        finans_metni = "Konut kredisi faiz oranları ve BDDK ekspertiz değer limitleri."
-        finans_zengin = generate_text.caption_zenginlestir(finans_metni, kategori_kodu="FINANS_VE_BANKACILIK")
-        self.assertIn("?", finans_zengin)
-        self.assertTrue("piyasa" in finans_zengin.lower() or "mevduat" in finans_zengin.lower() or "kredi" in finans_zengin.lower())
-        self.assertIn("#KonutKredisi", finans_zengin)
+        finans = generate_text.caption_zenginlestir(
+            "Konut kredisi faiz oranları ve BDDK ekspertiz değer limitleri.",
+            kategori_kodu="FINANS_VE_BANKACILIK")
+        self.assertIn("Kredi başvurusundan önce", finans)
+        self.assertIn("#KonutKredisi", finans)
 
     def test_threads_karakter_limiti(self):
-        """Threads caption'ı 480 karakter bütçesini asla aşmamalı."""
         uzun_metin = (
             "Silivri ve Trakya genelinde arsa yatırımı yaparken tapu kütüğündeki şerhler ve beyanlar hanesini "
-            "mutlaka inceleyin. Parselin üzerinde kamulaştırma, haciz veya ön alım hakkı şerhi bulunabilir. "
+            "inceleyin. Parselin üzerinde kamulaştırma, haciz veya ön alım hakkı şerhi bulunabilir. "
             "Belediyeden 1/1000'lik uygulama imar planı durumunu teyit etmeden kaparo vermeyin veya sözleşme imzalamayın. "
             "Aksi takdirde inşaat izni alamayacağınız bir parsele yüksek bedel ödemiş olursunuz."
         )
-        th_caption = generate_text.caption_zenginlestir(uzun_metin, kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE", platform="threads")
-        self.assertLessEqual(len(th_caption), 480)
-        self.assertIn("?", th_caption)
-        self.assertIn("#", th_caption)
+        th = generate_text.caption_zenginlestir(uzun_metin, kategori_kodu="ARSA_IMAR_VE_TINY_HOUSE", platform="threads")
+        self.assertLessEqual(len(th), 480)
+        self.assertIn("kaydedin", th)
+        self.assertIn("#", th)
+        # Threads tek konu etiketini bağlar: ilk etiket konunun kendisi
+        import re
+        self.assertNotEqual(re.findall(r"#\S+", th)[0], "#Silivri")
 
     def test_tiktok_karakter_limiti(self):
-        """TikTok başlığı 150 karakter bütçesini aşmamalı ve anahtar etiketleri içermeli."""
-        baslik = "Hisseli Tapuda Şufa Tuzağına Düşmemek İçin Yapılması Gerekenler"
-        tt_baslik = generate_text.caption_zenginlestir(baslik, kategori_kodu="TAPU_VE_HUKUK", platform="tiktok")
-        self.assertLessEqual(len(tt_baslik), 150)
-        self.assertIn("#", tt_baslik)
+        baslik = "Hisseli tapuda önalım hakkı nasıl kullanılır"
+        tt = generate_text.caption_zenginlestir(baslik, kategori_kodu="TAPU_VE_HUKUK", platform="tiktok")
+        self.assertLessEqual(len(tt), 150)
+        self.assertIn("#", tt)
 
     def test_captionlari_zenginlestir_sozluk(self):
-        """_captionlari_zenginlestir sözlük içindeki tüm caption alanlarını güncellemelidir."""
         veri = {
-            "manset_parca_1": "Hisseli Tapuda",
-            "manset_vurgu": "ŞUFA TUZAĞI",
-            "manset_parca_2": "İki Yıl Peşinizi Bırakmaz",
+            "manset_parca_1": "Hisseli tapuda",
+            "manset_vurgu": "ÖNALIM HAKKI",
+            "manset_parca_2": "satıştan sonra da kullanılabilir",
             "kategori_kodu": "TAPU_VE_HUKUK",
-            "caption_instagram": "Payınızı diğer ortaklardan habersiz satarsanız şufa davası açılabilir.",
-            "caption_threads": "Hisseli tapuda satış yaparken noter ihtarını unutmayın.",
+            "caption_instagram": "Payınızı diğer ortaklara bildirmeden satarsanız önalım davası açılabilir.",
+            "caption_threads": "Hisseli tapuda satış yaparken noter bildirimini atlamayın.",
         }
-        zengin_veri = generate_text._captionlari_zenginlestir(veri)
-
-        # Instagram zenginleştirilmiş olmalı
-        self.assertIn("?", zengin_veri["caption_instagram"])
-        self.assertIn("#EDMYapıGayrimenkul", zengin_veri["caption_instagram"])
-
-        # Facebook otomatik türetilmiş veya zenginleştirilmiş olmalı
-        self.assertIn("caption_facebook", zengin_veri)
-        self.assertIn("?", zengin_veri["caption_facebook"])
-
-        # Threads <= 480 olmalı
-        self.assertLessEqual(len(zengin_veri["caption_threads"]), 480)
-        self.assertIn("#", zengin_veri["caption_threads"])
+        zengin = generate_text._captionlari_zenginlestir(veri)
+        self.assertNotIn("?", zengin["caption_instagram"])
+        self.assertIn("#EDMYapıGayrimenkul", zengin["caption_instagram"])
+        self.assertIn("caption_facebook", zengin)
+        self.assertIn("gönderin", zengin["caption_facebook"])
+        self.assertLessEqual(len(zengin["caption_threads"]), 480)
+        self.assertIn("#", zengin["caption_threads"])
 
     def test_tum_platformlarda_azami_bes_hashtag(self):
         """Instagram, Facebook, Threads, TikTok ve YouTube'da azami hashtag sayısı 5'i geçemez."""
@@ -149,7 +141,7 @@ class TestCaptionVeHashtag(unittest.TestCase):
         self.assertLessEqual(len(tt_tags), 5, f"TikTok'ta 5'ten fazla etiket var: {tt_tags}")
 
         # 5. YouTube Shorts İmzası
-        yt_imza = "\n\n#Shorts #Emlak #Gayrimenkul #Silivri #Yatırım"
+        yt_imza = "\n\n#Shorts #Silivri #EDMYapıGayrimenkul"
         yt_tags = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", yt_imza)
         self.assertLessEqual(len(yt_tags), 5, f"YouTube'da 5'ten fazla etiket var: {yt_tags}")
 

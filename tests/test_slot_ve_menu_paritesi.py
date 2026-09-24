@@ -37,41 +37,30 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_bilgilendirici_format_rotasyonu(self):
-        """Slot 1 bilgilendirici rotasyonu her gün sırayla döner."""
-        # 1. Başlangıçta ilk format nedir_dogrusu olmalı
-        ilk = konu_bankasi.siradaki_bilgilendirici_format()
-        self.assertEqual(ilk, "nedir_dogrusu")
+        """Günün tek içeriği altı günlük döngüde döner; B1 iki kez, sözlük bir kez."""
+        beklenen = ["b1", "nedir_dogrusu", "net_cevap", "b1", "vaka", "sozluk", "b1"]
+        gorulen = []
+        for _ in beklenen:
+            f = konu_bankasi.siradaki_bilgilendirici_format()
+            gorulen.append(f)
+            konu_bankasi.bilgilendirici_format_kaydet(f)
+        self.assertEqual(gorulen, beklenen)
 
-        # 2. nedir_dogrusu kaydedildikten sonra vaka gelmeli
-        konu_bankasi.bilgilendirici_format_kaydet("nedir_dogrusu")
-        ikinci = konu_bankasi.siradaki_bilgilendirici_format()
-        self.assertEqual(ikinci, "vaka")
-
-        # 3. vaka sonrası net_cevap gelmeli
-        konu_bankasi.bilgilendirici_format_kaydet("vaka")
-        ucuncu = konu_bankasi.siradaki_bilgilendirici_format()
-        self.assertEqual(ucuncu, "net_cevap")
-
-        # 4. net_cevap sonrası b1 gelmeli
-        konu_bankasi.bilgilendirici_format_kaydet("net_cevap")
-        dorduncu = konu_bankasi.siradaki_bilgilendirici_format()
-        self.assertEqual(dorduncu, "b1")
-
-        # 5. b1 sonrası tekrar nedir_dogrusu'na dönmeli
-        konu_bankasi.bilgilendirici_format_kaydet("b1")
-        besinci = konu_bankasi.siradaki_bilgilendirici_format()
-        self.assertEqual(besinci, "nedir_dogrusu")
+    def test_eski_kayittan_rotasyon_devam_eder(self):
+        """Üretimdeki eski anahtar (yalnızca format adı) döngüyü bozmadan devralınır."""
+        db.ayar_yaz("son_bilgilendirici_format", "net_cevap")
+        self.assertEqual(konu_bankasi.siradaki_bilgilendirici_format(), "b1")
 
     @patch("src.telegram_bot.hizli_icerik_uret")
     def test_slot_bilgilendirici_rotasyonu_calisir(self, mock_hizli):
-        """Slot 1 çağrıldığında rotasyondaki formatı üretmeli ve formatı kaydetmeli."""
+        """Günün içeriği döngüdeki formatı üretmeli ve sırayı kaydetmeli."""
         mock_hizli.return_value = True
-        konu_bankasi.bilgilendirici_format_kaydet("nedir_dogrusu")
+        konu_bankasi.bilgilendirici_format_kaydet("b1")  # sıra 0
 
         res = telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
         self.assertTrue(res)
-        mock_hizli.assert_called_once_with(format_turu="vaka")
-        self.assertEqual(db.ayar_oku("son_bilgilendirici_format"), "vaka")
+        mock_hizli.assert_called_once_with(format_turu="nedir_dogrusu")
+        self.assertEqual(db.ayar_oku("son_bilgilendirici_format"), "nedir_dogrusu")
 
     @patch("src.telegram_bot.hizli_icerik_uret")
     def test_slot_sozluk_calisir(self, mock_hizli):
@@ -81,17 +70,44 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.assertTrue(res)
         mock_hizli.assert_called_once_with(format_turu="sozluk")
 
+    @patch("src.telegram_bot.mesaj_gonder", return_value={"message_id": 1})
     @patch("src.fetch_news.rss_tara", return_value=[])
     @patch("src.telegram_bot.hizli_icerik_uret")
-    def test_slot_haber_fallback_yapar(self, mock_hizli, mock_rss):
-        """Slot 3'te triyajı geçen haber yoksa otomatik olarak bilgilendirici rotasyona fallback yapmalı."""
-        mock_hizli.return_value = True
-        konu_bankasi.bilgilendirici_format_kaydet("b1")
+    def test_slot_haber_icerik_uretmez_oneri_duser(self, mock_hizli, mock_rss, mock_mesaj):
+        """Haber slotu içerik üretmez (içerik günde bir); taze haberi tarihiyle öneri olarak düşürür."""
+        from datetime import datetime, timedelta, timezone
+        taze = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+        bayat = (datetime.now(timezone.utc) - timedelta(hours=60)).isoformat()
+        with db._baglanti_al() as conn:
+            for url, puan, tarih, kat in (("https://ornek.com/a", 9, taze, "S1"),
+                                           ("https://ornek.com/b", 5, taze, "S1"),
+                                           ("https://ornek.com/c", 9, bayat, "S1"),
+                                           ("https://ornek.com/d", 9, taze, "rehber")):
+                conn.execute(
+                    "INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, yayin_tarihi,"
+                    " eklenme_tarihi, onem_puani, kategori, durum) VALUES (?,?,?,?,?,?,?,?, 'yeni')",
+                    ("Emlakkulisi", f"Başlık {url[-1]}", url, "Özet", tarih, taze, puan, kat),
+                )
+            conn.commit()
 
         res = telegram_bot.slot_icerigi_hazirla_ve_sun(slot="haber")
         self.assertTrue(res)
-        mock_hizli.assert_called_once_with(format_turu="nedir_dogrusu")
-        self.assertEqual(db.ayar_oku("son_bilgilendirici_format"), "nedir_dogrusu")
+        mock_hizli.assert_not_called()
+        gonderilen = [c.args[0] for c in mock_mesaj.call_args_list]
+        self.assertEqual(len(gonderilen), 1, gonderilen)
+        self.assertIn("Başlık a", gonderilen[0])
+        self.assertIn("🗓", gonderilen[0])
+        self.assertIn("saat önce", gonderilen[0])
+        klavye = mock_mesaj.call_args_list[0].kwargs["reply_markup"]["inline_keyboard"][0]
+        self.assertEqual([b["callback_data"].split(":")[0] for b in klavye], ["haber_uret", "haber_gec"])
+        with db._baglanti_al() as conn:
+            durum = conn.execute("SELECT durum FROM haberler WHERE orijinal_url = 'https://ornek.com/a'").fetchone()[0]
+        self.assertEqual(durum, "onerildi")
+
+        # İkinci turda aynı haber tekrar önerilmez
+        mock_mesaj.reset_mock()
+        telegram_bot.slot_icerigi_hazirla_ve_sun(slot="haber")
+        self.assertFalse(any("Başlık a" in c.args[0] for c in mock_mesaj.call_args_list))
 
     def test_ana_menu_ve_kontrol_paneli_tuslari(self):
         """Instabot buton paritesi doğrulanmalı: kanallar, formatlar ve kontroller."""

@@ -931,7 +931,7 @@ def slayt_secim_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None
         ],
         [
             {"text": "⚖️ Nedir Doğrusu?", "callback_data": "format_uygula:nedir_dogrusu"},
-            {"text": "📂 Vaka Analizi", "callback_data": "format_uygula:vaka"},
+            {"text": "📂 Örnek Olay", "callback_data": "format_uygula:vaka"},
         ],
         [
             {"text": "❓ Net Cevap", "callback_data": "format_uygula:net_cevap"},
@@ -1009,7 +1009,7 @@ def format_secim_menusu(haber_id: int) -> Dict[str, Any]:
             ],
             [
                 {"text": "⚖️ Nedir Doğrusu?", "callback_data": f"format_uygula:nedir_dogrusu:{haber_id}"},
-                {"text": "📂 Vaka Analizi", "callback_data": f"format_uygula:vaka:{haber_id}"},
+                {"text": "📂 Örnek Olay", "callback_data": f"format_uygula:vaka:{haber_id}"},
             ],
             [
                 {"text": "❓ Net Cevap", "callback_data": f"format_uygula:net_cevap:{haber_id}"},
@@ -1043,7 +1043,7 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
                 {"text": "⚖️ Nedir Doğrusu?", "callback_data": "hizli_uret:nedir_dogrusu"},
             ],
             [
-                {"text": "📂 Vaka Analizi", "callback_data": "hizli_uret:vaka"},
+                {"text": "📂 Örnek Olay", "callback_data": "hizli_uret:vaka"},
                 {"text": "❓ Net Cevap", "callback_data": "hizli_uret:net_cevap"},
             ],
             [
@@ -1393,8 +1393,80 @@ def komut_menusu_kaydet() -> bool:
 # =========================================================================
 
 
+def _denetim_verisi(haber: Dict[str, Any], otorite_verisi: Any) -> Dict[str, Any]:
+    """Denetlenecek içerik: görsel verisi + YAYINLANACAK caption'lar.
+
+    Caption DB'den okunur; elle düzenlenmiş olabilir ve yayına giden odur.
+    """
+    veri = dict(otorite_verisi) if isinstance(otorite_verisi, dict) else {
+        "manset": haber.get("manset") or haber.get("orijinal_baslik") or "",
+        "spot": haber.get("orijinal_ozet") or "",
+    }
+    if haber.get("ig_caption"):
+        veri["caption_instagram"] = haber["ig_caption"]
+    if haber.get("threads_metin"):
+        veri["caption_threads"] = haber["threads_metin"]
+    return veri
+
+
+def yayin_kapisi(haber_id: int, haber: Dict[str, Any], veri: Dict[str, Any],
+                 durum_yaz: bool = True) -> Tuple[bool, List[str]]:
+    """Kritik bulgu varsa içeriği durdurur. Döner: (geçti_mi, uyarılar).
+
+    Kapı KAPALI başarısız olur: denetim çalışamazsa içerik de sunulmaz.
+    Yalan bilgiye müsamaha yok (2026-09-24). `durum_yaz=False`: içerik bazı
+    kanallarda zaten yayındaysa durumu ezilmez, yalnızca yeni kanala gitmez.
+    """
+    from . import dogrula
+    try:
+        uyarilar = dogrula.icerigi_denetle(veri, haber)
+    except Exception as e:
+        log.exception("Denetim çalıştırılamadı (#%s)", haber_id)
+        uyarilar = [f"⛔ DENETİM ÇALIŞMADI: {type(e).__name__} — denetlenmemiş içerik sunulmaz."]
+    if not dogrula.kritik_var(uyarilar):
+        return True, uyarilar
+    log.warning("İçerik #%s yayın kapısında durdu: %s", haber_id, "; ".join(uyarilar))
+    if durum_yaz:
+        db.haber_guncelle(haber_id, durum="engellendi")
+    mesaj_gonder(
+        dogrula.yayin_engeli_metni(haber_id, uyarilar),
+        reply_markup={"inline_keyboard": [[
+            {"text": "🔄 Sıradaki konudan üret", "callback_data": "hizli_uret:rotasyon"},
+        ]]},
+    )
+    try:
+        from . import db_senkron
+        db_senkron.hemen_kaydet(f"db: icerik #{haber_id} denetimde durduruldu")
+    except Exception as e:
+        log.warning("Hemen kaydetme adımı atlandı: %s", e)
+    return False, uyarilar
+
+
+def _eksik_icerik_bildir(haber_id: Optional[int], hata: Exception) -> None:
+    if haber_id:
+        db.haber_guncelle(haber_id, durum="engellendi")
+    mesaj_gonder(
+        f"🛑 <b>İçerik{f' #{haber_id}' if haber_id else ''} durduruldu:</b> {html.escape(str(hata))}.\n"
+        "<i>Model formatın zorunlu alanını üretmedi. Boş alan koddaki genel bir "
+        "cümleyle doldurulmaz — o yol #157'de alakasız bir 'Yargıtay hükmü' yayınlatmıştı.</i>",
+        reply_markup={"inline_keyboard": [[
+            {"text": "🔄 Sıradaki konudan üret", "callback_data": "hizli_uret:rotasyon"},
+        ]]},
+    )
+
+
 def haber_onayina_sun(haber_id: int) -> bool:
     """Haberin görselini ve metnini hazırlayıp Telegram onayına sunar."""
+    from . import yeni_formatlar
+    try:
+        return _haber_onayina_sun(haber_id)
+    except yeni_formatlar.EksikIcerik as e:
+        log.warning("İçerik #%s eksik alan yüzünden durdu: %s", haber_id, e)
+        _eksik_icerik_bildir(haber_id, e)
+        return False
+
+
+def _haber_onayina_sun(haber_id: int) -> bool:
     haber = db.haber_getir(haber_id)
     if not haber:
         return False
@@ -1427,6 +1499,12 @@ def haber_onayina_sun(haber_id: int) -> bool:
     format_turu = None
     if otorite_verisi and isinstance(otorite_verisi, dict):
         format_turu = otorite_verisi.get("format_turu")
+
+    # YAYIN KAPISI — slayt ve video üretiminden ÖNCE: durdurulacak içerik için
+    # görsel üretmek boşa dakika.
+    gecti, uyarilar = yayin_kapisi(haber_id, haber, _denetim_verisi(haber, otorite_verisi))
+    if not gecti:
+        return False
 
     if not slayt_yollari:
         from . import yeni_formatlar, make_image
@@ -1497,19 +1575,11 @@ def haber_onayina_sun(haber_id: int) -> bool:
     # 3. Medya albümü gönder
     caption_ozeti = (haber.get("ig_caption") or "")[:350]
 
-    # Yayın öncesi denetim. Otomatik eleme yapmıyor; onaylayan kişiye
-    # "şuna bir daha bak" diyor. En kritik denetim uydurma kanun maddesi:
-    # gerçek bir emlak ofisinin hesabında bu ciddi bir sorumluluk.
-    denetim_basligi = ""
-    if otorite_verisi and isinstance(otorite_verisi, dict):
-        try:
-            from . import dogrula
-            uyarilar = dogrula.icerigi_denetle(otorite_verisi, haber)
-            denetim_basligi = dogrula.uyari_basligi(uyarilar)
-            if uyarilar:
-                log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
-        except Exception as e:
-            log.warning("Denetim çalıştırılamadı: %s", e)
+    # Kapıdan geçen içeriğin kritik olmayan uyarıları onaylayana gösterilir
+    from . import dogrula
+    denetim_basligi = dogrula.uyari_basligi(uyarilar)
+    if uyarilar:
+        log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
 
     # Format bazlı başlık belirleme
     is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (not otorite_verisi)
@@ -1652,50 +1722,27 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
 
 
 def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici") -> bool:
-    """Günlük 3 slot akışına göre içerik hazırlar ve onaya sunar:
-    - 'bilgilendirici' (Slot 1 - Sabah 10:00 TR): nedir_dogrusu -> vaka -> net_cevap -> b1 rotasyonu
-    - 'sozluk' (Slot 2 - Öğle 13:30 TR): EDM Emlak Sözlüğü
-    - 'haber' (Slot 3 - Akşam 18:30 TR): Taze sektörel haber; haber yoksa sıradaki bilgilendiriciye fallback
+    """Günün içeriği ve elle tetiklenen slotlar.
+
+    - 'bilgilendirici': GÜNÜN TEK İÇERİĞİ (10:00 TR). Format altı günlük döngüde
+      döner (konu_bankasi.BILGILENDIRICI_FORMATLAR).
+    - 'sozluk': elle istenen sözlük içeriği.
+    - 'haber': içerik ÜRETMEZ; taze haberleri tarihleriyle öneri olarak düşürür
+      (haber_oneri). Hangisinin içeriğe çevrileceğine insan karar verir.
     """
     slot = (slot or "bilgilendirici").lower()
 
     if slot == "sozluk":
-        log.info("Slot 2 (Sözlük) hazırlanıyor...")
+        log.info("Sözlük içeriği hazırlanıyor...")
         return hizli_icerik_uret(format_turu="sozluk")
 
     if slot == "haber":
-        log.info("Slot 3 (Haber & Gündem) taranıyor...")
-        from . import fetch_news, haber_triyaj
-        fetch_news.rss_tara()
+        from . import haber_oneri
+        haber_oneri.onerileri_gonder(tara=True, bos_ise_bildir=True)
+        return True
 
-        adaylar = []
-        for h in db.bekleyen_haberleri_getir(limit=20):
-            if (h.get("kategori") or "") == "rehber":
-                continue
-            yas = fetch_news._saat_farki_saat(h.get("yayin_tarihi") or "")
-            if yas > 72:
-                db.haber_guncelle(h["id"], durum="elendi")
-                continue
-            if h.get("onem_puani", 0) < 9:
-                continue
-            adaylar.append(h)
-            if len(adaylar) >= 6:
-                break
-
-        for aday in adaylar:
-            brief = haber_triyaj.triyaj_et(aday, asgari_guven=7)
-            if brief:
-                log.info("Taze haber bulundu ve triyajı geçti: %s", aday["orijinal_baslik"][:60])
-                return haberden_icerik_hazirla(aday, brief)
-            else:
-                db.haber_guncelle(aday["id"], durum="elendi")
-
-        log.info("Triyajı geçen taze haber bulunamadı. Kullanıcı kuralı uyarınca sıradaki bilgilendirici formata fallback yapılıyor...")
-        return slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
-
-    # Slot 1: Bilgilendirici rotasyon (nedir_dogrusu -> vaka -> net_cevap -> b1)
     secilen_format = konu_bankasi.siradaki_bilgilendirici_format()
-    log.info("Slot 1 (Bilgilendirici) rotasyon formatı: %s", secilen_format)
+    log.info("Günün içeriği — döngüdeki format: %s", secilen_format)
     if secilen_format == "b1":
         basarili = konu_bankasindan_hazirla()
     else:
@@ -1720,7 +1767,7 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
     etiketler = {
         "sozluk": "📖 EDM Gayrimenkul Sözlüğü",
         "nedir_dogrusu": "⚖️ Nedir Doğrusu?",
-        "vaka": "📂 Hukuki Vaka Analizi",
+        "vaka": "📂 Örnek Olay",
         "net_cevap": "❓ Net Cevap Rehberi",
     }
     format_etiketi = etiketler.get(format_turu or "", "Otorite İçeriği")
@@ -1769,6 +1816,17 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
 
 
 def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
+    """Konu bankasından dikey Reels videosu üretip onaya sunar (bkz. _reels_hazirla_ve_sun)."""
+    from . import yeni_formatlar
+    try:
+        return _reels_hazirla_ve_sun(konu_kodu)
+    except yeni_formatlar.EksikIcerik as e:
+        log.warning("Reels eksik alan yüzünden durdu: %s", e)
+        _eksik_icerik_bildir(None, e)
+        return False
+
+
+def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     """
     Konu bankasından sıradaki konudan 9:16 dikey MP4 Reels videosu üretir,
     videoyu Telegram grubuna gönderir, kopyalanabilir açıklama metnini iletir
@@ -1853,6 +1911,13 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
 
     konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
 
+    # Reels yolu yayın öncesi denetimden hiç geçmiyordu (#68 bu yoldan çıktı).
+    # Artık aynı kapıdan geçiyor: kritik bulguda video gruba hiç düşmez.
+    from . import dogrula
+    gecti, uyarilar = yayin_kapisi(haber_id, db.haber_getir(haber_id) or {}, veri)
+    if not gecti:
+        return False
+
     # 1. HER ZAMAN ÖNCE VİDEO DÜŞER: 1080x1920 MP4 Dikey Video Gönder
     video_gonderildi = False
     if v_yolu and v_yolu.exists():
@@ -1882,13 +1947,7 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         manset=konu["baslik"],
     )
     temiz_caption = html_lib.escape(caption_metin.strip())
-    # Reels yolu yayın öncesi denetimden hiç geçmiyordu (#68 bu yoldan çıktı).
-    denetim_basligi = ""
-    try:
-        from . import dogrula
-        denetim_basligi = dogrula.uyari_basligi(dogrula.icerigi_denetle(veri))
-    except Exception as e:
-        log.warning("Reels denetimi çalıştırılamadı: %s", e)
+    denetim_basligi = dogrula.uyari_basligi(uyarilar)
     mesaj_metni = denetim_basligi + (
         f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR (#{haber_id})</b>\n\n"
         f"📌 <b>Başlık:</b> {konu['baslik']}\n"

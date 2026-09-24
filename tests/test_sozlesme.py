@@ -408,21 +408,21 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             )
 
     def test_cron_takvimle_uyumlu(self) -> None:
-        """Tetikleme sıklığı içerik takvimiyle örtüşmeli (Haftanın 7 günü Post + Reels)."""
+        """Günde TEK içerik (10:00 TR); haberler ayrı iş akışında öneri olarak (2026-09-24 kararı)."""
         import yaml as _yaml
 
         w = _yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         cronlar = [c["cron"] for c in w[True]["schedule"]]
-        gunluk_post = any("0 7 * * *" in c for c in cronlar)
-        gunluk_reels = any("30 15 * * *" in c for c in cronlar)
-        self.assertTrue(
-            gunluk_post,
-            f"Sabah günlük post tetikleyicisi yok: {cronlar}. Takvim her gün sabah 10:00 TR (07:00 UTC) öngörüyor.",
+        gunluk = [c for c in cronlar if c.strip().endswith("* * *")]
+        self.assertEqual(
+            gunluk, ["0 7 * * *"],
+            f"Günlük içerik tetikleyicisi tek olmalı (10:00 TR = 07:00 UTC): {cronlar}",
         )
-        self.assertTrue(
-            gunluk_reels,
-            f"Akşam günlük Reels tetikleyicisi yok: {cronlar}. Takvim her gün akşam 18:30 TR (15:30 UTC) öngörüyor.",
-        )
+
+        h = _yaml.safe_load((KOK / ".github/workflows/haber-oneri.yml").read_text(encoding="utf-8"))
+        self.assertTrue(h[True]["schedule"], "Haber önerisi zamanlanmamış")
+        self.assertIn("haber_oneri", h[True]["repository_dispatch"]["types"])
+        self.assertIn("--haber-oneri", (KOK / ".github/workflows/haber-oneri.yml").read_text(encoding="utf-8"))
 
     def test_konu_bankasi_takvimi_workflow_gunleriyle_ortusuyor(self) -> None:
         """TAKVIM'de tanımlı her gün için takvim eşleştirmesi olmalı (7 gün)."""
@@ -621,6 +621,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
 
         sahte_haber = {
             "id": 88,
+            "kaynak": "EDM Konu Bankası // S1-001",  # kaynaksız kayıt artık yayın kapısında durur
             "manset": "Test Manşet Başlığı",
             "ig_caption": "Bu bir test caption metnidir. #gayrimenkul",
             "orijinal_baslik": "Orijinal Başlık",
