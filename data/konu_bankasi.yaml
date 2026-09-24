@@ -14,6 +14,9 @@
 #   kanca_kalip ICERIK-SISTEMI.md §6'daki kalıplardan biri
 #   mevzuat     Yalnızca doğrulanmış madde. Emin değilsek null — model de uydurmaz
 #   yerel       Silivri/Trakya bağı. Zorlama olacaksa null
+#   mevzuat_kontrol  Brief'in güncel kanun metniyle son karşılaştırıldığı tarih
+#   engel       Doluysa konu üretime ALINMAZ (dayanağı doğrulanamadı vb.) — gerekçe yazılır
+#   Denetim: python scripts/mevzuat_denetim.py (haftalık iş akışı da çalıştırır)
 # =========================================================
 
 konular:
@@ -26,28 +29,31 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Hisseli tapuda önalım (şufa) davası"
-    aci: "Paydaşlardan birinden hisse alan kişi, diğer paydaşlar noterden bildirim almadıysa iki yıl boyunca o hisseyi kaybetme riski taşır. Alıcıların büyük çoğunluğu bu riski hiç duymamıştır."
+    aci: "Hisseli taşınmazda bir paydaş payını satarsa diğer paydaşlar önalım hakkını kullanabilir. Satış noterle bildirildiyse bildirimden itibaren üç ay, her hâlde satıştan itibaren bir yıl içinde dava açılabilir. 7571 sayılı Kanunla (24/12/2025) üst süre kısaltıldı ve payın bedelini artık tapudaki rakam değil hâkimin belirlediği rayiç değer belirliyor. İnternetteki içeriğin çoğu eski kuralla yazılmış."
     kanca_kalip: sure
-    mevzuat: "Türk Medeni Kanunu md. 732-733"
+    mevzuat: "Türk Medeni Kanunu md. 732-734"
     yerel: "Trakya'da tarla ve bağ-bahçe tapularının önemli bölümü hisseli"
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-002
     sutun: S1
     bicim: B1
     baslik: "Tapuda satış bedelini düşük göstermek"
-    aci: "Harç kaçırmak için düşük beyan, önalım davasında mülkü o düşük bedelle kaybetmek demek. Vergi cezasından çok daha büyük bir risk ve kimse bunu söylemiyor."
+    aci: "Harç kaçırmak için bedeli düşük göstermek önalımda da işe yaramıyor: 7571 sayılı Kanundan (24/12/2025) beri önalımda payın bedelini hâkim rayiç değer olarak belirliyor. Asıl sonuç vergisel: tapu harcı beyan edilen bedel üzerinden alınır ve emlak vergisi değerinden az olamaz; eksik beyan vergi ziyaı cezası ve gecikme faiziyle geri döner, zamanaşımı beş yıl."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Harçlar Kanunu md. 63, Vergi Usul Kanunu md. 114 ve 344, Türk Medeni Kanunu md. 734"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-003
     sutun: S1
     bicim: B3
     baslik: "Kaparo geri alınır mı"
-    aci: "Kaparo ile pey akçesi farklı şeyler. Alıcı vazgeçerse kaybeder, satıcı vazgeçerse iki katını öder — ama bu yalnızca yazılı ve şartları belirtilmiş sözleşmede geçerli. Sözlü kaparonun ispatı yok."
+    aci: "Kaparo kanunda 'bağlanma parası'dır: sözleşmenin yapıldığını gösterir, aksi kararlaştırılmadıkça bedelden düşülür. 'Vazgeçen kaybeder, alan iki katını öder' kuralı yalnızca açıkça kararlaştırılmış cayma parası için geçerli. Taşınmaz satış vaadi de ancak resmî şekilde (noterde düzenleme) geçerli; adi protokole güvenen alıcı korunmaz."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 177, 178 ve 237"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-004
     sutun: S1
@@ -71,10 +77,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Aile konutu şerhi"
-    aci: "Eşin rızası olmadan aile konutu satılamaz. Şerh yoksa bile eş dava açıp satışı iptal ettirebilir. Alıcı için bu, tapuyu aldıktan sonra kaybetmek anlamına gelir."
+    aci: "Eşin açık rızası olmadan aile konutu devredilemez. Tapuda şerh olmasa da diğer eş satışa karşı dava açabilir; alıcının durumu iyi niyetine göre değerlendirilir. Alıcı için güvenli yol, satıcının medeni durumunu ve konutun aile konutu olup olmadığını baştan netleştirip eşin açık rızasını almak."
     kanca_kalip: eksik_imza
     mevzuat: "Türk Medeni Kanunu md. 194"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-007
     sutun: S1
@@ -98,10 +105,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Kat irtifakı ile kat mülkiyeti farkı"
-    aci: "Kat irtifaklı tapu, binanın henüz yasal olarak bitmediği anlamına gelir. Kredi çekmede, satışta ve iskân alınamamışsa yıkım riskinde doğrudan sonuç doğurur."
+    aci: "Kat irtifakı, yapı henüz tamamlanmadan ya da yapı kullanma izni (iskân) alınmadan önceki aşamanın tapusudur; kat mülkiyetine geçiş iskânla olur. İskânı olmayan bina kredi ve satışta sorun çıkarır; ruhsat ve projeye aykırılık varsa ayrıca imar yaptırımları gündeme gelir."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "Kat Mülkiyeti Kanunu (634 sayılı)"
+    mevzuat: "Kat Mülkiyeti Kanunu md. 14"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-010
     sutun: S1
@@ -134,10 +142,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Zilyetlikle tapu kazanma"
-    aci: "Tapusuz taşınmazda yirmi yıl davasız ve aralıksız zilyetlik tescil hakkı doğurabilir — ama tarım arazilerinde ve hazine arazisinde şartlar çok dar. Köy yerinde en çok yanlış bilinen konu."
+    aci: "Tapuda kayıtlı olmayan bir taşınmazı yirmi yıl davasız, aralıksız ve malik sıfatıyla kullanan kişi tescil davası açabilir; dava Hazine'ye ve ilgili kamu tüzel kişilerine karşı açılır. Mera, orman, kıyı gibi özel kanunlarla korunan yerlerde bu yol işlemez. Köy yerinde en çok yanlış bilinen konu."
     kanca_kalip: sure
     mevzuat: "Türk Medeni Kanunu md. 713"
     yerel: "Trakya köylerinde tapusuz kullanım yaygın"
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-014
     sutun: S1
@@ -152,10 +161,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Kentsel dönüşümde uzlaşmazsanız"
-    aci: "Üçte iki çoğunluk karar alırsa katılmayan malikin hissesi açık artırmaya çıkarılabilir. Değerleme raporuna itiraz süresi kaçırılırsa geri dönüş yok."
+    aci: "Riskli yapıda karar, hisseleri oranında paydaşların salt çoğunluğuyla alınır; eski, daha yüksek çoğunluk kuralı yürürlükte değil. Karar ve teklif, katılmayan maliklere noter ya da muhtarlıkta on beş günlük ilanla bildirilir. Karara katılmayanların payları Başkanlıkça belirlenen rayiç değerden az olmamak üzere anlaşan paydaşlara açık artırmayla satılır."
     kanca_kalip: sure
-    mevzuat: "6306 sayılı Kanun"
+    mevzuat: "6306 sayılı Kanun md. 6"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   # ---------------------------------------------------------
   # S2 — KİRACI & EV SAHİBİ  (paylaştırır)
@@ -311,8 +321,9 @@ konular:
     baslik: "Kiracının önalım hakkı var mı"
     aci: "Yok. Kiracının, oturduğu evi satın almada yasal önceliği bulunmuyor. En yaygın kira efsanelerinden biri."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Türk Medeni Kanunu md. 732"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-017
     sutun: S2
@@ -394,10 +405,11 @@ konular:
     sutun: S3
     bicim: B3
     baslik: "Tarım arazisi bölünebilir mi"
-    aci: "Tarım arazileri asgari parsel büyüklüğünün altına bölünemez. Bu yüzden hisseli satılıyor — ve hisseli tarla almak paydaşlığa girmek demek."
+    aci: "Tarım arazileri Bakanlığın belirlediği asgari büyüklüğün altında ifraz edilemez, hisselendirilemez; pay ve paydaş sayısı da artırılamaz. 'Bölünemiyorsa hisseli satarız' yolu kanunen kapalı — hisseli tarla ilanında tapu işleminin yapılıp yapılamayacağı baştan sorgulanmalı."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu"
+    mevzuat: "5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu md. 8"
     yerel: "Trakya'daki hisseli tarla ilanlarının sebebi"
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-006
     sutun: S3
@@ -621,10 +633,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Ecrimisil davası: Hissedarlar arası haksız işgal"
-    aci: "Miras kalan evi veya tarlayı kardeşlerden biri tek başına kullanıyorsa, diğer hissedarlar noterden ihtarname çekerek geriye dönük 5 yıllık haksız işgal tazminatı (ecrimisil) talep edebilir."
+    aci: "Miras kalan evi veya tarlayı kardeşlerden biri tek başına kullanıyorsa, diğer hissedarlar haksız işgal tazminatı (ecrimisil) talep edebilir. Geriye dönük istenebilecek dönem kanun maddesinde değil Yargıtay içtihadında sınırlandırılmıştır; bu yüzden içerikte süre verilmeden önce içtihat teyit edilmeli."
     kanca_kalip: sure
     mevzuat: "Türk Medeni Kanunu md. 995"
     yerel: "Trakya'da hisseli tarla ve aile apartmanlarında en sık açılan dava"
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-020
     sutun: S1
@@ -679,10 +692,11 @@ konular:
     sutun: S2
     bicim: B3
     baslik: "Kiralanan taşınmazın çatılı işyeri olması durumu"
-    aci: "İşyeri kiralarında tacir ve tüzel kişi kiracılar için sözleşme serbestisi vardır, konut korumalarının tamamı geçerli değildir. Depozito ve erken tahliye kuralları tamamen sözleşmeye tabidir."
+    aci: "Yaygın yanılgı: 'İşyerinde, özellikle tacir kiracıda sözleşme serbestisi var, konut korumaları işlemez.' Bu istisna 1 Temmuz 2020'de sona erdi. Bugün çatılı işyeri kiralarında tacir kiracı da üç aylık güvence sınırı, kira artış sınırı ve ceza koşulu yasağıyla korunuyor."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "Türk Borçlar Kanunu md. 339"
+    mevzuat: "Türk Borçlar Kanunu md. 339, 342, 344 ve 346"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-023
     sutun: S2
@@ -697,10 +711,11 @@ konular:
     sutun: S2
     bicim: B1
     baslik: "Kira ödenmediğinde 30 günlük noter ihtarı ve temerrüt tahliyesi"
-    aci: "Kiracı kirayı 1 gün bile geciktirse noterden çekilecek ihtarla 30 gün süre verilir. Bu 30 gün içinde ödeme yapılmazsa ev sahibi tahliye davası açarak kesin tahliye kararı alabilir."
+    aci: "Kiracı kirayı geciktirdiğinde ev sahibi yazılı bildirimle en az otuz gün süre verir; süre bildirimin yapıldığı tarihi izleyen günden başlar. Bu sürede ödeme yapılmazsa sözleşme feshedilip tahliye istenebilir; süre dolmadan açılan dava reddedilir."
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 315"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-025
     sutun: S2
@@ -791,10 +806,11 @@ konular:
     sutun: S3
     bicim: B1
     baslik: "İmar Kanunu 18. madde (şuyulandırma) uygulamasına itiraz süresi"
-    aci: "Belediye 18. madde uyguladığında parselinizin yeri değişebilir veya değer kaybına uğrayabilir. Askı süresi olan 30 gün içinde itiraz edilmez ve 60 günde dava açılmazsa kazanılmış hak iddia edilemez."
+    aci: "Parselasyon planı (İmar Kanunu 18. madde uygulaması) onaylanınca bir ay askıya çıkar ve bu sürenin sonunda kesinleşir. Parselin yeri veya düzenleme ortaklık payı sizi etkiliyorsa askı içinde itiraz edin; idari dava açma süresi ayrıca İdari Yargılama Usulü Kanunu'na tabidir."
     kanca_kalip: sure
-    mevzuat: "İmar Kanunu md. 18"
+    mevzuat: "İmar Kanunu md. 18 ve 19"
     yerel: "Silivri imar genişleme bölgelerinde parselasyon süreçleri"
+    mevzuat_kontrol: "2026-09-24"
 
   # ---------------------------------------------------------
   # S4 — RAKAM, FİNANS & BÖLGE (İlave Zengin Havuz)
@@ -804,19 +820,21 @@ konular:
     sutun: S4
     bicim: B1
     baslik: "Tapu harcı matrahı ve Maliye'nin banka transferi denetimi"
-    aci: "Belediye rayici üzerinden tapu devri yapıp bankadan milyonlarca lira ek transfer göndermek MASAK ve Vergi Denetim Kurulu radarına takılıyor. 5 yıl geriye dönük faizli ceza riski."
+    aci: "Tapuda rayiç bedel gösterip farkı bankadan göndermek iz bırakır. Tapu harcı beyan edilen bedel üzerinden alınır ve emlak vergisi değerinden az olamaz; eksik ödenen harç vergi ziyaı cezası ve gecikme faiziyle tahsil edilir. Zamanaşımı beş yıl."
     kanca_kalip: rakam
-    mevzuat: "Harçlar Kanunu md. 63 ve Vergi Usul Kanunu md. 359"
+    mevzuat: "Harçlar Kanunu md. 63 ve Vergi Usul Kanunu md. 114 ve 344"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S4-012
     sutun: S4
     bicim: B2
     baslik: "Konut kredisinde eksper değeri ile piyasa fiyatı makası"
-    aci: "Banka krediyi satıcının istediği fiyata değil, bağımsız SPK eksperinin biçtiği değere göre ve BDDK LTV oranlarında kullandırır. Aradaki peşinat farkını öngörmeyen alıcının kaparo riski."
+    aci: "Banka krediyi satış fiyatına değil ekspertiz değerine ve BDDK kredi değer oranlarına göre kullandırır. Ekspertiz düşük çıkarsa peşinat açığı doğar; bu yüzden ödeme planı ekspertizden sonra kesinleştirilmeli, ön ödeme resmî şekilde yapılmamış bir protokole bağlanmamalı."
     kanca_kalip: rakam
     mevzuat: "BDDK Kredi Değer Oranı (LTV) Kararları"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S4-013
     sutun: S4
@@ -862,6 +880,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: "Emlak Vergisi Kanunu md. 29"
     yerel: null
+    engel: "Emlak Vergisi Kanunu md. 29'un güncel metninde brief'teki 'yeniden değerleme oranının yarısı' ve '4 yıl' kuralları bulunamadı (2026-09-24). Dayanak doğrulanmadan üretilmez."
 
   - kod: S4-018
     sutun: S4
@@ -880,10 +899,11 @@ konular:
     sutun: S5
     bicim: B1
     baslik: "Konut kredisi çekerken bankaların dayattığı sigortalar"
-    aci: "Bankalar yasal olarak yalnızca DASK'ı zorunlu tutabilir. Hayat, konut veya ferdi kaza sigortalarını kendi bankalarından alma zorunluluğunuz yoktur; dışarıdan uygun poliçe getirme hakkı mevcuttur."
+    aci: "Konut kredisinde kredi bağlantılı sigorta ancak tüketicinin açık talebiyle yaptırılabilir; banka sigortasız bir teklif de sunmak ve tüketicinin istediği şirketten getirdiği teminatı kabul etmek zorunda. DASK ise krediden bağımsız olarak kanunen zorunlu."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "6502 sayılı Tüketicinin Korunması Hakkında Kanun md. 29"
+    mevzuat: "6502 sayılı Kanun md. 38"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S5-002
     sutun: S5
@@ -947,6 +967,7 @@ konular:
     kanca_kalip: belge
     mevzuat: "6306 sayılı Afet Riski Altındaki Alanların Dönüştürülmesi Hakkında Kanun"
     yerel: "İstanbul kentsel dönüşüm teşvikleri"
+    engel: "Faiz desteğinin güncel koşulları ve dayanağı doğrulanmadı (2026-09-24); kentsel dönüşüm kuralları 2019 ve 2023'te değişti."
 
   - kod: S5-009
     sutun: S5
@@ -992,15 +1013,17 @@ konular:
     kanca_kalip: rakam
     mevzuat: "SPK Gayrimenkul Yatırım Fonlarına İlişkin Esaslar Tebliği"
     yerel: null
+    engel: "Fon (GYF) önermek sermaye piyasası aracı tavsiyesi — SPK lisansı gerektiren yatırım danışmanlığı alanı; emlak ofisi hesabında yayınlanmaz (2026-09-24). Onayda bekleyen #221 bu konudan üretildi."
 
   - kod: S5-014
     sutun: S5
     bicim: B3
-    baslik: "Konut kredisinde 14 günlük yasal cayma hakkı"
-    aci: "Kredi sözleşmesini imzaladıktan sonra 14 gün içinde hiçbir gerekçe göstermeden ve cezai şart ödemeden cayma hakkınız vardır. Yalnızca kullanılan süreye ait faiz ve kamuya ödenen harçlar tahsil edilir."
-    kanca_kalip: sure
-    mevzuat: "6502 sayılı Kanun md. 24"
+    baslik: "Konut kredisinde cayma hakkı var mı"
+    aci: "Yaygın yanılgı: 'Kredi sözleşmesinden 14 gün içinde cayarım.' Bu hak tüketici (ihtiyaç) kredisinde var; konut kredisinde kanunda cayma hakkı düzenlenmemiş. Konut kredisinde koruma imzadan önceki bilgilendirmede ve erken ödemede: sabit faizde erken ödeme tazminatı kalan vadeye göre yüzde bir ya da ikiyi geçemez."
+    kanca_kalip: "yaygin_yanlis"
+    mevzuat: "6502 sayılı Kanun md. 24 ve 37"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S5-015
     sutun: S5
