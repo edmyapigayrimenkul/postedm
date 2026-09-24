@@ -60,3 +60,4 @@ worker/.wrangler/
 .dev.vars*
 !.dev.vars.example
 !.env.example
+data/mevzuat_onbellek/

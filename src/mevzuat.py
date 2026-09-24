@@ -1,0 +1,282 @@
+"""
+src/mevzuat.py — Kanun maddelerinin GÜNCEL metni (mevzuat.gov.tr).
+
+NİYE VAR (2026-09-24 içerik denetimi): Canlıdaki 20 içeriğin 9'unun ana iddiası
+yanlıştı. Çoğu, modelin eski hukuku bilmesinden:
+  · TMK 733–734, 24/12/2025 tarihli 7571 sayılı Kanunla değişti — önalımda üst süre
+    2 yıldan 1 yıla indi, bedel tapudaki değil hâkimin belirlediği rayiç değer oldu;
+  · 6306 md. 6'da karar yeter sayısı 2019'dan (7181) beri salt çoğunluk, üçte iki değil;
+  · 6217 geçici md. 2'deki tacir kiracı istisnası 1/7/2020'de bitti.
+Bir kısmı da konu bankasındaki yanlış madde kaydından (konut kredisine tüketici
+kredisinin cayma maddesi yazılmıştı). Model eğitim bilgisiyle değil, maddenin
+bugünkü metniyle yazmalı; doğrulama da o metne karşı yapılmalı.
+
+Kullanım:
+    ozet = brief_mevzuati("Türk Medeni Kanunu md. 732-733")
+    ozet["metin"]          # modele verilecek güncel madde metinleri
+    ozet["son_degisiklik"] # maddelerdeki en yeni "Değişik/Ek" tarihi
+    ozet["cozulemeyen"]    # yönetmelik/tebliğ gibi otomatik çekilemeyenler
+"""
+
+from __future__ import annotations
+
+import html
+import json
+import logging
+import re
+import tempfile
+import time
+from datetime import date
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import certifi
+import requests
+
+from . import config
+
+log = logging.getLogger(__name__)
+
+TABAN = "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe"
+ONBELLEK = config.yol_al("data/mevzuat_onbellek")
+ONBELLEK_OMRU_SN = 7 * 24 * 3600
+
+# mevzuat.gov.tr ara sertifikayı (GeoTrust TLS RSA CA G1) göndermiyor; tarayıcılar ve
+# macOS curl zinciri kendisi tamamlıyor ama Python/Actions tamamlayamıyor. Doğrulamayı
+# kapatmak yerine ara sertifika pakete eklenir. Sertifika 2 Kasım 2027'de sona erer.
+ARA_SERTIFIKA = config.yol_al("assets/sertifika/geotrust_tls_rsa_ca_g1.pem")
+
+# Kanun numarası → (tertip adayları, kısa ad). Tertip sitenin iç sınıflandırması;
+# yanlış tertip 302 döndüğü için adaylar sırayla denenir.
+KANUNLAR: Dict[int, Tuple[Tuple[int, ...], str]] = {
+    4721: ((5,), "Türk Medeni Kanunu"),
+    6098: ((5,), "Türk Borçlar Kanunu"),
+    3194: ((5,), "İmar Kanunu"),
+    634: ((5, 4), "Kat Mülkiyeti Kanunu"),
+    2644: ((3, 4, 5), "Tapu Kanunu"),
+    492: ((5, 4), "Harçlar Kanunu"),
+    213: ((4, 5), "Vergi Usul Kanunu"),
+    1319: ((5, 4), "Emlak Vergisi Kanunu"),
+    5403: ((5,), "Toprak Koruma ve Arazi Kullanımı Kanunu"),
+    6306: ((5,), "Afet Riski Altındaki Alanların Dönüştürülmesi Hakkında Kanun"),
+    6502: ((5,), "Tüketicinin Korunması Hakkında Kanun"),
+    2004: ((3, 4, 5), "İcra ve İflas Kanunu"),
+    3402: ((5,), "Kadastro Kanunu"),
+    6305: ((5,), "Afet Sigortaları Kanunu"),
+    6217: ((5,), "Yargı Hizmetlerinin Hızlandırılması Amacıyla Bazı Kanunlarda Değişiklik Yapılmasına Dair Kanun"),
+}
+
+# Adla anılan kanunlar (brief'ler çoğunlukla numara yerine ad kullanıyor)
+_ADLAR: List[Tuple[str, int]] = [
+    (r"t[üu]rk\s+medeni\s+kanunu|\btmk\b|medeni\s+kanun", 4721),
+    (r"t[üu]rk\s+bor[çc]lar\s+kanunu|\btbk\b|bor[çc]lar\s+kanunu", 6098),
+    (r"kat\s+m[üu]lkiyeti\s+kanunu|\bkmk\b", 634),
+    (r"(?<!plansız alanlar )imar\s+kanunu", 3194),
+    (r"tapu\s+kanunu", 2644),
+    (r"har[çc]lar\s+kanunu", 492),
+    (r"vergi\s+usul\s+kanunu|\bvuk\b", 213),
+    (r"emlak\s+vergisi\s+kanunu", 1319),
+    (r"toprak\s+koruma", 5403),
+    (r"t[üu]keticinin\s+korunmas", 6502),
+    (r"icra\s+ve\s+iflas\s+kanunu|\bi̇ik\b|\biik\b", 2004),
+    (r"kadastro\s+kanunu", 3402),
+]
+
+
+# ---------------------------------------------------------------------------
+# Atıf çözümleme
+# ---------------------------------------------------------------------------
+
+def atiflari_coz(atif: Optional[str]) -> Tuple[List[Tuple[int, List[str]]], List[str]]:
+    """'Harçlar Kanunu md. 63 ve VUK md. 359' → [(492, ['63']), (213, ['359'])].
+
+    Madde anahtarları metin: '63', 'geçici 16'. Aralıklar (794-822) en fazla 4
+    maddeye açılır. Çözülemeyen atıflar (yönetmelik, tebliğ, kurul kararı) ayrı döner.
+    """
+    metin = str(atif or "")
+    if not metin.strip():
+        return [], []
+    kucuk = metin.replace("İ", "i").replace("I", "ı").lower()
+
+    bulunan: List[Tuple[int, int, int]] = []  # (konum, bitiş, kanun no)
+    for m in re.finditer(r"\b(\d{3,4})\s*sayılı", kucuk):
+        no = int(m.group(1))
+        if no in KANUNLAR:
+            bulunan.append((m.start(), m.end(), no))
+    for kalip, no in _ADLAR:
+        for m in re.finditer(kalip, kucuk):
+            if not any(b[0] <= m.start() < b[1] + 80 and b[2] == no for b in bulunan):
+                bulunan.append((m.start(), m.end(), no))
+    bulunan.sort()
+
+    sonuc: List[Tuple[int, List[str]]] = []
+    for i, (bas, bit, no) in enumerate(bulunan):
+        son = bulunan[i + 1][0] if i + 1 < len(bulunan) else len(kucuk)
+        parca = kucuk[bit:son]
+        maddeler: List[str] = []
+        for m in re.finditer(r"(ge[çc]ici\s+)?(?:md\.?|madde|m\.)\s*(\d+)(?:\s*[-–]\s*(\d+))?((?:\s*(?:ve|,)\s*\d+)*)", parca):
+            gecici = "geçici " if m.group(1) else ""
+            ilk = int(m.group(2))
+            if m.group(3):
+                son_no = int(m.group(3))
+                for n in range(ilk, min(son_no, ilk + 3) + 1):
+                    maddeler.append(f"{gecici}{n}")
+                if son_no > ilk + 3:
+                    maddeler.append(f"{gecici}{son_no}")
+            else:
+                maddeler.append(f"{gecici}{ilk}")
+            for ek in re.findall(r"\d+", m.group(4) or ""):
+                maddeler.append(f"{gecici}{ek}")
+        if maddeler:
+            sonuc.append((no, list(dict.fromkeys(maddeler))))
+
+    cozulemeyen = []
+    if re.search(r"yönetmeli|tebli[ğg]|karar|genelge", kucuk):
+        cozulemeyen.append(metin)
+    elif not sonuc:
+        cozulemeyen.append(metin)
+    return sonuc, cozulemeyen
+
+
+# ---------------------------------------------------------------------------
+# Getirme ve önbellek
+# ---------------------------------------------------------------------------
+
+def _ca_paketi() -> str:
+    paket = Path(tempfile.gettempdir()) / "edm_mevzuat_ca.pem"
+    if not paket.exists() and ARA_SERTIFIKA.exists():
+        paket.write_text(Path(certifi.where()).read_text() + "\n" + ARA_SERTIFIKA.read_text())
+    return str(paket) if paket.exists() else certifi.where()
+
+
+def _html_metne(ham: str) -> str:
+    from bs4 import BeautifulSoup
+    t = BeautifulSoup(ham, "html.parser").get_text("\n")
+    t = html.unescape(re.sub(r"[ \t\xa0]+", " ", t))
+    return re.sub(r"\s*\n\s*", " ", t)
+
+
+def kanun_metni(no: int) -> Optional[str]:
+    """Kanunun tam metni (düz yazı). 7 gün önbellekte tutulur."""
+    ONBELLEK.mkdir(parents=True, exist_ok=True)
+    dosya = ONBELLEK / f"{no}.txt"
+    if dosya.exists() and time.time() - dosya.stat().st_mtime < ONBELLEK_OMRU_SN:
+        return dosya.read_text(encoding="utf-8")
+
+    tertipler = KANUNLAR.get(no, ((5,), ""))[0]
+    for tertip in tertipler:
+        try:
+            r = requests.get(
+                TABAN, params={"MevzuatTur": 1, "MevzuatNo": no, "MevzuatTertip": tertip},
+                headers={"User-Agent": "Mozilla/5.0 (EDM postedm mevzuat denetimi)"},
+                timeout=40, verify=_ca_paketi(), allow_redirects=False,
+            )
+        except requests.RequestException as e:
+            log.warning("mevzuat.gov.tr erişilemedi (%s): %s", no, e)
+            return dosya.read_text(encoding="utf-8") if dosya.exists() else None
+        if r.status_code == 200 and len(r.content) > 5000:
+            metin = _html_metne(r.text)
+            if re.search(r"(MADDE|Madde)\s*1\s*[-–]", metin):
+                dosya.write_text(metin, encoding="utf-8")
+                return metin
+    log.warning("Kanun metni bulunamadı: %s (tertipler %s)", no, tertipler)
+    return dosya.read_text(encoding="utf-8") if dosya.exists() else None
+
+
+def madde_metni(no: int, madde: str, azami: int = 12000) -> Optional[str]:
+    """Tek bir maddenin güncel metni. madde: '733' ya da 'geçici 2'."""
+    metin = kanun_metni(no)
+    if not metin:
+        return None
+    gecici = madde.startswith("geçici")
+    n = madde.split()[-1]
+    if gecici:
+        bas = re.search(rf"GE[ÇC][İI]C[İI]\s+MADDE\s*{n}\s*[-–]", metin, re.I)
+    else:
+        bas = re.search(rf"(?<![A-Za-zÇĞİÖŞÜçğıöşü])(?<!GEÇİCİ )(?<!Geçici )(?:MADDE|Madde)\s*{n}\s*[-–]", metin)
+    if not bas:
+        return None
+    sonraki = re.search(r"(?:GE[ÇC][İI]C[İI]\s+)?(?:MADDE|Madde)\s*\d+\s*[-–]", metin[bas.end():])
+    bitis = bas.end() + (sonraki.start() if sonraki else azami)
+    return metin[bas.start():min(bitis, bas.start() + azami)].strip()
+
+
+_TARIH = re.compile(r"(?:Değişik|Ek|Mülga|İptal)[^:()]{0,60}:\s*(\d{1,2})/(\d{1,2})/(\d{4})")
+
+
+def degisiklik_tarihleri(metin: str) -> List[date]:
+    tarihler = []
+    for g, a, y in _TARIH.findall(metin or ""):
+        try:
+            tarihler.append(date(int(y), int(a), int(g)))
+        except ValueError:
+            continue
+    return sorted(tarihler)
+
+
+def brief_mevzuati(atif: Optional[str], azami_toplam: int = 15000) -> Dict[str, Any]:
+    """Brief'in mevzuat alanındaki atıfların güncel metni ve değişiklik bilgisi."""
+    atiflar, cozulemeyen = atiflari_coz(atif)
+    parcalar: List[str] = []
+    bulunamayan: List[str] = []
+    son: Optional[date] = None
+    for no, maddeler in atiflar:
+        ad = KANUNLAR.get(no, ((), str(no)))[1]
+        for madde in maddeler:
+            m = madde_metni(no, madde)
+            if not m:
+                bulunamayan.append(f"{no} sayılı {ad} md. {madde}")
+                continue
+            parcalar.append(f"[{no} sayılı {ad}] {m}")
+            tarihler = degisiklik_tarihleri(m)
+            if tarihler and (son is None or tarihler[-1] > son):
+                son = tarihler[-1]
+    metin = "\n\n".join(parcalar)
+    if len(metin) > azami_toplam:
+        metin = metin[:azami_toplam] + " …"
+    return {
+        "metin": metin,
+        "son_degisiklik": son.isoformat() if son else None,
+        "cozulemeyen": cozulemeyen + bulunamayan,
+        "cekildi": date.today().isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Süre ve çoğunluk ifadeleri — dogrula.py bunları kanun metnine karşı denetler
+# ---------------------------------------------------------------------------
+
+_BIRLER = {"bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
+_ONLAR = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50, "altmış": 60, "yetmiş": 70, "seksen": 80, "doksan": 90}
+# Kanun metinleri birleşik yazımı da kullanıyor ("oniki aylık", "onbeş gün").
+_SAYI_SOZ = r"(?:(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan)(?:\s*(?:bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz))?|bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz)"
+# Yazıyla sayıda birimle arasında boşluk zorunlu: aksi hâlde "noter onaylı" → "on ay".
+_SURE = re.compile(rf"(?:\b(\d+)\s*|\b({_SAYI_SOZ})\s+)(iş\s+günü|gün|hafta|ay|yıl)", re.I)
+CUNLUK_IFADELERI = ("üçte iki", "salt çoğunluk", "oybirliği", "dörtte üç", "beşte dört")
+
+
+def _sayiya(soz: str) -> Optional[int]:
+    soz = re.sub(r"\s+", "", soz.strip().lower())
+    if soz.isdigit():
+        return int(soz)
+    toplam = 0
+    for onlar, deger in sorted(_ONLAR.items(), key=lambda x: -len(x[0])):
+        if soz.startswith(onlar) and (soz == onlar or soz[len(onlar):] in _BIRLER):
+            toplam, soz = deger, soz[len(onlar):]
+            break
+    if soz:
+        if soz not in _BIRLER:
+            return None
+        toplam += _BIRLER[soz]
+    return toplam or None
+
+
+def sure_ifadeleri(metin: str) -> set:
+    """'iki yıl', '2 yıl', 'on dört gün' → {('2','yıl'), ('14','gün')}"""
+    kucuk = (metin or "").replace("İ", "i").replace("I", "ı").lower()
+    sonuc = set()
+    for rakam, soz, birim in _SURE.findall(kucuk):
+        n = _sayiya(rakam or soz)
+        if n is not None:
+            sonuc.add((str(n), re.sub(r"\s+", " ", birim)))
+    return sonuc

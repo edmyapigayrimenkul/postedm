@@ -1,0 +1,39 @@
+# =========================================================
+#  MEVZUAT DENETİMİ — konu bankası güncel kanun metnine karşı
+#
+#  NİYE VAR (2026-09-24): canlıdaki 20 içeriğin 9'unun ana iddiası
+#  yanlıştı; çoğu sonradan değişmiş maddelere dayanıyordu (TMK 733–734,
+#  24/12/2025'te 7571 ile değişti; 6306 md. 6'da çoğunluk 2019'da değişti).
+#  Konu bankası "kalıcı" ama kanunlar değil. Her hafta her konunun brief'i
+#  maddenin mevzuat.gov.tr'deki güncel metniyle karşılaştırılır; son 30
+#  günde değişen maddeler işaretlenir. Sorun varsa iş kırmızı biter ve
+#  Telegram'a rapor gider. Veritabanına dokunmaz.
+# =========================================================
+
+name: Mevzuat Denetimi
+
+on:
+  schedule:
+    - cron: "0 6 * * 0"   # Pazar 09:00 TR
+  workflow_dispatch:
+
+concurrency:
+  group: mevzuat-denetimi
+  cancel-in-progress: true
+
+jobs:
+  denetle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Konu bankasını güncel kanun metnine karşı denetle
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/mevzuat_denetim.py

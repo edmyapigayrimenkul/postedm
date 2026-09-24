@@ -219,6 +219,26 @@ def _maddeleri_bul(metin: str) -> List[str]:
     return bulunan
 
 
+def _kanun_metni(brief: Optional[Dict[str, Any]]) -> str:
+    """Süre/çoğunluk denetiminin ölçütü: haberde kaynak metin, konuda maddenin güncel metni."""
+    if not brief:
+        return ""
+    if "mevzuat_metni" in brief:
+        return str(brief.get("mevzuat_metni") or "")
+    atif = brief.get("mevzuat")
+    if not atif:
+        return ""
+    from . import config
+    if config.test_modu():
+        return ""
+    try:
+        from . import mevzuat
+        return mevzuat.brief_mevzuati(atif).get("metin") or ""
+    except Exception as e:
+        log.warning("Güncel madde metni alınamadı, süre denetimi atlandı: %s", e)
+        return ""
+
+
 def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> List[str]:
     """İçeriği denetler ve uyarı listesi döner. Boş liste = temiz.
 
@@ -249,6 +269,41 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
                     f"⛔ EK MADDE: metinde {', '.join(sorted(kacak)[:3])} geçiyor ama "
                     f"brief yalnızca \"{(brief or {}).get('mevzuat')}\" doğruluyor."
                 )
+
+    # --- 1b. SÜRE / ÇOĞUNLUK KANUN METNİYLE UYUŞMUYOR ---
+    # Model eski hukuku biliyor (2026-09-24: önalımda "2 yıl" yazdı, kanun 7571 ile
+    # 1 yıla inmişti; kentsel dönüşümde "üçte iki" yazdı, 2019'dan beri salt
+    # çoğunluk). Brief'te maddenin güncel metni varsa içerikteki her süre ve
+    # çoğunluk ifadesi o metinde geçmeli. Haberde ölçüt kaynak metnin kendisidir.
+    kanun_metni = _kanun_metni(brief)
+    if kanun_metni:
+        from . import mevzuat as _mevzuat
+        kacak_sure = sorted(_mevzuat.sure_ifadeleri(metin) - _mevzuat.sure_ifadeleri(kanun_metni))
+        if kacak_sure:
+            ornek = ", ".join(f"{n} {b}" for n, b in kacak_sure[:3])
+            uyarilar.append(
+                f"⛔ SÜRE KAYNAKTA YOK: içerikte {ornek} geçiyor ama maddenin güncel metninde "
+                f"(ya da haber kaynağında) böyle bir süre yok. Eski hukuk ya da uydurma olabilir."
+            )
+        kanun_kucuk = _kucult(kanun_metni)
+        kacak_cogunluk = [c for c in _mevzuat.CUNLUK_IFADELERI if c in kucuk and c not in kanun_kucuk]
+        if kacak_cogunluk:
+            uyarilar.append(
+                f"⛔ ÇOĞUNLUK KAYNAKTA YOK: \"{kacak_cogunluk[0]}\" geçiyor ama güncel metinde bu çoğunluk yok."
+            )
+
+    # --- 1c. UYDURMA İÇTİHAT ---
+    # Esas/karar numarası ya da daire + yıl/sayı kalıbı: brief'te yoksa uydurulmuştur.
+    ictihatlar = re.findall(
+        r"(?:\bE\.\s*\d{4}/\d+|\bK\.\s*\d{4}/\d+|\d{1,2}\.\s*(?:Hukuk|Ceza)\s+Dairesi[^.,;]{0,30}\d{4}/\d+|\bHGK[^.,;]{0,30}\d{4}/\d+)",
+        metin,
+    )
+    kaynaklar = " ".join(str((brief or {}).get(k) or "") for k in ("mevzuat", "mevzuat_metni", "makale_metni"))
+    uydurma_ictihat = [i for i in ictihatlar if i not in kaynaklar]
+    if uydurma_ictihat:
+        uyarilar.append(
+            f"⛔ UYDURMA İÇTİHAT OLABİLİR: \"{uydurma_ictihat[0]}\" kaynakta yok — Yargıtay karar numarası doğrulanmadan yazılmaz."
+        )
 
     # --- 2. DAYANAKSIZ RAKAM ---
     oranlar = re.findall(r"%\s?\d+|\byüzde\s+\d+", metin)
@@ -314,6 +369,7 @@ def haberden_brief(haber: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     kucuk = _kucult(kaynak)
     return {
         "mevzuat": kaynak,
+        "mevzuat_metni": kaynak,  # süre/çoğunluk ifadeleri kaynağa karşı denetlenir
         "veri_kaynagi": haber.get("kaynak") or "haber kaynağı",
         "yerel": any(a in kucuk for a in _YEREL_ADLAR),
         "makale_metni": kaynak,

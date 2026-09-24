@@ -918,7 +918,9 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NEDİR DOĞRUSU? (DOĞRU BİLİNEN YANLIŞLAR)' formatında üret. "
             "JSON nesnesinde 'format_turu': 'nedir_dogrusu', "
             "'yanlis_metin': (Vatandaşın veya kiracının/yatırımcının inandığı yaygın yanlış / şehir efsanesi - tek ve vurucu cümle), "
-            "'dogru_metin': (Kanunen ve hukuken işin esası, yasal dayanak maddesi ve Yargıtay içtihadı - 2-3 cümle), "
+            "'dogru_metin': (Kanunen ve hukuken işin esası ve yasal dayanak maddesi - 2-3 cümle. "
+            "Yargıtay kararı numarası veya tarihi YAZMA: brief'te içtihat yok, uydurulmuş karar "
+            "numarası gerçek bir ofisin hesabında ağır sorumluluktur), "
             "'altin_kural': (EDM Altın Kuralı: Kısa ve net uzman tavsiyesi) alanlarını MUTLAKA doldur."
         )
     elif format_turu in ("sozluk", "sozluk_uret"):
@@ -933,8 +935,9 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'HUKUKİ VAKA ANALİZİ' formatında üret. "
             "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / EMSAL DOSYA', "
-            "'yargitay_kaynak': (Mevzuat veya emsal içtihat), 'manset': (Çarpıcı başlık), "
-            "'olay_detay': (Olay özeti), 'yargitay_hukmu': (Yargıtay/Mahkeme hükmü), "
+            "'yargitay_kaynak': (Yalnızca brief'teki mevzuat maddesi; Yargıtay esas/karar numarası UYDURMA), "
+            "'manset': (Çarpıcı başlık), 'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma), "
+            "'yargitay_hukmu': (Kanun maddesine göre sonuç; belirli bir mahkeme kararına atıf yapma), "
             "'cikarilacak_ders': (Yatırımcının çıkarması gereken ders) alanlarını MUTLAKA doldur."
         )
     elif format_turu in ("net_cevap", "soru", "kim_hakli"):
@@ -957,6 +960,8 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
             "yerel": konu.get("yerel"),
             "veri_kaynagi": konu.get("veri_kaynagi"),
         }
+        # Güncel madde metni DB'ye yazılmaz (git'e gidiyor, şişer); dogrula.py
+        # denetim anında "mevzuat" atfından önbellekli olarak çeker.
     return veri
 
 

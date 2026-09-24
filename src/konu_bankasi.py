@@ -211,15 +211,18 @@ def _son_kullanilan_sutunlar(limit: int = 3) -> List[str]:
 
 
 def _engellenen_konular() -> set[str]:
-    """Kullanıcının 'Çöpe At' ile kalıcı engellediği konuları döner."""
+    """Üretime alınmayacak konular: kullanıcının 'Çöpe At' ile engelledikleri ve
+    konu bankasında `engel` alanı taşıyanlar (dayanağı doğrulanamayan konular —
+    2026-09-24 mevzuat denetiminde eklendi)."""
+    yaml_engel = {k["kod"] for k in havuzu_yukle() if k.get("engel")}
     try:
         with db._baglanti_al() as conn:
             satirlar = conn.execute(
                 "SELECT DISTINCT konu_kodu FROM konu_gecmisi WHERE sonuc IN ('cope_at', 'engellendi')"
             ).fetchall()
-        return {s["konu_kodu"] for s in satirlar}
+        return yaml_engel | {s["konu_kodu"] for s in satirlar}
     except Exception:
-        return set()
+        return yaml_engel
 
 
 def sonraki_konu(
@@ -379,6 +382,18 @@ def aday_yaml_blogu(aday: Dict[str, Any], kod: str) -> str:
     ])
 
 
+def guncel_mevzuat(konu: Dict[str, Any]) -> Dict[str, Any]:
+    """Konunun mevzuat atıflarının güncel metni. Test modunda ağa çıkılmaz."""
+    if not konu.get("mevzuat") or config.test_modu():
+        return {}
+    try:
+        from . import mevzuat
+        return mevzuat.brief_mevzuati(konu["mevzuat"])
+    except Exception as e:
+        log.warning("Güncel mevzuat metni alınamadı (%s): %s", konu.get("kod"), e)
+        return {}
+
+
 def brief_metni(konu: Dict[str, Any]) -> str:
     """Konu kaydını modele verilecek brief metnine çevirir."""
     satirlar = [
@@ -391,6 +406,15 @@ def brief_metni(konu: Dict[str, Any]) -> str:
     ]
     if konu.get("mevzuat"):
         satirlar.append(f"DOĞRULANMIŞ MEVZUAT (aynen kullan): {konu['mevzuat']}")
+        guncel = guncel_mevzuat(konu)
+        if guncel.get("metin"):
+            # Model eski hukuku biliyor: 2026-09-24 denetiminde 9/20 içeriğin ana
+            # iddiası, sonradan değişmiş maddelere dayandığı için yanlıştı.
+            satirlar.append(
+                f"MADDENİN GÜNCEL METNİ (mevzuat.gov.tr, {guncel['cekildi']}). "
+                "Eğitim bilginle çelişirse BU METİN geçerlidir. Bu metinde geçmeyen "
+                "süre, oran veya çoğunluk yazma:\n" + guncel["metin"]
+            )
     else:
         satirlar.append(
             "DOĞRULANMIŞ MEVZUAT: yok. Kanun maddesi numarası YAZMA, 'ilgili mevzuat' de."

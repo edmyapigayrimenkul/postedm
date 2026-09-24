@@ -1,4 +1,5 @@
 requests>=2.32.0
+certifi>=2024.2.2  # src/mevzuat.py: ara sertifikayla birleştirilen CA paketi
 PyYAML>=6.0.0
 beautifulsoup4>=4.12.0
 # RSS ayrıştırma BeautifulSoup(..., "xml") kullanıyor ve bu lxml gerektirir.
