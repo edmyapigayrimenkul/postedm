@@ -59,10 +59,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Tapudaki şerhler ne anlatır"
-    aci: "Beyanlar hanesindeki tek satır, mülkün değerini yarıya indirebilir veya satışını yıllarca kilitleyebilir. İpotek, haciz, irtifak, aile konutu şerhi — hangisi ne demek."
+    aci: "Şerhler ve beyanlar hanesindeki tek satır, mülkün satışını kilitleyebilir ya da alıcıyı üçüncü kişinin hakkına bağlayabilir. İpotek, haciz, irtifak, aile konutu şerhi — hangisi ne demek."
     kanca_kalip: belge
-    mevzuat: null
+    mevzuat: "Türk Medeni Kanunu md. 194, 1009, 1010"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-005
     sutun: S1
@@ -72,6 +73,7 @@ konular:
     kanca_kalip: belge
     mevzuat: null
     yerel: null
+    engel: "Aci'deki 'tapu vekâletnameyi resen kontrol etmez' iddiası doğrulanamadı; tapu müdürlükleri noter sistemiyle vekâletname sorgulaması yapıyor olabilir. Doğrulanmadan yayınlanmaz (2026-09-24)."
 
   - kod: S1-006
     sutun: S1
@@ -87,10 +89,11 @@ konular:
     sutun: S1
     bicim: B1
     baslik: "Mirasçılardan biri satışa karşı çıkarsa"
-    aci: "Elbirliği mülkiyetinde tek bir mirasçı satışı kilitler. Çözüm ortaklığın giderilmesi davası — ama o dava mülkü açık artırmaya götürür ve genelde piyasa değerinin altına satılır."
+    aci: "Elbirliği mülkiyetinde tek bir mirasçı satışı kilitler. Çözüm ortaklığın giderilmesi davası: mal aynen bölünemiyorsa dava açık artırmayla satışa gider ve fiyatı pazarlık değil ihale belirler."
     kanca_kalip: kim_hakli
-    mevzuat: null
+    mevzuat: "Türk Medeni Kanunu md. 640, 698, 701, 702"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-008
     sutun: S1
@@ -117,8 +120,9 @@ konular:
     baslik: "İskânsız daire alınır mı"
     aci: "Yapı kullanma izni olmayan dairede doğalgaz, kredi ve resmî abonelik sorun olur. Bazı bankalar hiç kredi vermez. Fiyat cazipse sebebi genelde budur."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "İmar Kanunu md. 30"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-011
     sutun: S1
@@ -126,8 +130,9 @@ konular:
     baslik: "Ön ödemeli konut satışında cayma hakkı"
     aci: "Projeden satın alan tüketicinin on dört gün içinde gerekçesiz cayma hakkı var ve teslim gecikirse sözleşmeyi feshedebilir. Müteahhitler bunu genelde hatırlatmaz."
     kanca_kalip: sure
-    mevzuat: null
+    mevzuat: "6502 sayılı Kanun md. 40, 43, 44"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-012
     sutun: S1
@@ -135,8 +140,9 @@ konular:
     baslik: "Tapu harcı kim öder"
     aci: "Kanunen alıcı ve satıcı yarı yarıya. Uygulamada tamamı alıcıya yıkılıyor. Pazarlıkta bilinmesi doğrudan paraya dönüşen bir madde."
     kanca_kalip: kim_hakli
-    mevzuat: null
+    mevzuat: "Harçlar Kanunu md. 63"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-013
     sutun: S1
@@ -152,10 +158,11 @@ konular:
     sutun: S1
     bicim: B3
     baslik: "Emlakçı komisyonu ne zaman hak edilir"
-    aci: "Komisyon, tarafları buluşturup sözleşme kurulmasını sağlamakla hak edilir. Satış olmadan komisyon istenemez; ama yetki sözleşmesi varsa satıcı devre dışı bırakamaz."
+    aci: "Komisyon, tarafları buluşturup sözleşme kurulmasını sağlamakla hak edilir. Satış olmadan komisyon istenemez; yetki sözleşmesinde kararlaştırıldıysa, emlakçıyı devre dışı bırakan satışta da ücret gündeme gelebilir."
     kanca_kalip: kim_hakli
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 520, 521"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-015
     sutun: S1
@@ -164,6 +171,43 @@ konular:
     aci: "Riskli yapıda karar, hisseleri oranında paydaşların salt çoğunluğuyla alınır; eski, daha yüksek çoğunluk kuralı yürürlükte değil. Karar ve teklif, katılmayan maliklere noter ya da muhtarlıkta on beş günlük ilanla bildirilir. Karara katılmayanların payları Başkanlıkça belirlenen rayiç değerden az olmamak üzere anlaşan paydaşlara açık artırmayla satılır."
     kanca_kalip: sure
     mevzuat: "6306 sayılı Kanun md. 6"
+    yerel: null
+    mevzuat_kontrol: "2026-09-24"
+
+  # ---------------------------------------------------------
+  # KANUN DEĞİŞTİ dizisi (2026-09-24)
+  # Canlı hesapta eski hukukla yazılmış içerikler çıktı; doğrusunu anlatan
+  # konular. Eski süre/çoğunluk RAKAMLA yazılmaz ("kısaldı", "değişti" denir):
+  # içerik denetimi kanunun bugünkü metninde olmayan rakamı durdurur.
+  # ---------------------------------------------------------
+
+  - kod: S1-024
+    sutun: S1
+    bicim: B1
+    baslik: "Kanun değişti: önalımda üç yeni kural"
+    aci: "7571 sayılı Kanunla (24/12/2025) önalım hakkında üç şey değişti. Üst süre kısaldı: hak, satışın bildirilmesinden itibaren üç ay ve her hâlde satıştan itibaren bir yıl geçince düşüyor. Payın bedelini artık tapudaki rakam değil hâkimin belirlediği rayiç değer belirliyor. Devlet İhale Kanunu kapsamındaki satışlarda ve cebrî artırmada önalım kullanılamıyor. Eski süreyi rakamla yazma; 'kısaldı' de."
+    kanca_kalip: sure
+    mevzuat: "Türk Medeni Kanunu md. 733, 734"
+    yerel: null
+    mevzuat_kontrol: "2026-09-24"
+
+  - kod: S1-025
+    sutun: S1
+    bicim: B3
+    baslik: "Kentsel dönüşümde karar çoğunluğu"
+    aci: "Riskli yapıda yeniden yapım kararı hisseleri oranında paydaşların salt çoğunluğuyla alınıyor; çok daha büyük çoğunluk gerektiği bilgisi eski. Karara katılmayanların arsa payı, rayiç değeri tespit ettirilerek ve bu değerden az olmamak üzere anlaşan diğer paydaşlara açık artırmayla satılabiliyor. Eski oranı yazma."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "6306 sayılı Kanun md. 6"
+    yerel: null
+    mevzuat_kontrol: "2026-09-24"
+
+  - kod: S2-027
+    sutun: S2
+    bicim: B3
+    baslik: "Tacir kiracının ayrıcalığı bitti"
+    aci: "6217 sayılı Kanunun geçici 2. maddesi, kiracının tacir ya da tüzel kişi olduğu işyeri kiralarında Borçlar Kanununun bazı kira hükümlerini 1/7/2012'den itibaren 8 yıl süreyle uygulanmaz kılıyordu. Bu süre 1 Temmuz 2020'de doldu: güvence bedeli üç aylık kirayı aşamaz ve kira bedeli ile yan giderler dışında ödeme yükümlülüğü getirilemez kuralları artık tacir kiracılar için de geçerli."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "6217 sayılı Kanun geçici madde 2; Türk Borçlar Kanunu md. 342, 346"
     yerel: null
     mevzuat_kontrol: "2026-09-24"
 
@@ -249,17 +293,19 @@ konular:
     baslik: "Hangi tadilat kime ait"
     aci: "Olağan kullanımdan doğan küçük bakım kiracıya, yapısal ve zorunlu onarım ev sahibine ait. Kombi, çatı, tesisat, boya — kalem kalem kim öder."
     kanca_kalip: kim_hakli
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 301, 317"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-009
     sutun: S2
     bicim: B3
     baslik: "Kirayı elden vermek"
-    aci: "Elden ödeme ispatlanamaz. Ev sahibi ödenmedi derse yük kiracıdadır. Banka dekontuna 'kira' açıklaması yazmak tek güvenli yol."
+    aci: "Elden ödemede makbuz yoksa ispat zorlaşır; ev sahibi ödenmedi derse ödediğini ispat yükü kiracıdadır. Banka dekontuna 'kira' açıklaması yazmak tek güvenli yol."
     kanca_kalip: belge
     mevzuat: null
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-010
     sutun: S2
@@ -276,8 +322,9 @@ konular:
     baslik: "Kiracı daireyi devredebilir mi"
     aci: "Konut kirasında kiracı, ev sahibinin yazılı rızası olmadan kira ilişkisini devredemez. Rıza yoksa devir tahliye sebebi."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 323"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-012
     sutun: S2
@@ -333,6 +380,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri kira çarpanı ve konut fiyatları"
+    engel: "Silivri rakamlarıyla senaryo istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
 
   - kod: S2-018
     sutun: S2
@@ -340,8 +388,9 @@ konular:
     baslik: "Kefil ne kadar süre sorumlu"
     aci: "Kira sözleşmesindeki kefaletin yazılı olması, azami tutar ve tarih içermesi gerekir. Bu unsurlar yoksa kefalet geçersiz."
     kanca_kalip: belge
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 583"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-019
     sutun: S2
@@ -349,8 +398,9 @@ konular:
     baslik: "Kiracı izinsiz tadilat yaparsa"
     aci: "Ev sahibinin rızası olmadan yapılan değişiklikte kiracı eski hâle getirmekle yükümlü. Rıza varsa ve değer artmışsa kiracı bedel talep edebilir."
     kanca_kalip: kim_hakli
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 321"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S2-020
     sutun: S2
@@ -358,12 +408,13 @@ konular:
     baslik: "Ev sahibi habersiz eve girebilir mi"
     aci: "Giremez. Kiralanan kiracının zilyetliğindedir; izinsiz giriş konut dokunulmazlığını ihlal eder. Anahtarın ev sahibinde olması bu durumu değiştirmez."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Türk Borçlar Kanunu md. 319"
     yerel: null
 
   # ---------------------------------------------------------
   # S3 — ARSA, İMAR & TOPRAK  (EDM'yi ayrıştırır)
   # ---------------------------------------------------------
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-001
     sutun: S3
@@ -387,10 +438,11 @@ konular:
     sutun: S3
     bicim: B3
     baslik: "Yola cephesi olmayan arsa"
-    aci: "Yola cephesi yoksa ruhsat alınamaz. Çözüm geçit hakkı veya tevhid — ikisi de komşuya bağlı olduğu için fiyatı doğrudan düşürür."
+    aci: "Genel yola çıkışı olmayan parselde yapı ruhsatı almak çoğu zaman mümkün olmaz. Çözüm geçit hakkı veya tevhid — ikisi de komşuya bağlı olduğu için fiyatı doğrudan düşürür."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Türk Medeni Kanunu md. 747"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-004
     sutun: S3
@@ -417,8 +469,9 @@ konular:
     baslik: "Hisseli tarlada kim nereyi kullanır"
     aci: "Hisse, tapuda oran demek — zeminde belirli bir parça demek değil. Paydaşlar fiilen taksim etse bile bu taksim hukuken bağlayıcı olmayabilir."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "Türk Medeni Kanunu md. 688, 691"
     yerel: "Trakya'da hisseli tarla alımının en büyük anlaşmazlık kaynağı"
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-007
     sutun: S3
@@ -426,8 +479,9 @@ konular:
     baslik: "İfraz ve tevhid nedir"
     aci: "İfraz parseli böler, tevhid birleştirir. İkisi de imar planına ve asgari parsel şartına bağlı; plan uygun değilse başvuru reddedilir."
     kanca_kalip: belge
-    mevzuat: null
+    mevzuat: "İmar Kanunu md. 15, 16"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-008
     sutun: S3
@@ -451,10 +505,11 @@ konular:
     sutun: S3
     bicim: B1
     baslik: "Kadastro ile tapu ölçüsü tutmuyorsa"
-    aci: "Tapudaki yüzölçümü ile zemindeki ölçü farklıysa esas olan kadastro paftasıdır. Aradaki fark bazen yüzde onu geçiyor ve alım anında fark edilmiyor."
+    aci: "Tapudaki yüzölçümü ile zemindeki ölçü farklıysa esas olan kadastro paftasıdır. Fark çoğu zaman alım anında fark edilmiyor."
     kanca_kalip: rakam
     mevzuat: null
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-011
     sutun: S3
@@ -473,15 +528,17 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri kuzey aksı örneği"
+    engel: "Beş yıllık karşılaştırma istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
 
   - kod: S3-013
     sutun: S3
     bicim: B3
     baslik: "Arsa vasfı nasıl öğrenilir"
-    aci: "Tapudaki nitelik yeterli değil. Belediyeden imar durumu belgesi alınmadan arsanın ne yapılabileceği bilinemez — ve bu belge ücretsize yakın."
+    aci: "Tapudaki nitelik yeterli değil. Belediyeden imar durumu belgesi alınmadan arsanın ne yapılabileceği bilinemez."
     kanca_kalip: belge
     mevzuat: null
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S3-014
     sutun: S3
@@ -498,12 +555,13 @@ konular:
     baslik: "Yapı kayıt belgesi neyi çözer"
     aci: "İmar barışı belgesi cezayı ve yıkımı durdurur ama yapıyı imara uygun hâle getirmez. Kentsel dönüşümde ve yeni ruhsatta hâlâ engel."
     kanca_kalip: yaygin_yanlis
-    mevzuat: null
+    mevzuat: "İmar Kanunu geçici madde 16"
     yerel: null
 
   # ---------------------------------------------------------
   # S4 — RAKAM & BÖLGE  (yerelleştirir)
   # ---------------------------------------------------------
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S4-001
     sutun: S4
@@ -523,6 +581,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri otoban aksı"
+    engel: "Beş yıllık simülasyon istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
 
   - kod: S4-003
     sutun: S4
@@ -542,6 +601,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri ilçe ortalaması"
+    engel: "İlçe ve mahalle kira çarpanı istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
 
   - kod: S4-005
     sutun: S4
@@ -577,8 +637,9 @@ konular:
     baslik: "Emlak vergisi ne zaman ödenir"
     aci: "İki taksit: mayıs sonu ve kasım sonu. Geciken taksite gecikme zammı işler. Yeni alınan mülkte beyan sorumluluğu alıcıda."
     kanca_kalip: sure
-    mevzuat: null
+    mevzuat: "Emlak Vergisi Kanunu md. 30"
     yerel: null
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S4-009
     sutun: S4
@@ -588,12 +649,13 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri sahil hattı"
+    engel: "Rakamsal karşılaştırma istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
 
   - kod: S4-010
     sutun: S4
     bicim: B3
     baslik: "Değer artış kazancı vergisi"
-    aci: "Beş yıl dolmadan satarsanız kazanç üzerinden vergi doğar. Beş yıl beklemek çoğu durumda vergiden fazlasını kazandırır."
+    aci: "Beş yıl dolmadan satarsanız kazanç üzerinden vergi doğar."
     kanca_kalip: sure
     mevzuat: null
     yerel: null
@@ -601,6 +663,7 @@ konular:
   # ---------------------------------------------------------
   # S1 — TAPU & HUKUK (İlave Zengin Havuz)
   # ---------------------------------------------------------
+    mevzuat_kontrol: "2026-09-24"
 
   - kod: S1-016
     sutun: S1
@@ -844,6 +907,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Kınalı-Tekirdağ otoyolu ve Kuzey Marmara Otoyolu bağlantı noktaları"
+    engel: "Getiri hesabı ve 'enflasyona yenilme' iddiası veri kaynağı olmadan yazılamaz (2026-09-24)."
 
   - kod: S4-014
     sutun: S4
@@ -853,6 +917,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri Kınalı, Değirmenköy ve Selimpaşa sanayi bölgeleri"
+    engel: "'Son 3 yıllık değer artış grafiği' istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
 
   - kod: S4-015
     sutun: S4
@@ -940,6 +1005,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri - Çorlu hattı değer artış eğrisi"
+    engel: "'Gayrimenkul uzun vadede reel serveti korur' kaynaksız ekonomik genelleme; ayrıca yatırım tavsiyesi niteliğinde (2026-09-24)."
 
   - kod: S5-006
     sutun: S5
@@ -949,6 +1015,7 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: null
+    engel: "Faiz kararlarının fiyat etkisi kaynaksız ekonomik genelleme; veri kaynağı olmadan yayınlanmaz (2026-09-24)."
 
   - kod: S5-007
     sutun: S5
@@ -1033,4 +1100,4 @@ konular:
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Trakya gelişim aksı"
-
+    engel: "'Arsa ve konutun değeri inşaat maliyet endeksiyle katlanarak reel sermayeyi korur' kaynaksız ekonomik iddia (2026-09-24)."
