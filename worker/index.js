@@ -618,12 +618,38 @@ export default {
           return new Response("OK");
         }
 
+        // --- "İşleniyor" butonuna basılırsa kullanıcıyı bilgilendir ---
+        if (data === "isleniyor") {
+          await cevapVer("⏳ İşlem devam ediyor, lütfen bekle…");
+          return new Response("OK");
+        }
+
+        // --- Kurtar: Worker onay menüsünü ve butonları anında geri yükler ---
+        if (data.startsWith("kurtar_menu:") || data.startsWith("menu_kurtar:")) {
+          const parts = data.split(":");
+          const adet = parseInt(parts[1] || "2", 10) || 2;
+          const klavye = cb.message?.reply_markup?.inline_keyboard || [];
+          const secili = seciliKanallariCikar(klavye);
+          let temizMetin = (cb.message?.text || cb.message?.caption || "").replace(/^⏳[^\n]*\n\n/, "");
+          await mesajiGuncelle(temizMetin || "EDM Günlük Onay Menüsü", anaMenu(adet, secili));
+          await cevapVer("✅ Menü geri yüklendi");
+          return new Response("OK");
+        }
+
         // G. METİN DÜZENLEME EYLEMLERİ
         if (data === "metin_ozetle" || data === "metin_detaylandir" || data === "metin_yenile" || data.startsWith("metin_eylem:") || data.startsWith("yenile:")) {
           const eylem = data.startsWith("metin_eylem:") ? data.split(":")[1] : (data.startsWith("yenile:") ? "yenile" : data);
           const mId = (data.startsWith("yenile:") && data.split(":").length > 2 ? data.split(":")[2] : "") || icerikIdBul();
           await cevapVer("Metin düzenleniyor...");
-          await mesajiGuncelle(`✍️ <b>İçerik için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await mesajiGuncelle(
+            `✍️ <b>İçerik için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`,
+            {
+              inline_keyboard: [
+                [{ text: `⏳ Metin Düzenleniyor…`, callback_data: "isleniyor" }],
+                [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
+              ],
+            }
+          );
           await tetikle(env, chatId, "yayinla", { hedef: eylem, id: mId, mesaj_id: messageId });
           return new Response("OK");
         }
@@ -633,7 +659,15 @@ export default {
           const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
           const fId = icerikIdBul();
           await cevapVer("Görsel güncelleniyor...");
-          await mesajiGuncelle(`🖼️ <b>Görsel güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          await mesajiGuncelle(
+            `🖼️ <b>Görsel güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`,
+            {
+              inline_keyboard: [
+                [{ text: `⏳ Görsel Güncelleniyor…`, callback_data: "isleniyor" }],
+                [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
+              ],
+            }
+          );
           await tetikle(env, chatId, "yayinla", { hedef: eylem, id: fId, mesaj_id: messageId });
           return new Response("OK");
         }

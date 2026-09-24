@@ -157,6 +157,34 @@ def _degisiklik_yok(cikti: str) -> bool:
     return any(k in metin for k in _DEGISIKLIK_YOK_KALIPLARI)
 
 
+def veritabani_saglam_mi(db_yolu: str | Path | None = None) -> bool:
+    """
+    Veritabanı dosyasının fiziksel olarak var olduğunu, SQLite formatında olduğunu
+    ve bozuk olmadığını doğrular. Bozuk (0 bayt, sıfırlanmış ilk sayfa vb.) bir veritabanının
+    git'e commit edilip diğer tüm runner'ları zehirlemesini engeller.
+    """
+    try:
+        import sqlite3
+        yol = Path(db_yolu or config.db_yolu())
+        if not yol.exists() or yol.stat().st_size < 100:
+            log.critical("db_senkron: '%s' dosyası mevcut değil veya çok küçük (<100 bayt)!", yol)
+            return False
+        with open(yol, "rb") as f:
+            baslik = f.read(16)
+            if baslik != b"SQLite format 3\x00":
+                log.critical("db_senkron: '%s' SQLite başlığı geçersiz (ilk 16 bayt bozuk)!", yol)
+                return False
+        with sqlite3.connect(yol, timeout=10) as con:
+            res = con.execute("PRAGMA quick_check").fetchone()
+            if not res or res[0] != "ok":
+                log.critical("db_senkron: '%s' quick_check başarısız: %s", yol, res)
+                return False
+        return True
+    except Exception as e:
+        log.critical("db_senkron: veritabanı kontrol hatası: %s", e)
+        return False
+
+
 def hemen_kaydet(mesaj: str, ek_yollar: Optional[List[str]] = None) -> bool:
     """
     data/edm.db'yi commit edip push eder.
@@ -165,6 +193,11 @@ def hemen_kaydet(mesaj: str, ek_yollar: Optional[List[str]] = None) -> bool:
     if config.test_modu():
         log.info("[TEST MODU] db_senkron.hemen_kaydet atlandı: %s", mesaj)
         return True
+
+    # 0. Sağlamlık kontrolü (bozuk DB asla commit/push edilemez)
+    if not veritabani_saglam_mi():
+        log.critical("db_senkron: Veritabanı sağlamlık kontrolünden GEÇEMEDİ! Commit iptal edildi.")
+        return False
 
     # 1. WAL dosyasını ana db'ye göm
     db.wal_bosalt()

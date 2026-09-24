@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import numpy as np
 
-from . import config, make_image
+from . import config, make_image, dogrula
 
 log = logging.getLogger(__name__)
 
@@ -343,80 +343,86 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if m_ada and not baslikta_sayi_var:
         num = m_ada.group(1)
         unit = "ADA"
-        parsel_num = m_parsel.group(1) if m_parsel else ""
-        t1 = f"{parsel_num} PARSEL ETKİLENİYOR" if parsel_num else "BÖLGE PARSELLERİ"
-        t2 = "PLAN RESMEN ASKIYA ÇIKTI" if "askı" in metin_tum.lower() else "YENİ İMAR PLANI YÜRÜRLÜKTE"
-        return {
-            "format": "stat_punch",
-            "num_txt": num,
-            "unit_txt": unit,
-            "lbl_txt": "PLAN SAHASI",
-            "t1": t1,
-            "t2": t2,
-            "renk": AMBER,
-        }
+        if not dogrula.vurgu_zayif_mi(num, unit):
+            parsel_num = m_parsel.group(1) if m_parsel else ""
+            t1 = f"{parsel_num} PARSEL ETKİLENİYOR" if parsel_num else "BÖLGE PARSELLERİ"
+            t2 = "PLAN RESMEN ASKIYA ÇIKTI" if "askı" in metin_tum.lower() else "YENİ İMAR PLANI YÜRÜRLÜKTE"
+            return {
+                "format": "stat_punch",
+                "num_txt": num,
+                "unit_txt": unit,
+                "lbl_txt": "PLAN SAHASI",
+                "t1": t1,
+                "t2": t2,
+                "renk": AMBER,
+            }
 
     # Kalıp 2: "30 GÜN" / "15 GÜN" (Askı ve İtiraz Süresi)
     m_gun = re.search(r"(\d+)\s*(GÜN|GÜNLÜK)", metin_tum, re.IGNORECASE)
     if m_gun and ("askı" in metin_tum.lower() or "itiraz" in metin_tum.lower()):
         num = m_gun.group(1)
-        return {
-            "format": "stat_punch",
-            "num_txt": num,
-            "unit_txt": "GÜN",
-            "lbl_txt": "YASAL SÜREÇ",
-            "t1": "RESMİ ASKI VE İTİRAZ",
-            "t2": "SÜRECİ BAŞLAMIŞTIR",
-            "renk": AMBER_SARI,
-        }
+        if not dogrula.vurgu_zayif_mi(num, "GÜN"):
+            return {
+                "format": "stat_punch",
+                "num_txt": num,
+                "unit_txt": "GÜN",
+                "lbl_txt": "YASAL SÜREÇ",
+                "t1": "RESMİ ASKI VE İTİRAZ",
+                "t2": "SÜRECİ BAŞLAMIŞTIR",
+                "renk": AMBER_SARI,
+            }
 
     # Kalıp 3: KAKS / EMSAL (Örn: KAKS 0.60 veya Emsal 1.50)
     m_kaks = re.search(r"(?:KAKS|EMSAL)\s*[:=]?\s*([0-9\.,]+)", metin_tum, re.IGNORECASE)
     if m_kaks:
         val = m_kaks.group(1)
-        return {
-            "format": "stat_punch",
-            "num_txt": val,
-            "unit_txt": "KAKS",
-            "lbl_txt": "YENİ EMSAL ORANI",
-            "t1": "YAPILAŞMA VE İNŞAAT",
-            "t2": "KOŞULLARI BELİRLENDİ",
-            "renk": AMBER,
-        }
+        if not dogrula.vurgu_zayif_mi(val, "KAKS"):
+            return {
+                "format": "stat_punch",
+                "num_txt": val,
+                "unit_txt": "KAKS",
+                "lbl_txt": "YENİ EMSAL ORANI",
+                "t1": "YAPILAŞMA VE İNŞAAT",
+                "t2": "KOŞULLARI BELİRLENDİ",
+                "renk": AMBER,
+            }
 
     # Kalıp 4: Parasal veya Yüzdesel Vurgu (Örn: %25 ZAM, %4 Harç, 500 BİN TL)
     m_yuzde = re.search(r"(%\s*[\d\.,]+)", metin_tum)
     if m_yuzde and not baslikta_sayi_var:
         val = m_yuzde.group(1).replace(" ", "")
-        return {
-            "format": "stat_punch",
-            "num_txt": val,
-            "unit_txt": "ORAN",
-            "lbl_txt": "GÜNCEL ORAN",
-            "t1": "RESMİ TARİFE VE",
-            "t2": "UYGULAMA ŞARTLARI",
-            "renk": AMBER,
-        }
+        if not dogrula.vurgu_zayif_mi(val, "ORAN"):
+            return {
+                "format": "stat_punch",
+                "num_txt": val,
+                "unit_txt": "ORAN",
+                "lbl_txt": "GÜNCEL ORAN",
+                "t1": "RESMİ TARİFE VE",
+                "t2": "UYGULAMA ŞARTLARI",
+                "renk": AMBER,
+            }
 
     # 3. Sayısal veri bulunamadıysa: Detay Maddelerinden Editoryal minimal_vurgu
     if detay_maddeleri:
-        ilk_madde = detay_maddeleri[0]
-        etiket = tr_upper(ilk_madde.get("etiket", ""))
-        metin = ilk_madde.get("metin", "")
-        # Metinden kısa ve vurucu 2 satır çıkar
-        kelimeler = metin.split()
-        if len(kelimeler) >= 4:
-            t1, t2 = _dengeli_bol(kelimeler[:8])
-            t1, t2 = tr_upper(t1), tr_upper(t2)
-            if _basliktan_farkli_mi(t1, t2, baslik):
-                kicker = f"● {etiket}" if etiket else "● SEKTÖREL BÜLTEN"
-                return {
-                    "format": "minimal_vurgu",
-                    "kicker": kicker,
-                    "t1": t1,
-                    "t2": t2,
-                    "renk": AMBER,
-                }
+        for ilk_madde in detay_maddeleri:
+            etiket = tr_upper(ilk_madde.get("etiket", ""))
+            metin = ilk_madde.get("metin", "")
+            if dogrula.bos_ovgu_mu(metin):
+                continue
+            # Metinden kısa ve vurucu 2 satır çıkar
+            kelimeler = metin.split()
+            if len(kelimeler) >= 4:
+                t1, t2 = _dengeli_bol(kelimeler[:8])
+                t1, t2 = tr_upper(t1), tr_upper(t2)
+                if _basliktan_farkli_mi(t1, t2, baslik):
+                    kicker = f"● {etiket}" if etiket else "● SEKTÖREL BÜLTEN"
+                    return {
+                        "format": "minimal_vurgu",
+                        "kicker": kicker,
+                        "t1": t1,
+                        "t2": t2,
+                        "renk": AMBER,
+                    }
 
     # 4. Hiçbiri olmazsa kategoriye göre şık minimal kanca
     kat = haber.get("kategori") or "GÜNDEM"

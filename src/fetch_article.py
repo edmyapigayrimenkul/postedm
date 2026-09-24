@@ -127,16 +127,80 @@ def _kucult(metin: str) -> str:
     return filtre.kucult(metin)
 
 
+TURKCE_STOPWORDS = {
+    "bir", "ve", "ile", "bu", "da", "de", "ne", "en", "icin", "için",
+    "gibi", "daha", "kadar", "sonra", "once", "önce", "cok", "çok",
+    "var", "yok", "her", "ise", "olan", "olarak", "diye", "son", "yeni",
+    "ancak", "ayrıca", "ayrica", "bazi", "bazı", "tum", "tüm", "bunu",
+    "buna", "bunun", "yada", "veya",
+}
+
+
+def _turkce_kok(kelime: str) -> str:
+    """Türkçe kelimelerin yaygın çekim ve yapım eklerini temizleyerek kök/gövde tahmin eder."""
+    k = _kucult(kelime)
+    for ek in (
+        "lerinden", "larindan", "lerinden", "larından",
+        "lerinin", "larinin", "lerinin", "larının",
+        "lerine", "larina", "lerine", "larına",
+        "lerini", "larini", "lerini", "larını",
+        "lerde", "larda", "lerden", "lardan",
+        "leriyle", "lariyla", "leriyle", "larıyla",
+        "sinden", "sindan", "sunden", "sundan",
+        "sinde", "sinda", "sunde", "sunda",
+        "sine", "sina", "sune", "suna",
+        "sini", "sini", "sunu", "sünü",
+        "inden", "indan", "unden", "undan",
+        "lerin", "larin", "lerin", "ların",
+        "nin", "nın", "nün", "nun",
+        "den", "dan", "ten", "tan",
+        "de", "da", "te", "ta",
+        "ye", "ya", "yi", "yı", "yu", "yü",
+        "in", "ın", "ün", "un",
+        "e", "a", "i", "ı", "u", "ü",
+        "ler", "lar", "lik", "lık", "luk", "lük",
+        "siz", "sız", "suz", "süz",
+        "yor", "di", "dı", "du", "dü", "ti", "tı", "tu", "tü",
+        "miş", "mış", "muş", "müş", "ecek", "acak",
+    ):
+        if len(k) - len(ek) >= 3 and k.endswith(ek):
+            k = k[:-len(ek)]
+            break
+    return k
+
+
 def _baslikla_ilgili_mi(metin: str, baslik: str) -> bool:
-    """Çekilen metnin başka bir yan sütun veya reklam değil, haberin kendisi olduğunu teyit eder."""
+    """
+    Çektiğimiz metin gerçekten BU haberin metni mi?
+    Ölçüt: başlıktaki anlamlı kelimelerin en az üçte biri metinde geçmeli.
+    Türkçe eklemeli yapıyı (örn. 'motorine' -> 'motorin') ve 3 harfli kritik
+    kelimeleri ('zam', 'ev', 'kat', 'arsa', 'kira') destekler.
+    """
     if not baslik:
         return True
+
     govde = _kucult(metin)
-    kelimeler = [k for k in re.findall(r"\w+", _kucult(baslik)) if len(k) >= 4]
+    ham_kelimeler = re.findall(r"\w+", _kucult(baslik))
+    kelimeler = [k for k in ham_kelimeler if len(k) >= 3 and k not in TURKCE_STOPWORDS]
     if len(kelimeler) < 2:
         return True
-    gecen = sum(1 for k in kelimeler if k in govde)
-    return gecen >= max(2, len(kelimeler) // 3)
+
+    govde_kelimeleri = set(re.findall(r"\w+", govde))
+    govde_kokleri = {_turkce_kok(w) for w in govde_kelimeleri}
+
+    eslesen = 0
+    for k in kelimeler:
+        kok = _turkce_kok(k)
+        if (
+            k in govde_kelimeleri
+            or kok in govde_kelimeleri
+            or kok in govde_kokleri
+            or any(gw.startswith(kok) for gw in govde_kelimeleri if len(kok) >= 4)
+            or any(k.startswith(gw) for gw in govde_kelimeleri if len(gw) >= 4)
+        ):
+            eslesen += 1
+
+    return eslesen >= max(2, len(kelimeler) // 3)
 
 
 def _capadan_topla(soup: BeautifulSoup, baslik: Optional[str] = None) -> Optional[str]:
@@ -166,6 +230,55 @@ def _capadan_topla(soup: BeautifulSoup, baslik: Optional[str] = None) -> Optiona
     return None
 
 
+_KUYRUK_KESIN = re.compile(
+    r"(sayfada yer alan bilgiler tavsiye niteli[gğ]i ta[sş][ıi]may[ıi]p"
+    r"|yat[ıi]r[ıi]m dan[ıi][sş]manl[ıi][gğ][ıi] kapsam[ıi]nda de[gğ]ildir"
+    r"|\bt[uü]m yorumlar\b|\byorum yaz\b|\bokur yorumlar[ıi]\b"
+    r"|izinsiz ve kaynak g[oö]sterilmeden)",
+    re.IGNORECASE,
+)
+
+_KUYRUK_ZAYIF = re.compile(
+    r"(ilgili haberler|di[gğ]er haberler|bunlar da ilgin"
+    r"|bizi takip edin|abone ol)",
+    re.IGNORECASE,
+)
+
+_KUYRUK_ASGARI_KALAN = 300
+
+
+def kuyrugu_kes(metin: str | None) -> str:
+    """
+    Gövdenin sonundaki okur yorumu / sayfa altı şablonunu ve yasal uyarıları atar.
+    İki kademeli: kesin işaretler her yerde, zayıf işaretler yalnızca
+    metnin son yarısında kesiyor.
+    """
+    m = (metin or "").strip()
+    if len(m) < 400:
+        return m
+
+    adaylar = []
+    e = _KUYRUK_KESIN.search(m)
+    if e:
+        adaylar.append(e)
+    esik = int(len(m) * 0.55)
+    for z in _KUYRUK_ZAYIF.finditer(m):
+        if z.start() >= esik:
+            adaylar.append(z)
+            break
+    if not adaylar:
+        return m
+
+    eslesme = min(adaylar, key=lambda x: x.start())
+    kesilen = m[: eslesme.start()].strip()
+    if len(kesilen) < _KUYRUK_ASGARI_KALAN:
+        return m
+    if len(m) - len(kesilen) > 50:
+        log.info("gövde kuyruğu kesildi: %d karakter atıldı (%r)",
+                 len(m) - len(kesilen), eslesme.group(0)[:40])
+    return kesilen
+
+
 def makale_metni_cek(link: str, baslik: Optional[str] = None, zaman_asimi: int = 15) -> Optional[str]:
     """
     Haber sayfasını indirip gövde metnini (makale metni) döner.
@@ -189,6 +302,10 @@ def makale_metni_cek(link: str, baslik: Optional[str] = None, zaman_asimi: int =
             aday = uretici(soup)
             if aday and len(aday) >= ASGARI_UZUNLUK:
                 if baslik and not _baslikla_ilgili_mi(aday, baslik):
+                    continue
+                # Okur yorumu ve sayfa altı şablonlarını temizle
+                aday = kuyrugu_kes(aday)
+                if len(aday) < ASGARI_UZUNLUK:
                     continue
                 # Fazla boşlukları temizle ve sınırla
                 temiz = re.sub(r"\s+", " ", aday).strip()
