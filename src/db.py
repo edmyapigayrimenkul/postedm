@@ -459,13 +459,21 @@ def onay_istegi_kaydet(
 
 
 def onay_istegi_sonuclandir(tur: str, referans_id: str, durum: str) -> None:
-    """Onay isteğini yayınlandı, reddedildi veya yenilendi olarak sonuçlandırır."""
+    """Onay isteğini yayınlandı, reddedildi veya yenilendi olarak sonuçlandırır.
+
+    haber ve reels aynı haberler tablosunda yaşar; onay kartında Reels seçilince
+    yayın tur=reels ile çalışır ama kart tur=haber ile açılmıştır. Eskiden bu
+    yüzden kayıt 'bekliyor'da kalıyordu (#221, 2026-09-23) ve hatırlatıcı
+    yayınlanmış içerik için hatırlatmaya devam ediyordu.
+    """
     simdi = datetime.now(timezone.utc).isoformat()
+    turler = ("haber", "reels") if tur in ("haber", "reels") else (tur,)
+    yer = ",".join("?" for _ in turler)
     with _baglanti_al() as conn:
         conn.execute(
-            """UPDATE onay_istekleri SET durum = ?, yanit_tarihi = ?
-               WHERE tur = ? AND referans_id = ? AND durum = 'bekliyor'""",
-            (durum, simdi, tur, str(referans_id)),
+            f"""UPDATE onay_istekleri SET durum = ?, yanit_tarihi = ?
+                WHERE tur IN ({yer}) AND referans_id = ? AND durum = 'bekliyor'""",
+            (durum, simdi, *turler, str(referans_id)),
         )
         conn.commit()
 

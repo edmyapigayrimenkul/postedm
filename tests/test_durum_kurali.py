@@ -90,5 +90,16 @@ class TestYayinlaKorumasi(unittest.TestCase):
         self.assertIn("zaten yayında", mesaj.call_args[0][0])
 
 
+class TestOnayKaydi(unittest.TestCase):
+    def test_reels_olarak_yayinlanan_haberin_onay_kaydi_kapanir_221(self):
+        """Kart tur=haber ile açıldı, Reels seçilip yayınlandı (tur=reels) — kayıt kapanmalı."""
+        db.onay_istegi_kaydet("haber", "990221", 455, -1)
+        db.onay_istegi_sonuclandir("reels", "990221", "yayinlandi")
+        with db._baglanti_al() as conn:
+            durum = conn.execute("SELECT durum FROM onay_istekleri WHERE referans_id='990221'").fetchone()[0]
+            conn.execute("DELETE FROM onay_istekleri WHERE referans_id='990221'"); conn.commit()
+        self.assertEqual(durum, "yayinlandi")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
