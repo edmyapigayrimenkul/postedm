@@ -124,6 +124,67 @@ def baslik_kur(baslik: str, etiketler: Optional[List[str]] = None) -> str:
     return temiz_baslik[:150]
 
 
+def aciklama_kur(
+    metin: str,
+    etiketler: Optional[List[str]] = None,
+    azami_uzunluk: int = 4000,
+) -> str:
+    """
+    TikTok fotoğraf modu (Carousel) için tam açıklama metnini kurar.
+    Editoryal metni ve etiketleri tekrarsız (mükerrersiz) olarak azami 4000 karaktere kadar birleştirir.
+    Metnin sonundaki mevcut hashtag kuyruğunu ayıklar ve tek bir temiz etiket bloğu üretir.
+    """
+    metin_temiz = (metin or "").strip()
+
+    # 1. Metnin sonundaki mevcut hashtag kuyruğunu (yalnızca etiketlerden oluşan satırları) ayıkla
+    satirlar = metin_temiz.splitlines()
+    mevcut_kuyruk_etiketleri: List[str] = []
+    while satirlar:
+        s = satirlar[-1].strip()
+        if not s:
+            satirlar.pop()
+            continue
+        tokens = s.split()
+        if tokens and all(t.startswith("#") for t in tokens):
+            for t in tokens:
+                tag = t.lstrip("#").strip()
+                if tag and _etiket_anahtari(tag) not in [_etiket_anahtari(x) for x in mevcut_kuyruk_etiketleri]:
+                    mevcut_kuyruk_etiketleri.append(tag)
+            satirlar.pop()
+            continue
+        break
+
+    govde = "\n".join(satirlar).rstrip()
+
+    # 2. Etiketleri birleştir ve dedupe et (sıralamayı koru)
+    hedef_etiketler: List[str] = []
+    goruldu = set()
+
+    kaynak_etiketler = (etiketler or []) + [f"#{e}" for e in mevcut_kuyruk_etiketleri]
+    if not kaynak_etiketler:
+        kaynak_etiketler = ["#EDMYapı", "#Emlak", "#Silivri", "#Gayrimenkul", "#keşfet"]
+
+    for e in kaynak_etiketler:
+        e_str = str(e).strip().lstrip("#")
+        if not e_str:
+            continue
+        k = _etiket_anahtari(e_str)
+        if k not in goruldu:
+            goruldu.add(k)
+            hedef_etiketler.append(e_str)
+
+    etiket_metni = " ".join(f"#{e}" for e in hedef_etiketler[:8])
+
+    if govde and etiket_metni:
+        birlestirilmis = f"{govde}\n\n{etiket_metni}"
+    elif etiket_metni:
+        birlestirilmis = etiket_metni
+    else:
+        birlestirilmis = govde
+
+    return birlestirilmis[:azami_uzunluk].strip()
+
+
 def video_yukle(
     video_yolu: Path | str,
     baslik: str,
@@ -258,6 +319,7 @@ def foto_yayinla(
     baslik: str,
     etiketler: Optional[List[str]] = None,
     hazir_video_yolu: Optional[Path | str] = None,
+    aciklama: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     TikTok Content Posting API v2 ile fotoğraf veya kaydırmalı (Carousel) post yayınlar.
@@ -272,11 +334,13 @@ def foto_yayinla(
         return {"durum": False, "hata": "TikTok erişim jetonu alınamadı."}
 
     tam_baslik = baslik_kur(baslik, etiketler)
+    tam_aciklama = aciklama_kur(aciklama or baslik, etiketler, azami_uzunluk=4000)
 
     # 1. TikTok Photo Content Init Dene (PULL_FROM_URL)
     payload = {
         "post_info": {
             "title": tam_baslik,
+            "description": tam_aciklama,
             "privacy_level": "PUBLIC_TO_EVERYONE",
             "disable_comment": False,
             "auto_add_music": True,
@@ -345,4 +409,8 @@ def foto_yayinla(
         log.error("TikTok fallback video üretimi hatası: %s", fallback_hatasi)
 
     return {"durum": False, "hata": "TikTok fotoğraf ve video yayını tamamlanamadı."}
+
+
+# Instabot API Paritesi Alias'ı
+foto_carousel_yukle = foto_yayinla
 

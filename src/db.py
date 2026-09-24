@@ -35,6 +35,9 @@ def _baglanti_al() -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+baglanti_al = _baglanti_al
+
+
 def wal_bosalt() -> None:
     """WAL dosyasındaki değişiklikleri ana veritabanına yazar (git commit öncesi zorunludur)."""
     conn = None

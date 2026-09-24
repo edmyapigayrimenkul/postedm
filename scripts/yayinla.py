@@ -22,7 +22,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
+from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, make_image, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 TASLAK_ISLEMLERI = frozenset({
     "reddet", "iptal", "cope_at", "yenile",
     "metin_ozetle", "metin_detaylandir", "metin_yenile",
-    "foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai", "foto_ilk",
+    "foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai", "foto_ilk", "foto_adaylar",
 })
 # Her durumda anlamlı olan yönetim işlemleri. "tamamla" elle paylaşılan içeriği
 # kaydetmenin yolu; kaldırma ise kendi içinde yayında olup olmadığına bakar.
@@ -344,8 +344,8 @@ def main() -> None:
         db.wal_bosalt()
         return
 
-    # 0.7 Fotoğraf Özelleştirme Aksiyonları (Değiştir / Saf Editoryal / Stok / AI / Gerçek / İlk)
-    if hedef in ("foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai", "foto_ilk"):
+    # 0.7 Fotoğraf Özelleştirme Aksiyonları (Değiştir / Saf Editoryal / Stok / AI / Gerçek / İlk / 3 Aday / Aday Seçimi)
+    if hedef in ("foto_degistir", "foto_editoryal", "foto_gercek", "foto_stok", "foto_ai", "foto_ilk", "foto_adaylar") or hedef.startswith("gorsel_sec:"):
         if tur in ("haber", "reels"):
             haber = db.haber_getir(int(ref_id))
             if not haber:
@@ -354,7 +354,80 @@ def main() -> None:
                 haber = db.haber_getir(int(ref_id))
             if haber:
                 detay = json.loads(haber["detay_metni"]) if haber.get("detay_metni") else {}
-                if hedef == "foto_ilk":
+
+                # 3 Farklı Aday Sunma İstemi
+                if hedef == "foto_adaylar":
+                    from src import config
+                    c_dir = config.yol_al("data/output/adaylar")
+                    c_dir.mkdir(parents=True, exist_ok=True)
+                    aday_slaytlari = []
+                    etiketler = []
+
+                    # 1. Aday: Gerçek / Kardeş Haber Fotoğrafı
+                    h1 = dict(haber)
+                    h1["foto_kaynak"] = "gercek"
+                    p1 = c_dir / f"aday_{ref_id}_1.jpg"
+                    make_image.haber_dailybrief_slayti_ciz(h1, cikti_yolu=p1, sayfa_no="1/3")
+                    if p1.exists():
+                        aday_slaytlari.append(p1)
+                        etiketler.append("1️⃣ Basın / Kardeş Haber Görseli")
+
+                    # 2. Aday: Mimari Stok Fotoğrafı (Pexels)
+                    h2 = dict(haber)
+                    h2["foto_kaynak"] = "stok"
+                    p2 = c_dir / f"aday_{ref_id}_2.jpg"
+                    make_image.haber_dailybrief_slayti_ciz(h2, cikti_yolu=p2, sayfa_no="2/3")
+                    if p2.exists():
+                        aday_slaytlari.append(p2)
+                        etiketler.append("2️⃣ Mimari Stok Fotoğraf")
+
+                    # 3. Aday: EDM Kurumsal Mimari Pafta Tasarımı
+                    h3 = dict(haber)
+                    h3["saf_editoryal"] = True
+                    p3 = c_dir / f"aday_{ref_id}_3.jpg"
+                    make_image.haber_dailybrief_slayti_ciz(h3, cikti_yolu=p3, sayfa_no="3/3")
+                    if p3.exists():
+                        aday_slaytlari.append(p3)
+                        etiketler.append("3️⃣ EDM Kurumsal Pafta Tasarımı")
+
+                    if aday_slaytlari:
+                        telegram_bot.slaytlari_gonder(aday_slaytlari, etiketler)
+                        secim_butonlari = [
+                            [
+                                {"text": "1️⃣", "callback_data": f"gorsel_sec:1:{ref_id}"},
+                                {"text": "2️⃣", "callback_data": f"gorsel_sec:2:{ref_id}"},
+                                {"text": "3️⃣", "callback_data": f"gorsel_sec:3:{ref_id}"},
+                            ],
+                            [
+                                {"text": "🔄 Başka adaylar", "callback_data": f"foto_degistir:{ref_id}"},
+                                {"text": "↩️ Mevcut Görsel Kalsın", "callback_data": f"kurtar_menu:2"},
+                            ],
+                        ]
+                        telegram_bot.mesaj_gonder(
+                            f"🎨 <b>3 Alternatif Kapak Görseli (#{ref_id})</b>\n\n"
+                            f"1️⃣ Basın / Kardeş Haber Görseli\n"
+                            f"2️⃣ Mimari Stok Fotoğraf (Pexels)\n"
+                            f"3️⃣ EDM Kurumsal Pafta Tasarımı\n\n"
+                            f"Beğendiğin numaraya basarak tek tıkla uygulayabilirsin.",
+                            butonlar=secim_butonlari,
+                        )
+                        db.wal_bosalt()
+                        return
+
+                # Aday Seçimi Yapıldıysa
+                if hedef.startswith("gorsel_sec:"):
+                    secilen = hedef.split(":")[1]
+                    if secilen == "1":
+                        detay["foto_kaynak"] = "gercek"
+                        detay.pop("saf_editoryal", None)
+                    elif secilen == "2":
+                        detay["foto_kaynak"] = "stok"
+                        detay.pop("saf_editoryal", None)
+                    elif secilen == "3":
+                        detay["saf_editoryal"] = True
+                        detay.pop("foto_kaynak", None)
+                    detay["foto_degistir"] = True
+                elif hedef == "foto_ilk":
                     detay.pop("foto_kaynak", None)
                     detay.pop("saf_editoryal", None)
                     detay.pop("foto_degistir", None)
@@ -371,6 +444,7 @@ def main() -> None:
                     detay["foto_degistir"] = True
                 else:
                     detay["foto_degistir"] = True
+
                 db.haber_guncelle(int(ref_id), detay_metni=json.dumps(detay, ensure_ascii=False), slayt_yollari=None, slayt_urlleri=None, video_yolu=None)
                 if tur == "reels":
                     telegram_bot.reels_hazirla_ve_sun()

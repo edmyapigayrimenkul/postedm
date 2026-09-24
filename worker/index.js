@@ -655,6 +655,40 @@ export default {
         }
 
         // H. FOTOĞRAF EYLEMLERİ
+        if (data.startsWith("gorsel_sec:")) {
+          const parts = data.split(":");
+          const adayNo = parts[1];
+          const fId = parts.length > 3 ? parts[3] : (parts.length > 2 ? parts[2] : icerikIdBul());
+          await cevapVer(`${adayNo}. aday uygulanıyor...`);
+          await mesajiGuncelle(
+            `🎨 <b>${adayNo}. görsel adayı seçildi</b>, içeriğe uygulanıyor...`,
+            {
+              inline_keyboard: [
+                [{ text: `⏳ Görsel Uygulanıyor…`, callback_data: "isleniyor" }],
+                [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
+              ],
+            }
+          );
+          await tetikle(env, chatId, "yayinla", { hedef: `gorsel_sec:${adayNo}`, id: fId, mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data === "foto_adaylar" || data.startsWith("foto_adaylar:")) {
+          const fId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
+          await cevapVer("3 aday hazırlanıyor...");
+          await mesajiGuncelle(
+            `✨ <b>3 alternatif kapak görseli hazırlanıyor...</b>\nBirazdan albüm olarak sunulacak...`,
+            {
+              inline_keyboard: [
+                [{ text: `⏳ Adaylar Hazırlanıyor…`, callback_data: "isleniyor" }],
+                [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
+              ],
+            }
+          );
+          await tetikle(env, chatId, "yayinla", { hedef: "foto_adaylar", id: fId, mesaj_id: messageId });
+          return new Response("OK");
+        }
+
         if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data === "foto_ilk" || data.startsWith("foto_eylem:")) {
           const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
           const fId = icerikIdBul();
@@ -1324,6 +1358,9 @@ function fotoMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "faceb
   return {
     inline_keyboard: [
       ...kanalButonlariSatirlari(seciliKanallar),
+      [
+        { text: "✨ 3 Farklı Aday Göster", callback_data: "foto_adaylar" },
+      ],
       [
         { text: "📸 Gerçek Fotoğraf Ara", callback_data: "foto_gercek" },
         { text: "🖼️ Stok Fotoğraf (Pexels)", callback_data: "foto_stok" },

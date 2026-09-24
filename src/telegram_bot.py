@@ -390,6 +390,12 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> boo
     return False
 
 
+def slaytlari_gonder(foto_yollari: List[Path | str], basliklar: Optional[List[str]] = None) -> bool:
+    """Instabot uyumluluk yardımcısı: Fotoğraf albümü (medya grubu) gönderir."""
+    caption = basliklar[0] if basliklar else ""
+    return medya_grubu_gonder(foto_yollari, caption=caption)
+
+
 def mesaji_sil(mesaj_id: int) -> bool:
     """Belirtilen mesajı siler; mesaj zaten silinmişse çökmeden False döner."""
     res = _istek("deleteMessage", message_id=mesaj_id)
@@ -883,6 +889,9 @@ def foto_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Di
     return {
         "inline_keyboard": [
             *kanal_butonlari(kanallar),
+            [
+                {"text": "✨ 3 Farklı Aday Göster", "callback_data": "foto_adaylar"},
+            ],
             [
                 {"text": "📸 Gerçek Fotoğraf Ara", "callback_data": "foto_gercek"},
                 {"text": "🖼️ Stok Fotoğraf (Pexels)", "callback_data": "foto_stok"},
