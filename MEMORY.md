@@ -175,3 +175,21 @@ Bu kuralların her biri üretimde yaşanmış bir hatadan doğdu. Kod yazan her 
    Bunun dışındaki her yanıt ARIZADIR ve hata yükseltmelidir — "boş kuyruk" sayılmaz.
 10. **Otomatik yayın yalnızca `dogrula` denetiminden temiz çıkan içerikte.** En ufak
     uyarıda içerik onaya düşer.
+
+## 8. 2026-09-24 KARARLARI — YALAN BİLGİYE SIFIR TOLERANS
+
+1. **Kritik denetim bulgusu olan içerik onaya bile sunulmaz** (`telegram_bot.yayin_kapisi`,
+   yayın anında `scripts/yayinla.py` de çalıştırır). Kapı kapalı başarısız olur: denetim
+   çalışmazsa içerik çıkmaz. Kapıyı gevşetmek yerine brief'i ya da konu bankasını düzelt.
+2. **Boş alan koddaki genel cümleyle doldurulmaz.** Eksik alan `yeni_formatlar.EksikIcerik`
+   fırlatır. (#157'de ekspertiz konusuna sabit "Yargıtay yerleşik içtihatları…" basıldı;
+   sabit adım listesi 7571 sayılı Kanunla yanlış hâle gelmişti.)
+3. **Promptta örnek süre/oran yazılmaz** — model kopyalıyor (#142 "İKİ YIL BOYUNCA").
+   Süre ve oran yalnızca brief'teki güncel madde metninden gelir.
+4. **Konu bankasında atıf, mevzuat.gov.tr'deki güncel metin okunarak eklenir**; veri kaynağı
+   olmadan rakam isteyen konu `engel` alır. Eski kuralı anlatan içerik eski rakamı yazmaz
+   ("kısaldı" der) — denetim kanunda olmayan rakamı durdurur.
+5. **İçerik günde BİR** (hazirla.yml 10:00 TR). Haberler bağımsız: haber-oneri.yml tarihli
+   öneri düşer, "İçeriğe çevir" insan kararıdır. Haber slotu içerik üretmez.
+6. **Caption soruyla bitmez**: kaydet/gönder çağrısı + site/telefon + konuya özel etiket.
+7. **Marka paleti**: amber/turkuaz/yeşil yok; kırmızı yalnızca vurgu, zemin çoğunlukla kağıt.
