@@ -551,7 +551,8 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     toplam_orta_h = 34 + h_manset + 28 + 32 + h_olay
     curr_y = ust_sinir + min(36, max(0, kullanilabilir_orta_h - toplam_orta_h) // 3)
 
-    emsal_etiket = f"EMSAL İÇTİHAT // {yargitay_kaynak.upper()}"
+    # "EMSAL İÇTİHAT" etiketi BDDK kararını bile mahkeme içtihadı gibi gösteriyordu (#157).
+    emsal_etiket = f"DAYANAK // {yargitay_kaynak.upper()}"
     f_kaynak_ust = make_image._font_yukle(FONT_MONO_BOLD, 20)
     bbox_emsal = draw.textbbox((0, 0), emsal_etiket, font=f_kaynak_ust)
     if (bbox_emsal[2] - bbox_emsal[0]) > kullanilabilir_w:
@@ -614,7 +615,7 @@ def uret_vaka_slayt2(
 
     alt_y = yer["alt_bar"]
     draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
-    alt_txt = alt_arsiv_metni or "EDM HUKUK ARŞİVİ // EMSAL İÇTİHAT DOSYASI"
+    alt_txt = alt_arsiv_metni or "EDM HUKUK ARŞİVİ // ÖRNEK OLAY"
     draw.text((kenar, alt_y + 26), alt_txt, font=make_image._font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
     draw.text((GENISLIK - kenar - 90, alt_y + 26), sayfa_no, font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_LOGO_KIRMIZI)
 
@@ -662,7 +663,9 @@ def uret_vaka_slayt2(
 
     hukum_blok_h = 36 + 18 + h_hukum
     curr_y = ust_sinir + min(36, max(0, mevcut_hukum_h - hukum_blok_h) // 3)
-    etiket_txt = hukum_baslik or "YARGITAY'IN VERDİĞİ KESİN HÜKÜM"
+    # Belirli bir karar yokken "Yargıtay'ın verdiği kesin hüküm" demek yanıltıcı
+    # (#157, 2026-09-21). Model artık karar numarası uyduramıyor; etiket de uydurmasın.
+    etiket_txt = hukum_baslik or "KANUNA GÖRE SONUÇ"
     make_image._rozet_ciz(draw, kenar, curr_y, etiket_txt, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
     curr_y += 44
 
@@ -965,7 +968,7 @@ def slaytlari_uret(
     if format_turu in ("vaka", "emsal_karar") or ("yargitay_hukmu" in veri and "cikarilacak_ders" in veri):
         p1 = cikti_dizini / f"{cikti_onek}_vaka_s1.jpg"
         p2 = cikti_dizini / f"{cikti_onek}_vaka_s2.jpg"
-        vaka_raw = veri.get("vaka_kodu") or veri.get("konu_kodu") or "01 / EMSAL DOSYA"
+        vaka_raw = veri.get("vaka_kodu") or veri.get("konu_kodu") or "01 / ÖRNEK OLAY"
         vaka_kodu = kategori_temizle(vaka_raw)
         kaynak = (veri.get("yargitay_kaynak") or veri.get("yasal_dayanak") or brief.get("mevzuat") or "Yargıtay Emsal İçtihadı").strip()
         manset = (veri.get("manset") or f"{veri.get('manset_parca_1', '')} {veri.get('manset_vurgu', '')} {veri.get('manset_parca_2', '')}").strip()
@@ -1123,7 +1126,7 @@ def slaytlari_uret(
         if not ders:
             ders = "Tapu devirlerinde sözleşmelerinizi noter onaylı yapın ve tapu siciline mutlaka şerh işleyin."
 
-        vaka_raw = veri.get("konu_kodu", "01 / EMSAL DOSYA")
+        vaka_raw = veri.get("konu_kodu", "01 / ÖRNEK OLAY")
         vaka_kodu = kategori_temizle(vaka_raw)
         uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset, olay_detay=olay, sayfa_no="01 / 02")
         uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum, cikarilacak_ders=ders, sayfa_no="02 / 02")

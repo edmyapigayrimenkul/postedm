@@ -934,7 +934,7 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None) -> Opt
     elif format_turu in ("vaka", "emsal_karar"):
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'HUKUKİ VAKA ANALİZİ' formatında üret. "
-            "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / EMSAL DOSYA', "
+            "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / ÖRNEK OLAY', "
             "'yargitay_kaynak': (Yalnızca brief'teki mevzuat maddesi; Yargıtay esas/karar numarası UYDURMA), "
             "'manset': (Çarpıcı başlık), 'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma), "
             "'yargitay_hukmu': (Kanun maddesine göre sonuç; belirli bir mahkeme kararına atıf yapma), "

@@ -376,9 +376,42 @@ def haberden_brief(haber: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     }
 
 
+def kaynak_denetle(haber: Optional[Dict[str, Any]]) -> List[str]:
+    """Haber içeriğinin kaynağı gerçekten var mı.
+
+    #170 ve #171 (2026-09-21) "İBB Şehircilik" haberi olarak yayına çıktı; kaynak
+    adreslerinden biri 404, diğerinin alan adı hiç çözülmüyordu. İki cümlelik
+    deneme kayıtlarıydı; ada/parsel/emsal/itiraz tarihi ayrıntılarını model uydurdu.
+    EDM'nin kendi ürettiği (konu bankası, özel) içerik bu denetimden muaftır.
+    """
+    if not haber or str(haber.get("kaynak") or "").startswith("EDM"):
+        return []
+    adres = str(haber.get("orijinal_url") or "").strip()
+    if not adres.startswith(("http://", "https://")):
+        return ["⛔ KAYNAK YOK: haberin orijinal adresi kayıtlı değil — kaynaksız haber yayınlanmaz."]
+    from . import config
+    if config.test_modu():
+        return []
+    import requests
+    try:
+        r = requests.get(adres, timeout=12, allow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}, stream=True)
+        r.close()
+        if r.status_code in (404, 410):
+            return [f"⛔ KAYNAK YOK: {adres[:80]} → HTTP {r.status_code}. Böyle bir haber sayfası yok."]
+        if r.status_code >= 400:
+            # Haber siteleri botları sık sık 403/429 ile geri çeviriyor (Emlakkulisi gibi):
+            # sayfa var ama doğrulanamadı — insan teyidi ister, yayını kilitlemez.
+            return [f"⚠️ KAYNAK ERİŞİME KAPALI: {adres[:80]} → HTTP {r.status_code}. Haberi kaynağından elle teyit edin."]
+    except (requests.ConnectionError, requests.Timeout) as e:
+        return [f"⛔ KAYNAK AÇILMIYOR: {adres[:80]} ({type(e).__name__}) — alan adı çözülmüyor ya da yanıt yok."]
+    except requests.RequestException as e:
+        return [f"⚠️ KAYNAK DENETLENEMEDİ: {adres[:80]} ({type(e).__name__})."]
+    return []
+
+
 def icerigi_denetle(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None) -> List[str]:
     """Tüm yolların ortak girişi: brief içerikte yoksa haberin kaynak metninden kurulur."""
-    return denetle(veri, veri.get("_brief") or haberden_brief(haber))
+    return kaynak_denetle(haber) + denetle(veri, veri.get("_brief") or haberden_brief(haber))
 
 
 def uyari_basligi(uyarilar: List[str]) -> str:

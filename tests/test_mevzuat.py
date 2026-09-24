@@ -99,5 +99,33 @@ class TestKanunMetnineKarsiDenetim(unittest.TestCase):
             self.assertEqual(dogrula._kanun_metni({"mevzuat": "TMK md. 733"}), "")
 
 
+class TestHaberKaynagi(unittest.TestCase):
+    """#170/#171: açılmayan adreslerden 'İBB haberi' üretildi ve yayına çıktı."""
+
+    def _denetle(self, **cevap):
+        from unittest.mock import MagicMock
+        haber = {"kaynak": "İBB Şehircilik", "orijinal_url": "https://ornek.gov.tr/haber"}
+        with patch.object(dogrula, "__name__", dogrula.__name__), \
+             patch("src.config.test_modu", return_value=False), \
+             patch("requests.get", **cevap):
+            return dogrula.kaynak_denetle(haber)
+
+    def test_404_haber_yok(self):
+        from unittest.mock import MagicMock
+        self.assertTrue(self._denetle(return_value=MagicMock(status_code=404))[0].startswith("⛔"))
+
+    def test_alan_adi_cozulmuyor(self):
+        import requests
+        self.assertTrue(self._denetle(side_effect=requests.ConnectionError("dns"))[0].startswith("⛔"))
+
+    def test_bot_korumasi_kilitlemez(self):
+        from unittest.mock import MagicMock
+        self.assertTrue(self._denetle(return_value=MagicMock(status_code=403))[0].startswith("⚠️"))
+
+    def test_edm_uretimi_ve_adres_yoklugu(self):
+        self.assertEqual(dogrula.kaynak_denetle({"kaynak": "EDM Konu Bankası // S1-001"}), [])
+        self.assertTrue(dogrula.kaynak_denetle({"kaynak": "Habertürk", "orijinal_url": ""})[0].startswith("⛔"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
