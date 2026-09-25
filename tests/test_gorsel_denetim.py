@@ -62,6 +62,44 @@ class TestGorselDenetim(unittest.TestCase):
             gorsel_denetim.kaydi_kapat()
         self.assertTrue(any(s.startswith("ÖRTÜLDÜ") for s in sorunlar), sorunlar)
 
+    def test_denetim_fontta_olmayan_karakteri_yakaliyor(self):
+        """"●" IBM Plex Sans'ta yok; kutu (□) basılır ve taşma denetimi bunu görmez."""
+        from src import make_image as mi
+        self.assertEqual(gorsel_denetim.eksik_glifler("● NE DEĞİŞTİ", str(mi.FONT_SANS_BOLD)), ["●"])
+        self.assertEqual(gorsel_denetim.eksik_glifler("Hisseli tapu İŞĞÜ ₺", str(mi.FONT_FRAUNCES)), [])
+
+
+class TestGorselMetinSuzgeci(unittest.TestCase):
+    """Model emojisi, görünmez karakter ve yön işareti kartta kutu olarak basılıyordu."""
+
+    def test_kutu_basilacak_karakterler_ayiklanir(self):
+        from src import make_image as mi
+        vakalar = {
+            "✅ Tapuyu kontrol edin": "Tapuyu kontrol edin",
+            "O\u200br\u200bt\u200bak": "Ortak",
+            "\u202etersine": "tersine",
+            "Tapu → İmar": "Tapu – İmar",
+            "satır 🏠\nikinci": "satır\nikinci",
+        }
+        for girdi, beklenen in vakalar.items():
+            self.assertEqual(mi.gorsel_metni(girdi), beklenen, repr(girdi))
+
+    def test_temiz_turkce_metne_dokunulmaz(self):
+        from src import make_image as mi
+        for metin in ("Hisseli tapuda şuyulandırma: %45 ₺ — \"önalım\" & İĞÜŞÇÖ", "iki  boşluk korunur"):
+            self.assertIs(mi.gorsel_metni(metin), metin)
+
+    def test_cagiranin_verisi_ve_yollar_degismez(self):
+        """Süzgeç kopyaya uygulanır: caption'daki emoji ve dosya yolu yerinde kalmalı."""
+        from src import make_image as mi
+        veri = {"caption_instagram": "Yeni rehber ✅", "gorsel_yolu": "/tmp/a  ✅.jpg",
+                "maddeler": [{"metin": "✅ Noter"}]}
+        kopya = mi.gorsel_verisi_temizle(veri)
+        self.assertEqual(veri["caption_instagram"], "Yeni rehber ✅")
+        self.assertEqual(veri["maddeler"][0]["metin"], "✅ Noter")
+        self.assertEqual(kopya["maddeler"][0]["metin"], "Noter")
+        self.assertEqual(kopya["gorsel_yolu"], "/tmp/a  ✅.jpg")
+
 
 if __name__ == "__main__":
     unittest.main()

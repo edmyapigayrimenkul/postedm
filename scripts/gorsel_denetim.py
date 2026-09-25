@@ -21,6 +21,9 @@ Denetimler (her slayt):
   ÖRTÜLDÜ       metin, SONRADAN çizilen dolu bir kutunun altında kaldı → hata
                 (#243: tanımın son satırları alttaki kutunun arkasındaydı)
   PUNTO         uzun gövde metni telefonda okunamayacak kadar küçük → uyarı
+  GLİF YOK      karakter o fontta yok, kutu (□) olarak basılır     → hata
+                (IBM Plex Sans'a geçince hook etiketindeki "●" kutuya döndü;
+                taşma denetimi bunu görmez çünkü kutu da yer kaplar)
 Denetimler (her içerik):
   KIRPILDI      girdideki kelimeler hiçbir slaytta çizilmemiş       → hata
   ÇÖKTÜ         çizici istisna fırlattı (EksikIcerik bilinçli durdurma sayılmaz)
@@ -154,6 +157,19 @@ def _icinde(ic, dis, pay: int = 3) -> bool:
     return ic[0] >= dis[0] - pay and ic[1] >= dis[1] - pay and ic[2] <= dis[2] + pay and ic[3] <= dis[3] + pay
 
 
+_CMAP: Dict[str, set] = {}
+
+
+def eksik_glifler(metin: str, font_yolu: str) -> List[str]:
+    """Metinde olup fontun karakter haritasında bulunmayan karakterler."""
+    if not font_yolu or not Path(font_yolu).is_file():
+        return []
+    if font_yolu not in _CMAP:
+        from fontTools.ttLib import TTFont
+        _CMAP[font_yolu] = set(TTFont(font_yolu, lazy=True).getBestCmap())
+    return sorted({c for c in metin if not c.isspace() and ord(c) not in _CMAP[font_yolu]})
+
+
 def slayt_denetle(slayt: Dict[str, Any]) -> List[str]:
     W, H = slayt["boyut"]
     metinler = [o for o in slayt["olaylar"] if o["tur"] == "metin" and o["boyut"] == (W, H)
@@ -172,6 +188,10 @@ def slayt_denetle(slayt: Dict[str, Any]) -> List[str]:
         if (m["punto"] and m["punto"] < PUNTO_ASGARI and "Mono" not in m["font"]
                 and len(m["metin"]) > 24 and not (m["punto"] >= 22 and "bilgilendirmedir" in m["metin"])):
             sorunlar.append(f"PUNTO: \"{kisa}\" {m['punto']}px")
+        eksik = eksik_glifler(m["metin"], m["font"])
+        if eksik:
+            kodlar = ", ".join(f"U+{ord(c):04X}" for c in eksik)
+            sorunlar.append(f"GLİF YOK: \"{kisa}\" [{kodlar}] {Path(m['font']).name}")
     for i, a in enumerate(metinler):
         for c in metinler[i + 1:]:
             if a["metin"] == c["metin"]:

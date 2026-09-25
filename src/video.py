@@ -27,8 +27,6 @@ log = logging.getLogger(__name__)
 HEDEF_W = 1080
 HEDEF_H = 1920
 
-FONT_MONO = config.yol_al("assets/fonts/IBMPlexMono-Regular.ttf")
-FONT_FRAUNCES = config.yol_al("assets/fonts/Fraunces-Variable.ttf")
 LOGO_PIN = config.yol_al("assets/logos/pin-sembol.png")
 
 

@@ -6,6 +6,8 @@ tam uyumlu, yüksek dönüşümlü Haber ve İlan slaytları üretir.
 
 from __future__ import annotations
 
+import functools
+import inspect
 import io
 import json
 import logging
@@ -14,6 +16,7 @@ import os
 import re
 import textwrap
 import time
+import unicodedata
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -97,6 +100,96 @@ class TasmaHatasi(EksikIcerik):
     (kapak manşeti) ya da sessizce kırpılırdı (kapak spotu 4 satırda kesiliyordu).
     Artık üretim durur; metin bütçesi (generate_text.BUTCE) bunu önlemeye çalışır.
     """
+
+
+# ---------------------------------------------------------------------------
+# Görsel metin süzgeci
+# ---------------------------------------------------------------------------
+# Kart fontlarında olmayan karakter kutu (□) olarak basılır ve taşma denetimi
+# bunu görmez: kutu da yer kaplar. Model emoji üretebiliyor ("✅ Tapuyu kontrol
+# edin"), panelden yapıştırılan metin görünmez karakter (U+200B) ya da satırı
+# ters çeviren yön işareti (U+202E) taşıyabiliyor. IBM Plex Sans'a geçince hook
+# etiketindeki "●" da kutuya dönmüştü. Süzgeç çizicinin GİRDİSİNİN KOPYASINA
+# uygulanır: aynı verideki caption'ın emojisi yerinde kalır.
+_GORSEL_KARSILIK = str.maketrans({
+    "→": "–", "⇒": "–", "➔": "–", "➜": "–", "⟶": "–", "←": "–",
+    "●": "•", "■": "•", "▪": "•", "◆": "•", "◾": "•", "◼": "•", "►": "•", "▶": "•",
+})
+_ORTAK_GLIFLER: Optional[frozenset] = None
+# Yol ve adres metin değil: süzgeç "~" ya da çift boşluk taşıyan bir dosya yolunu bozardı
+_METIN_OLMAYAN_ANAHTAR = ("yol", "url", "dosya", "foto", "gorsel", "resim", "link")
+
+
+def _ortak_glifler() -> frozenset:
+    """Kartlarda kullanılan bütün fontlarda bulunan karakterler.
+
+    Birleşim değil kesişim: bir alan hangi fontla çizilecekse çizilsin kutu
+    çıkmamalı (ör. "→" Plex Sans'ta var, Fraunces'ta yok).
+    """
+    global _ORTAK_GLIFLER
+    if _ORTAK_GLIFLER is None:
+        try:
+            from fontTools.ttLib import TTFont
+            kumeler = [set(TTFont(str(f), lazy=True).getBestCmap())
+                       for f in (FONT_FRAUNCES, FONT_SANS_REGULAR, FONT_SANS_MEDIUM, FONT_SANS_SEMIBOLD,
+                                 FONT_SANS_BOLD, FONT_MONO, FONT_MONO_BOLD) if Path(f).is_file()]
+            _ORTAK_GLIFLER = frozenset(set.intersection(*kumeler)) if kumeler else frozenset()
+        except Exception as e:
+            log.warning("Font karakter haritası okunamadı, kaba süzgece düşüldü: %s", e)
+            _ORTAK_GLIFLER = frozenset()
+    return _ORTAK_GLIFLER
+
+
+def gorsel_metni(metin: str) -> str:
+    """Kartta kutu (□) basılacak karakterleri ayıklar; dokunulmayan metin aynen döner."""
+    glifler = _ortak_glifler()
+    aday = unicodedata.normalize("NFC", metin.translate(_GORSEL_KARSILIK))
+    temiz = []
+    for ch in aday:
+        if ch == "\n":
+            temiz.append(ch)
+        elif ch.isspace():
+            temiz.append(" ")
+        elif unicodedata.category(ch)[0] == "C":
+            continue  # görünmez biçim/denetim karakteri: U+200B, U+202E, U+FEFF…
+        elif glifler and ord(ch) not in glifler:
+            continue
+        elif not glifler and (ord(ch) > 0xFFFF or unicodedata.category(ch) == "So"):
+            continue
+        else:
+            temiz.append(ch)
+    sonuc = "".join(temiz)
+    if sonuc == metin:
+        return metin
+    # "✅ Tapu" → " Tapu": ayıklanan karakterin bıraktığı boşluk satırı kaydırmasın
+    return "\n".join(re.sub(r" {2,}", " ", s).strip() for s in sonuc.split("\n"))
+
+
+def gorsel_verisi_temizle(veri: Any, _anahtar: str = "") -> Any:
+    """Çizicinin girdisinin, bütün metinleri süzülmüş KOPYASI."""
+    if isinstance(veri, str):
+        if any(p in _anahtar.lower() for p in _METIN_OLMAYAN_ANAHTAR) or veri.startswith(("/", "http://", "https://")):
+            return veri
+        return gorsel_metni(veri)
+    if isinstance(veri, dict):
+        return {a: gorsel_verisi_temizle(d, str(a)) for a, d in veri.items()}
+    if isinstance(veri, (list, tuple)):
+        return type(veri)(gorsel_verisi_temizle(d, _anahtar) for d in veri)
+    return veri
+
+
+def _gorsel_girdisi(fonk):
+    """Çizim giriş noktasının ilk bağımsız değişkenini süzülmüş kopyayla değiştirir."""
+    ad = next(iter(inspect.signature(fonk).parameters))
+
+    @functools.wraps(fonk)
+    def sar(*args, **kwargs):
+        if args:
+            args = (gorsel_verisi_temizle(args[0]),) + args[1:]
+        elif ad in kwargs:
+            kwargs[ad] = gorsel_verisi_temizle(kwargs[ad])
+        return fonk(*args, **kwargs)
+    return sar
 
 
 def tr_buyuk(metin: str) -> str:
@@ -1053,6 +1146,7 @@ def _edm_pin_al(boyut: int = 34) -> Image.Image:
 # =========================================================================
 
 
+@_gorsel_girdisi
 def ilan_kapak_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = None) -> Path:
     """İlanın 1. slaytı (Kanca / Hero Kapak): Devasa fotoğraf, şık serif manşet ve fiyat."""
     img = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
@@ -1186,6 +1280,7 @@ def ilan_kapak_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     return cikti_yolu
 
 
+@_gorsel_girdisi
 def ilan_detay_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = None) -> Path:
     """İlanın 2. slaytı (Mimari Detaylar & Yaşam Alanı): Çift fotoğraf kolajı + 4 avantaj."""
     img = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
@@ -1308,6 +1403,7 @@ def ilan_detay_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     return cikti_yolu
 
 
+@_gorsel_girdisi
 def ilan_kapanis_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = None) -> Path:
     """İlanın 3. slaytı (Yatırım Danışmanı & İletişim Kartı): Sıcak kağıt, güven veren kurumsal kimlik."""
     img = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_KAGIT)
@@ -1926,6 +2022,7 @@ def _sayfa_etiketi(veri: Dict[str, Any], sira: int) -> str:
     return etiket if sira >= toplam else f"{etiket}  ›  KAYDIRIN"
 
 
+@_gorsel_girdisi
 def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = None) -> Path:
     """Otorite / Haber 1. Slaytı (Hero Hook Kapak):
     Metin uzunluğuna göre dinamik perdesi, difüzyon gölgesi ve iki tonlu manşetiyle
@@ -2982,6 +3079,7 @@ def _slayt_plani(veri: Dict[str, Any]) -> List[Dict[str, Any]]:
     return plan
 
 
+@_gorsel_girdisi
 def otorite_gonderi_slaytlari_uret(
     veri: Dict[str, Any],
     cikti_onek: Optional[str] = None,
@@ -3115,6 +3213,7 @@ def _perde_maskesi_smoothstep(genislik: int, yukseklik: int, bas: int, son: int)
     return serit.resize((genislik, yukseklik), Image.BILINEAR)
 
 
+@_gorsel_girdisi
 def haber_dailybrief_slayti_ciz(
     haber: Dict[str, Any],
     foto_yolu: Optional[Path | str] = None,
@@ -3799,6 +3898,7 @@ def _sayfalari_dengeli_bol(
     return en_iyi_bolum if en_iyi_bolum is not None else [maddeler[:n//2], maddeler[n//2:]]
 
 
+@_gorsel_girdisi
 def haber_dailybrief_slaytlari_uret(
     haber: Dict[str, Any],
     cikti_dizini: Optional[Path] = None,

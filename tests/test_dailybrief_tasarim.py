@@ -285,9 +285,9 @@ class TestDailyBriefTasarim(unittest.TestCase):
         hook_hukuk = hook_motoru.hook_olustur(h_hukuk)
         self.assertIsNotNone(hook_hukuk)
         self.assertEqual(hook_hukuk["format"], "minimal_vurgu")
-        # Etiket kategori söyler, iddia taşımaz: haber bir Yargıtay kararı olmayabilir
-        self.assertEqual(hook_hukuk["kicker"], "● TAPU & HUKUK")
-        self.assertNotIn("YARGITAY", hook_hukuk["kicker"])
+        # Kanca üstünde etiket yok: kategori kapağın üst etiketinde zaten yazıyor.
+        # Eskiden burada iddia taşıyan etiket vardı ("YARGITAY & HUKUK KARARI").
+        self.assertEqual(hook_hukuk["kicker"], "")
 
         # 3. Başlıkla birebir örtüşen kancanın elenmesi
         self.assertFalse(

@@ -13,7 +13,7 @@ kanca (hook) çizim ve kompozisyon motoru.
      - Saf beyaz, kireç ve kurşun.
   2. Tipografik Formatlar:
      - stat_punch: İri rakam + birim + dikey ayraç + 2 satır vurucu metin.
-     - minimal_vurgu: ● Kicker (Editoryal etiket) + 2 satır dev vurgu metni.
+     - minimal_vurgu: Kicker (maddenin kendi etiketi, varsa) + 2 satır dev vurgu metni.
   3. Difüzyon Gölgesi:
      - GaussianBlur(14) ile arkaya yumuşak siyah difüzyon gölgesi atılarak
        fotoğraf ne kadar detaylı veya açık olursa olsun %100 kristal okunurluk sağlanır.
@@ -119,19 +119,13 @@ def _sigdiran_font(satirlar: List[str], punto_bas: int, azami_px: int, asgari: i
     return _font(asgari, tip)
 
 
-def _kirp(metin: str, font: ImageFont.FreeTypeFont, azami_px: int) -> str:
-    """Punto küçültme yetmediğinde kelime kelime kırpar ve '…' ekler."""
+def _sigar_mi(metin: str, font: ImageFont.FreeTypeFont, azami_px: int) -> bool:
+    """Kanca kırpılmaz: "…" ile kesilmiş bir kanca cümlenin anlamını değiştirebilir.
+    Asgari puntoda sığmıyorsa çizici kancayı hiç basmaz, kapak kancasız kalır."""
     if not metin:
-        return metin
-    if (font.getbbox(metin)[2] - font.getbbox(metin)[0]) <= azami_px:
-        return metin
-    kelimeler = metin.split()
-    while len(kelimeler) > 1:
-        kelimeler.pop()
-        aday = " ".join(kelimeler) + "…"
-        if (font.getbbox(aday)[2] - font.getbbox(aday)[0]) <= azami_px:
-            return aday
-    return metin
+        return True
+    bb = font.getbbox(metin)
+    return (bb[2] - bb[0]) <= azami_px
 
 
 def _basliktan_farkli_mi(t1: str, t2: str, baslik: str, azami_ortusme: float = 0.70) -> bool:
@@ -202,7 +196,9 @@ def ciz_stat_punch(
 
     sag_alan = max(160, (TUVAL_GENISLIK - SAG_PAY) - sag_x)
     f_t = _sigdiran_font(satirlar, 40, sag_alan, asgari=24, tip="sans_bold")
-    satirlar = [_kirp(sat, f_t, sag_alan) for sat in satirlar]
+    if not all(_sigar_mi(sat, f_t, sag_alan) for sat in satirlar):
+        log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s", satirlar)
+        return gorsel
 
     w_sag = max((f_t.getbbox(s)[2] - f_t.getbbox(s)[0] for s in satirlar), default=200)
     toplam_w = (sag_x + w_sag) - x
@@ -257,16 +253,23 @@ def ciz_minimal_vurgu(
     Kutulardan arınmış saf editoryal minimal kicker + dev vurgu başlığı.
     """
     out = gorsel.copy()
-    f_kicker = _font(22, "sans_bold")
+    # 22px kırmızı etiket parlak gökyüzünde okunmuyordu; 26px açık renk + kırmızı nokta.
+    # "●" karakteri IBM Plex Sans'ta yok, kutu (□) basılıyordu: nokta ayrıca çiziliyor.
+    f_kicker = _font(26, "sans_bold")
     minimal_alan = max(200, (TUVAL_GENISLIK - SAG_PAY) - x)
+    kicker = kicker.lstrip("●• ").strip()
+    nokta = 14
+    kicker_x = x + nokta + 12
 
     # Tavan 56-64 punto (Manşet 70px olduğu için kanca hiyerarşik olarak zarif kalmalı)
     f_title = _sigdiran_font([t1, t2], 62, minimal_alan, asgari=32, tip="sans_bold")
-    t1 = _kirp(t1, f_title, minimal_alan)
-    t2 = _kirp(t2, f_title, minimal_alan)
-    kicker = _kirp(kicker, f_kicker, minimal_alan)
+    if not (_sigar_mi(t1, f_title, minimal_alan) and _sigar_mi(t2, f_title, minimal_alan)):
+        log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s / %s", t1, t2)
+        return gorsel
+    if not _sigar_mi(kicker, f_kicker, minimal_alan - (kicker_x - x)):
+        kicker = ""
 
-    ust = 36 if kicker else 0
+    ust = 44 if kicker else 0
     satir_y = int(f_title.size * 1.18)
     govde_h = ust + (satir_y if t2 else 0) + int(f_title.size * 1.2)
 
@@ -274,7 +277,7 @@ def ciz_minimal_vurgu(
     shadow = Image.new("RGBA", (minimal_alan + 80, govde_h + 80), (0, 0, 0, 0))
     sdraw = ImageDraw.Draw(shadow)
     if kicker:
-        sdraw.text((35, 25), kicker, font=f_kicker, fill=(0, 0, 0, 230))
+        sdraw.text((35 + kicker_x - x, 25), kicker, font=f_kicker, fill=(0, 0, 0, 230))
     sdraw.text((35, 25 + ust), t1, font=f_title, fill=(0, 0, 0, 240))
     if t2:
         sdraw.text((35, 25 + ust + satir_y), t2, font=f_title, fill=(0, 0, 0, 240))
@@ -284,7 +287,9 @@ def ciz_minimal_vurgu(
     # Metin Çizimi
     draw = ImageDraw.Draw(out)
     if kicker:
-        draw.text((x, y), kicker, font=f_kicker, fill=renk)
+        orta = y + (f_kicker.getbbox("ÇĞ")[1] + f_kicker.getbbox("ÇĞ")[3]) // 2
+        draw.ellipse([x, orta - nokta // 2, x + nokta, orta + nokta // 2], fill=renk)
+        draw.text((kicker_x, y), kicker, font=f_kicker, fill=WHITE)
     draw.text((x, y + ust), t1, font=f_title, fill=WHITE)
     if t2:
         draw.text((x, y + ust + satir_y), t2, font=f_title, fill=renk)
@@ -302,8 +307,6 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     baslik = haber.get("manset") or haber.get("baslik") or haber.get("orijinal_baslik") or ""
     spot = haber.get("spot") or haber.get("ozet") or haber.get("orijinal_ozet") or ""
-    kat = haber.get("kategori") or haber.get("kategori_kodu") or "GAYRİMENKUL"
-    kat_low = str(kat).lower()
     metin_tum = f"{baslik} {spot}"
 
     # Detay metni veya maddeleri varsa birleştir
@@ -317,20 +320,12 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         kanca_temiz = str(kanca_raw).strip()
         t1, t2 = _dengeli_bol(tr_upper(kanca_temiz).split())
         if _basliktan_farkli_mi(t1, t2, baslik):
-            # Etiket yalnızca KATEGORİ söyler, iddia taşımaz. Eskiden tapu/hukuk
-            # kategorisindeki her habere "YARGITAY & HUKUK KARARI", metninde "askı"
-            # geçen her habere "İMAR PLANI ASKIYA ÇIKTI" yazılıyordu — haber o
-            # olmasa da (bkz. #157'deki uydurma "Yargıtay hükmü").
-            kicker = "● GÜNDEM"
-            if "imar" in kat_low or "arsa" in kat_low:
-                kicker = "● ARSA & İMAR"
-            elif "tapu" in kat_low or "hukuk" in kat_low:
-                kicker = "● TAPU & HUKUK"
-            elif "donusum" in kat_low or "dönüşüm" in kat_low:
-                kicker = "● KENTSEL DÖNÜŞÜM"
+            # Etiket yok: kategori kapağın üst etiketinde ("EDM GÜNDEM // ARSA & İMAR")
+            # zaten yazıyor, kancanın üstünde ikinci kez basılıyordu. Eskiden burada
+            # iddia taşıyan etiketler de vardı ("YARGITAY & HUKUK KARARI", #157).
             return {
                 "format": "minimal_vurgu",
-                "kicker": kicker,
+                "kicker": "",
                 "t1": t1,
                 "t2": t2,
                 "renk": VURGU,
@@ -357,10 +352,12 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             sonrasi = cumle[konum + len(eslesme.group(0)):].split()
             while sonrasi and sonrasi[0].lower().strip(",") in ("ve", "ile", "ise", "da", "de", "olan"):
                 sonrasi.pop(0)
-            kelimeler = [k.rstrip(".;") for k in sonrasi][:8]
+            # Cümle kesilmez: "itirazlar belediyeye yazılı" gibi yarım bir parça
+            # kaynağın söylemediği bir şey olur. Sığmayan cümle kanca olmaz.
+            kelimeler = [k.rstrip(".;") for k in sonrasi]
             if len(kelimeler) < 3:
-                kelimeler = [k.rstrip(".;") for k in cumle.replace(eslesme.group(0), " ").split()][:8]
-            if len(kelimeler) < 3:
+                kelimeler = [k.rstrip(".;") for k in cumle.replace(eslesme.group(0), " ").split()]
+            if not 3 <= len(kelimeler) <= 8:
                 return None
             t1, t2 = _dengeli_bol(kelimeler)
             t1, t2 = tr_upper(t1), tr_upper(t2)
@@ -403,16 +400,17 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             metin = ilk_madde.get("metin", "")
             if dogrula.bos_ovgu_mu(metin):
                 continue
-            # Metinden kısa ve vurucu 2 satır çıkar
-            kelimeler = metin.split()
-            if len(kelimeler) >= 4:
-                t1, t2 = _dengeli_bol(kelimeler[:8])
+            # Maddenin TAM ilk cümlesi; ilk sekiz kelimede kesmek yarım (ve bazen
+            # ters anlamlı) bir iddia üretiyordu.
+            ilk_cumle = re.split(r"(?<=[.!?;])\s+", str(metin).strip())[0]
+            kelimeler = ilk_cumle.split()
+            if 4 <= len(kelimeler) <= 9:
+                t1, t2 = _dengeli_bol(kelimeler)
                 t1, t2 = tr_upper(t1), tr_upper(t2)
                 if _basliktan_farkli_mi(t1, t2, baslik):
-                    kicker = f"● {etiket}" if etiket else "● SEKTÖREL BÜLTEN"
                     return {
                         "format": "minimal_vurgu",
-                        "kicker": kicker,
+                        "kicker": etiket,
                         "t1": t1,
                         "t2": t2,
                         "renk": VURGU,

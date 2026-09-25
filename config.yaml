@@ -139,9 +139,10 @@ tasarim:
     cizgi: "#d6d6d3"
     beyaz: "#ffffff"
   fontlar:
-    baslik: "assets/fonts/Fraunces-Variable.ttf"
-    metin: "assets/fonts/IBMPlexSans-Medium.ttf"   # Variable dosya Latin alt kümesi; ğ ş İ yok
-    kod_veri: "assets/fonts/IBMPlexMono-Regular.ttf"
+    # -Variable ve IBMPlexMono-Regular dosyaları Latin alt kümesi: ğ ş İ ₺ yok
+    baslik: "assets/fonts/Fraunces.ttf"
+    metin: "assets/fonts/IBMPlexSans-Medium.ttf"
+    kod_veri: "assets/fonts/IBMPlexMono.ttf"
   logolar:
     amblem: "assets/logos/amblem.png"
     yatay_logo: "assets/logos/logo-yatay.png"

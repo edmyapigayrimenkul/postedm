@@ -59,5 +59,52 @@ class TestDogrulaVeHook(unittest.TestCase):
         self.assertIn("YASAL SÜREÇ", hook.get("kicker", ""))
 
 
+class TestKancaKesilmez(unittest.TestCase):
+    """Kanca kaynaktan alınır ve KESİLMEZ: ilk sekiz kelimede kesilen cümle
+    kaynağın söylemediği bir iddia olur; "…" ile kırpılan kanca da öyle."""
+
+    def test_uzun_madde_cumlesi_kanca_olmaz(self):
+        haber = {
+            "manset": "Selimpaşa'da plan değişikliği askıya çıktı",
+            "kategori": "ARSA_VE_IMAR",
+            "detay_maddeleri": [{"etiket": "NE DEĞİŞTİ", "metin":
+                "Plan notlarında emsal değeri yalnızca ticari alanlar için ve yalnızca yeni başvurularda güncellendi."}],
+        }
+        self.assertIsNone(hook_motoru.hook_olustur(haber))
+
+    def test_madde_kancasinin_etiketi_maddenin_kendisidir(self):
+        haber = {
+            "manset": "Selimpaşa'da plan değişikliği askıya çıktı",
+            "kategori": "ARSA_VE_IMAR",
+            "detay_maddeleri": [{"etiket": "NE DEĞİŞTİ", "metin": "Plan notlarında emsal değeri güncellendi."}],
+        }
+        hook = hook_motoru.hook_olustur(haber)
+        self.assertEqual(hook["kicker"], "NE DEĞİŞTİ")
+        self.assertNotIn("●", hook["kicker"])
+
+    def test_sayi_kancasi_cumleyi_kesmez(self):
+        haber = {
+            "manset": "Silivri'de plan askıda",
+            "spot": "Plan 30 gün boyunca askıda kalacak ve bu sürede malikler itirazlarını belediyenin imar müdürlüğüne yazılı olarak iletebilecek.",
+            "kategori": "ARSA_VE_IMAR",
+        }
+        hook = hook_motoru.hook_olustur(haber)
+        self.assertFalse(hook and hook.get("format") == "stat_punch",
+                         "cümlenin ilk sekiz kelimesi kanca yapılmamalı")
+
+        haber["spot"] = "Değişiklik 30 gün boyunca askıda kalacak."
+        hook = hook_motoru.hook_olustur(haber)
+        self.assertEqual(hook["format"], "stat_punch")
+        self.assertEqual(hook["num_txt"], "30")
+        self.assertEqual(f'{hook["t1"]} {hook["t2"]}', "BOYUNCA ASKIDA KALACAK")
+
+    def test_sigmayan_kanca_basilmaz(self):
+        from PIL import Image
+        zemin = Image.new("RGB", (1080, 1350), (20, 20, 24))
+        sonuc = hook_motoru.ciz_minimal_vurgu(zemin, 60, 700, "NE DEĞİŞTİ",
+                                             "ÇOKUZUNBİRKELİME" * 6, "İKİNCİ SATIR")
+        self.assertEqual(sonuc.tobytes(), zemin.tobytes(), "sığmayan kanca kırpılıp basılmamalı")
+
+
 if __name__ == "__main__":
     unittest.main()

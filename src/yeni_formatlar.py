@@ -1092,6 +1092,7 @@ def _devam_slaytlari(
     return yollar
 
 
+@make_image._gorsel_girdisi
 def slaytlari_uret(
     veri: Dict[str, Any],
     cikti_dizini: Optional[Path] = None,
