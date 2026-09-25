@@ -2,6 +2,9 @@
 tests/test_dogrula_ve_hook.py — Boş övgü, zayıf vurgu ve kanca (hook) kapıları testi.
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import unittest
 from src import dogrula, hook_motoru
 

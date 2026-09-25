@@ -2,6 +2,9 @@
 tests/test_faz2_ozellikleri.py — Kardeş görsel havuzu, TikTok Photo Mode aciklama_kur ve failover testleri.
 """
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import sqlite3
 import unittest
 from unittest.mock import MagicMock, patch

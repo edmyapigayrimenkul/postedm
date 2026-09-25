@@ -16,6 +16,9 @@ eksiksiz yerine getirdiğini doğrular:
 
 from __future__ import annotations
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
+
 import argparse
 import io
 import json
