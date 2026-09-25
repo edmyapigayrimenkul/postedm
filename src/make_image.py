@@ -56,11 +56,16 @@ RENK_UZMAN_ETIKET = (228, 228, 225)
 
 # Doğrulanmış Türkçe Destekli Font Yolları
 FONT_FRAUNCES = config.yol_al("assets/fonts/Fraunces.ttf")
-FONT_SANS = config.yol_al("assets/fonts/PlusJakartaSans-Medium.ttf")
-FONT_SANS_REGULAR = config.yol_al("assets/fonts/PlusJakartaSans-Regular.ttf")
-FONT_SANS_MEDIUM = config.yol_al("assets/fonts/PlusJakartaSans-Medium.ttf")
-FONT_SANS_SEMIBOLD = config.yol_al("assets/fonts/PlusJakartaSans-SemiBold.ttf")
-FONT_SANS_BOLD = config.yol_al("assets/fonts/PlusJakartaSans-Bold.ttf")
+# Gövde: IBM Plex Sans (2026-09-25; önceden Plus Jakarta Sans). Kurumsal kimliğin
+# ve web sitesinin gövde fontu, rakamlardaki Plex Mono ile aynı aile; Türkçe
+# gövde metninde daha açık ve okunaklı. Statik ağırlıklar tam glifli
+# IBMPlexSans[wdth,wght].ttf'den üretildi — IBMPlexSans-Variable.ttf yalnızca
+# Latin alt kümesi, ğ ş İ ₺ içermiyor.
+FONT_SANS = config.yol_al("assets/fonts/IBMPlexSans-Medium.ttf")
+FONT_SANS_REGULAR = config.yol_al("assets/fonts/IBMPlexSans-Regular.ttf")
+FONT_SANS_MEDIUM = config.yol_al("assets/fonts/IBMPlexSans-Medium.ttf")
+FONT_SANS_SEMIBOLD = config.yol_al("assets/fonts/IBMPlexSans-SemiBold.ttf")
+FONT_SANS_BOLD = config.yol_al("assets/fonts/IBMPlexSans-Bold.ttf")
 FONT_INTER_MEDIUM = config.yol_al("assets/fonts/Inter-Medium.ttf")
 FONT_INTER_BOLD = config.yol_al("assets/fonts/Inter-Bold.ttf")
 FONT_MONO = config.yol_al("assets/fonts/IBMPlexMono.ttf")
@@ -667,48 +672,97 @@ def _difuzyon_golgeli_metin(
 
 
 # Kategori bazlı zengin görsel havuzu (her içerikte farklı ve çarpıcı mimari / arsa atmosferi)
+# Havuzlar dosya ADINA göre değil, fotoğrafın GÖRÜNEN içeriğine göre (2026-09-25
+# gözden geçirme). Adlar yanıltıcıydı: "arsa_parsel_aerial" havuzlu villa,
+# "arsa_suburb_plot" orman tavanı, "arsa_villa_land" bulut üstü dağlar,
+# "bina_residential_balcony" yosunlu orman, "bina_architecture_highrise" villa.
+# Konuyla ilgisi olmayanlar (dağ, orman) ve üzerinde başka markanın logosu olan
+# "insaat_modern_structure" rotasyondan çıkarıldı. Havuz küçük; asıl çeşitlilik
+# PEXELS_API_KEY ile konuya özel aramadan ya da ofisin kendi Trakya fotoğraflarından gelir.
 ARKA_PLAN_HAVUZU = {
     "ARSA": [
-        "arsa_aerial_green.jpg",
-        "arsa_green_drone.jpg",
-        "arsa_landscape_field.jpg",
-        "arsa_parsel_aerial.jpg",
-        "arsa_plow_field.jpg",
-        "arsa_suburb_plot.jpg",
-        "arsa_suburban_parsel.jpg",
-        "arsa_villa_land.jpg",
-        "clean_land_aerial.jpg",
-        "bina_residential_balcony.jpg",
+        "arsa_aerial_green.jpg",        # buğday tarlası, gün batımı
+        "arsa_green_drone.jpg",         # çiftlik ambarı ve tarla
+        "arsa_plow_field.jpg",          # yakın plan ekili alan
+        "arsa_suburban_parsel.jpg",     # havadan müstakil evler / parseller
     ],
     "KONUT": [
         "villa_modern_pool.jpg",
         "villa_luxury_dusk.jpg",
         "villa_minimal_white.jpg",
-        "villa_estate_contemporary.jpg",
         "villa_estate_garden.jpg",
         "clean_modern_villa.jpg",
+        "icmekan_minimal_living.jpg",   # adı iç mekân ama müstakil ev cephesi
+        "arsa_suburban_parsel.jpg",
     ],
     "BINA": [
-        "bina_modern_glass.jpg",
-        "bina_facade_dusk.jpg",
-        "bina_architecture_highrise.jpg",
-        "clean_architecture.jpg",
-        "villa_estate_garden.jpg",
-        "clean_modern_villa.jpg",
+        "bina_modern_glass.jpg",        # apartman cephesi
+        "bina_facade_dusk.jpg",         # çok katlı binalar
+        "arsa_suburban_parsel.jpg",     # yerleşim dokusu
     ],
     "ICMEKAN": [
         "icmekan_luxury_penthouse.jpg",
         "icmekan_modern_lounge.jpg",
-        "icmekan_minimal_living.jpg",
         "clean_interior.jpg",
+        "clean_architecture.jpg",
+        "villa_estate_contemporary.jpg",
     ],
     "INSAAT": [
-        "insaat_modern_structure.jpg",
-        "bina_architecture_highrise.jpg",
         "bina_modern_glass.jpg",
-        "clean_architecture.jpg",
+        "bina_facade_dusk.jpg",
     ],
 }
+
+
+# Kapak fotoğrafı KONUNUN kelimelerine göre seçilir; kategori kodu yalnızca yedek.
+# 2026-09-25: "Arsa mı konut mu" (YATIRIM) kapağına duvar çerçeveli iç mekân,
+# #141'de tarla konusuna salon fotoğrafı düşmüştü. Sıra önemli: ilk eşleşen kazanır.
+KONU_HAVUZLARI: List[Tuple[Tuple[str, ...], str]] = [
+    (("kentsel dönüşüm", "riskli yapı"), "INSAAT"),
+    (("tarla", "arsa", "imar", "ifraz", "parsel", "tarım", "zilyet", "tapusuz", "tiny house", "prefabrik", "bağ evi", "kadastro"), "ARSA"),
+    (("inşaat", "müteahhit", "kat karşılığı", "ruhsat", "iskân", "iskan", "yapı kullanma"), "INSAAT"),
+    (("kira", "kiracı", "ev sahibi", "tahliye", "depozito", "aidat", "apartman", "kat mülkiyeti", "site yönetimi"), "BINA"),
+    (("kredi", "faiz", "banka", "dask", "ekspertiz", "vergi", "yatırım", "değer artış"), "BINA"),
+    (("tapu", "önalım", "şufa", "miras", "hisse", "kaparo", "harç", "vekâlet", "satış"), "KONUT"),
+]
+# Pexels sorgusu (anahtar tanımlıysa): havuzla aynı konu, çok daha geniş seçenek
+PEXELS_SORGULARI = {
+    "ARSA": "aerial view farmland fields drone",
+    "INSAAT": "residential construction site building crane",
+    "BINA": "apartment building facade city",
+    "KONUT": "residential house exterior neighborhood",
+}
+
+
+def _konu_havuzu(konu_metni: Optional[str], kategori_kodu: Optional[str]) -> str:
+    kucuk = (konu_metni or "").replace("İ", "i").replace("I", "ı").lower()
+    for kelimeler, havuz in KONU_HAVUZLARI:
+        if any(k in kucuk for k in kelimeler):
+            return havuz
+    kat = (kategori_kodu or "").upper()
+    if "ARSA" in kat or "IMAR" in kat or "PARSEL" in kat or "TARLA" in kat:
+        return "ARSA"
+    if "INSAAT" in kat or "KENTSEL" in kat or "DONUSUM" in kat or "PROJE" in kat:
+        return "INSAAT"
+    if any(k in kat for k in ("KIRACI", "EV_SAHIBI", "SITE", "APARTMAN", "YATIRIM", "FINANS", "VERGI", "DEGERLEME")):
+        # Finans/yatırım eskiden iç mekân havuzuna gidiyordu; konuyla ilgisizdi
+        return "BINA"
+    return "KONUT"
+
+
+def _konu_stok_fotografi(havuz: str, tohum: Optional[Any]) -> Optional[Image.Image]:
+    """Pexels anahtarı varsa konuya özel dikey fotoğraf (yoksa None; yerel havuz kullanılır)."""
+    if config.test_modu() or not config.env_al("PEXELS_API_KEY"):
+        return None
+    try:
+        from . import fetch_stock
+        yol = fetch_stock.stok_fotografi_ara(PEXELS_SORGULARI.get(havuz, PEXELS_SORGULARI["KONUT"]),
+                                             tohum=str(tohum) if tohum is not None else None)
+        if yol and Path(yol).exists():
+            return ImageOps.fit(Image.open(yol).convert("RGB"), (GENISLIK, YUKSEKLIK), Image.Resampling.LANCZOS)
+    except Exception as e:
+        log.warning("Konu stok fotoğrafı alınamadı, yerel havuza dönülüyor: %s", e)
+    return None
 
 
 def _temiz_arkaplan_al(
@@ -716,6 +770,7 @@ def _temiz_arkaplan_al(
     ozel_url_veya_yol: Optional[str] = None,
     tohum: Optional[Any] = None,
     haric_tut: Optional[List[str]] = None,
+    konu_metni: Optional[str] = None,
 ) -> Image.Image:
     """Kategoriye en uygun yüksek çözünürlüklü temiz mimari görseli yükler veya koyu zemin üretir.
 
@@ -729,17 +784,12 @@ def _temiz_arkaplan_al(
         if foto:
             return ImageOps.fit(foto, (GENISLIK, YUKSEKLIK), Image.Resampling.LANCZOS)
 
-    kat = (kategori_kodu or "").upper()
-    if "ARSA" in kat or "IMAR" in kat or "PARSEL" in kat or "TARLA" in kat:
-        havuz = list(ARKA_PLAN_HAVUZU["ARSA"])
-    elif "KIRACI" in kat or "EV_SAHIBI" in kat or "HUKUK" in kat or "SITE" in kat or "APARTMAN" in kat:
-        havuz = list(ARKA_PLAN_HAVUZU["BINA"])
-    elif "YATIRIM" in kat or "FINANS" in kat or "VERGI" in kat or "DEGERLEME" in kat:
-        havuz = list(ARKA_PLAN_HAVUZU["ICMEKAN"])
-    elif "INSAAT" in kat or "KENTSEL" in kat or "DONUSUM" in kat or "PROJE" in kat:
-        havuz = list(ARKA_PLAN_HAVUZU["INSAAT"])
-    else:
-        havuz = list(ARKA_PLAN_HAVUZU["KONUT"])
+    havuz_adi = _konu_havuzu(konu_metni, kategori_kodu)
+    if konu_metni is not None:
+        stok = _konu_stok_fotografi(havuz_adi, tohum)
+        if stok is not None:
+            return stok
+    havuz = list(ARKA_PLAN_HAVUZU[havuz_adi])
 
     # Son kullanılanları oku
     son_kullanilan = []
@@ -1892,7 +1942,8 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
     else:
         haric = [veri.get("onceki_foto")] if veri.get("foto_degistir") and veri.get("onceki_foto") else None
-        canvas = _temiz_arkaplan_al(kategori_kodu, foto_url, tohum=tohum, haric_tut=haric)
+        konu_metni = " ".join(str(veri.get(k) or "") for k in ("manset_parca_1", "manset_vurgu", "manset_parca_2", "manset", "spot", "rozet_metni"))
+        canvas = _temiz_arkaplan_al(kategori_kodu, foto_url, tohum=tohum, haric_tut=haric, konu_metni=konu_metni)
 
     # 2. Manşet ve Başlık Verisini Analiz Et
     manset_ham = veri.get("manset", "")
@@ -2860,6 +2911,16 @@ def veriyi_normalize_et(ham: Any) -> Dict[str, Any]:
         "aciklama": _metin(cta.get("aciklama")),
         "kaydet_metni": _metin(cta.get("kaydet_metni")),
     }
+
+    # Görsel kontrol anahtarları: Telegram'daki "Saf editoryal", "Başka fotoğraf",
+    # "Stok fotoğraf" düğmeleri bunları yazar. Normalize eskiden yalnızca metin
+    # alanlarını tutuyordu; düğmelerin carousel kapağına HİÇ etkisi yoktu.
+    for anahtar in ("saf_editoryal", "foto_degistir"):
+        if v.get(anahtar) is True:
+            veri[anahtar] = True
+    for anahtar in ("onceki_foto", "foto_kaynak", "kapanis_stili", "konu_kodu"):
+        if _metin(v.get(anahtar)):
+            veri[anahtar] = _metin(v.get(anahtar))
     return veri
 
 
@@ -3064,7 +3125,7 @@ def haber_dailybrief_slayti_ciz(
     """
     Instabot (DailyBrief) mimarisi paritesi:
     Gerçek/stok haber fotoğrafı + kademeli okuma perdesi + Fraunces manşet +
-    PlusJakartaSans özet + EDM kurumsal kimliği ile yüksek dönüşümlü haber kartı.
+    IBM Plex Sans özet + EDM kurumsal kimliği ile yüksek dönüşümlü haber kartı.
 
     4:5 Güvenli Alan & 9:16 Uyumu (Kullanıcı Kuralı):
     - Logo boyutu diğer tüm EDM formatlarıyla (Sözlük, Nedir Doğrusu, Vaka Analizi, Net Cevap)
@@ -3476,11 +3537,12 @@ def haber_dailybrief_detay_slayti_ciz(
     maddeler: Optional[List[Dict[str, Any]]] = None,
     ust_etiket: Optional[str] = None,
     goster_uzman_notu: bool = True,
+    asgari_punto: int = 28,
 ) -> Path:
     """
     DailyBrief Haber Detay Slaytı (Ayrıntılar & EDM Uzman Analizi):
     Instabot Smart Brevity mimarisi paritesi:
-    - 1. slaytın spotuyla birebir aynı Plus Jakarta Sans fontuyla (%100 okunaklılık).
+    - 1. slaytın spotuyla birebir aynı gövde fontuyla (IBM Plex Sans).
     - Haberin kritik detayları: Kapsanan alanlar/parseller, imar/yapılaşma koşulları, askı süresi ve yasal haklar.
     - Her maddenin solunda mimari dikey renk çentiği (Accent Notch).
     - İsteğe bağlı EDM Uzman Değerlendirmesi & Yatırımcı Tavsiyesi kartı (goster_uzman_notu=True).
@@ -3569,96 +3631,62 @@ def haber_dailybrief_detay_slayti_ciz(
             ust_etiket = "// HABERİN AYRINTILARI"
 
         font_top_etiket = _font_yukle(FONT_MONO_BOLD, 21)
+
+        # 3. İçerik Detayları — hepsi (eskiden [:3] ile dördüncü madde düşüyordu)
+        temiz_maddeler = maddeler if maddeler is not None else haber_detay_maddelerini_ayikla(haber)
+
+        # 4-5. Ölçerek yerleşim: başlangıç puntosu madde sayısından, sığmazsa 28px'e
+        # kadar küçülür. Eskiden madde metni [:3]/[:4] satırda SESSİZCE kesiliyordu.
+        n = len(temiz_maddeler)
+        bas_govde = (42 if n <= 1 else 38 if n == 2 else 34) if not goster_uzman_notu else (40 if n <= 1 else 36 if n == 2 else 32)
+        uzman_bas = 38 if n <= 1 else (34 if n == 2 else 32)
+        y_kursur = ust_y + 85
+        yerlesim_bulundu = False
+        # Rahatlık eşiği başlangıç puntosunu aşamaz (uzman notlu 3 maddede başlangıç 32)
+        for govde_p in range(bas_govde, min(asgari_punto, bas_govde) - 1, -2):
+            etiket_p = govde_p + 6
+            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, etiket_p)
+            font_madde_govde = _font_yukle(FONT_SANS, govde_p)
+            lh_govde = int(govde_p * 1.42)
+            lh_etiket = int(etiket_p * 1.18)
+            if goster_uzman_notu:
+                uzman_p = min(uzman_bas, govde_p + 2)
+                font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
+                font_uzman_govde = _font_yukle(FONT_SANS_BOLD, uzman_p)
+                uzman_lh = int(uzman_p * 1.4)
+                pad_y = 24
+                uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
+                uzman_kart_h = pad_y + 26 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
+                uzman_kart_y = alt_y - 25 - uzman_kart_h
+                kalan_h = (uzman_kart_y - 30) - y_kursur
+            else:
+                uzman_kart_h = 0
+                uzman_kart_y = alt_y - 25
+                kalan_h = (alt_y - 25) - y_kursur
+
+            maddeler_olculu = []
+            for m in temiz_maddeler:
+                etiket_satirlari = _metin_sar(_temizle_tipografi(m["etiket"]), font_madde_etiket, kullanilabilir_w - 38, draw)
+                satirlar_m = _metin_sar(_temizle_tipografi(m["metin"]), font_madde_govde, kullanilabilir_w - 38, draw)
+                h_etiket = len(etiket_satirlari) * lh_etiket
+                maddeler_olculu.append({
+                    "etiket_satirlari": etiket_satirlari,
+                    "satirlar": satirlar_m,
+                    "renk": m["renk"],
+                    "h_etiket": h_etiket,
+                    "h": h_etiket + 14 + (len(satirlar_m) * lh_govde),
+                })
+            if sum(mo["h"] for mo in maddeler_olculu) + 35 * max(0, n - 1) <= kalan_h:
+                yerlesim_bulundu = True
+                break
+        if not yerlesim_bulundu:
+            raise TasmaHatasi(f"Haber detay slaytına sığmadı ({n} madde)")
+
+        # Üst etiket ölçüm GEÇTİKTEN sonra çizilir: başarısız deneme tuvale hiçbir şey çizmez
         draw.text((kenar, ust_y + 12), ust_etiket, font=font_top_etiket, fill=RENK_KURSUN_ACIK)
         draw.line([(kenar, ust_y + 60), (genislik - kenar, ust_y + 60)], fill=RENK_CIZGI_KOYU, width=1)
 
-        # 3. İçerik Detaylarının Hazırlanması
-        if maddeler is not None:
-            temiz_maddeler = maddeler
-        else:
-            temiz_maddeler = haber_detay_maddelerini_ayikla(haber)[:3]
-
-        # 4. Fontlar ve Boyutlandırma (Genişletilmiş, Prestijli Tipografi)
-        if not goster_uzman_notu:
-            # Uzman notu yok -> Tüm dikey alan maddelere ayrılır, devasa ve ferah tipografi!
-            if len(temiz_maddeler) <= 1:
-                font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 48)
-                font_madde_govde = _font_yukle(FONT_SANS, 42)
-                lh_govde = 60
-                h_etiket = 54
-            elif len(temiz_maddeler) == 2:
-                font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 44)
-                font_madde_govde = _font_yukle(FONT_SANS, 38)
-                lh_govde = 54
-                h_etiket = 48
-            else:
-                font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 40)
-                font_madde_govde = _font_yukle(FONT_SANS, 34)
-                lh_govde = 48
-                h_etiket = 44
-        elif len(temiz_maddeler) <= 1:
-            # 1 Madde + Dev Uzman Notu Kartı (3. slayt düzeni)
-            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 46)
-            font_madde_govde = _font_yukle(FONT_SANS, 40)
-            lh_govde = 56
-            h_etiket = 52
-            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 24)
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 38)
-            uzman_lh = 54
-            pad_y = 30
-        elif len(temiz_maddeler) == 2:
-            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 42)
-            font_madde_govde = _font_yukle(FONT_SANS, 36)
-            lh_govde = 50
-            h_etiket = 46
-            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 34)
-            uzman_lh = 48
-            pad_y = 26
-        else:
-            font_madde_etiket = _font_yukle(FONT_SANS_BOLD, 38)
-            font_madde_govde = _font_yukle(FONT_SANS, 32)
-            lh_govde = 46
-            h_etiket = 42
-            font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
-            font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
-            uzman_lh = 44
-            pad_y = 22
-
-        # 5. Dikey Yerleşim Mimarisi
-        y_kursur = ust_y + 85
-
-        if goster_uzman_notu:
-            uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
-            if len(uzman_satirlari) > 4 and uzman_lh >= 50:
-                font_uzman_govde = _font_yukle(FONT_SANS_BOLD, 32)
-                uzman_lh = 46
-                uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
-
-            uzman_kart_h = pad_y + 26 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
-            uzman_kart_y = alt_y - 25 - uzman_kart_h
-            kalan_h = (uzman_kart_y - 30) - y_kursur
-        else:
-            uzman_kart_h = 0
-            uzman_kart_y = alt_y - 25
-            kalan_h = (alt_y - 25) - y_kursur
-
-        madde_sayisi = max(1, len(temiz_maddeler))
-
-        # Her maddenin satırlarını ve blok yüksekliğini hesapla
-        maddeler_olculu = []
-        for m in temiz_maddeler:
-            satirlar_m = _metin_sar(_temizle_tipografi(m["metin"]), font_madde_govde, kullanilabilir_w - 38, draw)
-            max_satir = 4 if not goster_uzman_notu else (4 if len(temiz_maddeler) <= 1 else 3)
-            satirlar_m = satirlar_m[:max_satir]
-            h_m = h_etiket + 14 + (len(satirlar_m) * lh_govde)
-            maddeler_olculu.append({
-                "etiket": m["etiket"],
-                "satirlar": satirlar_m,
-                "renk": m["renk"],
-                "h": h_m,
-            })
-
+        madde_sayisi = max(1, n)
         toplam_madde_h = sum(mo["h"] for mo in maddeler_olculu)
         bosluk = (kalan_h - toplam_madde_h) // max(1, len(maddeler_olculu) - 1)
         bosluk = max(35, min(90 if not goster_uzman_notu else 75, bosluk))
@@ -3672,9 +3700,12 @@ def haber_dailybrief_detay_slayti_ciz(
         for mo in maddeler_olculu:
             m_h = mo["h"]
             draw.rounded_rectangle([kenar, curr_m_y + 3, kenar + notch_w, curr_m_y + m_h - 4], radius=4, fill=mo["renk"])
-            draw.text((kenar + notch_pad, curr_m_y), mo["etiket"], font=font_madde_etiket, fill=mo["renk"])
+            ey = curr_m_y
+            for es in mo["etiket_satirlari"]:
+                draw.text((kenar + notch_pad, ey), es, font=font_madde_etiket, fill=mo["renk"])
+                ey += lh_etiket
 
-            gy = curr_m_y + h_etiket + 12
+            gy = curr_m_y + mo["h_etiket"] + 12
             for s in mo["satirlar"]:
                 draw.text((kenar + notch_pad, gy), s, font=font_madde_govde, fill=RENK_METIN_GOVDE)
                 gy += lh_govde
@@ -3795,73 +3826,48 @@ def haber_dailybrief_slaytlari_uret(
 
     fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url")
     maddeler = haber_detay_maddelerini_ayikla(haber)
-    slayt_sayisi = dailybrief_slayt_sayisi_belirle(haber, maddeler)
+    uzman_var = bool((haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
+                     or (isinstance(haber.get("slayt_4_cta"), dict) and str(haber["slayt_4_cta"].get("aciklama") or "").strip()))
 
+    # Slayt sayısı ÖLÇÜLEREK: önce bütün maddeler tek detay slaytında denenir, sığmazsa
+    # 2, sonra 3 dengeli slayt. Eskiden "anahtar kelime varsa 3 slayt" kuralı iki kısa
+    # maddeyi üç slayta yayıyor, 2. ve 3. slaytlar neredeyse boş kalıyordu; iki slaytlık
+    # yol da maddeler[:2] ile üçüncü maddeyi düşürüyordu.
     p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
+    if not maddeler and not uzman_var:
+        haber_dailybrief_slayti_ciz(haber=haber, foto_yolu=fp, cikti_yolu=p1, olcu=olcu, sayfa_no="01 / 01")
+        return [p1]
 
-    if slayt_sayisi == 3:
-        p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
-        p3 = cikti_dizini / f"{cikti_onek}_dailybrief_s3.jpg"
-
-        # Dengeli sayfalama optimizasyonu (c148a2a)
-        bolumler = _sayfalari_dengeli_bol(maddeler, sayfa_sayisi=2, has_uzman_notu_son_sayfa=True)
-        s2_maddeler = bolumler[0]
-        s3_maddeler = bolumler[1]
-
-        haber_dailybrief_slayti_ciz(
-            haber=haber,
-            foto_yolu=fp,
-            cikti_yolu=p1,
-            olcu=olcu,
-            sayfa_no="01 / 03",
-        )
-
-        haber_dailybrief_detay_slayti_ciz(
-            haber=haber,
-            foto_yolu=fp,
-            cikti_yolu=p2,
-            olcu=olcu,
-            sayfa_no="02 / 03  ›  KAYDIRIN",
-            maddeler=s2_maddeler,
-            ust_etiket="// HABERİN AYRINTILARI",
-            goster_uzman_notu=False,
-        )
-
-        haber_dailybrief_detay_slayti_ciz(
-            haber=haber,
-            foto_yolu=fp,
-            cikti_yolu=p3,
-            olcu=olcu,
-            sayfa_no="03 / 03",
-            maddeler=s3_maddeler,
-            ust_etiket="// HABERİN AYRINTILARI · DEVAMI",
-            goster_uzman_notu=True,
-        )
-        log.info("DailyBrief Dinamik 3 Slayt üretildi: %s, %s, %s", p1.name, p2.name, p3.name)
-        return [p1, p2, p3]
-    else:
-        p2 = cikti_dizini / f"{cikti_onek}_dailybrief_s2.jpg"
-
-        haber_dailybrief_slayti_ciz(
-            haber=haber,
-            foto_yolu=fp,
-            cikti_yolu=p1,
-            olcu=olcu,
-            sayfa_no="01 / 02",
-        )
-
-        haber_dailybrief_detay_slayti_ciz(
-            haber=haber,
-            foto_yolu=fp,
-            cikti_yolu=p2,
-            olcu=olcu,
-            sayfa_no="02 / 02",
-            maddeler=maddeler[:2],
-            ust_etiket="// HABERİN AYRINTILARI",
-            goster_uzman_notu=True,
-        )
-        log.info("DailyBrief Dinamik 2 Slayt üretildi: %s, %s", p1.name, p2.name)
-        return [p1, p2]
+    istenen = haber.get("slayt_sayisi")
+    denenecek = [int(istenen) - 1] if istenen in (2, 3) else [1, 2, 3]
+    for detay_sayisi in denenecek:
+        # Az slayt tercihi yalnızca metin rahat okunurken (≥34px); son deneme 28px'e iner
+        asgari = 28 if detay_sayisi == denenecek[-1] else 34
+        if detay_sayisi > 1 and len(maddeler) < detay_sayisi:
+            continue
+        bolumler = [maddeler] if detay_sayisi == 1 else _sayfalari_dengeli_bol(maddeler, sayfa_sayisi=detay_sayisi, has_uzman_notu_son_sayfa=uzman_var)
+        toplam = 1 + detay_sayisi
+        yollar = []
+        try:
+            for i, bolum in enumerate(bolumler, start=2):
+                son_mu = i == toplam
+                yol = cikti_dizini / f"{cikti_onek}_dailybrief_s{i}.jpg"
+                sayfa = f"{i:02d} / {toplam:02d}" + ("" if son_mu else "  ›  KAYDIRIN")
+                haber_dailybrief_detay_slayti_ciz(
+                    haber=haber, foto_yolu=fp, cikti_yolu=yol, olcu=olcu, sayfa_no=sayfa, maddeler=bolum,
+                    ust_etiket="// HABERİN AYRINTILARI" if i == 2 else "// HABERİN AYRINTILARI · DEVAMI",
+                    goster_uzman_notu=son_mu,
+                    asgari_punto=asgari,
+                )
+                yollar.append(yol)
+        except TasmaHatasi:
+            for y in yollar:
+                Path(y).unlink(missing_ok=True)
+            continue
+        haber_dailybrief_slayti_ciz(haber=haber, foto_yolu=fp, cikti_yolu=p1, olcu=olcu, sayfa_no=f"01 / {toplam:02d}")
+        log.info("DailyBrief %d slayt üretildi", toplam)
+        return [p1] + yollar
+    raise TasmaHatasi(f"Haber {len(maddeler)} madde; üç detay slaytına da sığmadı")
 
 
 

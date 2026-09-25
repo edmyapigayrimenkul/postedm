@@ -65,6 +65,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          # Kapak fotoğrafı konuya göre Pexels'ten (secret yoksa yerel havuz)
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           # Dış girdi env ile geçer; run bloğuna (hele Python kaynağına) gömülmez.
           ILAN_ID: ${{ github.event.client_payload.ilan_id }}
         run: |
@@ -78,6 +80,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          # Kapak fotoğrafı konuya göre Pexels'ten (secret yoksa yerel havuz)
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           HABER_ID: ${{ github.event.client_payload.haber_id }}
           FORMAT: ${{ github.event.client_payload.format_turu }}
         run: |
@@ -91,6 +95,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          # Kapak fotoğrafı konuya göre Pexels'ten (secret yoksa yerel havuz)
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -113,6 +119,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          # Kapak fotoğrafı konuya göre Pexels'ten (secret yoksa yerel havuz)
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}

@@ -35,6 +35,7 @@ def stok_fotografi_ara(
     sorgu: str,
     kategori_kodu: Optional[str] = None,
     cikti_yolu: Optional[Path] = None,
+    tohum: Optional[str] = None,
 ) -> Optional[Path]:
     """
     Pexels API'den dikey (portrait) telifsiz fotoğraf arar ve diske kaydeder.
@@ -55,7 +56,8 @@ def stok_fotografi_ara(
     params = {
         "query": arama_metni,
         "orientation": "portrait",
-        "per_page": 5,
+        # Geniş aday havuzu: ilk sonucu almak aynı konuya her gün aynı fotoğrafı getiriyordu
+        "per_page": 15,
         "locale": "en-US",
     }
 
@@ -69,7 +71,7 @@ def stok_fotografi_ara(
         photos = veri.get("photos", [])
         if not photos:
             # Fallback genel arama
-            params["query"] = "modern architecture real estate luxury home"
+            params["query"] = "residential building exterior architecture"
             resp2 = requests.get(API_URL, headers=headers, params=params, timeout=TIMEOUT)
             if resp2.status_code == 200:
                 photos = resp2.json().get("photos", [])
@@ -78,8 +80,21 @@ def stok_fotografi_ara(
             log.info("Pexels'te uygun fotoğraf bulunamadı.")
             return None
 
-        # İlk adayı al (large2x veya portrait kalitesi)
-        secilen = photos[0]
+        # Son kullanılanları atla, kalanlardan tohumla kararlı seç
+        from . import db
+        import hashlib
+        import json as _json
+        try:
+            son = _json.loads(db.ayar_oku("son_pexels") or "[]")
+        except (TypeError, ValueError):
+            son = []
+        adaylar = [p for p in photos if p.get("id") not in son] or photos
+        idx = int(hashlib.md5(str(tohum or arama_metni).encode("utf-8")).hexdigest(), 16) % len(adaylar) if tohum else 0
+        secilen = adaylar[idx]
+        try:
+            db.ayar_yaz("son_pexels", _json.dumps(([i for i in son if i != secilen.get("id")] + [secilen.get("id")])[-40:]))
+        except Exception:
+            pass
         src_dict = secilen.get("src", {})
         foto_url = src_dict.get("large2x") or src_dict.get("portrait") or src_dict.get("large")
         if not foto_url:

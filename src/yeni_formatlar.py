@@ -42,8 +42,8 @@ RENK_KART_CUBUK = (240, 0, 13)
 RENK_KART_ETIKET = (228, 228, 225)
 
 FONT_FRAUNCES = config.yol_al("assets/fonts/Fraunces.ttf")
-FONT_SANS_BOLD = config.yol_al("assets/fonts/PlusJakartaSans-Bold.ttf")
-FONT_SANS_MEDIUM = config.yol_al("assets/fonts/PlusJakartaSans-Medium.ttf")
+FONT_SANS_BOLD = make_image.FONT_SANS_BOLD      # IBM Plex Sans (make_image'daki gerekçe)
+FONT_SANS_MEDIUM = make_image.FONT_SANS_MEDIUM
 FONT_MONO = config.yol_al("assets/fonts/IBMPlexMono.ttf")
 FONT_MONO_BOLD = config.yol_al("assets/fonts/IBMPlexMono-Bold.ttf")
 
@@ -235,21 +235,37 @@ def uret_sozluk(
         yukseklik = (52 + sum(len(b) for b in bloklar) * satir_h + (len(bloklar) - 1) * 12 + 24) if maddeler else 0
         return font, bloklar, satir_h, yukseklik
 
+    # Öncelik OKUNAKLILIK: önce tanım rahat puntoda (≥36) tutulur, terim ona göre
+    # küçülür; ikinci turda tanım 32'ye kadar iner. (Önceki sıra terimi 136px'te
+    # tutup uzun tanımı 32px'e itiyordu.) Kısa tanım alan varsa 48px'e büyür.
+    terim_olcu = {}
+
+    def terim_olc(p: int):
+        if p not in terim_olcu:
+            terim_olcu[p] = _sigdir(terim, FONT_FRAUNCES, [p], kullanilabilir_w, 10_000, 1.15, azami_satir=2 if p > 76 else 3)
+        return terim_olcu[p]
+
     cozum = None
-    for puf_p in (30, 28, 26, 24):
-        f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
-        kutu_y = alt_y - 26 - h_kutu
-        tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
-        for terim_p in range(136, 59, -4):
-            terim_sonuc = _sigdir(terim, FONT_FRAUNCES, [terim_p], kullanilabilir_w, 10_000, 1.15, azami_satir=2 if terim_p > 76 else 3)
-            if not terim_sonuc:
-                continue
-            f_terim, terim_satirlar, terim_h, _ = terim_sonuc
-            tanim_ust = ust_sinir + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
-            tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, range(42, 31, -2), kullanilabilir_w,
-                                  tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6)
-            if tanim_sonuc:
-                cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt)
+    for tanim_puntolari, terim_puntolari in ((range(48, 35, -2), range(136, 75, -4)), (range(34, 31, -2), range(136, 59, -4))):
+        for puf_p in (30, 28, 26, 24):
+            f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
+            kutu_y = alt_y - 26 - h_kutu
+            tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
+            for tanim_p in tanim_puntolari:
+                for terim_p in terim_puntolari:
+                    terim_sonuc = terim_olc(terim_p)
+                    if not terim_sonuc:
+                        continue
+                    f_terim, terim_satirlar, terim_h, _ = terim_sonuc
+                    tanim_ust = ust_sinir + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
+                    tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, [tanim_p], kullanilabilir_w,
+                                          tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6)
+                    if tanim_sonuc:
+                        cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt)
+                        break
+                if cozum:
+                    break
+            if cozum:
                 break
         if cozum:
             break
@@ -277,7 +293,8 @@ def uret_sozluk(
 
     # Dikey yerleşim: artan boşluk üste en fazla 36px, gerisi bloklar arasında kalır
     orta_h = len(terim_satirlar) * terim_h + ARA_TERIM_TANIM + len(tanim_satirlar) * tanim_h
-    curr_y = ust_sinir + min(36, max(0, (tanim_alt - ust_sinir - orta_h) // 3))
+    # Kalan boşluk üst ve alta 2'ye 3 oranında dağılır (eskiden hepsi tanımın altında kalıyordu)
+    curr_y = ust_sinir + max(0, (tanim_alt - ust_sinir - orta_h) * 2 // 5)
 
     # Header
     kat_temiz = kategori_temizle(kategori)
@@ -565,20 +582,21 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     alt_y = yer["alt_bar"]
     draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
     f_kaynak_alt = make_image._font_yukle(FONT_MONO, 17)
-    kaynak_metni = f"DAYANAK: {yargitay_kaynak}" if (yargitay_kaynak or "").strip() else "EDM YAPI & GAYRİMENKUL // ÖRNEK OLAY"
-    if len(kaynak_metni) > 55:
-        kaynak_metni = kaynak_metni[:52] + "…"
-    draw.text((kenar, alt_y + 26), kaynak_metni, font=f_kaynak_alt, fill=RENK_KURSUN)
+    # Dayanak yalnızca başlığın üstündeki rozette; alt bilgide tekrar edilmez
+    draw.text((kenar, alt_y + 26), "EDM YAPI & GAYRİMENKUL // ÖRNEK OLAY", font=f_kaynak_alt, fill=RENK_KURSUN)
     sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
     draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
 
+    # Kırmızı "KAYDIRIN" şeridi kaldırıldı: kaydırma işareti diğer formatlardaki gibi
+    # sayfa numarasındaki "›" (aynı bilgi iki yerde tekrarlanıyordu); alan olaya kalır.
     ust_sinir = yer["ust"] - 15
-    kaydir_kutusu_h = 64
-    kaydir_y = alt_y - 24 - kaydir_kutusu_h
-    kullanilabilir_orta_h = kaydir_y - 24 - ust_sinir
+    dayanak_var = bool((yargitay_kaynak or "").strip())
+    rozet_payi = 46 if dayanak_var else 0
+    kullanilabilir_orta_h = (alt_y - 40) - ust_sinir - rozet_payi
 
-    punto_manset = 76
-    punto_olay = 34
+    # Kaydırma şeridinin boşalttığı alan kullanılsın: başlık 88, olay 38'den başlar
+    punto_manset = 88
+    punto_olay = 38
     while punto_manset >= 52:
         f_manset_test = make_image._font_yukle(FONT_FRAUNCES, punto_manset)
         leading_manset_test = punto_manset + 16
@@ -590,7 +608,7 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
         olay_satirlar_test = make_image._metin_sar(olay_detay, f_olay_test, kullanilabilir_w, draw)
         h_olay_test = len(olay_satirlar_test) * leading_olay_test
 
-        if (34 + h_manset_test + 28 + 32 + h_olay_test) <= kullanilabilir_orta_h:
+        if (h_manset_test + 28 + 32 + 36 + h_olay_test) <= kullanilabilir_orta_h:
             punto_manset_final = punto_manset
             leading_manset = leading_manset_test
             manset_satirlar = manset_satirlar_test
@@ -614,21 +632,15 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
 
     h_manset = len(manset_satirlar) * leading_manset
     h_olay = len(olay_satirlar) * leading_olay
-    toplam_orta_h = 34 + h_manset + 28 + 32 + h_olay
-    curr_y = ust_sinir + min(36, max(0, kullanilabilir_orta_h - toplam_orta_h) // 3)
+    toplam_orta_h = rozet_payi + h_manset + 28 + 32 + 36 + h_olay
+    curr_y = ust_sinir + max(0, (kullanilabilir_orta_h + rozet_payi - toplam_orta_h) // 3)
 
     # "EMSAL İÇTİHAT" etiketi BDDK kararını bile mahkeme içtihadı gibi gösteriyordu (#157).
-    emsal_etiket = f"DAYANAK // {yargitay_kaynak.upper()}"
-    f_kaynak_ust = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    bbox_emsal = draw.textbbox((0, 0), emsal_etiket, font=f_kaynak_ust)
-    if (bbox_emsal[2] - bbox_emsal[0]) > kullanilabilir_w:
-        f_kaynak_ust = make_image._font_yukle(FONT_MONO_BOLD, 16)
-        bbox_emsal = draw.textbbox((0, 0), emsal_etiket, font=f_kaynak_ust)
-        if (bbox_emsal[2] - bbox_emsal[0]) > kullanilabilir_w:
-            emsal_etiket = emsal_etiket[:52].rstrip() + "…"
-
-    make_image._rozet_ciz(draw, kenar, curr_y, emsal_etiket, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
-    curr_y += 46
+    # Dayanak yoksa rozet de yok (eskiden boş "DAYANAK //" basılıyordu).
+    if dayanak_var:
+        emsal_etiket = make_image._rozet_kirp(f"DAYANAK // {make_image.tr_buyuk(yargitay_kaynak)}", 60)
+        make_image._rozet_ciz(draw, kenar, curr_y, emsal_etiket, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=17, max_w=kullanilabilir_w)
+        curr_y += 46
 
     for s in manset_satirlar:
         draw.text((kenar, curr_y), s, font=f_manset, fill=RENK_BEYAZ)
@@ -645,8 +657,6 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
         draw.text((kenar, curr_y), s, font=f_olay, fill=(225, 230, 240))
         curr_y += leading_olay
 
-    draw.rounded_rectangle([(kenar, kaydir_y), (GENISLIK - kenar, kaydir_y + kaydir_kutusu_h)], radius=10, fill=RENK_LOGO_KIRMIZI)
-    draw.text((kenar + 24, kaydir_y + 18), "KAYDIRIN // KANUNA GÖRE SONUÇ VE ALINACAK DERS ››", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_BEYAZ)
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -964,8 +974,9 @@ def uret_net_cevap_kapak(
             return f, satirlar, int(punto * satir_carpani)
 
         secim = None
-        for c_p in range(112, 51, -4):
-            for s_p, g_p in ((46, 36), (42, 34), (38, 31), (36, 29)):
+        # Kısa cevap daha iri (128px'e kadar), gerekçe 40px'e kadar büyür
+        for c_p in range(128, 51, -4):
+            for s_p, g_p in ((48, 40), (46, 36), (42, 34), (38, 31), (36, 29)):
                 fs, ss, lhs = olc(soru, FONT_FRAUNCES, s_p, 1.22)
                 fc, sc, lhc = olc(cevap, FONT_FRAUNCES, c_p, 1.1)
                 fg, sg, lhg = olc(gerekce, FONT_SANS_MEDIUM, g_p, 1.42)
@@ -989,7 +1000,7 @@ def uret_net_cevap_kapak(
         canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
         draw = ImageDraw.Draw(canvas)
 
-        y = ust + max(0, (alan - h) // 3)
+        y = ust + max(0, (alan - h) * 2 // 5)
         for satir in ss:
             draw.text((kenar, y), satir, font=fs, fill=p["govde"])
             y += lhs

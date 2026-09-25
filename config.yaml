@@ -140,7 +140,7 @@ tasarim:
     beyaz: "#ffffff"
   fontlar:
     baslik: "assets/fonts/Fraunces-Variable.ttf"
-    metin: "assets/fonts/IBMPlexSans-Variable.ttf"
+    metin: "assets/fonts/IBMPlexSans-Medium.ttf"   # Variable dosya Latin alt kümesi; ğ ş İ yok
     kod_veri: "assets/fonts/IBMPlexMono-Regular.ttf"
   logolar:
     amblem: "assets/logos/amblem.png"

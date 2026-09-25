@@ -769,64 +769,59 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     draw.text((KENAR, y), s1_satirlar[0] if s1_satirlar else "", font=f_b, fill=RENK_KOYU); y += 68
     draw.text((KENAR, y), s2_satirlar[0] if s2_satirlar else "", font=f_b, fill=RENK_KIRMIZI); y += 78
 
-    f_a = _font_yukle(FONT_SANS_MEDIUM, 28)
-    a_satirlar = _metin_sar(b["aciklama"], f_a, max_w, draw)[:2]
+    # Açıklama: üç satıra kadar (eskiden [:2] ile üçüncü satır sessizce atılıyordu)
+    for punto in (28, 26, 24):
+        f_a = _font_yukle(FONT_SANS_MEDIUM, punto)
+        a_satirlar = _metin_sar(b["aciklama"], f_a, max_w, draw)
+        if len(a_satirlar) <= 3:
+            break
+    a_satirlar = a_satirlar[:3]
     for sat in a_satirlar:
         draw.text((KENAR, y), sat, font=f_a, fill=RENK_GRI_METIN)
-        y += 40
+        y += int(f_a.size * 1.42)
 
     # 3. EKRANIN ORTASINDAKİ YATAY ÇİZGİ
     cizgi_y = max(y + 14, int(YUK * 0.38))
     draw.line([(KENAR, cizgi_y), (GEN - KENAR, cizgi_y)], fill=RENK_CIZGI, width=1)
 
-    # 4. ASİMETRİK KAHRAMAN SOSYAL ETKİLEŞİM ALANI (ÖNERİ 4)
+    # 4. KAYDET / GÖNDER / TAKİP (2026-09-25: okunur boyut)
+    # Eski düzende alt yazılar 16-17px'ti (telefonda ~6pt, okunmuyordu); alt yazı
+    # "İleride hukuki risk yaşamamak için saklayın" diye korkutuyordu ve "Sorularınızı
+    # yorumda sorun" çağrısı soru yerine kaydet/gönder kararıyla çelişiyordu.
     y_cta = cizgi_y + 24
     toplam_w = GEN - (2 * KENAR)
-    gap = 18
-    hero_w = min(540, int(toplam_w * 0.58))
-    right_w = toplam_w - hero_w - gap
-    card_h = 104
+    card_h = 108
 
-    # Sol Kahraman Kart (Kaydet)
-    draw.rounded_rectangle([(KENAR, y_cta), (KENAR + hero_w, y_cta + card_h)], radius=16, fill=(255, 255, 255), outline=RENK_CIZGI, width=1)
-    # Sol kenar kırmızı şerit vurgusu
+    draw.rounded_rectangle([(KENAR, y_cta), (KENAR + toplam_w, y_cta + card_h)], radius=16, fill=(255, 255, 255), outline=RENK_CIZGI, width=1)
     draw.rounded_rectangle([(KENAR, y_cta), (KENAR + 6, y_cta + card_h)], radius=3, fill=RENK_KIRMIZI)
-
-    ik_sz = 38
+    ik_sz = 40
     try:
         ik = _vektor_ikon_uret("bookmark", ik_sz, RENK_KIRMIZI)
-        canvas.paste(ik, (KENAR + 24, y_cta + (card_h - ik_sz) // 2), ik)
+        canvas.paste(ik, (KENAR + 26, y_cta + (card_h - ik_sz) // 2), ik)
     except Exception as e:
-        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
+    tx = KENAR + 26 + ik_sz + 20
+    draw.text((tx, y_cta + 20), "BU REHBERİ KAYDEDİN", font=_font_yukle(FONT_SANS_BOLD, 28), fill=RENK_KOYU)
+    draw.text((tx, y_cta + 60), "Lazım olduğu gün elinizin altında olsun.", font=_font_yukle(FONT_SANS_MEDIUM, 24), fill=RENK_GRI_METIN)
 
-    tx = KENAR + 24 + ik_sz + 16
-    draw.text((tx, y_cta + 24), "BU REHBERİ KAYDEDİN", font=_font_yukle(FONT_SANS_BOLD, 23), fill=RENK_KOYU)
-    draw.text((tx, y_cta + 56), "İleride hukuki risk yaşamamak için saklayın.", font=_font_yukle(FONT_SANS_MEDIUM, 16), fill=RENK_GRI_METIN)
-
-    # Sağ İkili Sosyal Kapsüller (üst üste)
-    rx = KENAR + hero_w + gap
-    pill_h = 46
-    pill_gap = 12
-    right_actions = [
-        ("comment", "Sorularınızı yorumda sorun", y_cta),
-        ("follow", "Yeni rehberler için takip edin", y_cta + pill_h + pill_gap),
-    ]
-    f_rp = _font_yukle(FONT_SANS_BOLD, 17)
-    ik_sz_r = 22
-
-    for ic_name, text, py in right_actions:
-        draw.rounded_rectangle([(rx, py), (rx + right_w, py + pill_h)], radius=12, fill=(255, 255, 255), outline=RENK_CIZGI, width=1)
+    gap = 16
+    pill_w = (toplam_w - gap) // 2
+    pill_h = 62
+    py = y_cta + card_h + 14
+    f_rp = _font_yukle(FONT_SANS_BOLD, 24)
+    ik_sz_r = 26
+    for i, (ic_name, text) in enumerate((("share", "Bir tanıdığınıza gönderin"), ("follow", "Takip edin"))):
+        rx = KENAR + i * (pill_w + gap)
+        draw.rounded_rectangle([(rx, py), (rx + pill_w, py + pill_h)], radius=12, fill=(255, 255, 255), outline=RENK_CIZGI, width=1)
         try:
             ik = _vektor_ikon_uret(ic_name, ik_sz_r, RENK_KIRMIZI)
-            canvas.paste(ik, (rx + 16, py + (pill_h - ik_sz_r) // 2), ik)
+            canvas.paste(ik, (rx + 18, py + (pill_h - ik_sz_r) // 2), ik)
         except Exception as e:
-            # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
             log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
-        draw.text((rx + 16 + ik_sz_r + 12, py + 12), text, font=f_rp, fill=RENK_KOYU)
+        draw.text((rx + 18 + ik_sz_r + 14, py + (pill_h - 30) // 2), text, font=f_rp, fill=RENK_KOYU)
 
     # 5. ALTA DAYALI (DOCKED TO BOTTOM) İLETİŞİM BLOĞU
-    by = yer["alt"] - 350
+    by = yer["alt"] - 380   # 24px adres ve 22px not için 30px yukarı
 
     # 5A. METİN ÖZDOĞAN (42px Bold) & Kurucu Danışman
     draw.text((KENAR, by), b["isim"], font=_font_yukle(FONT_SANS_BOLD, 42), fill=RENK_KOYU); by += 50
@@ -836,10 +831,10 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     draw.text((KENAR, by), unvan, font=_font_yukle(FONT_SANS_MEDIUM, 24), fill=RENK_GRI_METIN); by += 48
 
     # Önce web & e-posta genişliğini hesapla
-    ik_sz_c = 22
-    web_gen = draw.textbbox((0, 0), b["site"], font=_font_yukle(FONT_MONO_BOLD, 19))[2]
+    ik_sz_c = 24
+    web_gen = draw.textbbox((0, 0), b["site"], font=_font_yukle(FONT_MONO_BOLD, 21))[2]
     mail_x = KENAR + ik_sz_c + 10 + web_gen + 34
-    mail_gen = draw.textbbox((0, 0), b["eposta"], font=_font_yukle(FONT_MONO, 18))[2]
+    mail_gen = draw.textbbox((0, 0), b["eposta"], font=_font_yukle(FONT_MONO, 20))[2]
     mail_end_x = mail_x + ik_sz_c + 10 + mail_gen
 
     # 5B. DEV TELEFON NUMARASI
@@ -857,8 +852,12 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     by += 96
 
     # 5C. OFİS ADRESİ
-    adres_satirlar = _metin_sar(b["adres"], _font_yukle(FONT_SANS_MEDIUM, 21), max_w - 230, draw)[:1]
-    draw.text((KENAR, by), adres_satirlar[0] if adres_satirlar else "", font=_font_yukle(FONT_SANS_MEDIUM, 21), fill=RENK_GRI_METIN); by += 44
+    # 24px, gerekirse iki satır (eskiden 21px ve [:1] ile adres kesiliyordu)
+    f_adres = _font_yukle(FONT_SANS_MEDIUM, 24)
+    for sat in _metin_sar(b["adres"], f_adres, max_w - 230, draw)[:2]:
+        draw.text((KENAR, by), sat, font=f_adres, fill=RENK_GRI_METIN)
+        by += 32
+    by += 12
 
     # 5D. WEB SİTESİ & E-POSTA (KIRMIZI ŞIK VEKTÖR İKONLARLA)
     try:
@@ -867,7 +866,7 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     except Exception as e:
         # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
-    draw.text((KENAR + ik_sz_c + 10, by), b["site"], font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KOYU)
+    draw.text((KENAR + ik_sz_c + 10, by), b["site"], font=_font_yukle(FONT_MONO_BOLD, 21), fill=RENK_KOYU)
 
     try:
         mail_ik = _vektor_ikon_uret("mail", ik_sz_c, RENK_KIRMIZI)
@@ -875,7 +874,7 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     except Exception as e:
         # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
-    draw.text((mail_x + ik_sz_c + 10, by), b["eposta"], font=_font_yukle(FONT_MONO, 18), fill=RENK_SILIK)
+    draw.text((mail_x + ik_sz_c + 10, by), b["eposta"], font=_font_yukle(FONT_MONO, 20), fill=RENK_SILIK)
 
     # 6. SAĞ TARAF: BÜYÜTÜLMÜŞ KOYU BORDO QR KOD (200px, #7A0D0D, TAŞMAYAN SIKI BEYAZ ZEMİN)
     qr_sz = 200
@@ -912,14 +911,17 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
 
     canvas.paste(qr_img.convert("RGB"), (qr_x, qr_y))
 
-    f_lbl = _font_yukle(FONT_MONO_BOLD, 12)
+    f_lbl = _font_yukle(FONT_MONO_BOLD, 15)
     lbl_txt = "OFİS KONUMU // TARA"
     lbl_w = draw.textbbox((0, 0), lbl_txt, font=f_lbl)[2]
     draw.text((qr_x + (qr_sz - lbl_w) // 2, qr_y + qr_sz + 8), lbl_txt, font=f_lbl, fill=RENK_SILIK)
 
     # 7. Yasal Not & Alt Bar (Sol alttaki mükerrer EDM yazısı kaldırıldı)
-    draw.text((KENAR, yer["alt"] - 14), "Bu içerik genel bilgilendirmedir; bağlayıcı hukuki görüş için avukatınıza danışın.", font=_font_yukle(FONT_SANS_MEDIUM, 16), fill=RENK_SILIK)
-    draw.text((GEN - KENAR - 80, yer["alt_bar"] + 26), sayfa, font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI)
+    # Sorumluluk notu okunur boyutta: 16px'te telefonda seçilmiyordu
+    f_not = _font_yukle(FONT_SANS_MEDIUM, 22)
+    draw.text((KENAR, yer["alt"] - 30), "Genel bilgilendirmedir; bağlayıcı hukuki görüş için avukatınıza danışın.", font=f_not, fill=RENK_GRI_METIN)
+    sf = _font_yukle(FONT_MONO_BOLD, 19)
+    draw.text((GEN - KENAR - draw.textbbox((0, 0), sayfa, font=sf)[2], yer["alt_bar"] + 26), sayfa, font=sf, fill=RENK_KIRMIZI)
 
     yol = _cikti_belirle(cikti_yolu, "11_editoryal")
     canvas.save(yol, "JPEG", quality=95)

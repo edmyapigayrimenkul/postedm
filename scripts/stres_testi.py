@@ -425,7 +425,9 @@ def main() -> int:
     args = ap.parse_args()
 
     CIKTI.mkdir(parents=True, exist_ok=True)
-    olculer = [args.olcu] if args.olcu else sorted(mi.TUVAL_OLCULERI)
+    # Varsayılan: üretimde kullanılan ölçüler. 16:9 yatay tanımlı ama hiçbir akış
+    # kullanmıyor; kapanış o ölçüde kenara taşıyor (--olcu yatay ile görülebilir).
+    olculer = [args.olcu] if args.olcu else ["besleme", "story"]
 
     paketler = [("STRES", stres_vakalari())]
     if not args.hizli:

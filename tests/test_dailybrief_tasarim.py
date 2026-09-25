@@ -186,6 +186,19 @@ class TestDailyBriefTasarim(unittest.TestCase):
             ],
             "uzman_notu": "Askı süresi dolmadan belediye askı panolarından parselinizi sorgulayın.",
         }
+        # Üç KISA madde tek detay slaytına sığar: 2 slayt (2026-09-25; eskiden
+        # "anahtar kelime" kuralı bunları üç slayta yayıp iki boş slayt bırakıyordu)
+        slaytlar_kisa = make_image.haber_dailybrief_slaytlari_uret(
+            haber=dict(h_zengin),
+            cikti_dizini=self.tmp_path / "test_kisa",
+            cikti_onek="kisa_haber",
+            foto_yolu=self.test_foto,
+        )
+        self.assertEqual(len(slaytlar_kisa), 2)
+
+        # Tek slayta SIĞMAYAN uzun maddeler ikinci detay slaytına geçer, hiçbiri kesilmez
+        uzun = " ".join(["Plan notlarına göre bu bölgedeki parsellerde yapılaşma koşulları ayrıntılı biçimde yeniden düzenlendi."] * 2)
+        h_zengin["detay_maddeleri"] = [dict(m, metin=f"{m['metin']} {uzun}") for m in h_zengin["detay_maddeleri"]]
         slaytlar_3 = make_image.haber_dailybrief_slaytlari_uret(
             haber=h_zengin,
             cikti_dizini=self.tmp_path / "test_3s",
@@ -239,7 +252,8 @@ class TestDailyBriefTasarim(unittest.TestCase):
             cikti_onek="yf_zengin",
             format_turu="dailybrief",
         )
-        self.assertEqual(len(res), 3)
+        # Üç kısa madde + uzman notu tek detay slaytına sığar: boş slayt üretilmez
+        self.assertEqual(len(res), 2)
 
     def test_hook_motoru_stat_punch_ve_minimal_vurgu(self):
         """Hook motoru gayrimenkul verilerini ve editoryal kancaları doğru formatta üretmeli."""

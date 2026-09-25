@@ -168,8 +168,9 @@ def slayt_denetle(slayt: Dict[str, Any]) -> List[str]:
             sorunlar.append(f"TUVAL DIŞI: \"{kisa}\" {tuple(int(v) for v in b)}")
         elif b[0] < KENAR_ASGARI or b[2] > W - KENAR_ASGARI:
             sorunlar.append(f"KENAR: \"{kisa}\" kenara {int(min(b[0], W - b[2]))}px")
+        # Kapanıştaki hukuki not bilinçli olarak 22px (tek satıra sığsın diye)
         if (m["punto"] and m["punto"] < PUNTO_ASGARI and "Mono" not in m["font"]
-                and len(m["metin"]) > 24):
+                and len(m["metin"]) > 24 and not (m["punto"] >= 22 and "bilgilendirmedir" in m["metin"])):
             sorunlar.append(f"PUNTO: \"{kisa}\" {m['punto']}px")
     for i, a in enumerate(metinler):
         for c in metinler[i + 1:]:
