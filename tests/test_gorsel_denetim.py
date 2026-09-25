@@ -80,6 +80,8 @@ class TestGorselMetinSuzgeci(unittest.TestCase):
             "\u202etersine": "tersine",
             "Tapu → İmar": "Tapu – İmar",
             "satır 🏠\nikinci": "satır\nikinci",
+            "inilemez. \u202e\u0307": "inilemez.",   # sahipsiz birleştirici nokta
+            "İMAR".lower(): "imar",                  # Python'un "i̇" küçük harfi
         }
         for girdi, beklenen in vakalar.items():
             self.assertEqual(mi.gorsel_metni(girdi), beklenen, repr(girdi))

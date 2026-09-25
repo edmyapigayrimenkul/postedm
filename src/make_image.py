@@ -152,6 +152,11 @@ def gorsel_metni(metin: str) -> str:
             temiz.append(" ")
         elif unicodedata.category(ch)[0] == "C":
             continue  # görünmez biçim/denetim karakteri: U+200B, U+202E, U+FEFF…
+        elif unicodedata.category(ch) == "Mn":
+            # NFC'den sonra kalan birleştirici işaret sahipsizdir: Türkçe harflerin
+            # hepsinin hazır biçimi var. "İ".lower() → "i̇" noktayı ikiler; U+202E
+            # silinince arkasındaki U+0307 noktanın üstünde yüzüyordu.
+            continue
         elif glifler and ord(ch) not in glifler:
             continue
         elif not glifler and (ord(ch) > 0xFFFF or unicodedata.category(ch) == "So"):

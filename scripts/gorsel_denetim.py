@@ -24,6 +24,8 @@ Denetimler (her slayt):
   GLİF YOK      karakter o fontta yok, kutu (□) olarak basılır     → hata
                 (IBM Plex Sans'a geçince hook etiketindeki "●" kutuya döndü;
                 taşma denetimi bunu görmez çünkü kutu da yer kaplar)
+  YÜZEN İŞARET  harfe bağlanmamış birleştirici işaret (U+0307 …)     → hata
+                (yön işareti silinince noktası bir boşluğun üstünde kaldı)
 Denetimler (her içerik):
   KIRPILDI      girdideki kelimeler hiçbir slaytta çizilmemiş       → hata
   ÇÖKTÜ         çizici istisna fırlattı (EksikIcerik bilinçli durdurma sayılmaz)
@@ -188,6 +190,9 @@ def slayt_denetle(slayt: Dict[str, Any]) -> List[str]:
         if (m["punto"] and m["punto"] < PUNTO_ASGARI and "Mono" not in m["font"]
                 and len(m["metin"]) > 24 and not (m["punto"] >= 22 and "bilgilendirmedir" in m["metin"])):
             sorunlar.append(f"PUNTO: \"{kisa}\" {m['punto']}px")
+        yuzen = [c for c in unicodedata.normalize("NFC", m["metin"]) if unicodedata.category(c) == "Mn"]
+        if yuzen:
+            sorunlar.append(f"YÜZEN İŞARET: \"{kisa}\" [{', '.join(f'U+{ord(c):04X}' for c in yuzen)}]")
         eksik = eksik_glifler(m["metin"], m["font"])
         if eksik:
             kodlar = ", ".join(f"U+{ord(c):04X}" for c in eksik)
