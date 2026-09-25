@@ -367,6 +367,14 @@ def vaka_calistir(ad: str, veri: Dict[str, Any], olcu: str) -> Dict[str, Any]:
         # Motor girdiyi bozmamalı; kopya vererek yan etkiyi de denetliyoruz
         girdi = copy.deepcopy(veri)
         yollar = mi.otorite_gonderi_slaytlari_uret(girdi, cikti_onek=onek, olcu=olcu)
+    except mi.EksikIcerik as e:
+        # Bilinçli durma (2026-09-25): boş içerik ya da okunabilir puntoda sığmayan
+        # metin yayına çıkmaz. Eskiden kapak metni tuvalden taşıyordu; bu test kapağı
+        # piksel denetiminden muaf tuttuğu için göremiyordu (bkz. gorsel_denetim.py).
+        sonuc["durum"] = "DURDU"
+        sonuc["notlar"].append(f"{type(e).__name__}: {e}")
+        sonuc["sure"] = time.time() - t0
+        return sonuc
     except Exception as e:
         sonuc["durum"] = "ÇÖKTÜ"
         sonuc["notlar"].append(f"{type(e).__name__}: {e}")
@@ -437,13 +445,13 @@ def main() -> int:
                 s = vaka_calistir(ad, veri, olcu)
                 s["paket"] = paket_adi
                 tum.append(s)
-                isaret = {"GEÇTİ": "✓", "UYARI": "!", "BAŞARISIZ": "✗", "ÇÖKTÜ": "✗✗"}[s["durum"]]
+                isaret = {"GEÇTİ": "✓", "UYARI": "!", "DURDU": "■", "BAŞARISIZ": "✗", "ÇÖKTÜ": "✗✗"}[s["durum"]]
                 print(f"{ad:26} {olcu:9} {s.get('slayt', '-'):>6} {s['sure']:>6.2f}s  {isaret} {s['durum']}")
                 for n in s["notlar"][:3]:
                     print(f"{'':44}   → {n}")
 
     print(f"\n{'=' * 78}\nÖZET\n{'=' * 78}")
-    for durum in ("GEÇTİ", "UYARI", "BAŞARISIZ", "ÇÖKTÜ"):
+    for durum in ("GEÇTİ", "UYARI", "DURDU", "BAŞARISIZ", "ÇÖKTÜ"):
         n = sum(1 for s in tum if s["durum"] == durum)
         if n:
             print(f"  {durum:11} {n:3} / {len(tum)}")

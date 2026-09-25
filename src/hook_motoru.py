@@ -7,10 +7,10 @@ kanca (hook) çizim ve kompozisyon motoru.
 (instabot referansı ile EDM kurumsal kimliğine uyarlanmıştır)
 
 Özellikler:
-  1. Renk Paleti:
-     - Sıcak Kehribar Sarısı (AMBER #F59E0B): Fotoğraf üzerinde maksimum parlaklık & kontrast.
-     - Canlı EDM Kırmızısı (KIRMIZI_CANLI #FF3B30): Kritik mevzuat, askı, ceza ve uyarılar.
-     - Saf Beyaz (WHITE #FFFFFF) & Metalik Gri (GRAY #94A3B8).
+  1. Renk Paleti (2026-09-25'ten beri yalnızca marka tonları):
+     - Vurgu: EDM kırmızısının koyu zemin tonu (#FF3B30). Eskiden amber, altın
+       sarısı ve zümrüt yeşiliydi — kurumsal kimlik dışıydı.
+     - Saf beyaz, kireç ve kurşun.
   2. Tipografik Formatlar:
      - stat_punch: İri rakam + birim + dikey ayraç + 2 satır vurucu metin.
      - minimal_vurgu: ● Kicker (Editoryal etiket) + 2 satır dev vurgu metni.
@@ -35,12 +35,11 @@ from . import config, make_image, dogrula
 log = logging.getLogger(__name__)
 
 # --- RENK PALETİ ---
-AMBER_SARI = (250, 204, 21)   # #FACC15 (Parlak Güneş / Altın Sarısı — Her fotoğrafta kristal netlik)
-AMBER = (245, 158, 11)        # #F59E0B (Sıcak Kehribar Sarısı)
-KIRMIZI_CANLI = (255, 59, 48) # #FF3B30 (Canlı Mercan / EDM İkaz Kırmızısı)
-YESIL_CANLI = (52, 211, 153)  # #34D399 (Canlı Zümrüt Yeşili)
+KIRMIZI_CANLI = (255, 59, 48) # #FF3B30 EDM kırmızısının koyu/fotoğraflı zemin tonu
+VURGU = KIRMIZI_CANLI         # kanca vurgusu ve etiket (eskiden amber #F59E0B / #FACC15)
+KIREC = (228, 228, 225)       # #E4E4E1
 WHITE = (255, 255, 255)
-GRAY = (148, 163, 184)
+KURSUN = (138, 139, 143)      # #8A8B8F (eskiden arduvaz gri #94A3B8)
 
 TUVAL_GENISLIK = 1080
 KENAR_BOSLUK = 74
@@ -165,7 +164,7 @@ def ciz_stat_punch(
     lbl_txt: str = "",
     t1: str = "",
     t2: str = "",
-    renk: Tuple[int, int, int] = AMBER,
+    renk: Tuple[int, int, int] = VURGU,
 ) -> Image.Image:
     """
     Rakam odaklı vuruş formatı (İri rakam + birim + dikey ayraç + 2 satır vurgu).
@@ -231,7 +230,7 @@ def ciz_stat_punch(
     if unit_txt:
         draw.text((x + w_num + 12, y + 18), unit_txt, font=f_unit, fill=renk)
     if lbl_txt:
-        draw.text((x + 2, y + 102), lbl_txt, font=f_lbl, fill=GRAY)
+        draw.text((x + 2, y + 102), lbl_txt, font=f_lbl, fill=KURSUN)
 
     # Dikey ayraç
     h_cizgi = max(120, len(satirlar) * satir_adim)
@@ -252,7 +251,7 @@ def ciz_minimal_vurgu(
     kicker: str,
     t1: str,
     t2: str,
-    renk: Tuple[int, int, int] = AMBER,
+    renk: Tuple[int, int, int] = VURGU,
 ) -> Image.Image:
     """
     Kutulardan arınmış saf editoryal minimal kicker + dev vurgu başlığı.
@@ -318,89 +317,84 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         kanca_temiz = str(kanca_raw).strip()
         t1, t2 = _dengeli_bol(tr_upper(kanca_temiz).split())
         if _basliktan_farkli_mi(t1, t2, baslik):
-            kicker = "● KRİTİK GELİŞME"
+            # Etiket yalnızca KATEGORİ söyler, iddia taşımaz. Eskiden tapu/hukuk
+            # kategorisindeki her habere "YARGITAY & HUKUK KARARI", metninde "askı"
+            # geçen her habere "İMAR PLANI ASKIYA ÇIKTI" yazılıyordu — haber o
+            # olmasa da (bkz. #157'deki uydurma "Yargıtay hükmü").
+            kicker = "● GÜNDEM"
             if "imar" in kat_low or "arsa" in kat_low:
-                kicker = "● İMAR PLANI ASKIYA ÇIKTI" if "askı" in metin_tum.lower() else "● ARSA & İMAR DUYURUSU"
+                kicker = "● ARSA & İMAR"
             elif "tapu" in kat_low or "hukuk" in kat_low:
-                kicker = "● YARGITAY & HUKUK KARARI"
+                kicker = "● TAPU & HUKUK"
             elif "donusum" in kat_low or "dönüşüm" in kat_low:
-                kicker = "● KENTSEL DÖNÜŞÜM GELİŞMESİ"
+                kicker = "● KENTSEL DÖNÜŞÜM"
             return {
                 "format": "minimal_vurgu",
                 "kicker": kicker,
                 "t1": t1,
                 "t2": t2,
-                "renk": AMBER,
+                "renk": VURGU,
             }
 
     # 2. Sayısal / Gayrimenkul Veri Tespiti (stat_punch)
     # Başlıkta rakam yoksa veya rakam başlıkla örtüşmüyorsa
     baslikta_sayi_var = _baslikta_sayi_var_mi(baslik)
     
-    # Kalıp 1: "142 ADA" ve/veya "85 PARSEL"
-    m_ada = re.search(r"(\d+)\s*(?:ADA)", metin_tum, re.IGNORECASE)
-    m_parsel = re.search(r"(\d+)\s*(?:PARSEL)", metin_tum, re.IGNORECASE)
-    if m_ada and not baslikta_sayi_var:
-        num = m_ada.group(1)
-        unit = "ADA"
-        if not dogrula.vurgu_zayif_mi(num, unit):
-            parsel_num = m_parsel.group(1) if m_parsel else ""
-            t1 = f"{parsel_num} PARSEL ETKİLENİYOR" if parsel_num else "BÖLGE PARSELLERİ"
-            t2 = "PLAN RESMEN ASKIYA ÇIKTI" if "askı" in metin_tum.lower() else "YENİ İMAR PLANI YÜRÜRLÜKTE"
-            return {
-                "format": "stat_punch",
-                "num_txt": num,
-                "unit_txt": unit,
-                "lbl_txt": "PLAN SAHASI",
-                "t1": t1,
-                "t2": t2,
-                "renk": AMBER,
-            }
+    # Sayısal kancalar: RAKAM ve BİRİM kaynaktan gelir; yanındaki iki satır da
+    # rakamın geçtiği KAYNAK CÜMLEDEN alınır. Eskiden kalıp başına sabit hüküm
+    # basılıyordu ("YENİ İMAR PLANI YÜRÜRLÜKTE", "RESMİ ASKI VE İTİRAZ SÜRECİ
+    # BAŞLAMIŞTIR", her yüzdeye "RESMİ TARİFE") — haberde öyle bir şey yazmasa da.
+    # Kaynak cümleler başlık DIŞINDAN (spot + detay maddeleri): başlıkta nokta
+    # olmadığı için başlıkla spot tek cümle sayılıyor, kanca başlığı tekrarlıyordu.
+    govde_metni = " ".join([str(spot)] + [str(dm.get("metin", "")) for dm in detay_maddeleri])
 
-    # Kalıp 2: "30 GÜN" / "15 GÜN" (Askı ve İtiraz Süresi)
-    m_gun = re.search(r"(\d+)\s*(GÜN|GÜNLÜK)", metin_tum, re.IGNORECASE)
-    if m_gun and ("askı" in metin_tum.lower() or "itiraz" in metin_tum.lower()):
-        num = m_gun.group(1)
-        if not dogrula.vurgu_zayif_mi(num, "GÜN"):
-            return {
-                "format": "stat_punch",
-                "num_txt": num,
-                "unit_txt": "GÜN",
-                "lbl_txt": "YASAL SÜREÇ",
-                "t1": "RESMİ ASKI VE İTİRAZ",
-                "t2": "SÜRECİ BAŞLAMIŞTIR",
-                "renk": AMBER_SARI,
-            }
+    def _cumleden(eslesme: "re.Match[str]") -> Optional[Tuple[str, str]]:
+        for cumle in re.split(r"(?<=[.!?;])\s+", govde_metni):
+            konum = cumle.lower().find(eslesme.group(0).lower())
+            if konum < 0:
+                continue
+            # Rakam iri puntoyla ayrıca yazılıyor; kanca onu izleyen sözlerden kurulur
+            sonrasi = cumle[konum + len(eslesme.group(0)):].split()
+            while sonrasi and sonrasi[0].lower().strip(",") in ("ve", "ile", "ise", "da", "de", "olan"):
+                sonrasi.pop(0)
+            kelimeler = [k.rstrip(".;") for k in sonrasi][:8]
+            if len(kelimeler) < 3:
+                kelimeler = [k.rstrip(".;") for k in cumle.replace(eslesme.group(0), " ").split()][:8]
+            if len(kelimeler) < 3:
+                return None
+            t1, t2 = _dengeli_bol(kelimeler)
+            t1, t2 = tr_upper(t1), tr_upper(t2)
+            return (t1, t2) if _basliktan_farkli_mi(t1, t2, baslik) else None
+        return None
 
-    # Kalıp 3: KAKS / EMSAL (Örn: KAKS 0.60 veya Emsal 1.50)
-    m_kaks = re.search(r"(?:KAKS|EMSAL)\s*[:=]?\s*([0-9\.,]+)", metin_tum, re.IGNORECASE)
-    if m_kaks:
-        val = m_kaks.group(1)
-        if not dogrula.vurgu_zayif_mi(val, "KAKS"):
-            return {
-                "format": "stat_punch",
-                "num_txt": val,
-                "unit_txt": "KAKS",
-                "lbl_txt": "YENİ EMSAL ORANI",
-                "t1": "YAPILAŞMA VE İNŞAAT",
-                "t2": "KOŞULLARI BELİRLENDİ",
-                "renk": AMBER,
-            }
-
-    # Kalıp 4: Parasal veya Yüzdesel Vurgu (Örn: %25 ZAM, %4 Harç, 500 BİN TL)
-    m_yuzde = re.search(r"(%\s*[\d\.,]+)", metin_tum)
-    if m_yuzde and not baslikta_sayi_var:
-        val = m_yuzde.group(1).replace(" ", "")
-        if not dogrula.vurgu_zayif_mi(val, "ORAN"):
-            return {
-                "format": "stat_punch",
-                "num_txt": val,
-                "unit_txt": "ORAN",
-                "lbl_txt": "GÜNCEL ORAN",
-                "t1": "RESMİ TARİFE VE",
-                "t2": "UYGULAMA ŞARTLARI",
-                "renk": AMBER,
-            }
+    kaliplar = [
+        # (desen, birim, etiket, koşul)
+        (r"(\d+)\s*(?:ADA)\b", "ADA", "ADA NO", not baslikta_sayi_var),
+        (r"(\d+)\s*(?:GÜN|GÜNLÜK)\b", "GÜN", "SÜRE", "askı" in metin_tum.lower() or "itiraz" in metin_tum.lower()),
+        (r"(?:KAKS|EMSAL)\s*[:=]?\s*([0-9][0-9\.,]*)", "KAKS", "EMSAL", True),
+        (r"(%\s*[\d\.,]+)", "ORAN", "ORAN", not baslikta_sayi_var),
+    ]
+    for desen, birim, etiket, kosul in kaliplar:
+        if not kosul:
+            continue
+        m = re.search(desen, metin_tum, re.IGNORECASE)
+        if not m:
+            continue
+        deger = m.group(1).replace(" ", "")
+        if dogrula.vurgu_zayif_mi(deger, birim):
+            continue
+        satirlar = _cumleden(m)
+        if not satirlar:
+            continue
+        return {
+            "format": "stat_punch",
+            "num_txt": deger,
+            "unit_txt": "" if birim == "ORAN" else birim,
+            "lbl_txt": etiket,
+            "t1": satirlar[0],
+            "t2": satirlar[1],
+            "renk": VURGU,
+        }
 
     # 3. Sayısal veri bulunamadıysa: Detay Maddelerinden Editoryal minimal_vurgu
     if detay_maddeleri:
@@ -421,19 +415,12 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                         "kicker": kicker,
                         "t1": t1,
                         "t2": t2,
-                        "renk": AMBER,
+                        "renk": VURGU,
                     }
 
-    # 4. Hiçbiri olmazsa kategoriye göre şık minimal kanca
-    kat = haber.get("kategori") or "GÜNDEM"
-    kat_str = str(kat).replace("_", " ").upper()
-    return {
-        "format": "minimal_vurgu",
-        "kicker": f"● {kat_str} BÜLTENİ",
-        "t1": "YATIRIMCILAR VE MÜLK",
-        "t2": "SAHİPLERİ İÇİN KRİTİK DETAY",
-        "renk": AMBER,
-    }
+    # 4. Kaynaktan kanca çıkmadıysa kanca YOK. Eskiden her habere "YATIRIMCILAR VE
+    # MÜLK SAHİPLERİ İÇİN KRİTİK DETAY" basılıyordu: habere ait olmayan bir iddia.
+    return None
 
 
 def hook_rengi_belirle(
@@ -443,7 +430,7 @@ def hook_rengi_belirle(
     w: int = 650,
     h: int = 140,
     tercih_edilen_renk: Optional[Tuple[int, int, int]] = None,
-    varsayilan_dikkat_rengi: Tuple[int, int, int] = AMBER_SARI,
+    varsayilan_dikkat_rengi: Tuple[int, int, int] = VURGU,
 ) -> Tuple[int, int, int]:
     """
     Kullanıcı Tasarım İlkesi:
@@ -520,7 +507,7 @@ def hook_uygula(
         w=650,
         h=hook_h,
         tercih_edilen_renk=override_renk,
-        varsayilan_dikkat_rengi=hook_veri.get("renk", AMBER_SARI),
+        varsayilan_dikkat_rengi=hook_veri.get("renk", VURGU),
     )
 
     if fmt == "stat_punch":

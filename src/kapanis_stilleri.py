@@ -86,7 +86,9 @@ def _bilgileri_derle(veri: Dict[str, Any]) -> Dict[str, str]:
     site = str(veri.get("site") or config.ayar_al("kurum.web_sitesi", "edmyapigayrimenkul.com")).replace("https://", "").replace("http://", "").strip("/")
     hesap = str(veri.get("hesap") or "@edmyapigayrimenkul").strip()
     qr_link = str(veri.get("qr_link") or VARSAYILAN_QR).strip()
-    rozet = _temizle_tipografi(str(veri.get("rozet_metni") or "EDM DANIŞMANLIK"))
+    # Rozet şeride sığsın: uzun rozet metni tuvalin dışına taşıyordu (görsel denetim)
+    from .make_image import _rozet_kirp
+    rozet = _rozet_kirp(str(veri.get("rozet_metni") or "EDM DANIŞMANLIK"), 34)
 
     return {
         "s1": s1, "s2": s2, "aciklama": aciklama, "kaydet": kaydet,

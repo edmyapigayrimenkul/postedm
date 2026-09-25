@@ -299,4 +299,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from src import make_image as _mi
+    try:
+        main()
+    except _mi.EksikIcerik as _e:
+        # Elle düzenlenen metin karta sığmadıysa genel "hata" yerine ne yapılacağını söyle
+        telegram_bot.mesaj_gonder(
+            f"✂️ <b>Düzenleme uygulanmadı:</b> {_e}.\n"
+            "<i>Metin karta sığmadığı için slayt çizilmedi; daha kısa yazıp tekrar deneyin.</i>"
+        )
+        sys.exit(1)

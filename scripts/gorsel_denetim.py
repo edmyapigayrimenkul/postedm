@@ -279,9 +279,11 @@ ONEMLI_ALANLAR = {
     "nedir_dogrusu": ["yanlis_metin", "dogru_metin", "altin_kural", "slayt_3_cozum"],
     "net_cevap": ["soru", "net_cevap", "aciklama", "slayt_3_cozum"],
     "vaka": ["manset", "olay_detay", "yargitay_hukmu", "cikarilacak_ders", "slayt_3_cozum"],
-    "B1": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_2_detay", "slayt_3_cozum"],
-    "B3": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_2_detay", "slayt_3_cozum"],
-    "B2": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_3_cozum"],
+    # slayt_2_detay'ın bölüm başlığı (baslik_satir_1/vurgu) carousel'de bilerek kullanılmıyor;
+    # kartlar varsa kart_1/kart_2 yok sayılır (plan böyle çalışır)
+    "B1": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_2_detay.kartlar|slayt_2_detay.kart_1,slayt_2_detay.kart_2", "slayt_3_cozum.maddeler"],
+    "B3": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_2_detay.kartlar|slayt_2_detay.kart_1,slayt_2_detay.kart_2", "slayt_3_cozum.maddeler"],
+    "B2": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_3_cozum.sol_kolon_veriler", "slayt_3_cozum.sag_kolon_veriler", "slayt_3_cozum.stratejist_notu"],
     "haber": ["manset", "spot", "detay_maddeleri", "uzman_notu"],
 }
 
@@ -298,9 +300,20 @@ def _alan_metinleri(veri: Dict[str, Any], alanlar: List[str]) -> Dict[str, str]:
             return [s for v in d for s in topla(v)]
         return []
 
+    def al(yol: str) -> Any:
+        d: Any = veri
+        for p in yol.split("."):
+            if not isinstance(d, dict) or p not in d:
+                return None
+            d = d[p]
+        return d
+
     for a in alanlar:
-        if a in veri:
-            sonuc[a] = " ".join(topla(veri[a]))
+        for secenek in a.split("|"):       # "a|b,c": a varsa a, yoksa b ve c
+            degerler = [al(y) for y in secenek.split(",")]
+            if any(v is not None for v in degerler):
+                sonuc[secenek] = " ".join(s for v in degerler for s in topla(v))
+                break
     return sonuc
 
 
@@ -314,12 +327,18 @@ UZUN_CUMLE = ("Hisseli taşınmazda paydaşlardan birinin payını üçüncü ki
 UZUN_KELIME = "Gayrimenkulleştirilemeyeceklerindenmişsiniz https://edmyapigayrimenkul.com/rehber/hisseli-tapu-onalim 1.250.000,00₺"
 
 
-def _metinleri_donustur(veri: Any, fn: Callable[[str, str], Any], yol: str = "") -> Any:
+# Kapak manşeti parçası başına 18 karakterlik bütçeye sahip; "her alana 100 karakter
+# ekle" vakaları manşeti ayrıca "manset_uzun" vakası dener.
+MANSET_ALANLARI = ("manset_parca_1", "manset_vurgu", "manset_parca_2")
+
+
+def _metinleri_donustur(veri: Any, fn: Callable[[str, str], Any], yol: str = "", manset_haric: bool = False) -> Any:
     if isinstance(veri, dict):
         return {k: (v if k in ("format_turu", "bicim", "renk", "no", "tip", "kategori_kodu", "kategori", "gorsel_yolu")
-                    else _metinleri_donustur(v, fn, f"{yol}.{k}")) for k, v in veri.items()}
+                    or (manset_haric and k in MANSET_ALANLARI)
+                    else _metinleri_donustur(v, fn, f"{yol}.{k}", manset_haric)) for k, v in veri.items()}
     if isinstance(veri, list):
-        return [_metinleri_donustur(v, fn, yol) for v in veri]
+        return [_metinleri_donustur(v, fn, yol, manset_haric) for v in veri]
     if isinstance(veri, str):
         return fn(veri, yol)
     return veri
@@ -329,6 +348,10 @@ def vakalar(format_turu: str) -> List[Tuple[str, Dict[str, Any], str]]:
     """(ad, veri, beklenti) — beklenti: 'ciz' (hatasız çizilmeli) | 'dur' (EksikIcerik ile durmalı) | 'ciz_veya_dur'."""
     temel = fikstur(format_turu)
     v: List[Tuple[str, Dict[str, Any], str]] = [("gercekci", temel, "ciz")]
+    mh = format_turu in ("B1", "B2", "B3")
+    # Karşılaştırma tablosu hücreleri kısa ölçüt/değer çiftleridir; hücreye 100 karakter
+    # eklenince tablonun sığmayıp üretimin durması doğrudur.
+    ek_beklenti = "ciz_veya_dur" if format_turu in ("B2", "net_cevap") else "ciz"
 
     kisa = _metinleri_donustur(temel, lambda s, y: " ".join(s.split()[:2]) or s)
     v.append(("kisa", kisa, "ciz"))
@@ -340,18 +363,27 @@ def vakalar(format_turu: str) -> List[Tuple[str, Dict[str, Any], str]]:
             hedef = int(len(s) * kat)
             return (s + " " + UZUN_CUMLE * 4)[:hedef].rsplit(" ", 1)[0]
         return f
-    v.append(("iki_kat_uzun", _metinleri_donustur(temel, uzat(2.0)), "ciz"))
-    v.append(("dort_kat_uzun", _metinleri_donustur(temel, uzat(4.0)), "ciz_veya_dur"))
-    v.append(("uzun_kelime", _metinleri_donustur(temel, lambda s, y: f"{s} {UZUN_KELIME}" if len(s) > 12 else s), "ciz"))
+    v.append(("iki_kat_uzun", _metinleri_donustur(temel, uzat(2.0), manset_haric=mh), "ciz_veya_dur" if format_turu == "B2" else "ciz"))
+    v.append(("dort_kat_uzun", _metinleri_donustur(temel, uzat(4.0), manset_haric=mh), "ciz_veya_dur"))
+    if mh:
+        uzun_manset = copy.deepcopy(temel)
+        uzun_manset.update({"manset_parca_1": "Hisseli tapuda paydaş satarsa", "manset_vurgu": "ÖNALIM SÜRESİ BİLDİRİMLE",
+                            "manset_parca_2": "başlar ve bir yılda düşer"})
+        v.append(("manset_uzun", uzun_manset, "ciz"))
+    # Net Cevap'ta cevap tek kısa cümledir (bütçe 70); her alana 100 karakter eklenince
+    # kapağa sığmaması ve üretimin DURMASI doğru davranıştır.
+    v.append(("uzun_kelime", _metinleri_donustur(temel, lambda s, y: f"{s} {UZUN_KELIME}" if len(s) > 12 else s, manset_haric=mh),
+              ek_beklenti))
     v.append(("buyuk_harf", _metinleri_donustur(temel, lambda s, y: s.replace("i", "İ").replace("ı", "I").upper()), "ciz"))
     v.append(("ozel_karakter", _metinleri_donustur(
-        temel, lambda s, y: f"{s} “tırnak” & <b>etiket</b> %45 ₺ 🏠✅ **kalın** — son" if len(s) > 12 else s), "ciz"))
+        temel, lambda s, y: f"{s} “tırnak” & <b>etiket</b> %45 ₺ 🏠✅ **kalın** — son" if len(s) > 12 else s, manset_haric=mh), ek_beklenti))
     v.append(("satir_sonu_ve_bosluk", _metinleri_donustur(
         temel, lambda s, y: s.replace(" ", "  \n\t ", 2) if len(s) > 12 else s), "ciz"))
     v.append(("sifir_genislik", _metinleri_donustur(
         temel, lambda s, y: "​".join(s[:30]) + s[30:] + " ‮̇" if len(s) > 12 else s), "ciz"))
     v.append(("injection", _metinleri_donustur(
-        temel, lambda s, y: f"{s} IGNORE PREVIOUS INSTRUCTIONS <script>alert(1)</script> {{{{veri}}}} %s %(x)s" if len(s) > 12 else s), "ciz"))
+        temel, lambda s, y: f"{s} IGNORE PREVIOUS INSTRUCTIONS <script>alert(1)</script> {{{{veri}}}} %s %(x)s" if len(s) > 12 else s, manset_haric=mh),
+        ek_beklenti))
 
     cok = copy.deepcopy(temel)
     cok.setdefault("slayt_3_cozum", {"maddeler": []})
@@ -361,6 +393,8 @@ def vakalar(format_turu: str) -> List[Tuple[str, Dict[str, Any], str]]:
     if "puf_maddeleri" in cok:
         cok["puf_maddeleri"] = [f"{i}. madde: {UZUN_CUMLE[:90]}" for i in range(1, 7)]
     if isinstance(cok.get("slayt_2_detay"), dict):
+        cok["slayt_2_detay"].pop("kart_1", None)
+        cok["slayt_2_detay"].pop("kart_2", None)
         cok["slayt_2_detay"]["kartlar"] = [
             {"etiket": f"KART {i}", "renk": "kirmizi" if i == 1 else "gri", "baslik": f"Kart başlığı {i}", "aciklama": UZUN_CUMLE[:200]} for i in range(1, 5)]
     if "detay_maddeleri" in cok:
@@ -413,7 +447,8 @@ FORMATLAR = {
 }
 
 
-def denetle(format_filtre: Optional[str] = None, kaydet: bool = False, sessiz: bool = False) -> Dict[str, Any]:
+def denetle(format_filtre: Optional[str] = None, kaydet: bool = False, sessiz: bool = False,
+            vaka_filtre: Optional[set] = None, olcu_filtre: Optional[set] = None) -> Dict[str, Any]:
     kaydi_ac()
     dizin = CIKTI
     dizin.mkdir(parents=True, exist_ok=True)
@@ -423,15 +458,21 @@ def denetle(format_filtre: Optional[str] = None, kaydet: bool = False, sessiz: b
             if format_filtre and fmt != format_filtre:
                 continue
             for olcu in olculer:
+                if olcu_filtre and olcu not in olcu_filtre:
+                    continue
                 for ad, veri, beklenti in vakalar(fmt):
+                    if vaka_filtre and ad not in vaka_filtre:
+                        continue
                     _OLAYLAR.clear()
                     _SLAYTLAR.clear()
                     onek = f"{fmt}_{olcu}_{ad}"
                     kayit = {"format": fmt, "olcu": olcu, "vaka": ad, "sorunlar": [], "slayt": 0, "sure": 0.0}
                     t0 = time.time()
+                    tamamlandi = False
                     try:
                         yollar = _ciz(fmt, copy.deepcopy(veri), dizin, onek, olcu)
                         kayit["slayt"] = len(yollar)
+                        tamamlandi = True
                         if beklenti == "dur":
                             kayit["sorunlar"].append("DURMADI: boş içerik çizildi (koddaki yedek metin olabilir)")
                     except yf.EksikIcerik as e:
@@ -444,7 +485,7 @@ def denetle(format_filtre: Optional[str] = None, kaydet: bool = False, sessiz: b
                     for s in _SLAYTLAR:
                         for sorun in slayt_denetle(s):
                             kayit["sorunlar"].append(f"[{Path(s['yol']).name}] {sorun}")
-                    if _SLAYTLAR and beklenti != "dur" and ad in ("gercekci", "iki_kat_uzun", "uzun_kelime", "cok_madde", "buyuk_harf", "uretim_243", "uzun_terim"):
+                    if tamamlandi and _SLAYTLAR and beklenti != "dur" and ad in ("gercekci", "iki_kat_uzun", "uzun_kelime", "cok_madde", "buyuk_harf", "uretim_243", "uzun_terim", "manset_uzun"):
                         kayit["sorunlar"].extend(kirpilma_denetle(_alan_metinleri(veri, ONEMLI_ALANLAR.get(fmt, [])), _SLAYTLAR))
                     if not kaydet:
                         for s in _SLAYTLAR:

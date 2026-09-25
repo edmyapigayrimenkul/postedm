@@ -73,6 +73,11 @@ jobs:
       - name: Metin bütçesi denetimi
         run: python scripts/metin_butcesi.py
 
+      # Bütün formatlar × iki ölçü × stres/sabotaj vakaları: taşma, çakışma, örtülme,
+      # kırpılma. #243'te sözlük tanımı kutunun altında kalmıştı (gorsel_denetim.py).
+      - name: Görsel taşma denetimi (164 vaka)
+        run: python scripts/gorsel_denetim.py
+
       - name: Worker sözdizimi ve derleme
         run: |
           node --check worker/index.js

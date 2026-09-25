@@ -257,6 +257,9 @@ class TestDailyBriefTasarim(unittest.TestCase):
         self.assertEqual(hook_imar["num_txt"], "142")
         self.assertEqual(hook_imar["unit_txt"], "ADA")
         self.assertIn("85 PARSEL", hook_imar["t1"])
+        # Kanca yalnızca kaynaktaki sözlerden: "YÜRÜRLÜKTE" gibi eklenmiş hüküm yok
+        self.assertNotIn("YÜRÜRLÜK", hook_imar["t1"] + hook_imar["t2"])
+        self.assertIn("KAPSAYAN", hook_imar["t1"] + " " + hook_imar["t2"])
 
         # 2. Açıkça belirtilmiş kanca alanından minimal_vurgu
         h_hukuk = {
@@ -268,7 +271,9 @@ class TestDailyBriefTasarim(unittest.TestCase):
         hook_hukuk = hook_motoru.hook_olustur(h_hukuk)
         self.assertIsNotNone(hook_hukuk)
         self.assertEqual(hook_hukuk["format"], "minimal_vurgu")
-        self.assertIn("YARGITAY", hook_hukuk["kicker"])
+        # Etiket kategori söyler, iddia taşımaz: haber bir Yargıtay kararı olmayabilir
+        self.assertEqual(hook_hukuk["kicker"], "● TAPU & HUKUK")
+        self.assertNotIn("YARGITAY", hook_hukuk["kicker"])
 
         # 3. Başlıkla birebir örtüşen kancanın elenmesi
         self.assertFalse(

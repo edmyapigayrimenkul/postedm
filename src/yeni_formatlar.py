@@ -47,6 +47,83 @@ FONT_SANS_MEDIUM = config.yol_al("assets/fonts/PlusJakartaSans-Medium.ttf")
 FONT_MONO = config.yol_al("assets/fonts/IBMPlexMono.ttf")
 FONT_MONO_BOLD = config.yol_al("assets/fonts/IBMPlexMono-Bold.ttf")
 
+
+# Hata sınıfları temel çizim modülünde tanımlı: B1/haber çizicileri de aynı
+# sınıfı fırlatır ve telegram_bot'taki tek yakalama hepsini kapsar.
+EksikIcerik = make_image.EksikIcerik
+TasmaHatasi = make_image.TasmaHatasi
+
+
+_OLCUM = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+
+
+def _satir_genisligi(metin: str, font: ImageFont.FreeTypeFont) -> int:
+    return _OLCUM.textbbox((0, 0), metin, font=font)[2]
+
+
+_SARMA_ONBELLEK: Dict[Tuple[str, str, int, int, int], List[str]] = {}
+
+
+def _girintili_sar(metin: str, font: ImageFont.FreeTypeFont, genislik: int, girinti: int = 0) -> List[str]:
+    """Ortak satır kırıcı (uzun kelimeyi de böler). İlk satır girintiyle sığmazsa
+    bütün satırlar girinti kadar dar kırılır — girinti hiçbir zaman taşma yaratmaz.
+
+    Sonuç önbelleğe alınır: yerleşim çözücü aynı metni onlarca punto/alan
+    birleşiminde dener (uzun tanımda önbelleksiz 11 sn sürüyordu)."""
+    anahtar = (metin or "", str(getattr(font, "path", "")), int(getattr(font, "size", 0)), genislik, girinti)
+    if anahtar in _SARMA_ONBELLEK:
+        return list(_SARMA_ONBELLEK[anahtar])
+    satirlar = make_image._metin_sar(metin or "", font, genislik, _OLCUM)
+    if girinti and satirlar and _satir_genisligi(satirlar[0], font) + girinti > genislik:
+        satirlar = make_image._metin_sar(metin or "", font, genislik - girinti, _OLCUM)
+    if len(_SARMA_ONBELLEK) > 4000:
+        _SARMA_ONBELLEK.clear()
+    _SARMA_ONBELLEK[anahtar] = satirlar
+    return list(satirlar)
+
+
+def _sigdir(
+    metin: str,
+    font_yolu: Path,
+    puntolar: Any,
+    genislik: int,
+    azami_yukseklik: int,
+    satir_carpani: float = 1.36,
+    girinti_carpani: float = 0.0,
+    azami_satir: Optional[int] = None,
+) -> Optional[Tuple[ImageFont.FreeTypeFont, List[str], int, int]]:
+    """Metni verilen alana sığan en büyük puntoyla kırar.
+    Döner: (font, satırlar, satır yüksekliği, girinti) ya da sığmıyorsa None."""
+    for punto in puntolar:
+        font = make_image._font_yukle(font_yolu, punto)
+        girinti = int(punto * girinti_carpani)
+        satirlar = _girintili_sar(metin, font, genislik, girinti)
+        satir_h = int(punto * satir_carpani)
+        if len(satirlar) * satir_h <= azami_yukseklik and (azami_satir is None or len(satirlar) <= azami_satir):
+            ilk_sigdi = not girinti or _satir_genisligi(satirlar[0], font) + girinti <= genislik if satirlar else True
+            return font, satirlar, satir_h, (girinti if ilk_sigdi else 0)
+    return None
+
+
+def _madde_listesi(ham: Any) -> List[str]:
+    """Sözlük "önem" maddeleri: liste ya da tek metin. Metin olduğu gibi kalır —
+    eskiden "Başlık: açıklama" maddesinin başlığı atılıyordu, bu da içerik kaybıydı."""
+    if ham is None:
+        return []
+    ogeler = ham if isinstance(ham, (list, tuple)) else [ham]
+    sonuc = []
+    for m in ogeler:
+        if m is None:
+            continue
+        if isinstance(m, dict):
+            metin = ": ".join(str(m.get(k)).strip() for k in ("baslik", "aciklama") if m.get(k))
+        else:
+            metin = str(m)
+        metin = metin.strip()
+        if metin:
+            sonuc.append(metin)
+    return sonuc
+
 KATEGORI_HARITASI = {
     "S1": "TAPU & HUKUK",
     "S2": "KİRACI & EV SAHİBİ",
@@ -130,6 +207,13 @@ def uret_sozluk(
     puf_maddeleri: Any,
     sayfa_no: str = "SÖZLÜK // 01",
 ) -> Path:
+    """Emlak Sözlüğü kartı: terim (kahraman), tanım, alta dayalı "önemi" kutusu.
+
+    Yerleşim ÖLÇÜLEREK çözülür (2026-09-25): önce kutu (bütün maddeler), sonra
+    terim ve tanım kalan alana sığan en büyük puntoyla. Eskiden tanımın puntosu
+    yalnızca karakter sayısından seçiliyordu ve #243'te son iki satır kutunun
+    altında kaldı; kutu da maddelerin yalnızca ilk ikisini basıyordu.
+    """
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_KIREC_BEJ)
     canvas = make_image._filigran_uygula(canvas, acik_zemin=True)
 
@@ -137,89 +221,80 @@ def uret_sozluk(
     kenar = yer["kenar"]
     kullanilabilir_w = GENISLIK - (2 * kenar)
     ku = yer["kronik_ust"]
+    alt_y = yer["alt_bar"]
+    ust_sinir = ku + 80
+    ARA_TERIM_TANIM = 16 + 34 + 36   # çizgi + etiket boşluğu
 
-    # Header: Sol üstte Emlak Sözlüğü rozeti, sağ üstte EDM Logosu (4:5 Standart Hizalama)
+    maddeler = _madde_listesi(puf_maddeleri)
+    f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
+
+    def kutu_olc(punto: int):
+        font = make_image._font_yukle(FONT_SANS_MEDIUM, punto)
+        satir_h = int(punto * 1.36)
+        bloklar = [_girintili_sar(m, font, kullanilabilir_w - 56 - 30) for m in maddeler]
+        yukseklik = (52 + sum(len(b) for b in bloklar) * satir_h + (len(bloklar) - 1) * 12 + 24) if maddeler else 0
+        return font, bloklar, satir_h, yukseklik
+
+    cozum = None
+    for puf_p in (30, 28, 26, 24):
+        f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
+        kutu_y = alt_y - 26 - h_kutu
+        tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
+        for terim_p in range(136, 59, -4):
+            terim_sonuc = _sigdir(terim, FONT_FRAUNCES, [terim_p], kullanilabilir_w, 10_000, 1.15, azami_satir=2 if terim_p > 76 else 3)
+            if not terim_sonuc:
+                continue
+            f_terim, terim_satirlar, terim_h, _ = terim_sonuc
+            tanim_ust = ust_sinir + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
+            tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, range(42, 31, -2), kullanilabilir_w,
+                                  tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6)
+            if tanim_sonuc:
+                cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt)
+                break
+        if cozum:
+            break
+    if cozum is None:
+        # Son şans: en küçük okunur puntolar
+        f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(24)
+        kutu_y = alt_y - 26 - h_kutu
+        tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
+        terim_sonuc = _sigdir(terim, FONT_FRAUNCES, range(60, 47, -4), kullanilabilir_w, 10_000, 1.15, azami_satir=3)
+        if terim_sonuc:
+            f_terim, terim_satirlar, terim_h, _ = terim_sonuc
+            tanim_ust = ust_sinir + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
+            tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, (30, 28), kullanilabilir_w, tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6)
+            if tanim_sonuc:
+                cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt)
+    if cozum is None:
+        raise TasmaHatasi(
+            f"Sözlük kartına sığmadı: terim {len(terim)}, tanım {len(tanim_metni or '')} karakter, "
+            f"{len(maddeler)} madde ({sum(len(m) for m in maddeler)} karakter)"
+        )
+
+    f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt = cozum
+    f_tanim, tanim_satirlar, tanim_h, girinti = tanim_sonuc
+    f_tanim_punto = f_tanim.size
+
+    # Dikey yerleşim: artan boşluk üste en fazla 36px, gerisi bloklar arasında kalır
+    orta_h = len(terim_satirlar) * terim_h + ARA_TERIM_TANIM + len(tanim_satirlar) * tanim_h
+    curr_y = ust_sinir + min(36, max(0, (tanim_alt - ust_sinir - orta_h) // 3))
+
+    # Header
     kat_temiz = kategori_temizle(kategori)
     draw_init = ImageDraw.Draw(canvas)
-    make_image._rozet_ciz(draw_init, kenar, ku, f"EMLAK SÖZLÜĞÜ // {kat_temiz.upper()}", bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20)
+    logo_x = GENISLIK - kenar - 285
+    make_image._rozet_ciz(draw_init, kenar, ku, make_image._rozet_kirp(f"EMLAK SÖZLÜĞÜ // {kat_temiz.upper()}", 44),
+                          bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20, max_w=logo_x - kenar - 30)
     make_image._logo_yerlestir(canvas, beyaz=False, y=ku - 5, lw=285, golge=False, kirmizi_zemin=False)
-
-    alt_y = yer["alt_bar"]
-
-    # 1. Öneri Kartı: ALTA DAYALI
-    if isinstance(puf_maddeleri, list):
-        temiz_maddeler = []
-        for m in puf_maddeleri:
-            m_str = str(m).strip()
-            if ":" in m_str:
-                m_str = m_str.split(":", 1)[1].strip()
-            temiz_maddeler.append(m_str)
-        puf_metin = " ".join(temiz_maddeler[:2])
-    else:
-        puf_metin = str(puf_maddeleri)
-
-    f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    f_puf_govde = make_image._font_yukle(FONT_SANS_MEDIUM, 31)
-    img_temp = Image.new("RGB", (10, 10))
-    d_temp = ImageDraw.Draw(img_temp)
-    puf_satirlar = make_image._metin_sar(puf_metin, f_puf_govde, kullanilabilir_w - 56, d_temp)
-    # Madde yoksa kart yok (eskiden "Mevzuat Uyarısı: …" diye genel bir cümle basılıyordu)
-    h_kutu = (52 + (len(puf_satirlar) * 44) + 24) if puf_metin.strip() else 0
-    kutu_y = alt_y - 26 - h_kutu
-
-    # 2. Terim: BOLD FRAUNCES BLACK (136px -> 68px)
-    parcalar = terim.split()
-    en_uzun_kelime = max(parcalar, key=len) if parcalar else terim
-    f_punto = 136
-    while f_punto >= 68:
-        f_test = make_image._font_yukle(FONT_FRAUNCES, f_punto)
-        bb = f_test.getbbox(en_uzun_kelime)
-        if (bb[2] - bb[0]) <= kullanilabilir_w:
-            break
-        f_punto -= 2
-
-    f_terim = make_image._font_yukle(FONT_FRAUNCES, f_punto)
-    terim_satirlar = make_image._metin_sar(terim, f_terim, kullanilabilir_w, d_temp)
-    line_h_terim = int(f_punto * 1.15)
-    h_terim = len(terim_satirlar) * line_h_terim
-
-    # 3. Anlam (Tanım Metni): Dinamik Punto (38px - 42px) + Paragraf Başı Boşluğu
-    f_tanim_punto = 38 if len(tanim_metni) > 160 else 42
-    f_tanim = make_image._font_yukle(FONT_SANS_MEDIUM, f_tanim_punto)
-    line_h_tanim = int(f_tanim_punto * 1.38)
-    indent_px = int(f_tanim_punto * 1.6)
-
-    tanim_kelimeler = tanim_metni.split()
-    tanim_satirlar = []
-    curr = []
-    for w in tanim_kelimeler:
-        cand = (" ".join(curr + [w])) if curr else w
-        max_w = (kullanilabilir_w - indent_px) if len(tanim_satirlar) == 0 else kullanilabilir_w
-        if d_temp.textbbox((0, 0), cand, font=f_tanim)[2] <= max_w:
-            curr.append(w)
-        else:
-            if curr:
-                tanim_satirlar.append(" ".join(curr))
-            curr = [w]
-    if curr:
-        tanim_satirlar.append(" ".join(curr))
-
-    h_tanim = len(tanim_satirlar) * line_h_tanim
-
-    ust_sinir = ku + 80
-    kullanilabilir_orta_h = (kutu_y - 28) - ust_sinir
-    toplam_orta_h = h_terim + 22 + 34 + 34 + h_tanim
-    bosluk_payi = max(0, (kullanilabilir_orta_h - toplam_orta_h) // 3)
-    curr_y = ust_sinir + min(36, bosluk_payi)
 
     # Filigran Katmanı (Kitap filigranı + Paragraf başı '“' filigranı)
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
     overlay_draw = ImageDraw.Draw(overlay)
     ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=330, w=520, h=350, alpha=23)
-
-    ty = curr_y + h_terim + 16 + 34 + 36
-    f_quote = make_image._font_yukle(FONT_FRAUNCES, int(f_tanim_punto * 1.8))
-    overlay_draw.text((kenar + 2, ty - 8), "“", font=f_quote, fill=(18, 19, 22, 60))
+    ty = curr_y + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
+    if girinti:
+        f_quote = make_image._font_yukle(FONT_FRAUNCES, int(f_tanim_punto * 1.8))
+        overlay_draw.text((kenar + 2, ty - 8), "“", font=f_quote, fill=(18, 19, 22, 60))
 
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(canvas)
@@ -234,7 +309,7 @@ def uret_sozluk(
     # Terim Başlığı
     for s in terim_satirlar:
         draw.text((kenar, curr_y), s, font=f_terim, fill=RENK_MUREKKEP)
-        curr_y += line_h_terim
+        curr_y += terim_h
     curr_y += 16
 
     draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_KIREC_BORDER, width=2)
@@ -244,19 +319,21 @@ def uret_sozluk(
     curr_y += 36
 
     for i, s in enumerate(tanim_satirlar):
-        x_pos = kenar + (indent_px if i == 0 else 0)
-        draw.text((x_pos, curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
-        curr_y += line_h_tanim
+        draw.text((kenar + (girinti if i == 0 else 0), curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
+        curr_y += tanim_h
 
-    # Alta dayalı öneri kartı — yalnızca madde varsa
+    # Alta dayalı "önemi" kutusu — BÜTÜN maddeler, her biri ayrı satır
     if h_kutu:
         draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
         draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
         draw.text((kenar + 28, kutu_y + 18), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
         py = kutu_y + 52
-        for s in puf_satirlar:
-            draw.text((kenar + 28, py), s, font=f_puf_govde, fill=RENK_BEYAZ)
-            py += 44
+        for blok in puf_bloklar:
+            draw.text((kenar + 28, py), "—", font=f_puf, fill=RENK_KART_ETIKET)
+            for s in blok:
+                draw.text((kenar + 28 + 30, py), s, font=f_puf, fill=RENK_BEYAZ)
+                py += puf_h
+            py += 12
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -362,49 +439,21 @@ def uret_nedir_dogrusu(
     alt_bar_y = yer["alt_bar"]
     kutu_y = alt_bar_y - 26 - h_kutu
 
-    # Doğru Metni (Dinamik Punto 36px - 46px + Paragraf başı boşluğu)
+    # Doğru Metni: kalan alana sığan en büyük punto (46 → 30). Eskiden sığmayınca
+    # en küçük puntoyla basılıp alttaki kural kutusunun ALTINA giriyordu; ortak
+    # satır kırıcı uzun kelimeyi de böler (URL tuvalden taşıyordu).
     beyaz_alan_h = kutu_y - (y_end + 25)
-    best_punto = 38
-    best_satirlar = []
-    best_line_h = 54
-    best_indent = 64
-
-    for punto_test in (46, 44, 42, 40, 38, 36):
-        f_test = make_image._font_yukle(FONT_SANS_MEDIUM, punto_test)
-        lh_test = int(punto_test * 1.36)
-        ind_test = int(punto_test * 1.6)
-
-        d_words = (dogru_metin or "").split()
-        cand_lines = []
-        c_line = []
-        for w in d_words:
-            cand_str = (" ".join(c_line + [w])) if c_line else w
-            max_w = (kullanilabilir_w - ind_test) if len(cand_lines) == 0 else kullanilabilir_w
-            if d_temp.textbbox((0, 0), cand_str, font=f_test)[2] <= max_w:
-                c_line.append(w)
-            else:
-                if c_line:
-                    cand_lines.append(" ".join(c_line))
-                c_line = [w]
-        if c_line:
-            cand_lines.append(" ".join(c_line))
-
-        h_calc = len(cand_lines) * lh_test
-        if h_calc <= (beyaz_alan_h - 36):
-            best_punto = punto_test
-            best_satirlar = cand_lines
-            best_line_h = lh_test
-            best_indent = ind_test
-            break
-
-    f_dogru = make_image._font_yukle(FONT_SANS_MEDIUM, best_punto)
-    dogru_satirlar = best_satirlar if best_satirlar else make_image._metin_sar(dogru_metin or "", f_dogru, kullanilabilir_w, d_temp)
-    line_h_dogru = best_line_h
-    indent_px = best_indent
+    dogru_sonuc = _sigdir(dogru_metin, FONT_SANS_MEDIUM, range(46, 29, -2), kullanilabilir_w,
+                          beyaz_alan_h - 36 - 44, 1.36, girinti_carpani=1.6)
+    if dogru_sonuc is None:
+        raise TasmaHatasi(f"Nedir Doğrusu: doğrusu ({len(dogru_metin or '')} karakter) ve kural kutusu karta sığmadı")
+    f_dogru, dogru_satirlar, line_h_dogru, indent_px = dogru_sonuc
+    best_punto = f_dogru.size
 
     h_dogru = len(dogru_satirlar) * line_h_dogru
-    alt_bosluk = max(10, (beyaz_alan_h - h_dogru) // 2)
-    dogru_y = y_end + 25 + alt_bosluk
+    # "DOĞRUSU" etiketi (44px) metnin üstünde; etiket de alanın içinde kalsın
+    alt_bosluk = max(0, (beyaz_alan_h - 44 - h_dogru) // 2)
+    dogru_y = y_end + 25 + 44 + alt_bosluk
 
     # Filigran Katmanı (Sağ kenardan taşan kalın mimari Çarpı + Tik + Paragraf başı '“' filigranı)
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
@@ -442,6 +491,8 @@ def uret_nedir_dogrusu(
         if len(test_satirlar) * lh_test <= kirmizi_alan_h - 20:
             break
         f_punto -= 2
+    else:
+        raise TasmaHatasi(f"Nedir Doğrusu: yanlış inanış ({len(temiz_yanlis)} karakter) üst bölüme sığmadı")
 
     f_yanlis = make_image._font_yukle(FONT_SANS_BOLD, f_punto)
     line_h = int(f_punto * 1.25)
@@ -554,14 +605,8 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
         else:
             punto_manset -= 4
     else:
-        punto_manset_final = 52
-        leading_manset = 64
-        punto_olay_final = 26
-        leading_olay = 38
-        f_m = make_image._font_yukle(FONT_FRAUNCES, punto_manset_final)
-        f_o = make_image._font_yukle(FONT_SANS_MEDIUM, punto_olay_final)
-        manset_satirlar = make_image._metin_sar(manset, f_m, kullanilabilir_w, draw)
-        olay_satirlar = make_image._metin_sar(olay_detay, f_o, kullanilabilir_w, draw)
+        # Hiçbir punto birleşimi sığmadı: en küçük puntoyla basmak kutunun altına taşırdı
+        raise TasmaHatasi(f"Örnek olay: başlık ({len(manset)}) ve olay ({len(olay_detay)} karakter) ilk slayta sığmadı")
 
     f_manset = make_image._font_yukle(FONT_FRAUNCES, punto_manset_final)
     f_etiket = make_image._font_yukle(FONT_MONO_BOLD, 21)
@@ -676,11 +721,7 @@ def uret_vaka_slayt2(
             break
         punto_hukum -= 2
     else:
-        punto_hukum_final = 30
-        leading_hukum = 42
-        f_hukum_test = make_image._font_yukle(FONT_FRAUNCES, punto_hukum_final)
-        hukum_satirlar = make_image._metin_sar(yargitay_hukmu, f_hukum_test, kullanilabilir_w, draw)
-        h_hukum = len(hukum_satirlar) * leading_hukum
+        raise TasmaHatasi(f"Örnek olay: sonuç ({len(yargitay_hukmu)}) ve ders ({len(cikarilacak_ders or '')} karakter) ikinci slayta sığmadı")
 
     f_etiket = make_image._font_yukle(FONT_MONO_BOLD, 22)
     f_hukum = make_image._font_yukle(FONT_FRAUNCES, punto_hukum_final)
@@ -935,13 +976,8 @@ def uret_net_cevap_kapak(
             if secim:
                 break
         if secim is None:
-            # Sığmıyorsa en küçük boyutta gerekçe kısalır; cevap asla kesilmez
-            fs, ss, lhs = olc(soru, FONT_FRAUNCES, 36, 1.22)
-            fc, sc, lhc = olc(cevap, FONT_FRAUNCES, 52, 1.1)
-            fg, sg, lhg = olc(gerekce, FONT_SANS_MEDIUM, 29, 1.42)
-            kalan = alan - (len(ss) * lhs + 82 + len(sc) * lhc + 44)
-            sg = sg[: max(0, kalan // lhg)]
-            secim = (fs, ss, lhs, fc, sc, lhc, fg, sg, lhg, alan)
+            # Eskiden gerekçe sessizce kısaltılıyordu: okur yarım cümle görürdü
+            raise TasmaHatasi(f"Net Cevap: soru ({len(soru)}), cevap ({len(cevap)}) ve gerekçe ({len(gerekce)} karakter) kapağa sığmadı")
         fs, ss, lhs, fc, sc, lhc, fg, sg, lhg, h = secim
 
         # İri "?" filigranı sağ üstte, kireç tonunda
@@ -977,15 +1013,6 @@ def uret_net_cevap_kapak(
 # =============================================================================
 # OTOMATİK ŞABLON SEÇİCİ VE ÜRETİCİ DİSPATCHER
 # =============================================================================
-class EksikIcerik(ValueError):
-    """Formatın zorunlu alanı modelden gelmedi.
-
-    Eskiden boş alan koddaki genel bir cümleyle doldurulurdu; #157'de ekspertiz
-    konusuna "Yargıtay yerleşik içtihatları uyarınca…" diye sabit bir hüküm
-    basıldı. Uydurmak yerine üretim durur.
-    """
-
-
 def _ilk_dolu(*degerler: Any) -> str:
     for d in degerler:
         if isinstance(d, str) and d.strip():
@@ -1087,7 +1114,8 @@ def slaytlari_uret(
         tanim = _ilk_dolu(veri.get("tanim_metni"), veri.get("tanim"), veri.get("spot"))
         if not terim or not tanim:
             raise EksikIcerik("Sözlük: terim ya da tanım üretilmedi")
-        maddeler = [m for m in (veri.get("puf_maddeleri") or veri.get("maddeler") or []) if str(m).strip()]
+        # Liste yerine düz metin gelirse karakter karakter bölünmesin
+        maddeler = _madde_listesi(veri.get("puf_maddeleri") or veri.get("maddeler"))
         if not maddeler:
             maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
         p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"

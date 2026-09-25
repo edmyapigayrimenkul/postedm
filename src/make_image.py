@@ -75,6 +75,59 @@ LOGO_SLOGAN = config.yol_al("assets/logos/slogan.png")
 LOGO_PIN = config.yol_al("assets/logos/pin-sembol.png")
 
 
+class EksikIcerik(ValueError):
+    """Formatın zorunlu alanı modelden gelmedi.
+
+    Eskiden boş alan koddaki genel bir cümleyle doldurulurdu; #157'de ekspertiz
+    konusuna "Yargıtay yerleşik içtihatları uyarınca…" diye sabit bir hüküm
+    basıldı. Uydurmak yerine üretim durur.
+    """
+
+
+class TasmaHatasi(EksikIcerik):
+    """Metin, okunabilir en küçük puntoda bile ayrılan alana sığmadı.
+
+    Eskiden sığmayan metin kutunun altına girer (#243 sözlük: tanımın son iki
+    satırı "Yatırımcı için önemi" kutusunun arkasında kaldı), tuvalden taşar
+    (kapak manşeti) ya da sessizce kırpılırdı (kapak spotu 4 satırda kesiliyordu).
+    Artık üretim durur; metin bütçesi (generate_text.BUTCE) bunu önlemeye çalışır.
+    """
+
+
+def tr_buyuk(metin: str) -> str:
+    """Türkçe büyük harf: str.upper() "Silivri"yi "SILIVRI" yapıyordu."""
+    return (metin or "").replace("i", "İ").replace("ı", "I").upper()
+
+
+def _kaynak_etiketi(haber: Dict[str, Any]) -> str:
+    """Kaynak yoksa etiket de yok: eskiden "KAYNAK: SEKTÖREL BÜLTEN" basılıyordu —
+    var olmayan bir kaynak iddiası."""
+    kaynak = str(haber.get("kaynak") or "").strip()
+    if not kaynak or kaynak.startswith("EDM"):
+        return "EDM YAPI & GAYRİMENKUL"
+    return f"KAYNAK: {tr_buyuk(kaynak)}"
+
+
+def _etiketi_sigdir(metin: str, font: ImageFont.FreeTypeFont, azami: int, draw: ImageDraw.ImageDraw) -> str:
+    """Tek satırlık META etiketi (kaynak, foto atfı) genişliğe sığdırır; gerekirse
+    kelime sınırında "…" ile kısaltır. Yalnızca etiketler için — içerik asla kısaltılmaz."""
+    if draw.textbbox((0, 0), metin, font=font)[2] <= azami:
+        return metin
+    kelimeler = metin.split()
+    while kelimeler and draw.textbbox((0, 0), " ".join(kelimeler) + "…", font=font)[2] > azami:
+        kelimeler.pop()
+    return (" ".join(kelimeler) + "…") if kelimeler else ""
+
+
+def tr_ilk_buyuk(metin: str) -> str:
+    """İlk harfi Türkçe kurala göre büyütür: str.upper() "ilk"i "Ilk" yapıyordu."""
+    if not metin:
+        return metin
+    ilk = metin[0]
+    buyuk = {"i": "İ", "ı": "I"}.get(ilk, ilk.upper())
+    return buyuk + metin[1:]
+
+
 def _font_yukle(yol: Path, boyut: int) -> ImageFont.FreeTypeFont:
     """TTF fontunu belirtilen boyutta yükler."""
     try:
@@ -1850,15 +1903,9 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     dummy_img = Image.new("RGB", (10, 10))
     dummy_draw = ImageDraw.Draw(dummy_img)
 
-    p1_str = str(manset_p1).strip() if manset_p1 else ""
-    if p1_str:
-        p1_str = p1_str[0].upper() + p1_str[1:]
-
-    vurgu_str = str(manset_vurgu).strip().upper() if manset_vurgu else ""
-
-    p2_str = str(manset_p2).strip() if manset_p2 else ""
-    if p2_str:
-        p2_str = p2_str[0].upper() + p2_str[1:]
+    p1_str = tr_ilk_buyuk(_temizle_tipografi(str(manset_p1)).strip()) if manset_p1 else ""
+    vurgu_str = _temizle_tipografi(str(manset_vurgu)).strip().replace("i", "İ").replace("ı", "I").upper() if manset_vurgu else ""
+    p2_str = tr_ilk_buyuk(_temizle_tipografi(str(manset_p2)).strip()) if manset_p2 else ""
 
     if not (p1_str or vurgu_str or p2_str) and manset_ham:
         ham_satirlar = [s.strip() for s in str(manset_ham).split("\n") if s.strip()]
@@ -1908,42 +1955,52 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
 
     font_manset = _font_yukle(FONT_SANS_BOLD, font_boyut)
 
-    # Satır sınırları ve kutu boyutları
-    bb1 = dummy_draw.textbbox((0, 0), p1_str, font=font_manset) if p1_str else (0, 0, 0, 0)
-    bbv = dummy_draw.textbbox((0, 0), vurgu_str, font=font_manset) if vurgu_str else (0, 0, 0, 0)
-    bb2 = dummy_draw.textbbox((0, 0), p2_str, font=font_manset) if p2_str else (0, 0, 0, 0)
-
-    h_p1 = (bb1[3] - bb1[1]) if p1_str else 0
-    v_ink_w = (bbv[2] - bbv[0]) if vurgu_str else 0
-    v_ink_h = (bbv[3] - bbv[1]) if vurgu_str else 0
-    box_w = v_ink_w + (2 * pad_x) if vurgu_str else 0
-    box_h = v_ink_h + (2 * pad_y) if vurgu_str else 0
-    h_p2 = (bb2[3] - bb2[1]) if p2_str else 0
-
-    h_baslik = 0
+    # Manşet satırları: her parça en küçük puntoda da tek satıra sığmıyorsa
+    # KIRILIR (eskiden tek satır halinde tuvalin dışına çiziliyordu; stres
+    # testinde x=3870'e kadar). Vurgu kapsülü de satır satır kapsüle bölünür.
+    manset_satirlari: List[Tuple[str, bool]] = []
     if p1_str:
-        h_baslik += h_p1
+        manset_satirlari += [(s, False) for s in _metin_sar(p1_str, font_manset, kullanilabilir_w, dummy_draw)]
     if vurgu_str:
-        if h_baslik > 0:
-            h_baslik += gap_v
-        h_baslik += box_h
+        manset_satirlari += [(s, True) for s in _metin_sar(vurgu_str, font_manset, kullanilabilir_w - 2 * pad_x, dummy_draw)]
     if p2_str:
-        if h_baslik > 0:
-            h_baslik += gap_v
-        h_baslik += h_p2
+        manset_satirlari += [(s, False) for s in _metin_sar(p2_str, font_manset, kullanilabilir_w, dummy_draw)]
+    if len(manset_satirlari) > 5:
+        raise TasmaHatasi(f"Kapak manşeti {len(manset_satirlari)} satıra çıktı ({len(olcum)} karakter)")
 
-    # 3. Spot Metni ve Yüksekliği (Büyütülmüş 36px font)
+    # Tutarlı satır ritmi: bütün satırlar aynı mürekkep yüksekliğiyle ölçülür
+    ref = dummy_draw.textbbox((0, 0), "ÇĞİÖŞÜ ağy", font=font_manset)
+    ref_ust, satir_h = ref[1], ref[3] - ref[1]
+    vref = dummy_draw.textbbox((0, 0), "ÇĞİÖŞÜ", font=font_manset)
+    v_ink_h = vref[3] - vref[1]
+    box_h = v_ink_h + (2 * pad_y)
+    h_baslik = sum((box_h if v else satir_h) for _, v in manset_satirlari) + gap_v * max(0, len(manset_satirlari) - 1)
+
+    # 3. Spot: sığan en büyük punto (36 → 28, en fazla 5 satır). Eskiden 36px'te
+    # 4 satırdan sonrası SESSİZCE kesiliyordu.
     spot_ham = veri.get("spot") or veri.get("slayt_1_spot") or veri.get("detay_metni", "")
+    spot_satirlari: List[str] = []
+    spot_satir_h = 50
     font_spot = _font_yukle(FONT_SANS_MEDIUM, 36)
-    spot_satirlari = _metin_sar(spot_ham, font_spot, kullanilabilir_w - 60, dummy_draw)[:4]
+    if str(spot_ham or "").strip():
+        for punto in (36, 34, 32, 30, 28):
+            font_spot = _font_yukle(FONT_SANS_MEDIUM, punto)
+            spot_satirlari = _metin_sar(spot_ham, font_spot, kullanilabilir_w - 60, dummy_draw)
+            spot_satir_h = int(punto * 1.39)
+            if len(spot_satirlari) <= (4 if punto > 32 else 5):
+                break
+        else:
+            raise TasmaHatasi(f"Kapak spotu {len(str(spot_ham))} karakter; 28px'te bile 5 satırı aşıyor")
 
-    h_spot_box = (len(spot_satirlari) * 50) + 34 if spot_satirlari else 0
+    h_spot_box = (len(spot_satirlari) * spot_satir_h) + 34 if spot_satirlari else 0
 
     # 4. Kusursuz Alt-Yukarı Dengeleme (Negatif Alan & Mesafe Yönetimi)
     alt_y = _yerlesim()["alt_bar"] - 5
     spot_end = alt_y - 35
     sy = spot_end - h_spot_box if spot_satirlari else spot_end
     by = sy - 35 - h_baslik
+    if by < _yerlesim()["kronik_ust"] + 110:
+        raise TasmaHatasi("Kapak manşeti ve spot üst rozete dayanıyor")
 
     # 5. Dinamik Karartma Perdesi
     serit_basi = max(180, by - 140)
@@ -1983,13 +2040,16 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
 
     # (7. Kapaktaki boş/gereksiz 'KAYNAK:' satırı ve gri çizgi dikkat dağıttığı için kaldırıldı)
 
-    # 8. Manşet ve Vurgu Kapsülü (Seçenek 5: EDM İmza Kırmızı Kapsül, Beyaz Metin, Kusursuz Matematiksel Ortalama)
+    # 8. Manşet ve Vurgu Kapsülü (EDM imza kırmızı kapsül, beyaz metin, optik ortalama)
     curr_y = by
-    if p1_str:
-        _difuzyon_golgeli_metin(canvas, [(p1_str, RENK_BEYAZ)], kenar_bosluk, curr_y, font_manset)
-        curr_y = curr_y + bb1[3] + gap_v
-
-    if vurgu_str:
+    for metin, vurgu_mu in manset_satirlari:
+        if not vurgu_mu:
+            _difuzyon_golgeli_metin(canvas, [(metin, RENK_BEYAZ)], kenar_bosluk, curr_y - ref_ust, font_manset)
+            curr_y += satir_h + gap_v
+            continue
+        bbv = dummy_draw.textbbox((0, 0), metin, font=font_manset)
+        v_ink_w = bbv[2] - bbv[0]
+        box_w = v_ink_w + (2 * pad_x)
         box_y = curr_y
         box_x = kenar_bosluk - pad_x
 
@@ -2005,16 +2065,11 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         canvas = c_rgba.convert("RGB")
         draw = ImageDraw.Draw(canvas)
 
-        # Metni kutunun tam merkezine KESİN sub-pixel matematiksel ve optik ortala
+        # Metin kapsülün tam ortasında (mürekkep kutusuna göre)
         tx = box_x + (box_w - v_ink_w) / 2 - bbv[0]
-        ty = box_y + (box_h - v_ink_h) / 2 - bbv[1]
-        draw.text((tx, ty), vurgu_str, font=font_manset, fill=RENK_BEYAZ)
-
+        ty = box_y + (box_h - v_ink_h) / 2 - vref[1]
+        draw.text((tx, ty), metin, font=font_manset, fill=RENK_BEYAZ)
         curr_y = box_y + box_h + gap_v
-
-    if p2_str:
-        l3_y = curr_y - bb2[1]
-        _difuzyon_golgeli_metin(canvas, [(p2_str, RENK_BEYAZ)], kenar_bosluk, l3_y, font_manset)
 
     # 9. Spot Metin ve Okunurluk Kalkanı (Glassmorphic Reading Card)
     if spot_satirlari:
@@ -2026,7 +2081,7 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         curr_ty = 18
         for sl in spot_satirlari:
             sc_draw.text((26, curr_ty), sl, font=font_spot, fill=RENK_METIN_GOVDE)
-            curr_ty += 50
+            curr_ty += spot_satir_h
 
         c_rgba = canvas.convert("RGBA")
         c_rgba.paste(spot_card, (kenar_bosluk, sy), spot_card)
@@ -2203,6 +2258,142 @@ def otorite_slayt_2_detay(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     return cikti_yolu
 
 
+def _finansal_tablo_ciz(veri: Dict[str, Any], cozum_veri: Dict[str, Any], cikti_yolu: Optional[Path]) -> Path:
+    """Karşılaştırma tablosu (B2): iki kolon, satır satır aynı ölçüt.
+
+    2026-09-25: satır yükseklikleri ÖLÇÜLÜR, hücre değerleri satır kırar. Eskiden
+    her satır 77px sabitti, değer tek satır basılıyordu ve uzun değer komşu
+    kolona biniyordu. Ayrıca veri yoksa kod KENDİ rakamlarını basıyordu
+    ("18.000 TL", "%80 - %130 (Gelişim aksı)", "otoban aksındaki arsalar her
+    zaman daha yüksek getiri sağlamıştır") — uydurma veri. Artık üretim durur.
+    """
+    kenar_bosluk = 70
+    kullanilabilir_w = GENISLIK - (2 * kenar_bosluk)
+    col_w = (kullanilabilir_w - 20) // 2
+    hucre_w = col_w - 40
+
+    def _ciftler(ham: Any) -> List[Tuple[str, str]]:
+        sonuc = []
+        for oge in ham if isinstance(ham, (list, tuple)) else []:
+            if isinstance(oge, (list, tuple)) and len(oge) >= 2:
+                sonuc.append((_metin(oge[0]), _metin(oge[1])))
+            elif isinstance(oge, dict):
+                sonuc.append((_metin(oge.get("olcut") or oge.get("baslik")), _metin(oge.get("deger") or oge.get("aciklama"))))
+            elif oge is not None and _metin(oge):
+                sonuc.append(("", _metin(oge)))
+        return [(b, v) for b, v in sonuc if b or v]
+
+    sol = _ciftler(cozum_veri.get("sol_kolon_veriler"))
+    sag = _ciftler(cozum_veri.get("sag_kolon_veriler"))
+    if not sol or not sag:
+        raise EksikIcerik("Karşılaştırma tablosu: kolon verisi üretilmedi")
+    not_metin = _metin(cozum_veri.get("stratejist_notu"))
+
+    canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
+    draw = ImageDraw.Draw(canvas)
+    _rozet_ciz(draw, kenar_bosluk, 60, _rozet_kirp(veri.get("rozet_metni") or "KARŞILAŞTIRMA", 44), bg_color=RENK_KIRMIZI)
+    _logo_yerlestir(canvas, beyaz=True, y=55, lw=285)
+
+    # Başlık: iki satır, sığan en büyük punto
+    y = 135
+    for metin, renk in ((_metin(cozum_veri.get("baslik_ust")), RENK_BEYAZ),
+                        (_metin(cozum_veri.get("baslik_vurgu")), RENK_KIRMIZI_CANLI)):
+        if not metin:
+            continue
+        for punto in range(52, 35, -2):
+            f = _font_yukle(FONT_SANS_BOLD, punto)
+            if draw.textbbox((0, 0), metin, font=f)[2] <= kullanilabilir_w:
+                break
+        else:
+            raise TasmaHatasi(f"Tablo başlığı sığmadı: {metin[:40]}")
+        draw.text((kenar_bosluk, y), metin, font=f, fill=renk)
+        y += 63
+    alt_baslik = _metin(cozum_veri.get("alt_baslik"))
+    if alt_baslik:
+        ab_font, ab_satirlar = _govde_sigdir(alt_baslik, FONT_SANS_MEDIUM, 26, 22, kullanilabilir_w, 2, draw)
+        if len(_metin_sar(alt_baslik, ab_font, kullanilabilir_w, draw)) > 2:
+            raise TasmaHatasi("Tablo alt başlığı iki satırı aşıyor")
+        y += 10
+        for satir in ab_satirlar:   # eskiden yalnızca ilk satır çiziliyordu
+            draw.text((kenar_bosluk, y), satir, font=ab_font, fill=RENK_METIN_GOVDE)
+            y += 34
+    tablo_y = y + 20
+
+    alt_y = YUKSEKLIK - 105
+    not_font = _font_yukle(FONT_SANS_MEDIUM, 26)
+    not_satirlar = _metin_sar(not_metin, not_font, kullanilabilir_w - 60, draw) if not_metin else []
+    not_h = (65 + len(not_satirlar) * 38 + 22) if not_satirlar else 0
+
+    # Satır ölçümü: aynı ölçütün iki kolondaki yüksekliği eşitlenir
+    def olc(punto_deger: int):
+        f_bas = _font_yukle(FONT_MONO, 18)
+        f_val = _font_yukle(FONT_SANS_BOLD, punto_deger)
+        satir_h_val = int(punto_deger * 1.3)
+        satirlar = []
+        for i in range(max(len(sol), len(sag))):
+            hucreler = []
+            for kolon in (sol, sag):
+                bas, val = kolon[i] if i < len(kolon) else ("", "")
+                b_sat = _metin_sar(bas, f_bas, hucre_w, draw) if bas else []
+                v_sat = _metin_sar(val, f_val, hucre_w, draw) if val else []
+                hucreler.append((b_sat, v_sat))
+            yuk = max(len(b) * 24 + (4 if b else 0) + len(v) * satir_h_val for b, v in hucreler) + 26
+            satirlar.append((hucreler, yuk))
+        return f_bas, f_val, satir_h_val, satirlar
+
+    tablo_alt_sinir = alt_y - 30 - (not_h + 30 if not_h else 0)
+    for punto_deger in (25, 24, 23, 22):
+        f_bas, f_val, satir_h_val, satirlar = olc(punto_deger)
+        tablo_h = 80 + sum(yuk for _, yuk in satirlar)
+        if tablo_y + tablo_h <= tablo_alt_sinir:
+            break
+    else:
+        raise TasmaHatasi(f"Karşılaştırma tablosu sığmadı ({len(sol)} satır, not {len(not_metin)} karakter)")
+
+    x_kolonlar = (kenar_bosluk, kenar_bosluk + col_w + 20)
+    basliklar = (_rozet_kirp(cozum_veri.get("sol_kolon_baslik") or "", 30), _rozet_kirp(cozum_veri.get("sag_kolon_baslik") or "", 30))
+    bas_renk = ((30, 35, 46), RENK_KIRMIZI_DERIN)
+    for k, x in enumerate(x_kolonlar):
+        draw.rounded_rectangle([(x, tablo_y), (x + col_w, tablo_y + tablo_h)], radius=10, fill=RENK_MUREKKEP_2, outline=RENK_CIZGI_KOYU)
+        draw.rounded_rectangle([(x, tablo_y), (x + col_w, tablo_y + 60)], radius=10, fill=bas_renk[k])
+        draw.text((x + 20, tablo_y + 18), basliklar[k], font=_font_yukle(FONT_MONO_BOLD, 18), fill=RENK_BEYAZ)
+
+    ky = tablo_y + 80
+    for sira, (hucreler, yuk) in enumerate(satirlar):
+        for k, (b_sat, v_sat) in enumerate(hucreler):
+            x = x_kolonlar[k] + 20
+            yy = ky
+            for s in b_sat:
+                draw.text((x, yy), s, font=f_bas, fill=RENK_KURSUN)
+                yy += 24
+            yy += 4 if b_sat else 0
+            for s in v_sat:
+                draw.text((x, yy), s, font=f_val, fill=RENK_BEYAZ)
+                yy += satir_h_val
+            if sira < len(satirlar) - 1:
+                draw.line([(x, ky + yuk - 12), (x_kolonlar[k] + col_w - 20, ky + yuk - 12)], fill=RENK_CIZGI_KOYU, width=1)
+        ky += yuk
+
+    if not_satirlar:
+        sonuc_y = tablo_y + tablo_h + 30
+        draw.rounded_rectangle([(kenar_bosluk, sonuc_y), (GENISLIK - kenar_bosluk, sonuc_y + not_h)], radius=10, fill=(24, 28, 40), outline=RENK_KIRMIZI_CANLI)
+        draw.text((kenar_bosluk + 30, sonuc_y + 24), "STRATEJİST NOTU:", font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI_CANLI)
+        for idx, s in enumerate(not_satirlar):
+            draw.text((kenar_bosluk + 30, sonuc_y + 65 + (idx * 38)), s, font=not_font, fill=RENK_METIN_GOVDE)
+
+    draw.line([(kenar_bosluk, alt_y), (GENISLIK - kenar_bosluk, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
+    draw.text((kenar_bosluk, alt_y + 24), "EDM YAPI & GAYRİMENKUL // KARŞILAŞTIRMA", font=_font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
+    c_etiket = _sayfa_etiketi(veri, veri.get("_slayt_sirasi", 3))
+    ce_w = draw.textbbox((0, 0), c_etiket, font=_font_yukle(FONT_MONO_BOLD, 17))[2]
+    _rozet_ciz(draw, GENISLIK - kenar_bosluk - ce_w - 36, alt_y + 14, c_etiket, bg_color=RENK_KIRMIZI_CANLI, fg_color=RENK_BEYAZ, font_boyut=17)
+
+    if cikti_yolu is None:
+        cikti_yolu = config.yol_al(f"data/output/tablo_{os.getpid()}_{int(time.time())}.jpg")
+    Path(cikti_yolu).parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(cikti_yolu, "JPEG", quality=95)
+    return Path(cikti_yolu)
+
+
 def otorite_slayt_3_cozum(veri: Dict[str, Any], cikti_yolu: Optional[Path] = None) -> Path:
     """Otorite 3. Slaytı (Çözüm Yol Haritası, Finansal Tablo veya Resmi Pafta):
     Türe göre dinamik adapte olur (adim_adim_rehber, finansal_tablo, pafta_parametreleri).
@@ -2217,88 +2408,7 @@ def otorite_slayt_3_cozum(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     # A) FİNANSAL TABLO MODU (Konut vs Arsa, Amortisman)
     # -------------------------------------------------------------
     if tip == "finansal_tablo":
-        canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
-        draw = ImageDraw.Draw(canvas)
-
-        _rozet_ciz(draw, kenar_bosluk, 60, veri.get("rozet_metni", "PİYASA // YATIRIM MATEMATİĞİ"), bg_color=RENK_KIRMIZI)
-        _logo_yerlestir(canvas, beyaz=True, y=55, lw=285)
-
-        baslik_ust = cozum_veri.get("baslik_ust", "3 Milyon TL Bütçe ile:")
-        baslik_vurgu = cozum_veri.get("baslik_vurgu", "KONUT MU, ARSA MI?")
-        draw.text((kenar_bosluk, 135), baslik_ust, font=_font_yukle(FONT_SANS_BOLD, 52), fill=RENK_BEYAZ)
-        draw.text((kenar_bosluk, 198), baslik_vurgu, font=_font_yukle(FONT_SANS_BOLD, 52), fill=RENK_KIRMIZI_CANLI)
-        # ÖNCEKİ HATA: burada "Son 5 yıllık Trakya & Silivri piyasa verileri net
-        # getiri simülasyonu" yazıyordu. Böyle bir veri setimiz yok — sabit metin
-        # olmayan bir dayanak iddia ediyordu. Alt başlık artık içerikten gelir.
-        alt_baslik = cozum_veri.get("alt_baslik") or "Karar vermeden önce iki seçeneği yan yana koyun:"
-        ab_font, ab_satirlar = _govde_sigdir(alt_baslik, FONT_SANS_MEDIUM, 26, 20, kullanilabilir_w, 2, draw)
-        draw.text((kenar_bosluk, 280), ab_satirlar[0] if ab_satirlar else "", font=ab_font, fill=RENK_METIN_GOVDE)
-
-        tablo_y = 335
-        col_w = (kullanilabilir_w - 20) // 2
-
-        # Sol Kolon (Konut)
-        draw.rounded_rectangle([(kenar_bosluk, tablo_y), (kenar_bosluk + col_w, tablo_y + 495)], radius=10, fill=RENK_MUREKKEP_2, outline=RENK_CIZGI_KOYU)
-        draw.rounded_rectangle([(kenar_bosluk, tablo_y), (kenar_bosluk + col_w, tablo_y + 60)], radius=10, fill=(30, 35, 46))
-        # ÖNCEKİ HATA: kolon başlıkları sabitti ("1+1 KONUT" / "İMARLI ARSA") ama
-        # değerler modelden geliyordu. "Kiralamak mı satın almak mı" konusunda
-        # sağ kolon KİRADA KALMAYI anlatırken başlığı "İMARLI ARSA YATIRIMI"
-        # diyordu — içerik olgusal olarak yanlış görünüyordu.
-        sol_baslik = _rozet_kirp(cozum_veri.get("sol_kolon_baslik") or "[1] BİRİNCİ SEÇENEK", 30)
-        sag_baslik = _rozet_kirp(cozum_veri.get("sag_kolon_baslik") or "[2] İKİNCİ SEÇENEK", 30)
-        draw.text((kenar_bosluk + 20, tablo_y + 18), sol_baslik, font=_font_yukle(FONT_MONO_BOLD, 18), fill=RENK_BEYAZ)
-
-        veriler_1 = cozum_veri.get("sol_kolon_veriler") or [
-            ("Aylık Kira Getirisi:", "18.000 TL"),
-            ("Amortisman Süresi:", "14 - 16 Yıl"),
-            ("Yıllık Değer Artışı:", "%40 - %55 (TÜFE civarı)"),
-            ("Sabit Giderler:", "Aidat, tadilat, emlak vergisi"),
-            ("Likidite Hızı:", "Yüksek (1-3 ayda nakit)"),
-        ]
-        ky = tablo_y + 80
-        for bas, val in veriler_1:
-            draw.text((kenar_bosluk + 20, ky), bas, font=_font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
-            draw.text((kenar_bosluk + 20, ky + 25), val, font=_font_yukle(FONT_SANS_BOLD, 23), fill=RENK_BEYAZ)
-            draw.line([(kenar_bosluk + 20, ky + 66), (kenar_bosluk + col_w - 20, ky + 66)], fill=RENK_CIZGI_KOYU, width=1)
-            ky += 77
-
-        # Sağ Kolon (Arsa)
-        x_sag = kenar_bosluk + col_w + 20
-        draw.rounded_rectangle([(x_sag, tablo_y), (x_sag + col_w, tablo_y + 495)], radius=10, fill=RENK_MUREKKEP_2, outline=RENK_CIZGI_KOYU)
-        draw.rounded_rectangle([(x_sag, tablo_y), (x_sag + col_w, tablo_y + 60)], radius=10, fill=RENK_KIRMIZI_DERIN)
-        draw.text((x_sag + 20, tablo_y + 18), sag_baslik, font=_font_yukle(FONT_MONO_BOLD, 18), fill=RENK_BEYAZ)
-
-        veriler_2 = cozum_veri.get("sag_kolon_veriler") or [
-            ("Aylık Kira Getirisi:", "0 TL (Doğrudan gelir yok)"),
-            ("Amortisman Süresi:", "Sermaye kazancı odaklı"),
-            ("Yıllık Değer Artışı:", "%80 - %130 (Gelişim aksı)"),
-            ("Sabit Giderler:", "Sıfıra yakın (Yalnızca vergi)"),
-            ("Likidite Hızı:", "Orta (Doğru fiyatla 3-6 ay)"),
-        ]
-        ay = tablo_y + 80
-        for bas, val in veriler_2:
-            draw.text((x_sag + 20, ay), bas, font=_font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
-            draw.text((x_sag + 20, ay + 25), val, font=_font_yukle(FONT_SANS_BOLD, 23), fill=RENK_BEYAZ)
-            draw.line([(x_sag + 20, ay + 66), (x_sag + col_w - 20, ay + 66)], fill=RENK_CIZGI_KOYU, width=1)
-            ay += 77
-
-        # Stratejist Notu
-        sonuc_y = 860
-        draw.rounded_rectangle([(kenar_bosluk, sonuc_y), (GENISLIK - kenar_bosluk, sonuc_y + 215)], radius=10, fill=(24, 28, 40), outline=RENK_KIRMIZI_CANLI)
-        draw.text((kenar_bosluk + 30, sonuc_y + 24), "STRATEJİST NOTU // SİLİVRİ BÖLGE UZMANLIĞI:", font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI_CANLI)
-        not_metin = cozum_veri.get("stratejist_notu") or (
-            "Düzenli nakit akışına ihtiyacınız varsa konut; 3-5 yıllık vadede enflasyonun çok üzerinde "
-            "katlamalı sermaye büyümesi istiyorsanız Silivri otoban aksındaki arsalar her zaman daha yüksek getiri sağlamıştır."
-        )
-        for idx, s in enumerate(_metin_sar(not_metin, _font_yukle(FONT_SANS_MEDIUM, 26), kullanilabilir_w - 60, draw)):
-            draw.text((kenar_bosluk + 30, sonuc_y + 65 + (idx * 38)), s, font=_font_yukle(FONT_SANS_MEDIUM, 26), fill=RENK_METIN_GOVDE)
-
-        alt_y = YUKSEKLIK - 105
-        draw.line([(kenar_bosluk, alt_y), (GENISLIK - kenar_bosluk, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
-        draw.text((kenar_bosluk, alt_y + 24), "EDM YAPI & GAYRİMENKUL // PİYASA MATEMATİĞİ", font=_font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
-        c_etiket = _sayfa_etiketi(veri, veri.get("_slayt_sirasi", 3))
-        ce_w = draw.textbbox((0, 0), c_etiket, font=_font_yukle(FONT_MONO_BOLD, 17))[2]
-        _rozet_ciz(draw, GENISLIK - kenar_bosluk - ce_w - 36, alt_y + 14, c_etiket, bg_color=RENK_KIRMIZI_CANLI, fg_color=RENK_BEYAZ, font_boyut=17)
+        return _finansal_tablo_ciz(veri, cozum_veri, cikti_yolu)
 
     # -------------------------------------------------------------
     # B) ADIM ADIM REHBER MODU (Varsayılan: 3 veya 4 Madde)
@@ -2822,8 +2932,12 @@ def otorite_gonderi_slaytlari_uret(
     (1080x1920, Reels/Shorts/TikTok). Aynı içerik iki formatta da üretilebilir;
     yerleşim `_yerlesim()` ile tuvalden türetilir.
     """
+    normal = veriyi_normalize_et(veri)
+    if not any(normal.get(k) for k in ("manset_parca_1", "manset_vurgu", "manset_parca_2", "manset")):
+        # Boş veriyle kapak + kapanış "çizilip" onaya düşüyordu
+        raise EksikIcerik("Carousel: manşet üretilmedi")
     with tuval(olcu):
-        return _gonderi_slaytlarini_ciz(veriyi_normalize_et(veri), cikti_onek)
+        return _gonderi_slaytlarini_ciz(normal, cikti_onek)
 
 
 def _gonderi_slaytlarini_ciz(veri: Dict[str, Any], cikti_onek: Optional[str]) -> List[Path]:
@@ -3211,11 +3325,10 @@ def haber_dailybrief_slayti_ciz(
         # 4. Alt Taban Barı: İnce mimari çizgi + Kaynak ve Slogan / Sayfa
         draw.line([(kenar, alt_y), (genislik - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
 
-        kaynak_adi = haber.get("kaynak") or "Sektörel Bülten"
-        kaynak_txt = f"KAYNAK: {str(kaynak_adi).upper()}"
+        kaynak_txt = _kaynak_etiketi(haber)
         foto_atif = (haber.get("foto_atif") or "").strip()
         if foto_atif:
-            kaynak_txt = f"{kaynak_txt}  ·  {foto_atif.upper()}"
+            kaynak_txt = f"{kaynak_txt}  ·  {tr_buyuk(foto_atif)}"
         font_alt = _font_yukle(FONT_MONO, 17)
 
         if sayfa_no:
@@ -3225,9 +3338,8 @@ def haber_dailybrief_slayti_ciz(
         bbox_s = draw.textbbox((0, 0), sag_txt, font=font_alt)
         s_w = bbox_s[2] - bbox_s[0]
 
-        max_sol_w = genislik - (2 * kenar) - s_w - 30
-        while draw.textbbox((0, 0), kaynak_txt, font=font_alt)[2] > max_sol_w and len(kaynak_txt) > 20:
-            kaynak_txt = kaynak_txt[:-4] + "…"
+        # Eski döngü 20 karakterde duruyordu; o noktada hâlâ geniş olan etiket taşıyordu
+        kaynak_txt = _etiketi_sigdir(kaynak_txt, font_alt, genislik - (2 * kenar) - s_w - 30, draw)
 
         draw.text((kenar, alt_y + 20), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
         draw.text((genislik - kenar - s_w, alt_y + 20), sag_txt, font=font_alt, fill=RENK_KURSUN_ACIK if "›" in sag_txt else RENK_KURSUN)
@@ -3452,7 +3564,9 @@ def haber_dailybrief_detay_slayti_ciz(
         draw = ImageDraw.Draw(canvas)
 
         if not ust_etiket:
-            ust_etiket = "// ÖNE ÇIKAN DETAYLAR & MEVZUAT" if goster_uzman_notu else "// HABERİN AYRINTILARI & TEKNİK PLAN"
+            # Üst etiket içerik türü İDDİA ETMEZ: eskiden her habere "TEKNİK PLAN", "MEVZUAT",
+            # "YASAL SÜREÇ" yazılıyordu — haber öyle bir şey içermese de.
+            ust_etiket = "// HABERİN AYRINTILARI"
 
         font_top_etiket = _font_yukle(FONT_MONO_BOLD, 21)
         draw.text((kenar, ust_y + 12), ust_etiket, font=font_top_etiket, fill=RENK_KURSUN_ACIK)
@@ -3571,7 +3685,7 @@ def haber_dailybrief_detay_slayti_ciz(
         if goster_uzman_notu:
             draw.rounded_rectangle([(kenar, uzman_kart_y), (genislik - kenar, uzman_kart_y + uzman_kart_h)], radius=14, fill=(20, 24, 34), outline=(55, 65, 85), width=1)
             draw.rounded_rectangle([(kenar, uzman_kart_y), (kenar + 8, uzman_kart_y + uzman_kart_h)], radius=3, fill=RENK_UZMAN_CUBUK)
-            draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM UZMAN DEĞERLENDİRMESİ & TAVSİYE:", font=font_uzman_etiket, fill=RENK_UZMAN_ETIKET)
+            draw.text((kenar + 28, uzman_kart_y + pad_y), "// EDM DEĞERLENDİRMESİ:", font=font_uzman_etiket, fill=RENK_UZMAN_ETIKET)
 
             uy = uzman_kart_y + pad_y + 26 + 14
             for s in uzman_satirlari:
@@ -3581,13 +3695,12 @@ def haber_dailybrief_detay_slayti_ciz(
         # 7. Alt Taban Barı: İnce mimari çizgi + Kaynak ve Slogan / Sayfa
         draw.line([(kenar, alt_y), (genislik - kenar, alt_y)], fill=RENK_CIZGI_KOYU, width=1)
 
-        kaynak_adi = haber.get("kaynak") or "Sektörel Bülten"
-        kaynak_txt = f"KAYNAK: {str(kaynak_adi).upper()}"
         font_alt = _font_yukle(FONT_MONO, 17)
-        draw.text((kenar, alt_y + 20), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
-
         bbox_s = draw.textbbox((0, 0), sayfa_no, font=font_alt)
         s_w = bbox_s[2] - bbox_s[0]
+        # Kaynak etiketi sayfa numarasına binmesin (uzun kaynak adı üstüne biniyordu)
+        kaynak_txt = _etiketi_sigdir(_kaynak_etiketi(haber), font_alt, genislik - 2 * kenar - s_w - 30, draw)
+        draw.text((kenar, alt_y + 20), kaynak_txt, font=font_alt, fill=RENK_KURSUN)
         draw.text((genislik - kenar - s_w, alt_y + 20), sayfa_no, font=font_alt, fill=RENK_KURSUN_ACIK if "›" in sayfa_no else RENK_KURSUN)
 
         # Dosyayı kaydet
@@ -3677,6 +3790,8 @@ def haber_dailybrief_slaytlari_uret(
         mv = haber.get("manset_vurgu", "")
         m2 = haber.get("manset_parca_2", "")
         haber["manset"] = f"{m1} {mv} {m2}".strip() or haber.get("orijinal_baslik", "")
+    if not str(haber.get("manset") or "").strip():
+        raise EksikIcerik("Haber: manşet yok")
 
     fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url")
     maddeler = haber_detay_maddelerini_ayikla(haber)
@@ -3708,7 +3823,7 @@ def haber_dailybrief_slaytlari_uret(
             olcu=olcu,
             sayfa_no="02 / 03  ›  KAYDIRIN",
             maddeler=s2_maddeler,
-            ust_etiket="// HABERİN AYRINTILARI & TEKNİK PLAN",
+            ust_etiket="// HABERİN AYRINTILARI",
             goster_uzman_notu=False,
         )
 
@@ -3719,7 +3834,7 @@ def haber_dailybrief_slaytlari_uret(
             olcu=olcu,
             sayfa_no="03 / 03",
             maddeler=s3_maddeler,
-            ust_etiket="// YASAL SÜREÇ & UZMAN STRATEJİSİ",
+            ust_etiket="// HABERİN AYRINTILARI · DEVAMI",
             goster_uzman_notu=True,
         )
         log.info("DailyBrief Dinamik 3 Slayt üretildi: %s, %s, %s", p1.name, p2.name, p3.name)
@@ -3742,7 +3857,7 @@ def haber_dailybrief_slaytlari_uret(
             olcu=olcu,
             sayfa_no="02 / 02",
             maddeler=maddeler[:2],
-            ust_etiket="// ÖNE ÇIKAN DETAYLAR & MEVZUAT",
+            ust_etiket="// HABERİN AYRINTILARI",
             goster_uzman_notu=True,
         )
         log.info("DailyBrief Dinamik 2 Slayt üretildi: %s, %s", p1.name, p2.name)

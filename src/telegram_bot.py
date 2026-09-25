@@ -1477,12 +1477,19 @@ def yayin_kapisi(haber_id: int, haber: Dict[str, Any], veri: Dict[str, Any],
 
 
 def _eksik_icerik_bildir(haber_id: Optional[int], hata: Exception) -> None:
+    from . import make_image
     if haber_id:
         db.haber_guncelle(haber_id, durum="engellendi")
+    if isinstance(hata, make_image.TasmaHatasi):
+        aciklama = ("<i>Metin okunabilir en küçük puntoda bile karta sığmadı. Kutunun altına "
+                    "giren ya da kırpılan metin yayınlanmaz (#243'te tanımın son satırları "
+                    "kutunun arkasında kalmıştı).</i>")
+    else:
+        aciklama = ("<i>Model formatın zorunlu alanını üretmedi. Boş alan koddaki genel bir "
+                    "cümleyle doldurulmaz — o yol #157'de alakasız bir 'Yargıtay hükmü' yayınlatmıştı.</i>")
     mesaj_gonder(
         f"🛑 <b>İçerik{f' #{haber_id}' if haber_id else ''} durduruldu:</b> {html.escape(str(hata))}.\n"
-        "<i>Model formatın zorunlu alanını üretmedi. Boş alan koddaki genel bir "
-        "cümleyle doldurulmaz — o yol #157'de alakasız bir 'Yargıtay hükmü' yayınlatmıştı.</i>",
+        + aciklama,
         reply_markup={"inline_keyboard": [[
             {"text": "🔄 Sıradaki konudan üret", "callback_data": "hizli_uret:rotasyon"},
         ]]},
@@ -2246,7 +2253,13 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
 
     # 1. 4:5 Slaytları Üret (Instagram, Facebook, Threads, TikTok için)
     from . import make_image, video, ses
-    slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=f"haber_{haber_id}")
+    try:
+        slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=f"haber_{haber_id}")
+    except make_image.EksikIcerik as e:
+        # Otomatik yayın yolu da yarım/taşan görseli yayınlamaz
+        log.warning("Finans #%d görseli üretilemedi: %s", haber_id, e)
+        _eksik_icerik_bildir(haber_id, e)
+        return False
     slayt_str_yollari = [str(p) for p in slayt_yollari]
 
     # CDN yükleme

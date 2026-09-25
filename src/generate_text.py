@@ -87,7 +87,24 @@ BUTCE: Dict[str, int] = {
     "rozet": 44,             # üst rozet şeridi
     "yasal_dayanak": 42,     # kapak üstündeki mevzuat şeridi (sağdaki etiketle paylaşır)
     "threads": 480,          # platform sınırı 500
+    # Yeni formatlar (2026-09-25, scripts/gorsel_denetim.py ile ölçüldü). Bu alanların
+    # hiç bütçesi yoktu: #243'te 349 karakterlik tanım sözlük kartına sığmadı.
+    # Değerler çizicinin RAHAT puntoda taşıdığı kapasite (yanında o puntolar).
+    "terim": 26,             # sözlük terimi, 2 satır ≥96px
+    "tanim": 260,            # sözlük tanımı, 3 maddeyle birlikte 38px
+    "puf_madde": 95,         # sözlük "önemi" maddesi (en fazla 3), 30px
+    "yanlis": 140,           # Nedir Doğrusu üst bölüm, 50px
+    "dogru": 230,            # Nedir Doğrusu alt bölüm, 40px
+    "altin_kural": 110,      # Nedir Doğrusu kural kutusu
+    "net_cevap": 70,         # Net Cevap kapağının en büyük yazısı, 112px
+    "net_gerekce": 160,      # Net Cevap gerekçesi, ~33px
+    "tavsiye": 120,
+    "vaka_manset": 60,       # Örnek olay başlığı
+    "olay": 240,             # Örnek olay, 34px
+    "hukum": 220,            # Kanuna göre sonuç, 54px
+    "ders": 120,
 }
+AZAMI_PUF_MADDE = 3
 
 
 ORTAK_KURALLAR = """Sen "EDM Yapı & Gayrimenkul"ün içerik editörüsün. Silivri merkezli, Trakya'da
@@ -614,6 +631,18 @@ DENETLENECEK: List[Tuple[str, str]] = [
     ("slayt_3_cozum.baslik_ust", "manset_satir"),
     ("slayt_3_cozum.baslik_vurgu", "manset_satir"),
     ("slayt_3_cozum.stratejist_notu", "spot"),
+    ("terim", "terim"),
+    ("tanim_metni", "tanim"),
+    ("yanlis_metin", "yanlis"),
+    ("dogru_metin", "dogru"),
+    ("altin_kural", "altin_kural"),
+    ("net_cevap", "net_cevap"),
+    ("aciklama", "net_gerekce"),
+    ("tavsiye_metin", "tavsiye"),
+    ("manset", "vaka_manset"),
+    ("olay_detay", "olay"),
+    ("yargitay_hukmu", "hukum"),
+    ("cikarilacak_ders", "ders"),
     ("slayt_4_cta.slogan_parca_1", "manset_satir"),
     ("slayt_4_cta.slogan_vurgu", "manset_satir"),
     ("slayt_4_cta.aciklama", "spot"),
@@ -650,6 +679,14 @@ def butce_ihlalleri(veri: Dict[str, Any]) -> List[str]:
             d = m.get(alan)
             if isinstance(d, str) and len(d) > BUTCE[anahtar]:
                 ihlaller.append(f"slayt_3_cozum.maddeler[{i}].{alan}: {len(d)}/{BUTCE[anahtar]} karakter")
+
+    puf = veri.get("puf_maddeleri") if isinstance(veri, dict) else None
+    if isinstance(puf, list):
+        if len(puf) > AZAMI_PUF_MADDE:
+            ihlaller.append(f"puf_maddeleri: {len(puf)} madde, en fazla {AZAMI_PUF_MADDE}")
+        for i, m in enumerate(puf):
+            if isinstance(m, str) and len(m) > BUTCE["puf_madde"]:
+                ihlaller.append(f"puf_maddeleri[{i}]: {len(m)}/{BUTCE['puf_madde']} karakter")
     return ihlaller
 
 
@@ -1002,40 +1039,42 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NEDİR DOĞRUSU? (DOĞRU BİLİNEN YANLIŞLAR)' formatında üret. "
             "JSON nesnesinde 'format_turu': 'nedir_dogrusu', "
-            "'yanlis_metin': (Vatandaşın veya kiracının/yatırımcının inandığı yaygın yanlış / şehir efsanesi - tek ve vurucu cümle), "
-            "'dogru_metin': (Kanunen ve hukuken işin esası ve yasal dayanak maddesi - 2-3 cümle. "
+            "'yanlis_metin': (Vatandaşın veya kiracının/yatırımcının inandığı yaygın yanlış / şehir efsanesi - tek ve vurucu cümle, en fazla %(yanlis)d karakter), "
+            "'dogru_metin': (Kanunen ve hukuken işin esası ve yasal dayanak maddesi - 2-3 cümle, en fazla %(dogru)d karakter. "
             "Yargıtay kararı numarası veya tarihi YAZMA: brief'te içtihat yok, uydurulmuş karar "
             "numarası gerçek bir ofisin hesabında ağır sorumluluktur), "
-            "'altin_kural': (EDM kuralı: tek cümlelik somut tavsiye) alanlarını MUTLAKA doldur. "
+            "'altin_kural': (EDM kuralı: tek cümlelik somut tavsiye, en fazla %(altin_kural)d karakter) alanlarını MUTLAKA doldur. "
             "Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz; her adım ayrı slayt olur."
-        )
+        ) % BUTCE
     elif format_turu in ("sozluk", "sozluk_uret"):
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GAYRİMENKUL SÖZLÜĞÜ' formatında üret. "
             "JSON nesnesinde 'format_turu': 'sozluk', "
-            "'terim': (Konunun odaklandığı gayrimenkul/imar/tapu hukuku terimi - örn: ŞUFA, İFRAZ, vb.), "
-            "'tanim_metni': (Terimin sadece sözlük karşılığını değil; gayrimenkul ve tapu pratiğinde ne anlama geldiğini, yasal dayanak maddesini ve taraflara etkisini 2-3 akıcı ve doyurucu cümleyle izah eden zengin hukuki açıklama), "
-            "'puf_maddeleri': [(Yatırımcının bilmesi gereken 2-3 kritik kural ve risk)] alanlarını MUTLAKA doldur."
-        )
+            "'terim': (Konunun odaklandığı gayrimenkul/imar/tapu terimi - örn: ÖNALIM, İFRAZ; en fazla %(terim)d karakter), "
+            "'tanim_metni': (Terimin gayrimenkul ve tapu pratiğinde ne anlama geldiğini ve taraflara etkisini 2-3 cümleyle açıklayan metin, en fazla %(tanim)d karakter), "
+            "'puf_maddeleri': [(Bilinmesi gereken 2-3 somut kural; her biri tek cümle, en fazla %(puf_madde)d karakter)] alanlarını MUTLAKA doldur."
+        ) % BUTCE
     elif format_turu in ("vaka", "emsal_karar"):
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'ÖRNEK OLAY' formatında üret. "
             "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / ÖRNEK OLAY', "
             "'yargitay_kaynak': (Yalnızca brief'teki mevzuat maddesi; Yargıtay esas/karar numarası UYDURMA), "
-            "'manset': (Çarpıcı başlık, cümle düzeninde), 'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma), "
-            "'yargitay_hukmu': (Güncel kanun metnine göre sonuç; belirli bir mahkeme kararına atıf yapma), "
-            "'cikarilacak_ders': (Okuyanın çıkarması gereken ders) alanlarını MUTLAKA doldur. "
+            "'manset': (Çarpıcı başlık, cümle düzeninde, en fazla %(vaka_manset)d karakter), "
+            "'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma; en fazla %(olay)d karakter), "
+            "'yargitay_hukmu': (Güncel kanun metnine göre sonuç; belirli bir mahkeme kararına atıf yapma; en fazla %(hukum)d karakter), "
+            "'cikarilacak_ders': (Okuyanın çıkarması gereken ders, en fazla %(ders)d karakter) alanlarını MUTLAKA doldur. "
             "Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz."
-        )
+        ) % BUTCE
     elif format_turu in ("net_cevap", "soru", "kim_hakli"):
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'NET CEVAP' formatında üret. "
-            "JSON nesnesinde 'format_turu': 'net_cevap', 'soru': (okuyanın kafasındaki soru, en fazla 70 karakter), "
+            "JSON nesnesinde 'format_turu': 'net_cevap', 'soru': (okuyanın kafasındaki soru, en fazla %(kart_baslik)d karakter), "
             "'net_cevap': (kapakta EN BÜYÜK yazı olacak cevap: 'Hayır.', 'Evet, ama …' gibi başlayan, cümle "
-            "düzeninde TEK kısa cümle, en fazla 70 karakter; 'CEVAP:' yazma), "
-            "'aciklama': (gerekçe, 1-2 cümle, güncel madde metnine dayalı), 'tavsiye_metin': (resmi adım) alanlarını "
+            "düzeninde TEK kısa cümle, en fazla %(net_cevap)d karakter; 'CEVAP:' yazma), "
+            "'aciklama': (gerekçe, 1-2 cümle, güncel madde metnine dayalı, en fazla %(net_gerekce)d karakter), "
+            "'tavsiye_metin': (resmi adım, en fazla %(tavsiye)d karakter) alanlarını "
             "MUTLAKA doldur. Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz."
-        )
+        ) % BUTCE
 
     def tamamla(v: Dict[str, Any]) -> None:
         v.setdefault("bicim", bicim)
