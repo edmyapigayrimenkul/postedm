@@ -223,7 +223,7 @@ export default {
           });
         };
 
-        // Mesajı güncelleme yardımcısı
+        // Mesajı güncelleme yardımcısı (Telegram parse hatalarına karşı dayanıklı)
         const mesajiGuncelle = async (metin, replyMarkup = null) => {
           const body = {
             chat_id: chatId,
@@ -233,11 +233,23 @@ export default {
             disable_web_page_preview: true,
           };
           if (replyMarkup) body.reply_markup = replyMarkup;
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
+          try {
+            const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            if (!r.ok) {
+              // Parse hatası veya Telegram entity hatası olursa düz metne dönüştürerek kurtar
+              delete body.parse_mode;
+              body.text = metin.replace(/<[^>]+>/g, "");
+              await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              });
+            }
+          } catch (_) {}
         };
 
         // Butonları güncelleme yardımcısı
@@ -245,15 +257,17 @@ export default {
           const markup = Array.isArray(inlineKeyboard)
             ? { inline_keyboard: inlineKeyboard }
             : (inlineKeyboard && inlineKeyboard.inline_keyboard ? inlineKeyboard : { inline_keyboard: inlineKeyboard });
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              message_id: messageId,
-              reply_markup: markup,
-            }),
-          });
+          try {
+            await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: markup,
+              }),
+            });
+          } catch (_) {}
         };
 
         // A. KANAL TOGGLE BUTONLARI (ANINDA ARAYÜZ GÜNCELLEMESİ)
@@ -290,13 +304,14 @@ export default {
             }
           }
           await butonlariGuncelle(keyboard);
-          await cevapVer();
+          const kanalAdi = hedefKanalEtiketleri(hedefKanal);
+          await cevapVer(hedefYeniSecili ? `✅ ${kanalAdi} seçildi` : `⬜ ${kanalAdi} kaldırıldı`);
           return new Response("OK");
         }
 
         // B. KONTROL PANELİ VE DURAKLATMA MENÜLERİ
         if (data === "panel" || data === "menu") {
-          await cevapVer();
+          await cevapVer("🎛 Kontrol Paneli");
           await mesajiGuncelle(
             "🏢 <b>EDM YAPI & GAYRİMENKUL // KONTROL MERKEZİ</b>\n\n" +
             "Aşağıdaki butonları kullanarak tek tıkla yeni içerik üretebilir, " +
@@ -595,10 +610,11 @@ export default {
 
           await cevapVer("Yayın süreci başlatıldı");
           const baslikEtiketi = tur === "reels" ? "Reels Videosu" : (tur === "ilan" ? "İlan Postu" : "İçerik");
+          const kanallarStr = hedefKanalEtiketleri(hedef);
           if (gecikme) {
-            await mesajiGuncelle(`⏰ <b>${baslikEtiketi} ${gecikme} dakika sonra yayınlanacak şekilde planlandı.</b>\nSeçili Kanallar: <code>${hedef.toUpperCase()}</code>`);
+            await mesajiGuncelle(`⏰ <b>${baslikEtiketi} Planlandı (${gecikme} dk)</b>\n\nİçerik <b>${gecikme} dakika sonra</b> yayına alınacaktır.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}`);
           } else {
-            await mesajiGuncelle(`🚀 <b>${baslikEtiketi} yayına alınıyor...</b>\nSeçili Kanallar: <code>${hedef.toUpperCase()}</code>`);
+            await mesajiGuncelle(`🚀 <b>${baslikEtiketi} Yayına Alınıyor...</b>\n\nİçerik dağıtım motoru çalıştırıldı, yayın durumu birazdan güncellenecek.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}`);
           }
           await tetikle(env, chatId, "yayinla", {
             tur,
@@ -613,14 +629,14 @@ export default {
         if (data === "manuel_paket" || data.startsWith("manuel_paket:")) {
           const mId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
           await cevapVer("Manuel paket hazırlanıyor...");
-          await mesajiGuncelle(`📲 <b>Manuel Paylaşım Paketi hazırlanıyor...</b>\nAçıklama metni ve yönlendirme butonları birazdan iletilecek.`);
+          await mesajiGuncelle(`📲 <b>Manuel Paylaşım Paketi Hazırlanıyor...</b>\n\nAçıklama metni, etiketler ve yönlendirme paneli birazdan gruba sunulacak.`);
           await tetikle(env, chatId, "yayinla", { tur: "haber", id: mId, hedef: "manuel_paket", mesaj_id: messageId });
           return new Response("OK");
         }
 
         // --- "İşleniyor" butonuna basılırsa kullanıcıyı bilgilendir ---
         if (data === "isleniyor") {
-          await cevapVer("⏳ İşlem devam ediyor, lütfen bekle…");
+          await cevapVer("⏳ İşlem devam ediyor, lütfen bekleyin…");
           return new Response("OK");
         }
 
@@ -640,12 +656,13 @@ export default {
         if (data === "metin_ozetle" || data === "metin_detaylandir" || data === "metin_yenile" || data.startsWith("metin_eylem:") || data.startsWith("yenile:")) {
           const eylem = data.startsWith("metin_eylem:") ? data.split(":")[1] : (data.startsWith("yenile:") ? "yenile" : data);
           const mId = (data.startsWith("yenile:") && data.split(":").length > 2 ? data.split(":")[2] : "") || icerikIdBul();
-          await cevapVer("Metin düzenleniyor...");
+          const etiket = eylemEtiketi(eylem);
+          await cevapVer(`${etiket} hazırlanıyor...`);
           await mesajiGuncelle(
-            `✍️ <b>İçerik için metin güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`,
+            `✍️ <b>Metin Düzenleniyor: ${etiket}</b>\n\nYapay zeka metni yeniden işliyor, lütfen bekleyin...`,
             {
               inline_keyboard: [
-                [{ text: `⏳ Metin Düzenleniyor…`, callback_data: "isleniyor" }],
+                [{ text: `⏳ ${etiket} İşleniyor…`, callback_data: "isleniyor" }],
                 [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
               ],
             }
@@ -661,7 +678,7 @@ export default {
           const fId = parts.length > 3 ? parts[3] : (parts.length > 2 ? parts[2] : icerikIdBul());
           await cevapVer(`${adayNo}. aday uygulanıyor...`);
           await mesajiGuncelle(
-            `🎨 <b>${adayNo}. görsel adayı seçildi</b>, içeriğe uygulanıyor...`,
+            `🎨 <b>${adayNo}. Görsel Adayı Seçildi</b>\n\nİçeriğe uygulanıyor ve slaytlar yeniden çiziliyor...`,
             {
               inline_keyboard: [
                 [{ text: `⏳ Görsel Uygulanıyor…`, callback_data: "isleniyor" }],
@@ -677,7 +694,7 @@ export default {
           const fId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
           await cevapVer("3 aday hazırlanıyor...");
           await mesajiGuncelle(
-            `✨ <b>3 alternatif kapak görseli hazırlanıyor...</b>\nBirazdan albüm olarak sunulacak...`,
+            `✨ <b>3 Alternatif Görsel Adayı Hazırlanıyor...</b>\n\nBirazdan albüm olarak sunulacak, dilediğinizi tek tıkla seçebileceksiniz.`,
             {
               inline_keyboard: [
                 [{ text: `⏳ Adaylar Hazırlanıyor…`, callback_data: "isleniyor" }],
@@ -692,12 +709,13 @@ export default {
         if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data === "foto_ilk" || data.startsWith("foto_eylem:")) {
           const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
           const fId = icerikIdBul();
-          await cevapVer("Görsel güncelleniyor...");
+          const etiket = eylemEtiketi(eylem);
+          await cevapVer(`${etiket} uygulanıyor...`);
           await mesajiGuncelle(
-            `🖼️ <b>Görsel güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`,
+            `🖼️ <b>Görsel Güncelleniyor: ${etiket}</b>\n\nSeçilen görsel stiline göre slaytlar yeniden çiziliyor...`,
             {
               inline_keyboard: [
-                [{ text: `⏳ Görsel Güncelleniyor…`, callback_data: "isleniyor" }],
+                [{ text: `⏳ Görsel Hazırlanıyor…`, callback_data: "isleniyor" }],
                 [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
               ],
             }
@@ -711,12 +729,17 @@ export default {
           const parts = data.split(":");
           const format = parts[1];
           const fmtId = (parts.length > 2 ? parts[2] : "") || icerikIdBul();
-          await cevapVer("Format dönüştürülüyor");
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: `🎨 İçerik <b>${format.toUpperCase()}</b> formatına dönüştürülüyor...`, parse_mode: "HTML" }),
-          });
+          const fEtiket = formatEtiketi(format);
+          await cevapVer(`${fEtiket} formatına dönüştürülüyor...`);
+          await mesajiGuncelle(
+            `🎨 <b>Format Dönüştürülüyor: ${fEtiket}</b>\n\nİçerik yeni şablon ve tasarım kurallarına göre yeniden derleniyor...`,
+            {
+              inline_keyboard: [
+                [{ text: `⏳ Format Çiziliyor…`, callback_data: "isleniyor" }],
+                [{ text: "↩️ Menüyü Geri Getir", callback_data: "kurtar_menu:2" }],
+              ],
+            }
+          );
           await tetikle(env, chatId, "format_donustur", { format_turu: format, id: fmtId, haber_id: fmtId, mesaj_id: messageId });
           return new Response("OK");
         }
@@ -725,15 +748,24 @@ export default {
         if (data === "ertele" || data.startsWith("ertele:")) {
           const ertId = icerikIdBul();
           await cevapVer("Yayın 1 saat ertelendi");
-          await mesajiGuncelle(`⏰ <b>Yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>`);
+          await mesajiGuncelle(
+            `⏰ <b>Yayın 1 Saat Ertelendi</b>\n\n` +
+            `İçerik onay kuyruğunda korunmaktadır. Hatırlatıcılar 1 saat boyunca sessize alındı.`,
+            {
+              inline_keyboard: [
+                [{ text: "🚀 Şimdi Yayına Al", callback_data: "yayinla" }],
+                [{ text: "↩️ Menüyü Göster", callback_data: "kurtar_menu:2" }],
+              ],
+            }
+          );
           await tetikle(env, chatId, "yayinla", { hedef: "ertele", id: ertId, mesaj_id: messageId });
           return new Response("OK");
         }
 
         // K. İPTAL / ATLA (HAVUZA DÖNER)
         if (data === "iptal" || data.startsWith("reddet:")) {
-          await cevapVer("Bu tur atlandı, konu havuza iade edildi");
-          await mesajiGuncelle(`❌ <b>Bu içerik atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
+          await cevapVer("İçerik atlandı, konu havuza iade edildi");
+          await mesajiGuncelle(`❌ <b>Bu İçerik Atlandı</b>\n\n<i>Konu havuza iade edildi. Sıradaki içerik rotasyonu hazırlanıyor...</i>`);
           let tur = "haber";
           let refId = "";
           if (data.startsWith("reddet:")) {
@@ -753,8 +785,11 @@ export default {
         // L. ÇÖPE AT (TASLAK ÇÖPE ATILIR, KULLANICI İSTEĞİYLE KONU KİLİTLENMEZ)
         if (data === "cope_at" || data.startsWith("cope_at:")) {
           const copId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
-          await cevapVer("Taslak çöpe atıldı, konu havuza iade edildi");
-          await mesajiGuncelle(`🗑️ <b>Taslak çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>`);
+          await cevapVer("Taslak çöpe atıldı");
+          await mesajiGuncelle(
+            `🗑️ <b>Taslak Çöpe Atıldı</b>\n\n<i>İçerik silindi, konu havuza iade edildi.</i>`,
+            { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
+          );
           await tetikle(env, chatId, "yayinla", { hedef: "cope_at", id: copId, mesaj_id: messageId });
           return new Response("OK");
         }
@@ -808,12 +843,13 @@ export default {
         // M. İLAN İŞLEMLERİ
         if (data.startsWith("ilan_sec:")) {
           const ilanId = data.split(":")[1];
-          await cevapVer();
+          await cevapVer("İlan içeriği hazırlanıyor...");
+          await mesajiGuncelle(`🏡 <b>İlan #${ilanId} Seçildi</b>\n\nÖzel carousel ve açıklama metni derleniyor, birazdan sunulacak...`);
           await tetikle(env, chatId, "hazirla_ilan", { ilan_id: ilanId });
           return new Response("OK");
         }
         if (data === "ilan_menu_yenile") {
-          await cevapVer();
+          await cevapVer("İlan listesi güncelleniyor...");
           await tetikle(env, chatId, "ilan_menusu", {});
           return new Response("OK");
         }
@@ -826,8 +862,9 @@ export default {
           data.startsWith("slayt_kisalt:")
         ) {
           const [eylem, sira] = data.split(":");
-          await cevapVer("Slayt işlemi başlatıldı...");
-          await mesajiGuncelle(`⏳ <b>Slayt güncelleniyor (${eylem})...</b>\nLütfen bekleyin...`);
+          const etiket = eylemEtiketi(eylem);
+          await cevapVer(`${sira}. Slayt: ${etiket}`);
+          await mesajiGuncelle(`⏳ <b>${sira}. Slayt Güncelleniyor: ${etiket}</b>\n\nLütfen bekleyin, slayt parametreleri işleniyor...`);
           await tetikle(env, chatId, "slayt_islem", {
             eylem,
             sira: parseInt(sira, 10),
@@ -1541,11 +1578,78 @@ async function sohbeteGonder(env, sohbetId, metin, replyMarkup = null) {
   if (!sohbetId) return;
   const body = { chat_id: sohbetId, text: metin, parse_mode: "HTML", disable_web_page_preview: true };
   if (replyMarkup) body.reply_markup = replyMarkup;
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      delete body.parse_mode;
+      body.text = metin.replace(/<[^>]+>/g, "");
+      await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    }
+  } catch (_) {}
+}
+
+function hedefKanalEtiketleri(hedef) {
+  const harita = {
+    ig: "📸 Instagram (4:5)",
+    reels: "🎬 Reels (9:16)",
+    story: "📱 Instagram Story",
+    threads: "🧵 Threads",
+    facebook: "📘 Facebook",
+    fb: "📘 Facebook",
+    youtube: "▶️ YouTube Shorts",
+    shorts: "▶️ YouTube Shorts",
+    tiktok: "🎵 TikTok",
+    tt: "🎵 TikTok",
+  };
+  const parcalar = String(hedef || "hepsi").toLowerCase().split(",");
+  if (parcalar.includes("hepsi") || parcalar.length === 0) {
+    return "Tüm Kanallar (Instagram, Threads, Facebook, YouTube, TikTok)";
+  }
+  return parcalar.map((p) => harita[p.trim()] || p.trim().toUpperCase()).join(", ");
+}
+
+function eylemEtiketi(eylem) {
+  const harita = {
+    metin_ozetle: "Daha Öz & Kısa Metin",
+    metin_detaylandir: "Hukuki & Detaylı Analiz",
+    metin_yenile: "Yeniden Metin Yazımı",
+    yenile: "Yeniden Metin & Slayt Üretimi",
+    foto_gercek: "Mimari / Portföy Fotoğrafı",
+    foto_stok: "Pexels Yüksek Çözünürlüklü Stok Görsel",
+    foto_ai: "Yapay Zeka Mimari Tasarım",
+    foto_editoryal: "Mevzuat & Editoryal Zemin",
+    foto_ilk: "İlk Orijinal Görsel",
+    slayt_basa: "1. Sıraya Taşıma (Manşet)",
+    slayt_yukari: "Yukarı Taşıma",
+    slayt_asagi: "Aşağı Taşıma",
+    slayt_sil: "Slaytı Çıkarma",
+    slayt_carpici: "Manşeti Çarpıcı Hale Getirme",
+    slayt_uzat: "Metin Detaylandırma",
+    slayt_kisalt: "Metin Sadeleştirme",
+  };
+  return harita[eylem] || eylem;
+}
+
+function formatEtiketi(format) {
+  const harita = {
+    dailybrief: "📰 Haber Bülteni (DailyBrief)",
+    haber: "📰 Haber Bülteni (DailyBrief)",
+    sozluk: "📖 EDM Gayrimenkul Sözlüğü",
+    nedir_dogrusu: "⚖️ Nedir / Doğrusu Ne?",
+    vaka: "🔍 Emlak & Hukuk Vakası",
+    net_cevap: "💡 Net Cevap Rehberi",
+    reels: "🎬 9:16 Dikey Reels Videosu",
+    b1: "🏛️ Klasik Otorite (B1)",
+  };
+  return harita[format] || (format ? String(format).toUpperCase() : "Özel Format");
 }
 
 async function bildirimGonder(env, metin) {

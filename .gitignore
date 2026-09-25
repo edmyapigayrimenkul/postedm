@@ -38,6 +38,7 @@ data/*.jsonl
 data/output/
 data/cache/
 data/temp/
+data/*.txt
 
 # Keep data directory & database in git
 !data/.gitkeep
