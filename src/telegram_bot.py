@@ -1563,10 +1563,26 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         log.warning("Görseller CDN'e yüklenemedi: %s", e)
 
     # 2.6 Eşzamanlı 9:16 Video Üretimi (Instabot Paritesi: Onaylanan slaytlarla video 1:1 kilitlenir)
+    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (not otorite_verisi)
     v_yolu = None
     try:
         from . import video, ses
-        v_ham = video.slaytlardan_reels_uret(slayt_yollari)
+        # Haber bülteni (DailyBrief) için native 9:16 (1080x1920) dikey slaytlar üret; böylece 4:5'ten crop/blur gereksiz kalır
+        video_slayt_yollari = slayt_yollari
+        if is_haber or format_turu in ("dailybrief", "haber", "haber_dailybrief"):
+            try:
+                v_slayt_listesi = yeni_formatlar.slaytlari_uret(
+                    otorite_verisi or veri_icin,
+                    format_turu="dailybrief",
+                    cikti_onek=f"reels_{haber_id}",
+                    olcu="story",
+                )
+                if v_slayt_listesi and all(Path(p).exists() for p in v_slayt_listesi):
+                    video_slayt_yollari = [str(p) for p in v_slayt_listesi]
+            except Exception as d_err:
+                log.warning("Native 9:16 video slaytları üretilemedi, 4:5 dönüştürme kullanılacak: %s", d_err)
+
+        v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=otorite_verisi or veri_icin)
         if v_ham and v_ham.exists():
             v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
             v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
@@ -1885,7 +1901,15 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     from . import video
     v_yolu = None
     try:
-        v_yolu = video.slaytlardan_reels_uret([str(p) for p in slayt_yollari])
+        video_slayt_yollari = [str(p) for p in slayt_yollari]
+        if fmt in ("dailybrief", "haber", "haber_dailybrief"):
+            try:
+                d_slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu="dailybrief", cikti_onek=f"reels_dikey_{konu['kod']}", olcu="story")
+                if d_slaytlar and all(Path(p).exists() for p in d_slaytlar):
+                    video_slayt_yollari = [str(p) for p in d_slaytlar]
+            except Exception as d_err:
+                log.warning("Native 9:16 reels slaytları üretilemedi: %s", d_err)
+        v_yolu = video.slaytlardan_reels_uret(video_slayt_yollari, haber=veri)
     except Exception as ve:
         log.warning("Reels videosu üretilemedi: %s", ve)
 

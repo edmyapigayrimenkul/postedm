@@ -46,9 +46,9 @@ HATA_KATALOGU = [
     },
     {
         "desen": r"2207052|2207003|Only photo or video can be accepted",
-        "ne_oldu": "Instagram görselleri indirirken geçici zaman aşımına uğradı.",
-        "neden": "Instagram sunucuları görsel barındırma adresinden görseli çekerken anlık gecikme yaşadı.",
-        "ne_yapilir": "Görseller sağlamdır. '🔄 Tekrar Yayınla' butonuyla işlemi doğrudan tekrar deneyebilirsiniz.",
+        "ne_oldu": "Meta (Instagram / Threads) görselleri indirirken geçici zaman aşımına uğradı.",
+        "neden": "Meta sunucuları görsel barındırma adresinden (ImgBB) görseli çekerken anlık gecikme yaşadı.",
+        "ne_yapilir": "Görseller sağlamdır. Sonuç kartındaki '🔄 Tekrar Gönder' butonuyla yalnızca geciken kanalı yeniden deneyebilirsiniz.",
         "eylem": "yeniden_yayinla",
     },
     {
@@ -87,11 +87,11 @@ HATA_KATALOGU = [
         "eylem": "durum",
     },
     {
-        "desen": r"graph\.threads\.net|THREADS_ACCESS_TOKEN",
-        "ne_oldu": "Threads paylaşımı başarısız oldu.",
-        "neden": "Threads API jetonunun süresi dolmuş veya geçici ağ hatası oluşmuş.",
-        "ne_yapilir": "Instagram ve Facebook paylaşımları etkilenmez. Threads jetonunu kontrol edin.",
-        "eylem": "durum",
+        "desen": r"threads.*(hata|timeout|gecikme|fail|✗)|graph\.threads\.net|THREADS_ACCESS_TOKEN",
+        "ne_oldu": "Threads paylaşımı geçici olarak başarısız oldu.",
+        "neden": "Threads API jetonunun süresi dolmuş veya Meta görseli çekerken geçici ağ zaman aşımı oluşmuş.",
+        "ne_yapilir": "Diğer kanallar (YouTube Shorts, Instagram, Facebook) etkilenmez. Sonuç mesajındaki '🔄 🧵 Threads'i Tekrar Gönder' butonuna basabilirsiniz.",
+        "eylem": "yeniden_yayinla",
     },
     {
         "desen": r"carousel.*(2-10|10 görsel)|children.*(limit|invalid)",
@@ -441,6 +441,18 @@ if __name__ == "__main__":
                 ref_id = str(bekleyenler[0].get("id", ""))
         except Exception:
             pass
+
+    # Eğer bu içerik için zaten Telegram'a özet sonuç raporu ve telafi butonları ("🔄 Threads'i Tekrar Gönder" vb.)
+    # iletildiyse, gruba ikinci bir mükerrer teknik hata kartı atıp grubu kirletme ve kullanıcıyı yanıltma.
+    rapor_sentinel = Path("data/son_rapor_gonderildi.txt")
+    if args.islem == "Yayınla" and rapor_sentinel.exists():
+        try:
+            kayitli_ref = rapor_sentinel.read_text(encoding="utf-8").strip()
+            if not ref_id or kayitli_ref == str(ref_id):
+                log.info("Özet sonuç raporu ve telafi butonları zaten iletildi; mükerrer hata kartı atlanıyor.")
+                sys.exit(0)
+        except Exception as se:
+            log.debug("Sentinel kontrolü atlandı: %s", se)
 
     telegrama_hata_bildir(
         islem_adi=args.islem,

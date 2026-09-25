@@ -35,9 +35,12 @@ LOGO_PIN = config.yol_al("assets/logos/pin-sembol.png")
 def _cercevele_9_16(kart_img: Image.Image, genislik: int = HEDEF_W, yukseklik: int = HEDEF_H) -> Image.Image:
     """1080x1350 slayt görselini 1080x1920 (9:16) formatına dönüştürür.
 
-    Instabot standartı: Kartın arkasına sinematik Gaussian blur + koyu perde +
-    yumuşak derinlik gölgesi uygulanır. Kart tam merkezde net ve güvenli alanda kalır;
-    asla piksel uzatma çizgisi veya yapay renk yırtılması oluşmaz.
+    Instabot standartı:
+    - Düz/yekpare zeminli kartlarda (Sözlük, Nedir Doğrusu, Vaka vb.) üst kenar medyan rengiyle y=0'a,
+      alt kenar medyan rengiyle y=1920'ye kadar pürüzsüz uzatılır; asla 1px sündürme çizgisi veya yapay blur oluşmaz.
+    - Fotoğraflı kartlarda arkaya derin difüzyon blur (GaussianBlur 75) + %86 koyu EDM mürekkep perdesi
+      uygulanır. Kartın üzerindeki kırmızı rozet ve logolar asla arkada hayalet leke olarak görünmez.
+    - Fotoğrafın üst kenarı yumuşak alfa geçişiyle (feathering) zemine dikişsiz kaynaşır.
     """
     w, h = kart_img.size
     if (w, h) == (genislik, yukseklik):
@@ -45,44 +48,59 @@ def _cercevele_9_16(kart_img: Image.Image, genislik: int = HEDEF_W, yukseklik: i
 
     card_y = max(0, (yukseklik - h) // 2)  # 285 px
 
-    # Düz zeminli kart kontrolü (Kullanıcı kuralı: Tek renkli zeminlerde kesintisiz uzatma)
     kart_rgb = kart_img.convert("RGB")
     ust_satir = np.array(kart_rgb.crop((0, 0, w, 1)), dtype=np.float32)
     alt_satir = np.array(kart_rgb.crop((0, h - 1, w, h)), dtype=np.float32)
-    if float(np.max(np.std(ust_satir, axis=1))) < 4.0 and float(np.max(np.std(alt_satir, axis=1))) < 4.0:
-        tuval = Image.new("RGB", (genislik, yukseklik))
-        ust_serit = kart_rgb.crop((0, 0, w, 1)).resize((genislik, card_y), Image.Resampling.NEAREST)
-        tuval.paste(ust_serit, (0, 0))
-        alt_kalan = yukseklik - (card_y + h)
-        if alt_kalan > 0:
-            alt_serit = kart_rgb.crop((0, h - 1, w, h)).resize((genislik, alt_kalan), Image.Resampling.NEAREST)
-            tuval.paste(alt_serit, (0, card_y + h))
+    ust_std = float(np.max(np.std(ust_satir, axis=1)))
+    alt_std = float(np.max(np.std(alt_satir, axis=1)))
+
+    # A. Tamamen düz/yekpare zeminli kart kontrolü (Kullanıcı Kuralı)
+    if ust_std < 4.0 and alt_std < 4.0:
+        ust_renk = tuple(int(round(c)) for c in np.mean(ust_satir[0], axis=0))
+        alt_renk = tuple(int(round(c)) for c in np.mean(alt_satir[0], axis=0))
+        tuval = Image.new("RGB", (genislik, yukseklik), ust_renk)
+        draw = ImageDraw.Draw(tuval)
+        draw.rectangle([0, card_y + h, genislik, yukseklik], fill=alt_renk)
         tuval.paste(kart_rgb, (0, card_y))
         return tuval
 
-    # 1. Arka plan: Görüntüyü tüm 1080x1920 alana orantılı büyütüp sinematik blur ve karartma uygula
+    # B. Fotoğraflı veya hibrit zemin: Sinematik derin difüzyon + koyu EDM perdesi
     oran = max(genislik / w, yukseklik / h)
     bg_w, bg_h = int(w * oran), int(h * oran)
-    bg = kart_img.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
+    bg = kart_rgb.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
     sol = (bg_w - genislik) // 2
     ust = (bg_h - yukseklik) // 2
     bg = bg.crop((sol, ust, sol + genislik, ust + yukseklik))
-    bg = bg.filter(ImageFilter.GaussianBlur(35))
+    bg = bg.filter(ImageFilter.GaussianBlur(75))
 
-    # Koyu perde
-    perde = Image.new("RGBA", (genislik, yukseklik), (10, 13, 19, 160))
+    # Koyu kurumsal EDM mürekkep perdesi (derin cam efekti, hayalet rozetleri tamamen yutar)
+    perde = Image.new("RGBA", (genislik, yukseklik), (18, 19, 22, 220))
     bg = Image.alpha_composite(bg.convert("RGBA"), perde)
 
-    # 2. Ana 4:5 kartın arkasına yumuşak derinlik gölgesi
-    golge = Image.new("RGBA", (genislik, yukseklik), (0, 0, 0, 0))
-    gdraw = ImageDraw.Draw(golge)
-    gdraw.rectangle([0, card_y - 8, genislik, card_y + h + 8], fill=(0, 0, 0, 180))
-    golge = golge.filter(ImageFilter.GaussianBlur(25))
-    bg = Image.alpha_composite(bg, golge)
+    # Alt kenar düz renk ise (örn: Dailybrief haber kapaklarındaki siyah alt bant), aşağıya yekpare uzat
+    if alt_std < 4.0:
+        alt_renk = tuple(int(round(c)) for c in np.mean(alt_satir[0], axis=0))
+        bdraw = ImageDraw.Draw(bg)
+        bdraw.rectangle([0, card_y + h, genislik, yukseklik], fill=alt_renk + (255,))
 
-    # 3. Ana 4:5 kartı merkeze yerleştir
-    bg.paste(kart_img.convert("RGBA"), (0, card_y))
+    # Üst kenar düz renk ise yukarıya yekpare uzat
+    if ust_std < 4.0:
+        ust_renk = tuple(int(round(c)) for c in np.mean(ust_satir[0], axis=0))
+        udraw = ImageDraw.Draw(bg)
+        udraw.rectangle([0, 0, genislik, card_y], fill=ust_renk + (255,))
 
+    # Kartı yerleştirmeden önce üst kenara yumuşak geçiş maskesi (keskin yatay bıçak izini yok eder)
+    kart_rgba = kart_rgb.convert("RGBA")
+    if ust_std >= 4.0:
+        mask = Image.new("L", (w, h), 255)
+        mdraw = ImageDraw.Draw(mask)
+        fade_len = 20
+        for i in range(fade_len):
+            alpha = int(255 * (i / float(fade_len)))
+            mdraw.line([(0, i), (w, i)], fill=alpha)
+        kart_rgba.putalpha(mask)
+
+    bg.paste(kart_rgba, (0, card_y), kart_rgba)
     return bg.convert("RGB")
 
 

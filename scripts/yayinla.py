@@ -1244,6 +1244,10 @@ def main() -> None:
             bildir=not bool(args.mesaj_id),
             reply_markup=reply_markup,
         )
+        try:
+            Path("data/son_rapor_gonderildi.txt").write_text(str(ref_id), encoding="utf-8")
+        except Exception:
+            pass
         if caption_ayri_gonder:
             telegram_bot.mesaj_gonder(
                 f"📝 <b>İçerik #{ref_id} Açıklama Metni (Caption):</b>\n"
