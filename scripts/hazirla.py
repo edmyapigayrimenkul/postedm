@@ -96,14 +96,18 @@ def main() -> None:
                         help="Mevcut bir haber/içerik kaydının formatını değiştirip yeniden sunar")
     parser.add_argument("--haber-oneri", action="store_true",
                         help="Taze haberleri tarihleriyle Telegram'a öneri olarak düşürür (içerik üretmez)")
-    parser.add_argument("--haberden", dest="haberden_id", type=int,
-                        help="Önerilen haberi (\"İçeriğe çevir\") triyajdan geçirip içerik olarak onaya sunar")
+    parser.add_argument("--haberden", dest="haberden_id",
+                        help="Önerilen haber(ler)i triyajdan geçirip içerik olarak onaya sunar: 272 ya da 272,273")
     args = parser.parse_args()
 
-    # İnsan "İçeriğe çevir" dediyse duraklatma sorulmaz: bu bir elle istek
+    # İnsan "İçeriğe çevir" ya da "▶️ Hazırla" dediyse duraklatma sorulmaz: bu bir elle istek
     if args.haberden_id:
         from src import haber_oneri
-        haber_oneri.haberden_icerige(args.haberden_id)
+        idler = [int(p) for p in str(args.haberden_id).split(",") if p.strip().isdigit()]
+        if not idler:
+            log.error("Geçersiz haber kimliği: %s", args.haberden_id)
+            return
+        haber_oneri.haberlerden_icerige(idler)
         return
 
     # Bot duraklatma denetimi (Kullanıcı Telegram'dan duraklatmışsa atla)

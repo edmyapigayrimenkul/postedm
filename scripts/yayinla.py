@@ -567,18 +567,24 @@ def main() -> None:
         # Kural: İçerik ya Reels ya da Gönderi olarak atılır. Reels aktifse Instagram Feed (görsel gönderi) deaktif edilir.
         paylas_ig = False
 
+    # "🎙️ Sesli Yayınla" (2026-09-26): Worker hedefe ses_muzikli / ses_muziksiz ekler.
+    # Seslendirme yalnızca video kanallarına uygulanır ve TikTok'u video kipine alır
+    # (fotoğraf karuseli ses taşımaz). Düz "✅ Yayınla" eskisi gibi seslendirmesiz.
+    ses_modu = "muzikli" if "ses_muzikli" in hedefler else ("muziksiz" if "ses_muziksiz" in hedefler else None)
+    ses_sonucu: dict = {}
+
     video_lazim = (
         paylas_reels
         or hedef_mi("yt", "youtube", "shorts", "video")
-        or (reels_modu and hedef_mi("fb", "facebook"))
-        or (reels_modu and hedef_mi("tt", "tiktok"))
+        or ((reels_modu or ses_modu) and hedef_mi("fb", "facebook"))
+        or ((reels_modu or ses_modu) and hedef_mi("tt", "tiktok"))
     )
 
     v_yolu = None
     sesli_video_yolu = None
     if video_lazim:
         log.info("Dikey video ve fon müziği hazırlanıyor (Shorts, Reels & Telegram video çıktısı)...")
-        if haber and haber.get("video_yolu"):
+        if haber and haber.get("video_yolu") and not ses_modu:  # onaydaki video seslendirmesiz
             vy = Path(haber["video_yolu"])
             if vy.exists() and vy.stat().st_size > 0:
                 # Tazelik kontrolü: Video, onaylanan slaytlardan eski mi?
@@ -589,10 +595,12 @@ def main() -> None:
                 else:
                     v_yolu = vy
 
-        # 3.0. Seslendirme: onaydaki video bu ortamda yoksa (Actions'ta yayın ayrı bir
-        # çalışmadır) aynı kuralla yeniden üretilir: ses.anlatimli_video_uret. Eskiden
-        # burada başlık+spot okunup BÜTÜN slaytlar sesin süresine sıkıştırılıyordu.
-        konusma_sesi_yolu = None
+        # 3.0. Video: düz yayında eskisi gibi sessiz video (fon müziği aşağıda eklenir);
+        # sesli yayında kapak seslendirmesi + kapanış çağrısı (ses.anlatimli_video_uret).
+        def _video(slaytlar, veri=None):
+            if ses_modu:
+                return ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=(ses_modu == "muzikli"), sonuc=ses_sonucu)
+            return video.slaytlardan_reels_uret(slaytlar, haber=veri)
 
         if not v_yolu or not v_yolu.exists():
             from src import make_image, yeni_formatlar
@@ -622,7 +630,7 @@ def main() -> None:
             if kaynak_slaytlar:
                 try:
                     log.info("Onaylı slaytlardan (%d adet) 9:16 dikey video derleniyor...", len(kaynak_slaytlar))
-                    v_yolu = ses.anlatimli_video_uret(kaynak_slaytlar, veri=haber_bilgi)
+                    v_yolu = _video(kaynak_slaytlar, haber_bilgi)
                 except Exception as ve:
                     log.warning("Onaylı slaytlardan video üretilemedi: %s", ve)
 
@@ -632,7 +640,7 @@ def main() -> None:
                     try:
                         f_tur = fmt if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") else "dailybrief"
                         d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=f_tur, cikti_onek=f"reels_{ref_id}", olcu="story")
-                        v_yolu = ses.anlatimli_video_uret([str(p) for p in d_slaytlar], veri=haber_bilgi)
+                        v_yolu = _video([str(p) for p in d_slaytlar], haber_bilgi)
                     except Exception as ve:
                         log.warning("Yeni formatlardan dikey video üretilemedi: %s", ve)
 
@@ -641,7 +649,7 @@ def main() -> None:
                 try:
                     dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
                     dikey_yollar = [str(p) for p in dikey_slaytlar]
-                    v_yolu = ses.anlatimli_video_uret(dikey_yollar, veri=haber_bilgi)
+                    v_yolu = _video(dikey_yollar, haber_bilgi)
                 except Exception as ve:
                     log.warning("Dikey otorite slaytlarından video üretilemedi: %s", ve)
 
@@ -652,20 +660,27 @@ def main() -> None:
                     ik1 = make_image.ilan_kapak_slayti_ciz(ilan)
                     ik2 = make_image.ilan_detay_slayti_ciz(ilan)
                     ik3 = make_image.ilan_kapanis_slayti_ciz(ilan)
-                    v_yolu = ses.anlatimli_video_uret([str(ik1), str(ik2), str(ik3)])
+                    v_yolu = _video([str(ik1), str(ik2), str(ik3)])
                 except Exception as ve:
                     log.warning("İlan slaytlarından video üretilemedi: %s", ve)
 
         if v_yolu and v_yolu.exists():
             try:
-                sesli_video_yolu = ses.sesli_video_hazirla(
-                    v_yolu,
-                    konusma_sesi=konusma_sesi_yolu,
-                    ses_seviyesi=0.14 if konusma_sesi_yolu else 0.20,
-                )
+                # Sesli videoda ("_sesli") dokunulmaz; "fon müziksiz"de müzik eklenmez
+                sesli_video_yolu = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20, muzik=(ses_modu != "muziksiz"))
             except Exception as se:
                 log.warning("Fon müziği mikslenemedi: %s", se)
                 sesli_video_yolu = v_yolu
+
+    if ses_modu and video_lazim:
+        # Seslendirme düşerse video seslendirmesiz çıkar; bu raporda saklanmaz. ✓/✗
+        # BİLEREK yok: o işaretler kanal sonucu sayılıyor (herhangi_biri_basarili, hata_var)
+        # ve bu satır ya başarısız bir yayını başarılı ya da başarılı olanı hatalı gösterirdi.
+        kip = "fon müzikli" if ses_modu == "muzikli" else "fon müziksiz"
+        rapor_satirlari.append(
+            f"🎙️ <b>Seslendirme ({kip}):</b> Eklendi" if ses_sonucu.get("anlatim")
+            else "⚠️ <b>Seslendirme:</b> Üretilemedi (ElevenLabs anahtarı/kotası) — videolar seslendirmesiz çıktı"
+        )
 
     # -------------------------------------------------------------
     # 4. INSTABOT PARİTELİ PARALEL DAĞITIM MOTORU (ThreadPoolExecutor)
@@ -745,7 +760,7 @@ def main() -> None:
     def _is_tiktok() -> None:
         nonlocal tt_res
         _bildir("tiktok", "⏳ Yükleniyor...")
-        if reels_modu:
+        if reels_modu or ses_modu:
             tt_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
             if tt_video and tt_video.exists():
                 try:
@@ -1238,7 +1253,7 @@ def main() -> None:
     # 7. Hazırlanan 9:16 Dikey Videoyu Telegram Grubuna İlet (Her yayında hazır video teslim edilir)
     # Instabot standardı (21 Eyl): Telegram Reels videosu sessiz teslim edilir (kullanıcı trend müzik ekleyebilsin).
     gonderilecek_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
-    if gonderilecek_video and gonderilecek_video.exists() and not video_telegrama_gitti and (paylas_reels or reels_modu or args.hedef in ("manuel_paket", "reels")):
+    if gonderilecek_video and gonderilecek_video.exists() and not video_telegrama_gitti and (paylas_reels or reels_modu or ses_modu or args.hedef in ("manuel_paket", "reels")):
         try:
             log.info("Hazırlanan dikey video Telegram grubuna iletiliyor: %s", gonderilecek_video)
             telegram_bot.video_gonder(

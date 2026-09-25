@@ -13,6 +13,11 @@ kural/süre/oran yoksa içerik üretmeyi reddeder.
 
 Tarih her öneride yazılır: haberin yaşı, içeriğe çevirip çevirmeme kararının
 yarısıdır.
+
+2026-09-26 kararı: öneri Instabot'un öneri taslağıyla aynı biçimde gelir — günde
+iki tur, tek mesajda en fazla beş numaralı başlık (bağlantılı, tek cümlelik özet,
+kaynak · sütun · tarih · /incele). Numaralarla çoklu seçim yapılır, "▶️ Hazırla"
+seçilenleri sırayla içeriğe çevirir. Seçim Worker'da yapılır, GitHub'a gitmez.
 """
 
 from __future__ import annotations
@@ -30,8 +35,9 @@ log = logging.getLogger(__name__)
 # insan baktığı için eşik daha düşük — config'deki haberler.onem_puani_esigi.
 ONERI_ESIGI = 7
 TAZELIK_SAAT = 36
-TUR_BASI_AZAMI = 4
-GUNLUK_AZAMI = 12
+TUR_BASI_AZAMI = 5      # Instabot'taki gibi: tek mesajda beş numara (1️⃣–5️⃣)
+GUNLUK_AZAMI = 10       # günde iki tur
+_RAKAMLAR = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
 
 _AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
           "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
@@ -59,6 +65,16 @@ def tarih_metni(iso: Optional[str], simdi: Optional[datetime] = None) -> str:
         yas = f"{saat // 24} gün önce"
     return (f"{yerel.day} {_AYLAR[yerel.month - 1]} {yerel.year} {_GUNLER[yerel.weekday()]}, "
             f"{yerel:%H:%M} · {yas}")
+
+
+def tarih_kisa(iso: Optional[str], simdi: Optional[datetime] = None) -> str:
+    """Listede tek satıra sığan tarih: '24 Eylül 14:05 · 3 saat önce' (TR saati)."""
+    uzun = tarih_metni(iso, simdi)
+    if uzun == "tarih bilinmiyor":
+        return uzun
+    gun, _, yas = uzun.partition(" · ")
+    parca = gun.split(" ")  # ['24', 'Eylül', '2026', 'Perşembe,', '14:05']
+    return f"{parca[0]} {parca[1]} {parca[-1]} · {yas}"
 
 
 def _gunluk_sayac_anahtari(simdi: datetime) -> str:
@@ -90,28 +106,51 @@ def adaylari_sec(limit: int) -> List[Dict[str, Any]]:
     return adaylar[:max(0, limit)]
 
 
-def oneri_mesaji(haber: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
-    sutun_adi = sutun.SUTUN_ADLARI.get(sutun.sutun_bul(haber.get("kategori")) or "", "")
-    ozet = (haber.get("orijinal_ozet") or haber.get("makale_metni") or "").strip()
-    if len(ozet) > 320:
-        ozet = ozet[:320].rsplit(" ", 1)[0] + "…"
-    etiket = " · ".join(x for x in (html.escape(haber.get("kaynak") or ""), html.escape(sutun_adi),
-                                    f"puan {haber.get('onem_puani')}") if x)
-    metin = (
-        f"📰 <b>Haber önerisi</b> · #{haber['id']}\n"
-        f"<b>{html.escape(haber.get('orijinal_baslik') or '')}</b>\n\n"
-        f"🗓 {tarih_metni(haber.get('yayin_tarihi'))}\n"
-        f"🏷 {etiket}\n"
-    )
-    if ozet:
-        metin += f"\n{html.escape(ozet)}\n"
-    if haber.get("orijinal_url"):
-        metin += f"\n🔗 <a href=\"{html.escape(haber['orijinal_url'], quote=True)}\">Haberi kaynağında aç</a>"
-    klavye = {"inline_keyboard": [[
-        {"text": "📝 İçeriğe çevir", "callback_data": f"haber_uret:{haber['id']}"},
-        {"text": "✖ Geç", "callback_data": f"haber_gec:{haber['id']}"},
-    ]]}
-    return metin, klavye
+def _tek_cumle(metin: str, azami: int = 180) -> str:
+    """Özetin ilk cümlesi; Instabot'taki gibi başlığın altında tek satırlık 💬."""
+    metin = " ".join((metin or "").split())
+    cumle = metin.split(". ")[0].rstrip(".") + "." if metin else ""
+    if len(cumle) > azami:
+        cumle = cumle[:azami].rsplit(" ", 1)[0] + "…"
+    return cumle
+
+
+def oneri_listesi_mesaji(haberler: List[Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
+    """Instabot'un öneri taslağı: tek mesaj, numaralı başlıklar, çoklu seçim düğmeleri.
+
+    callback_data yalnızca haber id'si taşır (64 bayt sınırı); başlık düğme
+    metninde bile yok, numara yeter. Seçim sayacı ("Hazırla (n)") Worker'da güncellenir.
+    """
+    satirlar = ["📰 <b>Günün Öne Çıkan Haber Adayları</b>", ""]
+    secim, incele = [], []
+    for i, h in enumerate(haberler[:len(_RAKAMLAR)]):
+        rakam = _RAKAMLAR[i]
+        puan = f"[{h['onem_puani']}] " if h.get("onem_puani") is not None else ""
+        baslik = html.escape(h.get("orijinal_baslik") or "")
+        url = str(h.get("orijinal_url") or "")
+        if url.startswith("http"):
+            satirlar.append(f"{rakam} <a href=\"{html.escape(url, quote=True)}\"><b>{puan}{baslik}</b></a>")
+        else:
+            satirlar.append(f"{rakam} <b>{puan}{baslik}</b>")
+        ham_baslik = (h.get("orijinal_baslik") or "").lower()
+        spot = _tek_cumle(h.get("orijinal_ozet") or h.get("makale_metni") or "")
+        if spot and spot.lower().rstrip(".…") not in ham_baslik and ham_baslik not in spot.lower():
+            satirlar.append(f"     💬 <i>{html.escape(spot)}</i>")
+        sutun_adi = sutun.SUTUN_ADLARI.get(sutun.sutun_bul(h.get("kategori")) or "", "")
+        kunye = " · ".join(html.escape(x) for x in (h.get("kaynak") or "", sutun_adi) if x)
+        satirlar.append(f"     <i>{kunye}</i> · 🗓 {tarih_kisa(h.get('yayin_tarihi'))} · <code>/incele_{h['id']}</code>")
+        satirlar.append("")
+        secim.append({"text": rakam, "callback_data": f"sec:{h['id']}"})
+        incele.append({"text": f"🔍 {i + 1}", "callback_data": f"incele:{h['id']}"})
+    satirlar.append("<i>Numaralara basarak haber seçebilir, 🔍 butonlarıyla veya /incele &lt;id&gt; "
+                    "ile detaylarını önizleyebilirsin.</i>")
+    klavye = {"inline_keyboard": [
+        secim,
+        incele,
+        [{"text": "▶️ Hazırla (0)", "callback_data": "hazirla_secilenler"}],
+        [{"text": "❌ Hiçbiri", "callback_data": "oneri_gec"}],
+    ]}
+    return "\n".join(satirlar), klavye
 
 
 def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
@@ -129,11 +168,13 @@ def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
         return 0
 
     gonderilen = 0
-    for h in adaylari_sec(min(TUR_BASI_AZAMI, kalan)):
-        metin, klavye = oneri_mesaji(h)
+    adaylar = adaylari_sec(min(TUR_BASI_AZAMI, kalan))
+    if adaylar:
+        metin, klavye = oneri_listesi_mesaji(adaylar)
         if telegram_bot.mesaj_gonder(metin, reply_markup=klavye):
-            db.haber_guncelle(h["id"], durum="onerildi")
-            gonderilen += 1
+            for h in adaylar:
+                db.haber_guncelle(h["id"], durum="onerildi")
+            gonderilen = len(adaylar)
     if gonderilen:
         _sayaci_artir(simdi, gonderilen)
     elif bos_ise_bildir:
@@ -142,6 +183,39 @@ def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
         )
     log.info("%d haber önerisi gönderildi.", gonderilen)
     return gonderilen
+
+
+def ham_haber_mi(h: Optional[Dict[str, Any]]) -> bool:
+    """Kayıt içeriğe çevrilmemiş bir haber önerisi mi (içerik kartı yerine haber ayrıntısı)?"""
+    return bool(h) and not h.get("detay_metni") and h.get("durum") in ("yeni", "onerildi", "elendi")
+
+
+def haber_detay_karti(h: Dict[str, Any]) -> Tuple[str, Optional[Dict[str, Any]]]:
+    """🔍 / /incele: haberin ayrıntısı ve (henüz işlenmediyse) "İçeriğe çevir" düğmesi."""
+    govde = " ".join((h.get("makale_metni") or h.get("orijinal_ozet") or "").split())
+    if len(govde) > 900:
+        govde = govde[:900].rsplit(" ", 1)[0] + "…"
+    sutun_adi = sutun.SUTUN_ADLARI.get(sutun.sutun_bul(h.get("kategori")) or "", "")
+    kunye = " · ".join(x for x in (html.escape(h.get("kaynak") or ""), html.escape(sutun_adi),
+                                   f"puan {h.get('onem_puani')}") if x)
+    metin = (
+        f"🔍 <b>Haber #{h['id']}</b>\n<b>{html.escape(h.get('orijinal_baslik') or '')}</b>\n\n"
+        f"🗓 {tarih_metni(h.get('yayin_tarihi'))}\n🏷 {kunye}\n"
+        f"📌 Durum: <code>{html.escape(str(h.get('durum')))}</code>\n"
+    )
+    if govde:
+        metin += f"\n{html.escape(govde)}\n"
+    if h.get("orijinal_url"):
+        metin += f"\n🔗 <a href=\"{html.escape(h['orijinal_url'], quote=True)}\">Haberi kaynağında aç</a>"
+    klavye = None
+    if h.get("durum") in ("onerildi", "yeni"):
+        klavye = {"inline_keyboard": [[{"text": "📝 İçeriğe çevir", "callback_data": f"haber_uret:{h['id']}"}]]}
+    return metin, klavye
+
+
+def haberlerden_icerige(haber_idleri: List[int]) -> int:
+    """Listeden seçilenler sırayla içeriğe çevrilir; her biri kendi onay mesajıyla gelir."""
+    return sum(1 for haber_id in dict.fromkeys(haber_idleri) if haberden_icerige(haber_id))
 
 
 def haberden_icerige(haber_id: int) -> bool:

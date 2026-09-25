@@ -865,6 +865,9 @@ def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[
             *kanal_butonlari(kanallar),
             [
                 {"text": "✅ Yayınla", "callback_data": f"yayin_menu:{adet}"},
+                {"text": "🎙️ Sesli Yayınla", "callback_data": f"ses_menu:{adet}"},
+            ],
+            [
                 {"text": "📲 Manuel Paylaşım Paketi", "callback_data": "manuel_paket"},
             ],
             [
@@ -904,6 +907,54 @@ def yayin_zamani_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = Non
             ],
             [
                 {"text": "← Geri", "callback_data": f"yayin_geri:{adet}"},
+            ],
+        ]
+    }
+
+
+def ses_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """"🎙️ Sesli Yayınla" alt menüsü: fon müzikli mi, müziksiz mi (kullanıcı kararı 2026-09-26).
+
+    Düz "✅ Yayınla" eskisi gibi seslendirmesiz; seslendirme yalnızca video
+    kanallarına (Reels, FB, YT, TT) uygulanır. Menü gezinmesini Worker yapar;
+    worker/index.js › sesMenusu ile birebir aynı kalmalı.
+    """
+    return {
+        "inline_keyboard": [
+            *kanal_butonlari(kanallar),
+            [
+                {"text": "🎵 Fon müzikli", "callback_data": f"ses_zaman:muzikli:{adet}"},
+                {"text": "🔇 Fon müziksiz", "callback_data": f"ses_zaman:muziksiz:{adet}"},
+            ],
+            [
+                {"text": "← Geri", "callback_data": f"yayin_geri:{adet}"},
+            ],
+        ]
+    }
+
+
+def sesli_yayin_zamani_menusu(mod: str = "muzikli", adet: int = 2,
+                              kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    """Sesli yayının zaman menüsü: "Yayınla"nınkiyle aynı yapı, seslendirme kipi düğmede."""
+    mod = "muziksiz" if mod == "muziksiz" else "muzikli"
+    simge = "🔇" if mod == "muziksiz" else "🎵"
+    return {
+        "inline_keyboard": [
+            *kanal_butonlari(kanallar),
+            [
+                {"text": f"▶️ Şimdi {simge}", "callback_data": f"yayinla_ses:{mod}"},
+                {"text": "30 dk", "callback_data": f"yayinla_ses_sonra:{mod}:30"},
+            ],
+            [
+                {"text": "1 saat", "callback_data": f"yayinla_ses_sonra:{mod}:60"},
+                {"text": "2 saat", "callback_data": f"yayinla_ses_sonra:{mod}:120"},
+            ],
+            [
+                {"text": "3 saat", "callback_data": f"yayinla_ses_sonra:{mod}:180"},
+                {"text": "4 saat", "callback_data": f"yayinla_ses_sonra:{mod}:240"},
+            ],
+            [
+                {"text": "← Geri", "callback_data": f"ses_menu:{adet}"},
             ],
         ]
     }
@@ -1140,6 +1191,11 @@ def icerik_incele_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
         return f"⚠️ <b>#{ref_id} numaralı içerik veritabanında bulunamadı.</b>", {
             "inline_keyboard": [[{"text": "← Kontrol Paneli", "callback_data": "panel"}]]
         }
+    from . import haber_oneri
+    if haber_oneri.ham_haber_mi(haber):
+        # Öneri listesindeki 🔍 / /incele_272: henüz içerik değil, haber. İçerik kartı
+        # "▶️ Şimdi Yayınla" sunardı — içeriği üretilmemiş bir haber için.
+        return haber_oneri.haber_detay_karti(haber)
 
     manset = haber.get("manset") or haber.get("orijinal_baslik") or "Başlıksız"
     durum = haber.get("durum", "bilinmiyor")
@@ -1614,8 +1670,12 @@ def _haber_onayina_sun(haber_id: int) -> bool:
             except Exception as d_err:
                 log.warning("Native 9:16 video slaytları üretilemedi, 4:5 dönüştürme kullanılacak: %s", d_err)
 
-        # Seslendirme ONAY anında: onaylanan video yayına çıkan videodur (yalnız kapak okunur)
-        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=otorite_verisi or veri_icin)
+        # Onayda seslendirme YOK: "✅ Yayınla" eskisi gibi seslendirmesiz çıkar, ses
+        # yalnızca "🎙️ Sesli Yayınla" seçilirse yayın anında üretilir (2026-09-26)
+        v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=otorite_verisi or veri_icin)
+        if v_ham and v_ham.exists():
+            v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
+            v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
     except Exception as ve:
         log.warning("Haber videosu onay anında derlenemedi: %s", ve)
 
@@ -1647,9 +1707,6 @@ def _haber_onayina_sun(haber_id: int) -> bool:
 
     # 3. Medya albümü gönder (HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER)
     medya_grubu_gonder(slayt_yollari, caption=album_caption)
-    # Reels/Shorts/TikTok'a çıkacak video da onaydan ÖNCE görülüp dinlensin
-    if v_yolu and Path(v_yolu).exists():
-        video_gonder(v_yolu, aciklama="🎬 <b>Dikey video</b> · Reels · Shorts · TikTok (seslendirmeli)")
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
     import html as html_lib
@@ -1943,8 +2000,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
                     video_slayt_yollari = [str(p) for p in d_slaytlar]
             except Exception as d_err:
                 log.warning("Native 9:16 reels slaytları üretilemedi: %s", d_err)
-        from . import ses
-        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=veri)
+        v_yolu = video.slaytlardan_reels_uret(video_slayt_yollari, haber=veri)
     except Exception as ve:
         log.warning("Reels videosu üretilemedi: %s", ve)
 
@@ -2274,7 +2330,11 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     # 2. YouTube Shorts için dikey 9:16 video ve fon müziği hazırla
     v_yolu = None
     try:
-        v_yolu = ses.anlatimli_video_uret(slayt_str_yollari, veri=veri)
+        v_yolu = video.slaytlardan_reels_uret(slayt_str_yollari)
+        if v_yolu and v_yolu.exists():
+            sesli_v = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20)
+            if sesli_v and sesli_v.exists():
+                v_yolu = sesli_v
     except Exception as ve:
         log.warning("YouTube Shorts dikey videosu üretilemedi: %s", ve)
 

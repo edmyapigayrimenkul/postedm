@@ -91,7 +91,7 @@ jobs:
         run: |
           python scripts/hazirla.py --format-degistir "$HABER_ID" --format "$FORMAT"
 
-      # Önerilen haber "📝 İçeriğe çevir" ile seçildi: triyaj + içerik + onay
+      # Önerilen haber(ler) "📝 İçeriğe çevir" ya da "▶️ Hazırla" ile seçildi: triyaj + içerik + onay
       - name: Haberden İçerik Hazırla
         if: github.event.action == 'haber_uret'
         env:
@@ -111,7 +111,8 @@ jobs:
           # Dış girdi env ile geçer; run bloğuna gömülmez
           HABER_ID: ${{ github.event.client_payload.haber_id }}
         run: |
-          case "$HABER_ID" in (''|*[!0-9]*) echo "Geçersiz haber kimliği"; exit 1;; esac
+          # Tek kimlik ya da öneri listesinden seçilenler: "272" / "272,273,275"
+          case "$HABER_ID" in (''|*[!0-9,]*|,*|*,|*,,*) echo "Geçersiz haber kimliği"; exit 1;; esac
           python scripts/hazirla.py --haberden "$HABER_ID"
 
       # Günün tek içeriği (ve elle tetiklenen format / slot istekleri)

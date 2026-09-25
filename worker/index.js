@@ -539,6 +539,54 @@ export default {
           return new Response("OK");
         }
 
+        // C3. ÇOKLU HABER ÖNERİSİ — Instabot'un öneri taslağı (2026-09-26)
+        // "sec:ID" bir başlığı işaretler/işareti kaldırır: GitHub'a GİTMEZ, Worker
+        // düğmeleri doğrudan düzenler. Her seçimde Actions uyandırmak dakikalar sürerdi.
+        // "hazirla_secilenler" işaretlilerin hepsini TEK dispatch ile gönderir; id'ler
+        // düğmelerin callback_data'sından okunur, metinden değil.
+        if (/^sec:\d{1,8}$/.test(data)) {
+          const klavye = cb.message?.reply_markup?.inline_keyboard || [];
+          let secili = 0;
+          const yeni = klavye.map((satir) => satir.map((btn) => {
+            const kopya = { ...btn };
+            if (kopya.callback_data === data) {
+              kopya.text = kopya.text.startsWith("✅") ? kopya.text.slice(1) : "✅" + kopya.text;
+            }
+            if (/^sec:\d{1,8}$/.test(String(kopya.callback_data || "")) && String(kopya.text || "").startsWith("✅")) {
+              secili += 1;
+            }
+            return kopya;
+          }));
+          for (const satir of yeni) {
+            for (const btn of satir) {
+              if (btn.callback_data === "hazirla_secilenler") btn.text = `▶️ Hazırla (${secili})`;
+            }
+          }
+          await butonlariGuncelle(yeni);
+          await cevapVer("");
+          return new Response("OK");
+        }
+        if (data === "hazirla_secilenler") {
+          const klavye = cb.message?.reply_markup?.inline_keyboard || [];
+          const idler = klavye.flat()
+            .filter((b) => /^sec:\d{1,8}$/.test(String(b.callback_data || "")) && String(b.text || "").startsWith("✅"))
+            .map((b) => b.callback_data.slice(4));
+          if (idler.length === 0) {
+            await cevapVer("Önce en az bir haber seç");
+            return new Response("OK");
+          }
+          await cevapVer(`${idler.length} haber içeriğe çevriliyor`);
+          await butonlariGuncelle([[{ text: `⏳ ${idler.length} haber sırayla içeriğe çevriliyor…`, callback_data: "noop" }]]);
+          await tetikle(env, chatId, "haber_uret", { haber_id: idler.join(",") });
+          return new Response("OK");
+        }
+        if (data === "oneri_gec") {
+          // Kayıtlar zaten 'onerildi': bir daha önerilmez, Actions koşusu gerekmez
+          await cevapVer("Geçildi");
+          await butonlariGuncelle([[{ text: "✖ Bu turda haber seçilmedi", callback_data: "noop" }]]);
+          return new Response("OK");
+        }
+
         // D. MENÜ GEZİNMELERİ (ANINDA WORKER TARAFINDAN YÖNETİLİR)
         if (
           data.startsWith("yayin_menu:") || data.startsWith("yayin_geri:") ||
@@ -546,7 +594,7 @@ export default {
           data.startsWith("metin_menu:") || data.startsWith("metin_geri:") ||
           data.startsWith("slayt_menu:") || data.startsWith("geri:") ||
           data.startsWith("format_menu:") || data.startsWith("onay_menu_don:") ||
-          data.startsWith("slayt:")
+          data.startsWith("slayt:") || data.startsWith("ses_menu:") || data.startsWith("ses_zaman:")
         ) {
           const parts = data.split(":");
           const kok = parts[0];
@@ -560,6 +608,10 @@ export default {
             yeniMenu = slaytIslemMenusu(sira, adet, seciliKanallar);
           } else if (kok === "yayin_menu") {
             yeniMenu = yayinZamaniMenusu(adet, seciliKanallar);
+          } else if (kok === "ses_menu") {
+            yeniMenu = sesMenusu(adet, seciliKanallar);
+          } else if (kok === "ses_zaman") {
+            yeniMenu = sesliYayinZamaniMenusu(parts[1] === "muziksiz" ? "muziksiz" : "muzikli", adet, seciliKanallar);
           } else if (kok === "foto_menu") {
             yeniMenu = fotoMenusu(adet, seciliKanallar);
           } else if (kok === "metin_menu") {
@@ -575,19 +627,31 @@ export default {
         }
 
         // E. YAYINLA AKSİYONU
-        if (data === "yayinla" || data.startsWith("yayinla_sonra:") || data.startsWith("onayla:")) {
+        if (data === "yayinla" || data.startsWith("yayinla_sonra:") || data.startsWith("onayla:") ||
+            data.startsWith("yayinla_ses:") || data.startsWith("yayinla_ses_sonra:")) {
           const klavye = cb.message?.reply_markup?.inline_keyboard || [];
           const secili = seciliKanallariCikar(klavye);
+          const sesli = data.startsWith("yayinla_ses");
+          const sesModu = sesli ? data.split(":")[1] : null;
 
           // Sıfır kanal seçimi koruması
-          if (secili && secili.length === 0 && (data === "yayinla" || data.startsWith("yayinla_sonra:"))) {
+          if (secili && secili.length === 0 && !data.startsWith("onayla:")) {
             await cevapVer("⚠️ En az bir yayın kanalı seçmelisin!");
+            return new Response("OK");
+          }
+          if (sesli && !["muzikli", "muziksiz"].includes(sesModu)) {
+            await cevapVer("Geçersiz seçim");
+            return new Response("OK");
+          }
+          // Seslendirme yalnızca videoya uygulanır: video kanalı yoksa sesli yayın anlamsız
+          if (sesli && !secili.some((k) => ["reels", "facebook", "youtube", "tiktok"].includes(k))) {
+            await cevapVer("🎙️ Sesli yayın için en az bir video kanalı seç (Reels, FB, YT, TT)");
             return new Response("OK");
           }
 
           let isReels = secili.includes("reels");
           let tur = isReels ? "reels" : "haber";
-          let hedef = secili.join(",");
+          let hedef = secili.join(",") + (sesli ? `,ses_${sesModu}` : "");
           let icerikId = "";
 
           if (data.startsWith("onayla:")) {
@@ -606,15 +670,19 @@ export default {
             icerikId = icerikIdBul();
           }
 
-          const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1] : null;
+          const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1]
+            : (data.startsWith("yayinla_ses_sonra:") ? data.split(":")[2] : null);
 
           await cevapVer("Yayın süreci başlatıldı");
           const baslikEtiketi = tur === "reels" ? "Reels Videosu" : (tur === "ilan" ? "İlan Postu" : "İçerik");
           const kanallarStr = hedefKanalEtiketleri(hedef);
+          const sesSatiri = sesli
+            ? `\n\n🎙️ <b>Seslendirme:</b> ${sesModu === "muzikli" ? "fon müzikli" : "fon müziksiz"} (video kanallarında)`
+            : "";
           if (gecikme) {
-            await mesajiGuncelle(`⏰ <b>${baslikEtiketi} Planlandı (${gecikme} dk)</b>\n\nİçerik <b>${gecikme} dakika sonra</b> yayına alınacaktır.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}`);
+            await mesajiGuncelle(`⏰ <b>${baslikEtiketi} Planlandı (${gecikme} dk)</b>\n\nİçerik <b>${gecikme} dakika sonra</b> yayına alınacaktır.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}${sesSatiri}`);
           } else {
-            await mesajiGuncelle(`🚀 <b>${baslikEtiketi} Yayına Alınıyor...</b>\n\nİçerik dağıtım motoru çalıştırıldı, yayın durumu birazdan güncellenecek.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}`);
+            await mesajiGuncelle(`🚀 <b>${baslikEtiketi} Yayına Alınıyor...</b>\n\nİçerik dağıtım motoru çalıştırıldı, yayın durumu birazdan güncellenecek.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}${sesSatiri}`);
           }
           await tetikle(env, chatId, "yayinla", {
             tur,
@@ -1141,10 +1209,12 @@ export default {
           return new Response("OK");
         }
 
-        if (komut === "/incele" || komut === "incele") {
-          const parcalar = text.split(/\s+/);
-          if (parcalar.length > 1 && /^\d+$/.test(parcalar[1])) {
-            await mesajGonder(`🔎 <b>İçerik #${parcalar[1]}</b> inceleniyor...`);
+        if (komut === "/incele" || komut === "incele" || komut.startsWith("/incele_")) {
+          // Öneri listesindeki "/incele_272" dokunulabilir komut; haber önerisi mi içerik mi
+          // ayrımını Python yapar (telegram_bot.icerik_incele_karti)
+          const parcalar = komut.startsWith("/incele_") ? ["/incele", komut.slice("/incele_".length)] : text.split(/\s+/);
+          if (parcalar.length > 1 && /^\d{1,8}$/.test(parcalar[1])) {
+            await mesajGonder(`🔎 <b>#${parcalar[1]}</b> inceleniyor...`);
             await tetikle(env, chatId, "bot_yonetim", { eylem: "incele", id: parcalar[1] });
             return new Response("OK");
           }
@@ -1348,6 +1418,9 @@ function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook
       ...kanalButonlariSatirlari(seciliKanallar),
       [
         { text: "✅ Yayınla", callback_data: `yayin_menu:${adet}` },
+        { text: "🎙️ Sesli Yayınla", callback_data: `ses_menu:${adet}` },
+      ],
+      [
         { text: "📲 Manuel Paylaşım Paketi", callback_data: "manuel_paket" },
       ],
       [
@@ -1386,6 +1459,47 @@ function yayinZamaniMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads",
       ],
       [
         { text: "← Geri", callback_data: `yayin_geri:${adet}` },
+      ],
+    ],
+  };
+}
+
+// Sesli yayın: "Yayınla" ile aynı yol, önce fon müziği sorulur. Seslendirme yalnızca
+// video kanallarına (Reels, FB, YT, TT) uygulanır; düz "Yayınla" eskisi gibi seslendirmesiz.
+function sesMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
+  return {
+    inline_keyboard: [
+      ...kanalButonlariSatirlari(seciliKanallar),
+      [
+        { text: "🎵 Fon müzikli", callback_data: `ses_zaman:muzikli:${adet}` },
+        { text: "🔇 Fon müziksiz", callback_data: `ses_zaman:muziksiz:${adet}` },
+      ],
+      [
+        { text: "← Geri", callback_data: `yayin_geri:${adet}` },
+      ],
+    ],
+  };
+}
+
+function sesliYayinZamaniMenusu(mod = "muzikli", adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook"]) {
+  const etiket = mod === "muziksiz" ? "🔇" : "🎵";
+  return {
+    inline_keyboard: [
+      ...kanalButonlariSatirlari(seciliKanallar),
+      [
+        { text: `▶️ Şimdi ${etiket}`, callback_data: `yayinla_ses:${mod}` },
+        { text: "30 dk", callback_data: `yayinla_ses_sonra:${mod}:30` },
+      ],
+      [
+        { text: "1 saat", callback_data: `yayinla_ses_sonra:${mod}:60` },
+        { text: "2 saat", callback_data: `yayinla_ses_sonra:${mod}:120` },
+      ],
+      [
+        { text: "3 saat", callback_data: `yayinla_ses_sonra:${mod}:180` },
+        { text: "4 saat", callback_data: `yayinla_ses_sonra:${mod}:240` },
+      ],
+      [
+        { text: "← Geri", callback_data: `ses_menu:${adet}` },
       ],
     ],
   };
@@ -1609,7 +1723,7 @@ function hedefKanalEtiketleri(hedef) {
     tiktok: "🎵 TikTok",
     tt: "🎵 TikTok",
   };
-  const parcalar = String(hedef || "hepsi").toLowerCase().split(",");
+  const parcalar = String(hedef || "hepsi").toLowerCase().split(",").filter((p) => !p.trim().startsWith("ses_"));
   if (parcalar.includes("hepsi") || parcalar.length === 0) {
     return "Tüm Kanallar (Instagram, Threads, Facebook, YouTube, TikTok)";
   }

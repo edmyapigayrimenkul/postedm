@@ -7,19 +7,23 @@
 #  düğmeyle: "📝 İçeriğe çevir" (hazirla.yml → haber_uret) ve "✖ Geç".
 #  İçerik üretmez; hangi haberin içeriğe çevrileceğine insan karar verir.
 #
-#  Saatler TR: 09:17, 13:17, 17:17, 21:17. Dakika :17 — GitHub cron'ları
-#  tam saatte yığılıyor ve gecikiyor. Telegram'dan /haber ya da paneldeki
-#  "Haber" düğmesi aynı işi hemen yapar (repository_dispatch: haber_oneri).
+#  2026-09-26 kararı: Instabot'un öneri taslağıyla aynı — günde İKİ tur, tek
+#  mesajda en fazla beş numaralı başlık; numaralarla çoklu seçim, "▶️ Hazırla"
+#  seçilenleri sırayla içeriğe çevirir (hazirla.yml → haber_uret "272,273").
+#  🔍 / /incele mevcut inceleme yolundan gider (yayinla.yml › bot_yonetim):
+#  kayıt işlenmemiş haberse haber ayrıntısı, içerikse içerik kartı gelir.
 #
-#  Kota: 4 koşu/gün × ~2 dk ≈ 240 dk/ay. Kaldırılan iki içerik slotu
-#  (13:30 sözlük, 18:30 haber) bundan fazlasını geri kazandırıyor.
+#  Saatler TR: 09:17 ve 18:17. Dakika :17 — GitHub cron'ları tam saatte
+#  yığılıyor ve gecikiyor. Telegram'dan /haber aynı işi hemen yapar.
+#
+#  Kota: 2 koşu/gün × ~2 dk ≈ 120 dk/ay.
 # =========================================================
 
 name: Haber Önerisi
 
 on:
   schedule:
-    - cron: "17 6,10,14,18 * * *"
+    - cron: "17 6,15 * * *"
   repository_dispatch:
     types: [haber_oneri]
   workflow_dispatch:

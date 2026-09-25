@@ -98,8 +98,10 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.assertIn("Başlık a", gonderilen[0])
         self.assertIn("🗓", gonderilen[0])
         self.assertIn("saat önce", gonderilen[0])
-        klavye = mock_mesaj.call_args_list[0].kwargs["reply_markup"]["inline_keyboard"][0]
-        self.assertEqual([b["callback_data"].split(":")[0] for b in klavye], ["haber_uret", "haber_gec"])
+        # Instabot'un öneri taslağı (2026-09-26): numaralı seçim, 🔍 inceleme, Hazırla, Hiçbiri
+        klavye = mock_mesaj.call_args_list[0].kwargs["reply_markup"]["inline_keyboard"]
+        self.assertEqual([[b["callback_data"].split(":")[0] for b in satir] for satir in klavye],
+                         [["sec"], ["incele"], ["hazirla_secilenler"], ["oneri_gec"]])
         with db._baglanti_al() as conn:
             durum = conn.execute("SELECT durum FROM haberler WHERE orijinal_url = 'https://ornek.com/a'").fetchone()[0]
         self.assertEqual(durum, "onerildi")
@@ -126,6 +128,7 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
 
         # Temel eylem butonları
         self.assertIn("yayin_menu:3", callbackler)
+        self.assertIn("ses_menu:3", callbackler)  # 🎙️ Sesli Yayınla (2026-09-26)
         self.assertIn("manuel_paket", callbackler)
         self.assertIn("ertele", callbackler)
         self.assertIn("iptal", callbackler)

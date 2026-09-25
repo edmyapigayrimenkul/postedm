@@ -275,13 +275,15 @@ def anlatimli_video_uret(
     slayt_yollari: List[Path | str],
     veri: Optional[Dict[str, Any]] = None,
     cikti_yolu: Optional[Path] = None,
+    muzik: bool = True,
+    sonuc: Optional[Dict[str, Any]] = None,
 ) -> Optional[Path]:
-    """Onaylanan slaytlardan seslendirmeli 9:16 video.
+    """Onaylanan slaytlardan seslendirmeli 9:16 video ("🎙️ Sesli Yayınla").
 
     Kapak, okunan metin bitene kadar ekranda kalır; diğer slaytlar okuma süresi
     kadar (video.slayt_surelerini_hesapla). Son slaytta kapanış çağrısı.
-    Anahtar yoksa ya da ElevenLabs düşerse video yalnız fon müziğiyle çıkar:
-    seslendirme yayını durdurmaz.
+    `muzik=False`: fon müziksiz — yalnızca ses. Anahtar yoksa ya da ElevenLabs
+    düşerse video seslendirmesiz çıkar; `sonuc["anlatim"]` bunu yayın raporuna taşır.
     """
     from . import video
 
@@ -313,17 +315,21 @@ def anlatimli_video_uret(
         video_sonu = sum(sureler) - video.GECIS_SN  # son slaytın geçiş payı kullanılmıyor
         parcalar.append((cagri_sesi, max(asgari_bas, video_sonu - cagri_suresi - ANLATIM_SONRASI_SN)))
 
+    if sonuc is not None:
+        sonuc["anlatim"] = bool(kapak_sesi)
     sessiz = video.slaytlardan_reels_uret(slayt_yollari, cikti_yolu=cikti_yolu, slayt_sureleri=sureler, haber=veri)
     if not sessiz or not Path(sessiz).exists():
         return sessiz
     anlatim = _anlatim_izi(parcalar, sum(sureler), Path(sessiz).with_name(f"{Path(sessiz).stem}_anlatim.wav")) if parcalar else None
-    sonuc = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20)
-    if sonuc and Path(sonuc) != Path(sessiz) and Path(sonuc).exists():
+    if sonuc is not None:
+        sonuc["anlatim"] = bool(anlatim)
+    karisik = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20, muzik=muzik)
+    if karisik and Path(karisik) != Path(sessiz) and Path(karisik).exists():
         # Ara dosyalar: sessiz video ve anlatım izi artık gerekmiyor
         for ara in (Path(sessiz), anlatim):
             if ara:
                 Path(ara).unlink(missing_ok=True)
-    return sonuc
+    return karisik
 
 
 def sesli_video_hazirla(
@@ -332,6 +338,7 @@ def sesli_video_hazirla(
     konusma_sesi: Optional[Path | str] = None,
     ses_seviyesi: float = 0.14,
     hedef_yol: Optional[Path | str] = None,
+    muzik: bool = True,
 ) -> Path:
     """
     Videoya ElevenLabs seslendirmesi ve/veya kurumsal fon müziği miksler.
@@ -355,8 +362,11 @@ def sesli_video_hazirla(
     else:
         cikti_yolu = Path(hedef_yol)
 
-    secilen_muzik = Path(ses_dosyasi) if ses_dosyasi else ses_sec()
+    secilen_muzik = (Path(ses_dosyasi) if ses_dosyasi else ses_sec()) if muzik else None
     secilen_konusma = Path(konusma_sesi) if konusma_sesi and Path(konusma_sesi).exists() else None
+    if not muzik and not secilen_konusma:
+        # "Fon müziksiz" seçildi ve ses yok: yedek ambiyans akoru da eklenmez
+        return yol
 
     try:
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
