@@ -481,6 +481,33 @@ def onay_istegi_sonuclandir(tur: str, referans_id: str, durum: str) -> None:
         conn.commit()
 
 
+def onay_mesajlarini_getir(tur: str, referans_id: Any, sadece_bekleyen: bool = False) -> List[int]:
+    """İçeriğe ait onay_istekleri tablosundaki tüm telegram_mesaj_id değerlerini döner."""
+    turler = ("haber", "reels") if str(tur) in ("haber", "reels") else (str(tur),)
+    yer = ",".join("?" for _ in turler)
+    sorgu = (
+        f"SELECT telegram_mesaj_id FROM onay_istekleri "
+        f"WHERE tur IN ({yer}) AND referans_id = ? AND telegram_mesaj_id IS NOT NULL "
+        f"AND durum != 'silindi'"
+    )
+    if sadece_bekleyen:
+        sorgu += " AND durum = 'bekliyor'"
+    sorgu += " ORDER BY id ASC"
+    with _baglanti_al() as conn:
+        rows = conn.execute(sorgu, (*turler, str(referans_id))).fetchall()
+        return [int(r["telegram_mesaj_id"]) for r in rows if r["telegram_mesaj_id"]]
+
+
+def onay_mesaj_silindi_isaretle(telegram_mesaj_id: int) -> None:
+    """Silinen mesajı onay_istekleri tablosunda 'silindi' olarak işaretler."""
+    with _baglanti_al() as conn:
+        conn.execute(
+            "UPDATE onay_istekleri SET durum = 'silindi' WHERE telegram_mesaj_id = ?",
+            (telegram_mesaj_id,),
+        )
+        conn.commit()
+
+
 def onay_istegi_ertele(tur: str, referans_id: str, dakika: int = 60) -> bool:
     """
     Onay bekleyen bir içeriğin bekleme süresini belirtilen dakika kadar ileri öteler

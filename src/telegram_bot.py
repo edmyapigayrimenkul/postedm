@@ -402,6 +402,31 @@ def mesaji_sil(mesaj_id: int) -> bool:
     return bool(res)
 
 
+def icerik_onceki_mesajlarini_temizle(tur: str, referans_id: Any, haric_mesaj_id: Optional[int] = None) -> int:
+    """
+    Aynı içerik için daha önce Telegram grubuna gönderilmiş olan onay kartı
+    ve hatırlatma mesajlarını siler; böylece chatte mükerrer kartlar ve kaos oluşmaz.
+    """
+    try:
+        eski_idler = db.onay_mesajlarini_getir(tur, str(referans_id))
+        silinen = 0
+        for mid in eski_idler:
+            if haric_mesaj_id and mid == haric_mesaj_id:
+                continue
+            try:
+                if mesaji_sil(mid):
+                    silinen += 1
+                db.onay_mesaj_silindi_isaretle(mid)
+            except Exception as e:
+                log.warning("Mesaj #%d silinemedi: %s", mid, e)
+        if silinen > 0:
+            log.info("İçerik (%s #%s) için önceki %d adet mesaj Telegram'dan temizlendi.", tur, referans_id, silinen)
+        return silinen
+    except Exception as e:
+        log.warning("Önceki mesajlar temizlenirken hata: %s", e)
+        return 0
+
+
 def mesaji_guncelle(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> bool:
     """Var olan mesajı günceller; 'message is not modified' durumunda çökmez."""
     payload: Dict[str, Any] = {
@@ -1642,6 +1667,7 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         mesaj_metni += f"<pre><code>{temiz_caption}</code></pre>\n\n"
     mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
 
+    icerik_onceki_mesajlarini_temizle("haber", haber_id)
     butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2)
     res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
@@ -1990,6 +2016,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         f"💡 <i>Videoyu kaydedebilir veya '✅ Yayınla' -> '▶️ Şimdi' butonuna basarak doğrudan tüm platformlara otomatik yayınlayabilirsiniz.</i>"
     )
     reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True}
+    icerik_onceki_mesajlarini_temizle("reels", haber_id)
     res = mesaj_gonder(mesaj_metni, reply_markup=ana_menu(adet=len(slayt_yollari) if slayt_yollari else 7, kanallar=reels_kanallari))
     if res and isinstance(res, dict) and "message_id" in res:
         _, chat_id = _bot_bilgileri()

@@ -290,11 +290,11 @@ def main() -> None:
     # 0.5 Yenile Aksiyonu (Gemini metinleri ve slaytları yeniden üretip onaya sunar)
     if hedef == "yenile":
         db.onay_istegi_sonuclandir(tur, str(ref_id), "yenilendi")
+        telegram_bot.icerik_onceki_mesajlarini_temizle(tur, str(ref_id))
         if tur == "reels":
             log.info("Reels #%s için video ve metin yeniden üretiliyor...", ref_id)
             db.haber_guncelle(int(ref_id), durum="iptal")
             telegram_bot.reels_hazirla_ve_sun()
-            telegram_bot.mesaj_gonder(f"🔄 <b>Reels #{ref_id} yerine yeni dikey video hazırlanıp gruba iletildi.</b>")
         elif tur == "haber":
             log.info("Haber #%s için metinler ve slaytlar yeniden hazırlanıyor...", ref_id)
             haber = db.haber_getir(int(ref_id))
@@ -309,7 +309,6 @@ def main() -> None:
             generate_text.haber_metinleri_uret(haber)
             db.haber_guncelle(int(ref_id), slayt_yollari=None, slayt_urlleri=None, video_yolu=None)
             telegram_bot.haber_onayina_sun(int(ref_id))
-            telegram_bot.mesaj_gonder(f"🔄 <b>Haber #{ref_id} yeniden üretildi ve onayınıza sunuldu.</b>")
         elif tur == "ilan":
             log.info("İlan #%s için önizleme yeniden hazırlanıyor...", ref_id)
             telegram_bot.ilan_postunu_hazirla_ve_sor(ref_id)
@@ -1244,6 +1243,9 @@ def main() -> None:
             bildir=not bool(args.mesaj_id),
             reply_markup=reply_markup,
         )
+        # Eğer bu içerik için hatırlatma atılmışsa ve birden fazla onay/hatırlatma mesajı varsa:
+        # Sonucu yazdığımız mesaj hariç diğer eski mesajları temizle (chat kaosunu sıfırla)
+        telegram_bot.icerik_onceki_mesajlarini_temizle(tur, ref_id, haric_mesaj_id=args.mesaj_id)
         try:
             Path("data/son_rapor_gonderildi.txt").write_text(str(ref_id), encoding="utf-8")
         except Exception:

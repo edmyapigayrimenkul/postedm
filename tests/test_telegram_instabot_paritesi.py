@@ -193,6 +193,25 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         for aksiyon in zorunlu_aksiyonlar:
             self.assertIn(aksiyon, worker_js, f"Worker eksik aksiyon: {aksiyon}")
 
+    def test_icerik_onceki_mesajlarini_temizle(self):
+        """Aynı içerik için eski onay/hatırlatma mesajlarının silindiğini doğrular."""
+        # 1. İçerik için iki adet mesaj kaydı ekle
+        db.onay_istegi_kaydet("haber", "999", telegram_mesaj_id=101, telegram_chat_id=-100123)
+        db.onay_istegi_kaydet("haber", "999", telegram_mesaj_id=102, telegram_chat_id=-100123)
+
+        kayitli = db.onay_mesajlarini_getir("haber", "999")
+        self.assertEqual(kayitli, [101, 102])
+
+        with patch.object(telegram_bot, "mesaji_sil", return_value=True) as mock_sil:
+            # 102 hariç silinsin (örneğin güncellenen mesaj hariç)
+            silinen = telegram_bot.icerik_onceki_mesajlarini_temizle("haber", "999", haric_mesaj_id=102)
+            self.assertEqual(silinen, 1)
+            mock_sil.assert_called_once_with(101)
+
+        # 101 silindi olarak işaretlendiği için sadece 102 kalmalı
+        kalan = db.onay_mesajlarini_getir("haber", "999")
+        self.assertEqual(kalan, [102])
+
 
 if __name__ == "__main__":
     unittest.main()
