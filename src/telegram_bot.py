@@ -1614,10 +1614,8 @@ def _haber_onayina_sun(haber_id: int) -> bool:
             except Exception as d_err:
                 log.warning("Native 9:16 video slaytları üretilemedi, 4:5 dönüştürme kullanılacak: %s", d_err)
 
-        v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=otorite_verisi or veri_icin)
-        if v_ham and v_ham.exists():
-            v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
-            v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
+        # Seslendirme ONAY anında: onaylanan video yayına çıkan videodur (yalnız kapak okunur)
+        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=otorite_verisi or veri_icin)
     except Exception as ve:
         log.warning("Haber videosu onay anında derlenemedi: %s", ve)
 
@@ -1649,6 +1647,9 @@ def _haber_onayina_sun(haber_id: int) -> bool:
 
     # 3. Medya albümü gönder (HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER)
     medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    # Reels/Shorts/TikTok'a çıkacak video da onaydan ÖNCE görülüp dinlensin
+    if v_yolu and Path(v_yolu).exists():
+        video_gonder(v_yolu, aciklama="🎬 <b>Dikey video</b> · Reels · Shorts · TikTok (seslendirmeli)")
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
     import html as html_lib
@@ -1942,7 +1943,8 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
                     video_slayt_yollari = [str(p) for p in d_slaytlar]
             except Exception as d_err:
                 log.warning("Native 9:16 reels slaytları üretilemedi: %s", d_err)
-        v_yolu = video.slaytlardan_reels_uret(video_slayt_yollari, haber=veri)
+        from . import ses
+        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=veri)
     except Exception as ve:
         log.warning("Reels videosu üretilemedi: %s", ve)
 
@@ -2272,11 +2274,7 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     # 2. YouTube Shorts için dikey 9:16 video ve fon müziği hazırla
     v_yolu = None
     try:
-        v_yolu = video.slaytlardan_reels_uret(slayt_str_yollari)
-        if v_yolu and v_yolu.exists():
-            sesli_v = ses.sesli_video_hazirla(v_yolu, ses_seviyesi=0.20)
-            if sesli_v and sesli_v.exists():
-                v_yolu = sesli_v
+        v_yolu = ses.anlatimli_video_uret(slayt_str_yollari, veri=veri)
     except Exception as ve:
         log.warning("YouTube Shorts dikey videosu üretilemedi: %s", ve)
 

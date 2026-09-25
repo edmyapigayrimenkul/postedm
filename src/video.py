@@ -148,53 +148,72 @@ def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[I
         except Exception as e:
             log.warning("Yerel görsel açılamadı (%s): %s", p, e)
     return None
+# Kullanıcı kararı 2026-09-26: yoğun bir ayrıntı slaytı 5,5 sn'de geçiyordu ("diğer
+# sayfaların süresi çok az"). Sessiz slayt, üstündeki metnin okuma süresi kadar kalır.
+OKUMA_HIZI_KELIME_SN = 4.0            # telefonda sessiz okuma
+DETAY_ASGARI_SN, DETAY_AZAMI_SN = 6.0, 15.0
+GECIS_SN = 0.5
+_SLAYT_METNI = ("detay_maddeleri", "uzman_notu", "cikarilacak_ders", "stratejist_notu", "olay_detay",
+                "yargitay_hukmu", "puf_maddeleri", "maddeler", "adimlar", "altin_kural", "tavsiye", "tavsiye_metin")
+_SAYILMAYAN = ("renk", "no", "tip", "ikon", "etiket_rengi")
+
+
+def _detay_kelime_sayisi(veri: Optional[dict]) -> int:
+    """Kapak DIŞINDAKİ slaytlarda yazan metnin kelime sayısı (kapak ve caption alanları sayılmaz)."""
+    if not isinstance(veri, dict):
+        return 0
+    if isinstance(veri.get("detay_metni"), str):
+        try:
+            import json
+            ic = json.loads(veri["detay_metni"])
+            if isinstance(ic, dict):
+                veri = {**ic, **{k: v for k, v in veri.items() if k != "detay_metni"}}
+        except ValueError:
+            pass
+    toplam = 0
+
+    def say(d) -> None:
+        nonlocal toplam
+        if isinstance(d, str):
+            toplam += len(d.split())
+        elif isinstance(d, dict):
+            for a, v in d.items():
+                if a not in _SAYILMAYAN:
+                    say(v)
+        elif isinstance(d, (list, tuple)):
+            for v in d:
+                say(v)
+
+    for anahtar, deger in veri.items():
+        if anahtar in _SLAYT_METNI or str(anahtar).startswith("slayt_"):
+            say(deger)
+    return toplam
+
+
 def slayt_surelerini_hesapla(
     toplam_slayt: int,
     haber: Optional[dict] = None,
     varsayilan_kapak_suresi: float = 4.2,
+    kapak_konusma_suresi: float = 0.0,
 ) -> List[float]:
-    """
-    Her slayt için içerik ve kelime yoğunluğuna göre akıllı dinamik süre (saniye) listesi döner.
-    (Instabot commit 94bf292 referansı ile EDM formatına uyarlanmıştır)
+    """Slayt başına ekranda kalma süresi (saniye).
 
-    * 1. Slayt (Kapak / Kanca): 4.2 saniye (Görseli, kancayı ve 70px dev manşeti algılamak için ideal).
-    * 2. ve Sonraki Slaytlar (Detay):
-      - Kelime sayısına göre: 4.8s ila 6.2s arasında otomatik ölçeklenir.
-      - Ortalama Türkçe sessiz okuma hızına (saniyede ~3-3.5 kelime) göre insani okuma payı bırakılır.
-      - Toplam video süresi 15 - 20 saniye bandında tutulur (Reels/Shorts zirve retention süresi).
+    * Kapak: seslendirme varsa ses bitene kadar (+ nefes ve geçiş payı), yoksa 4,2 sn.
+    * Diğerleri: üstündeki metnin okuma süresi, 6-15 sn arası. Metin kapak dışındaki
+      slaytlara eşit dağıtılmış sayılır; hangi maddenin hangi slayta düştüğünü çizici bilir.
     """
     if toplam_slayt <= 0:
         return []
-
-    sureler = [varsayilan_kapak_suresi]
+    kapak = varsayilan_kapak_suresi
+    if kapak_konusma_suresi > 0:
+        kapak = max(kapak, round(0.4 + kapak_konusma_suresi + 0.8 + GECIS_SN, 2))
+    sureler = [kapak]
     if toplam_slayt == 1:
         return sureler
-
-    detay_maddeleri = []
-    if haber and isinstance(haber, dict):
-        detay_maddeleri = haber.get("detay_maddeleri") or []
-        if not detay_maddeleri and haber.get("detay_metni"):
-            try:
-                import json
-                d = json.loads(haber["detay_metni"]) if isinstance(haber["detay_metni"], str) else haber["detay_metni"]
-                if isinstance(d, dict):
-                    detay_maddeleri = d.get("detay_maddeleri") or []
-            except Exception:
-                pass
-
-    kalan_slayt_sayisi = toplam_slayt - 1
-    for idx in range(kalan_slayt_sayisi):
-        kelime_sayisi = 40  # Varsayılan detay kelime sayısı
-        if detay_maddeleri and idx < len(detay_maddeleri):
-            m = detay_maddeleri[idx]
-            txt = f"{m.get('etiket', '')} {m.get('metin', '')}"
-            kelime_sayisi = len(txt.split())
-
-        # Taban 4.5 sn + her 20 kelime için +0.5 sn ek süre (Min 4.8 sn, Maks 6.2 sn)
-        hesaplanan = 4.5 + min(1.7, max(0.3, (kelime_sayisi / 20.0) * 0.5))
-        sureler.append(round(hesaplanan, 2))
-
-    return sureler
+    kelime = _detay_kelime_sayisi(haber)
+    slayt_basi = kelime / (toplam_slayt - 1) if kelime else 20
+    sure = round(min(DETAY_AZAMI_SN, max(DETAY_ASGARI_SN, 1.5 + slayt_basi / OKUMA_HIZI_KELIME_SN)), 2)
+    return sureler + [sure] * (toplam_slayt - 1)
 
 
 def slaytlardan_video_uret(
@@ -281,10 +300,11 @@ def slaytlardan_video_uret(
 
         toplam_slayt = len(np_kareler)
         if toplam_slayt == 1:
-            # Tek sayfalık görsel için YouTube Shorts ve Facebook Reels'e uygun 6.5 saniyelik sinematik yavaş zoom
+            # Tek sayfalık görsel için sinematik yavaş zoom; en az 6,5 sn, seslendirme
+            # varsa ses bitene kadar (sözlük kartında ses 6,5 sn'de kesiliyordu)
             tek_img = kareler_ham[0]
             w_img, h_img = tek_img.size
-            toplam_kare_tek = int(fps * 6.5)
+            toplam_kare_tek = int(fps * max(6.5, hesaplanan_sureler[0] if hesaplanan_sureler else 0))
             for k in range(toplam_kare_tek):
                 scale = 1.0 + 0.035 * (k / float(toplam_kare_tek))
                 new_w = int(w_img * scale)

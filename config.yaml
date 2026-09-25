@@ -172,3 +172,30 @@ sosyal:
     tiktok:
       - "#silivri"
       - "#emlak"
+
+# ---------------------------------------------------------
+# SESLENDİRME (ElevenLabs) — kullanıcı kararları 2026-09-26
+# ---------------------------------------------------------
+# Yalnızca KAPAK okunur (manşet + spot; sözlükte terim + tanım). Madde ve bölüm
+# başlıkları hiçbir modda okunmaz. Ses onay anında üretilir, onay mesajında
+# video olarak görülür; yayına çıkan video odur.
+# Tek kaynak burası: ELEVENLABS_VOICE_ID ortam değişkeni artık okunmuyor
+# (yereldeki eski değer seçilen sesi sessizce geri çeviriyordu).
+seslendirme:
+  ses_id: "r3deco0KTo6o0Kb5inro"        # Sıla Özalp — haber sunucusu (profesyonel ses)
+  yedek_ses_id: "J17lijyP1BHYcM7ld0Rg"  # Adam — Sıla kütüphaneden kalkarsa
+  model: "eleven_multilingual_v2"
+  # "Biraz daha hızlı ve heyecanlı": bugünkü ayar (1.0 / 0.60 / 0.0) ağır bulundu
+  ayarlar:
+    stability: 0.40
+    similarity_boost: 0.80
+    style: 0.30
+    use_speaker_boost: true
+    speed: 1.12
+  hedef_lufs: -14          # telefon hoparlöründe cılız kalmasın; sosyal medya standardı
+  # Son slaytta okunur. Önce gerekçe, sonra çağrı ("…istemiyorsanız"): emir değil
+  # öneri gibi duyulsun. "Beğenin" bilerek yok: yalvarır gibi duruyor ve Reels'te
+  # beğeniden çok kaydetme/paylaşma öne çıkarıyor.
+  kapanis_cagrisi:
+    haber: "Silivri ve Trakya gündemini kaçırmak istemiyorsanız takipte kalın."
+    rehber: "Bu bilgiyi lazım olduğu gün aramak istemiyorsanız kaydedin, takipte kalın."
