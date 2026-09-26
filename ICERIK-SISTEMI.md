@@ -261,6 +261,12 @@ durur, yalnızca zemin ve içerik değişir — carousel'e ritim veren şey budu
 
 ## 5.6 Stres ve sabotaj testi
 
+> **2026-09-25:** Asıl denetim artık `scripts/gorsel_denetim.py` (CI adımı, 164 vaka).
+> Pikselle değil çizim kaydıyla bakar: taşma, çakışma, **örtülme** (#243), kırpılma,
+> fontta olmayan glif, yüzen birleştirici işaret. Sığmayan metin kırpılmaz, üretim
+> `TasmaHatasi` ile durur. Aşağıdaki `stres_testi.py` yalnız B biçimleri için kaldı.
+> Seslendirme metninin sabotaj testleri: `tests/test_okunus.py`. Ayrıntı: `MEMORY.md` §9.
+
 `scripts/stres_testi.py` — 33 vaka × 2 ölçü = **66 koşu**.
 
 **Stres (13 vaka):** geçerli ama uç hacimli içerik — tüm alanlar boş, tek kelime,
@@ -400,6 +406,14 @@ python scripts/hazirla.py --durum          # bankanın ve adayların durumu
 ```
 
 ---
+
+## 5.7.1 Öneri biçimi (2026-09-26)
+
+Öneri artık Instabot'un öneri taslağıyla aynı: günde iki tur (09:17, 18:17 TR), tek
+mesajda en fazla beş numaralı başlık; numaralarla çoklu seçim (Worker'da), "▶️ Hazırla
+(n)" seçilenleri sırayla içeriğe çevirir, 🔍 ya da `/incele_ID` ayrıntıyı getirir.
+Kural tabanlı eşik (`haber_oneri.ONERI_ESIGI`) ve "içeriğe çevirme insan kararıdır"
+ilkesi değişmedi.
 
 ## 5.8 Model zincirleri
 

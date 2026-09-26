@@ -77,7 +77,12 @@ INSTAGRAM_ACCOUNT_ID=...
 FACEBOOK_PAGE_ID=...
 FACEBOOK_ACCESS_TOKEN=...
 EDM_SITE_API_ANAHTARI=site-worker-ile-ayni-uzun-rastgele-anahtar
+PEXELS_API_KEY=...          # konuya uygun kapak fotoğrafı (yoksa yerel havuz)
+ELEVENLABS_API_KEY=...      # "🎙️ Sesli Yayınla" seslendirmesi (yoksa video seslendirmesiz çıkar)
 ```
+
+Ses (Sıla Özalp) ve ayarları `config.yaml › seslendirme` içindedir; `ELEVENLABS_VOICE_ID`
+ortam değişkeni okunmaz. Ayrıntı ve kararlar: `MEMORY.md` §9.
 
 ---
 

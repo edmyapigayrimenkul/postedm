@@ -74,9 +74,11 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 
 ## 4. TEKNİK MİMARİ & ÇALIŞMA AKIŞI
 
-1. **İçerik Hazırlığı & Cron (günde 3 slot: 10:00 / 13:30 / 18:30 TR):**
-   * Tetikleyici GitHub cron'udur (`.github/workflows/hazirla.yml`). Worker'ın
-     `[triggers]` bölümü BİLEREK kapalı — ikisi birden açıksa aynı gün iki tur çalışır.
+1. **İçerik Hazırlığı & Cron (günde BİR içerik, 10:00 TR — bkz. §8.5):**
+   * Günlük turun tetikleyicisi GitHub cron'udur (`.github/workflows/hazirla.yml`).
+     Worker'ın `[triggers]` bölümü 2026-09-26'dan beri YALNIZCA planlı yayın çalar
+     saatiyle (`*/10`) açık; `scheduled()` günlük tur (`sabah_hazirla`) GÖNDERMEZ —
+     ikisi birden günlük turu tetiklerse aynı gün iki tur çalışır (bkz. §9.5).
    * RSS taranır, Gemini kanca başlıklı 3 slaytlık analiz üretir ve görseller `src/make_image.py` ile çizilir.
    * Telegram grubuna `@PostEdmBot` üzerinden önizleme ve onay butonları (`✅ Yayına Al (IG + FB + Threads)`) iletilir.
 2. **Onay ve Yayınlama:**
@@ -193,3 +195,98 @@ Bu kuralların her biri üretimde yaşanmış bir hatadan doğdu. Kod yazan her 
    öneri düşer, "İçeriğe çevir" insan kararıdır. Haber slotu içerik üretmez.
 6. **Caption soruyla bitmez**: kaydet/gönder çağrısı + site/telefon + konuya özel etiket.
 7. **Marka paleti**: amber/turkuaz/yeşil yok; kırmızı yalnızca vurgu, zemin çoğunlukla kağıt.
+
+## 9. 2026-09-25/26 — TASARIM DENETİMİ, SESLENDİRME, ÖNERİ, PLANLI YAYIN
+
+Claude oturumu. Kararların çoğu kullanıcının örnekleri dinleyip/görüp verdiği
+kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
+
+### 9.1 Görsel denetim ve tasarım
+1. **`scripts/gorsel_denetim.py` CI adımıdır (164 vaka: 8 biçim × 2 ölçü × stres/sabotaj).**
+   Çizim çağrılarını dinler, pikselle değil. Denetimler: TUVAL DIŞI, KENAR, ÇAKIŞMA,
+   KUTU KESİŞİMİ, ÖRTÜLDÜ (#243 sözlükte tanım kutunun altında kalmıştı), PUNTO,
+   KIRPILDI, **GLİF YOK** (fontta olmayan karakter kutu basar), **YÜZEN İŞARET**.
+   Yeni biçim/alan eklerken `FORMATLAR`/`fikstur` güncellenir.
+2. **Sığmayan metin kırpılmaz.** Çizici en küçük okunur puntoda da sığmazsa
+   `make_image.TasmaHatasi(EksikIcerik)` fırlatır; üretim durur. Bütçe:
+   `generate_text.BUTCE` (terim 26, tanım 260, puf_madde 95 …; `AZAMI_PUF_MADDE = 3`).
+3. **Gövde fontu IBM Plex Sans (statik örnekler).** `-Variable.ttf`, `Fraunces-Variable.ttf`
+   ve `IBMPlexMono-Regular.ttf` Latin alt kümesidir: ğ ş İ ₺ YOK — kullanma.
+4. **Çizim girişleri metnin süzülmüş KOPYASIYLA çalışır** (`make_image._gorsel_girdisi`,
+   `gorsel_metni`): emoji, U+200B/U+202E, sahipsiz birleştirici işaret ve kart fontlarının
+   ortak glif kümesinde olmayan her karakter ayıklanır; caption'daki emoji yerinde kalır.
+5. **Kanca (`hook_motoru`) cümle kesmez**: ilk 8 kelimede kesilen cümle kaynağın
+   söylemediği bir iddia olabiliyordu. Sığmayan kanca "…" ile kırpılmaz, basılmaz.
+   Kategori etiketi kapağın üst rozetinde zaten yazdığı için kancada yok; "●" çizilir.
+6. **Kapak fotoğrafı konuya göre** (`make_image.KONU_HAVUZLARI`, Pexels 15 aday, son 40
+   Pexels kimliği hariç). Uydurma etiket/rakam yedekleri kaldırıldı (`SEKTÖREL BÜLTEN`,
+   `18.000 TL`, `%80-%130` …).
+7. **Fon müziği** (`assets/audio/1_emlak_haber_fonu.mp3`, Instabot'taki `haber_fon.mp3` ile
+   aynı dosya): kaynağı ve lisansı HİÇBİR YERDE kayıtlı değil; "telifsiz" doğrulanmadı.
+
+### 9.2 Test izolasyonu (CI "Testler data/edm.db'yi değiştirmedi" adımı)
+1. Her `tests/test_*.py` VE `testler.yml`'deki her `python scripts/X.py`, `src`/`scripts`
+   importundan ÖNCE `os.environ.setdefault("POSTEDM_TEST_MODU", "1")` yapmalı
+   (`tests/test_test_izolasyonu.py` AST ile zorlar). Dört test dosyası ve
+   `metin_butcesi.py` gerçek DB'ye yazıyordu; yeni bir DB sütunu eklenince test modu
+   dışındaki HER açılış gerçek DB'ye göç yazar ve CI kırmızı olur.
+
+### 9.3 Seslendirme (ElevenLabs) — kullanıcı kararları
+1. **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** Sıla Özalp
+   (`r3deco0KTo6o0Kb5inro`, haber sunucusu), yedek Adam; hız 1.12, stability 0.40,
+   style 0.30; -14 LUFS. `ELEVENLABS_VOICE_ID` ortam değişkeni OKUNMAZ (yereldeki eski
+   değer seçimi sessizce geri çeviriyordu). Anahtar: `ELEVENLABS_API_KEY` (GitHub
+   secret'ı kullanıcı ekledi; yerelde `.env`).
+2. **Yalnızca KAPAK okunur** (üç versiyon dinlendi: yalnız kapak / slayt başına cümle /
+   bütün metin → yalnız kapak). Madde/bölüm başlıkları ASLA okunmaz. Nedir Doğrusu'nda
+   yanlış inanış okunmaz (etiketsiz doğru bilgi gibi duyulur). `ses.kapak_seslendirme_metni`.
+3. **Son slaytta kapanış çağrısı**, önce gerekçe: "…kaçırmak istemiyorsanız takipte
+   kalın" (`config.yaml › seslendirme.kapanis_cagrisi`). "Beğenin" bilerek yok.
+4. **Seslendirme İSTEĞE BAĞLI.** "✅ Yayınla" eskisi gibi seslendirmesiz (YT/FB fon
+   müzikli, TikTok karusel, Reels elle paylaşım için müziksiz). "🎙️ Sesli Yayınla" →
+   "🎵 Fon müzikli" / "🔇 Fon müziksiz" → aynı zaman menüsü. Worker hedefe
+   `ses_muzikli`/`ses_muziksiz` ekler; `yayinla.py` seslendirmeyi yalnızca video
+   kanallarına uygular ve TikTok'u video kipine alır. Onay anında seslendirme YOK.
+5. **Seslendirilmiş video `_sesli` adlıdır ve bir daha karıştırılmaz**
+   (`ses.sesli_video_hazirla`): Facebook yolu anlatımı silip yerine yalnız müzik koyardı.
+6. **Rapor satırında ✓/✗ yok**: `yayinla.py` o işaretleri kanal sonucu sayıyor; seslendirme
+   satırı başarılı yayını "başarısız" gösteriyordu.
+7. **`src/okunus.py` sese giden metni Türkçe okunuşa çevirir** ("Hz." hezt değil Hazreti,
+   "1/5000" beş binde bir, "18.000 TL/m²'den" metrekaresi on sekiz bin liradan, "14.00'e"
+   on dörde). **Kısaltma ve tek harf olduğu gibi kalır** — ölçüldü: harf harf yazmak
+   "beblokta", "da yüz", "kadeveliği" diye okunuyordu. Emin olunmayan çevrilmez
+   (etiketsiz "142/85" kesir sayılmaz). Instabot'la BİREBİR AYNI dosya: birinde
+   düzelteni ötekine taşı. `tests/test_okunus.py`: 100+ satır tablo, 3000 rastgele sayı,
+   3000 rastgele karışık girdi, ikinci kez çevirmede kararlılık. Bilinen sınır: tek
+   harflik kelime ("Uluslar A Ligi") uzun cümlede bazen okunmuyor.
+
+### 9.4 Haber önerisi — Instabot'un öneri taslağı
+1. Günde iki tur (09:17, 18:17 TR, `haber-oneri.yml`); tek mesajda en fazla beş numaralı
+   başlık (bağlantılı, 💬 tek cümle, kaynak · sütun · 🗓 tarih · `/incele_ID`).
+2. `sec:ID` seçimi Worker'da (GitHub'a gitmez), `hazirla_secilenler` tek dispatch →
+   `haber_uret` `"272,273"` → sırayla içeriğe çevrilir. `oneri_gec` düğmeleri kaldırır.
+3. 🔍 `incele:ID` ve `/incele_ID` MEVCUT `bot_yonetim incele` yolundan gider;
+   `telegram_bot.icerik_incele_karti` ham haberde haber ayrıntısı + "📝 İçeriğe çevir" döner
+   (içerik kartı ham habere "Şimdi Yayınla" sunuyordu).
+
+### 9.5 Planlı yayın ("30 dk / 1-4 saat sonra")
+1. Eskiden gecikme GitHub'a hiç iletilmiyordu: mesaj "planlandı" deyip hemen yayınlıyordu.
+2. Worker planı KV'ye yazar (`EDM_PLANLAR`, binding `PLANLAR`, Instabot'unkinden ayrı);
+   `wrangler.toml` cron `*/10` → `scheduled()` vakti geleni `yayinla` (`planli=1`) yollar.
+   GitHub yalnızca iş varken uyanır. 3 saatten geç plan yapılmaz, gruba yazılır.
+   "⏹ Planı iptal et" menüyü geri getirir. Süreler 30/60/120/180/240, tam kalıpla doğrulanır.
+3. `haberler.planlanan_yayin`: hatırlatıcı plan bekleyen içeriğe kart atmaz (eski mesajı ve
+   iptal düğmesini silerdi). `hedef=planla/plan_iptal` yalnızca bu işareti yazar.
+4. Hesap Workers Paid planında; yine de dağıtımdan sonra çıktıda `schedule: */10 * * * *`
+   satırını doğrula (sınıra takılan dağıtım cron'u sessizce yazmıyordu — Instabot).
+
+### 9.6 Worker ve dağıtım
+1. `worker/index.js` menüleri `telegram_bot.py` menüleriyle BİREBİR aynı kalmalı.
+   Worker değişince: `cd worker && npx --yes wrangler deploy`. Son sürümler:
+   `830fb293` (öneri + sesli yayın), `a21121a4` (planlı yayın).
+2. Worker testleri gerçek çağrıyla: `node --test tests/*.test.mjs` (52 test).
+
+Commit'ler: `6243ae6` `fc6217f` (tasarım) · `a321e32` (test izolasyonu) · `0a8d51e`
+`8346378` (glif) · `51071a4` (seslendirme) · `74e1b84` (öneri + sesli yayın) ·
+`75427e4` (planlı yayın) · `7bcda6c` (okunuş ölçümü).
+
