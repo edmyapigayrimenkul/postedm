@@ -234,8 +234,8 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
 
 ### 9.3 Seslendirme (ElevenLabs) — kullanıcı kararları
 1. **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** Sıla Özalp
-   (`r3deco0KTo6o0Kb5inro`, haber sunucusu), yedek Adam; hız 1.12, stability 0.40,
-   style 0.30; -14 LUFS. `ELEVENLABS_VOICE_ID` ortam değişkeni OKUNMAZ (yereldeki eski
+   (`r3deco0KTo6o0Kb5inro`, haber sunucusu), yedek Adam; hız 1.05, stability 0.40,
+   style 0.30; -12 LUFS. `ELEVENLABS_VOICE_ID` ortam değişkeni OKUNMAZ (yereldeki eski
    değer seçimi sessizce geri çeviriyordu). Anahtar: `ELEVENLABS_API_KEY` (GitHub
    secret'ı kullanıcı ekledi; yerelde `.env`).
 2. **Yalnızca KAPAK okunur** (üç versiyon dinlendi: yalnız kapak / slayt başına cümle /
