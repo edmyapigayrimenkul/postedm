@@ -3,8 +3,15 @@ okunus.py — Seslendirme metnini Türkçe okunuşa çevirir.
 
 NİYE VAR: ElevenLabs yazıyı gördüğü gibi okur. Örnek okumada "1/5000" "bir
 bölü beş bin", "0.50" "sıfır nokta elli" olacaktı; başka bir üründe "Hz."
-"hezt" diye okundu (doğrusu "Hazreti"). "KDV" İngilizce harflerle, "Av."
-"av" diye, "3. kat" "üç nokta kat" diye okunabilir.
+"hezt" diye okundu (doğrusu "Hazreti"). "Av." "av" diye, "3. kat" "üç nokta
+kat" diye okunabilir.
+
+KISALTMALAR VE TEK HARFLER OLDUĞU GİBİ KALIR (ölçüldü, 2026-09-26): ElevenLabs
+"KDV'li", "SGK'ya", "TBMM'de", "B blok", "D-100"ü doğru okuyor. Harf harf yazmak
+bozuyordu: "be blok" → "beblokta", "de yüz" → "da yüz", "ka de veli" → "kadeveliği";
+küçük "a" ise yutuluyordu ("Uluslar a Ligi" → "Uluslar Ligi"). Yalnızca açılımı
+bilinen kurumlar (İBB, TKGM…) açılır ve okunabilen büyük harfli kelimeler
+("YENİ İMAR PLANI") küçültülür.
 
 Slayttaki metne DOKUNULMAZ; yalnızca sese giden kopya çevrilir.
 
@@ -149,13 +156,6 @@ def _ek_uyumu(kok: str, ek: str) -> str:
 # ---------------------------------------------------------------------------
 # Kısaltmalar ve harfler
 # ---------------------------------------------------------------------------
-_HARF_ADI = {
-    "A": "a", "B": "be", "C": "ce", "Ç": "çe", "D": "de", "E": "e", "F": "fe", "G": "ge", "Ğ": "yumuşak ge",
-    "H": "he", "I": "ı", "İ": "i", "J": "je", "K": "ka", "L": "le", "M": "me", "N": "ne", "O": "o", "Ö": "ö",
-    "P": "pe", "Q": "kü", "R": "re", "S": "se", "Ş": "şe", "T": "te", "U": "u", "Ü": "ü", "V": "ve",
-    "W": "çift ve", "X": "iks", "Y": "ye", "Z": "ze",
-}
-
 # (kısaltma, açılım, cümle sonu olabilir mi). Unvan ve adres kısaltmaları cümle
 # bitirmez: "Dr. Ahmet"teki nokta cümle sonu değildir.
 _NOKTALI: List[Tuple[str, str, bool]] = [
@@ -201,7 +201,7 @@ def _tr_kucuk(s: str) -> str:
 
 
 def _okunamaz(kelime: str) -> bool:
-    """Büyük harfli belirteç kelime gibi okunamaz mı (KDV, EDM, AVM, EPDK)?"""
+    """Büyük harfli belirteç kısaltma mı (KDV, EDM, AVM, EPDK)? Öyleyse küçültülmez."""
     k = _tr_kucuk(kelime)
     if not any(c in _UNLULER for c in k):
         return True
@@ -214,17 +214,14 @@ def _okunamaz(kelime: str) -> bool:
     return False
 
 
-def _harfle(kelime: str) -> str:
-    return " ".join(_HARF_ADI.get(c, c) for c in kelime)
-
-
 def _buyuk_harfli(m: "re.Match[str]") -> str:
     kok, ek = m.group(1), m.group(2) or ""
     if kok in _ACILIM:
         acilim = _ACILIM[kok]
         return acilim + _ek_uyumu(acilim, ek) if ek else acilim
     if len(kok) == 1 or _okunamaz(kok):
-        return _harfle(kok) + ek
+        # Kısaltma ve tek harf: ses doğru okuyor ("KDV'li", "SGK'ya" — kesme işaretiyle ölçüldü)
+        return kok + (f"'{ek}" if ek else "")
     return _tr_kucuk(kok) + ek
 
 
@@ -245,6 +242,9 @@ _SIRA_ISIMLERI = r"(?:Kat|Madde|Maddesi|Bölge|Derece|Sınıf|Sıra|Etap|Fıkra|
 
 def _temizle(metin: str) -> str:
     metin = unicodedata.normalize("NFC", metin)
+    # Markdown vurgusu ("**Mbappe'nin**", "__not__") okunmaz, duraklama da yaratmaz:
+    # son temizlik * ve _'yi virgüle çeviriyordu ("Konuk ekip, Mbappe'nin, …")
+    metin = re.sub(r"\*+|(?<![\w])_+|_+(?![\w])", "", metin)
     metin = re.sub(r"https?://\S+", " ", metin)
     metin = re.sub(r"\bwww\.", "", metin)
 
@@ -270,10 +270,9 @@ def _temizle(metin: str) -> str:
             temiz.append("'")
         else:
             temiz.append(c)
-    metin = "".join(temiz)
-    # Satır sonu bir duraktır; noktalama yoksa nokta eklenir ki cümleler birbirine akmasın
-    metin = re.sub(r"(?<=[^\s.!?:;,])[ \t]*\n+", ". ", metin)
-    return re.sub(r"\s*\n+\s*", " ", metin)
+    # Satır sonları SON TEMİZLİĞE kadar korunur: burada ". " yapılırsa sıra sayısı kuralı
+    # satırı aşıyordu ("2026\n%45" → "iki bin yirmi altıncı yüzde…", sabotaj testi)
+    return "".join(temiz)
 
 
 def _kisaltmalar(metin: str) -> str:
@@ -363,16 +362,18 @@ _ROMEN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII":
 
 def _siralar(metin: str) -> str:
     # Yalnızca noktalı ve ardından bir isim gelen Romen rakamı: tek "V" bir harf olabilir
-    metin = re.sub(rf"(?<![{_HARF}])(X|IX|VIII|VII|VI|V|IV|III|II|I)\.(?=\s+[{_HARF}])",
+    # Ardından büyük harfli bir isim gelmeli ("II. Etap"): tek harf artık olduğu gibi
+    # kaldığı için "X. iki yüz…" gibi bir cümle sonu da Romen rakamı sanılıyordu
+    metin = re.sub(rf"(?<![{_HARF}])(X|IX|VIII|VII|VI|V|IV|III|II|I)\.(?=[ \t]+[A-ZÇĞİÖŞÜ])",
                    lambda m: sira_yazi(_ROMEN[m[1]]), metin)
     sira = _guvenli(lambda m: sira_yazi(int(m[1])))
     metin = re.sub(r"\b(\d+)['’](?:inci|ıncı|uncu|üncü|nci|ncı|ncu|ncü)\b", sira, metin)
-    return re.sub(rf"\b(\d+)\.(?=\s+(?:[{_KUCUK}]|{_SIRA_ISIMLERI}\b))", sira, metin)
+    # Satır atlamaz ([ \t], \s değil); "D-100." yol kodu sıra sayısı değildir
+    return re.sub(rf"(?<![A-ZÇĞİÖŞÜ]-)\b(\d+)\.(?=[ \t]+(?:[{_KUCUK}]|{_SIRA_ISIMLERI}\b))", sira, metin)
 
 
 def _isaretler_sayi(metin: str) -> str:
     metin = re.sub(r"(\d)\s*\+\s*(\d)", r"\1 artı \2", metin)  # 3+1 daire
-    metin = re.sub(rf"(?<![{_HARF}])([A-ZÇĞİÖŞÜ])-(?=\d)", r"\1 ", metin)  # E-5, D-100 (yol adı)
     metin = re.sub(r"(\d)\s*[xX×]\s*(\d)", r"\1 çarpı \2", metin)
     metin = re.sub(r"~\s*(?=\d)", "yaklaşık ", metin)
     metin = metin.replace("±", " artı eksi ")
@@ -389,14 +390,29 @@ def _sayilar(metin: str) -> str:
         if ek and ek[0] in _UNLULER and okunus.endswith("dört"):  # boş ek her dizginin "içinde"dir
             okunus = okunus[:-1] + "d"  # "dörte" değil "dörde"
         return okunus + ek
-    return re.sub(rf"(?<![{_HARF}\d])({_SAYI_BICIMI}){_EK}(?![{_HARF}\d])", cevir, metin)
+    # "D-100", "E-5" yol kodu olduğu gibi kalır: ses doğru okuyor, "D yüz" "Kazada 100" oldu (ölçüldü)
+    return re.sub(rf"(?<![{_HARF}\d])(?<![A-ZÇĞİÖŞÜ]-)({_SAYI_BICIMI}){_EK}(?![{_HARF}\d])", cevir, metin)
 
 
 def _buyuk_harfler(metin: str) -> str:
     return re.sub(rf"(?<![{_HARF}])([A-ZÇĞİÖŞÜ]+)(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", _buyuk_harfli, metin)
 
 
+_KISALTMA_KOKLERI = frozenset(k.rstrip(".:") for k, _, _ in _NOKTALI)
+
+
+def _satir_sonu(m: "re.Match[str]") -> str:
+    # Satır sonu bir duraktır; noktalama yoksa nokta eklenir ki cümleler birbirine akmasın.
+    # Büyük harfli belirteç ("I", "TBMM") ya da noktasız kısaltma kökünden ("Hz", "Dr")
+    # sonra VİRGÜL: eklenen nokta onları "Hz."/"I." yapıp kısaltma/Romen rakamı gibi
+    # okutuyordu (sabotaj testi: çıktı ikinci kez çevrilince değişiyordu).
+    son = m[1]
+    return son + (", " if son.isupper() or son in _KISALTMA_KOKLERI else ". ")
+
+
 def _son_temizlik(metin: str) -> str:
+    metin = re.sub(r"([^\s.!?:;,]+)[ \t]*\n+", _satir_sonu, metin)
+    metin = re.sub(r"\s*\n+\s*", " ", metin)
     metin = metin.replace("&", " ve ").replace("=", " eşittir ").replace("~", " yaklaşık ").replace("@", " ")
     for simge, okunus in (("km²", "kilometrekare"), ("m²", "metrekare"), ("m³", "metreküp"), ("°", " derece"), ("₺", " lira")):
         # "m²'si" → "metrekaresi": ek kelimeye yapışır, ünlüsü yeni köke uyar

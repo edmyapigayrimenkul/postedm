@@ -30,7 +30,7 @@ TABLO = [
     ("tapu, imar vb. belgeler", "tapu, imar ve benzeri belgeler"),
     ("tapu, imar vb. Sonra", "tapu, imar ve benzeri. Sonra"),
     ("Alibey Mah. Albay Cad. Kılıç Sok. Apt.", "Alibey Mahallesi Albay Caddesi Kılıç Sokağı Apartmanı"),
-    ("No: 58/A", "numara elli sekiz a"),
+    ("No: 58/A", "numara elli sekiz A"),
     ("T.C. Kimlik", "Türkiye Cumhuriyeti Kimlik"),
     ("5510 s. Kanun", "beş bin beş yüz on sayılı Kanun"),
     # Sıra sayıları
@@ -97,20 +97,22 @@ TABLO = [
     ("2026'da", "iki bin yirmi altıda"),
     ("30'dan fazla", "otuzdan fazla"),
     ("1990'lı yıllar", "bin dokuz yüz doksanlı yıllar"),
-    # Kısaltmalar: harfle, kelime olarak ya da açılımla
-    ("KDV'li fiyat", "ka de veli fiyat"),
-    ("SGK'ya", "se ge kaya"),
-    ("EDM Yapı", "e de me Yapı"),
-    ("AVM", "a ve me"),
-    ("OSB", "o se be"),
-    ("TBMM", "te be me me"),
-    ("EPDK", "e pe de ka"),
+    # Kısaltmalar olduğu gibi (ses doğru okuyor; harf harf yazmak bozuyordu — ölçüldü),
+    # kelime gibi okunanlar küçültülür, bilinen kurumlar açılır
+    ("KDV'li fiyat", "KDV'li fiyat"),
+    ("SGK'ya", "SGK'ya"),
+    ("EDM Yapı", "EDM Yapı"),
+    ("AVM", "AVM"),
+    ("OSB", "OSB"),
+    ("TBMM", "TBMM"),
+    ("EPDK", "EPDK"),
     ("TOKİ", "toki"),
     ("İBB'nin kararı", "İstanbul Büyükşehir Belediyesinin kararı"),
     ("TKGM", "Tapu ve Kadastro Genel Müdürlüğü"),
     ("DOP", "düzenleme ortaklık payı"),
-    ("E-5 ve D-100", "e beş ve de yüz"),
-    ("A blok", "a blok"),
+    ("E-5 ve D-100", "E-5 ve D-100"),  # "D yüz" → "Kazada 100" okundu
+    ("A blok", "A blok"),  # küçük "a" yutuluyordu
+    ("Uluslar A Ligi'ne", "Uluslar A Ligi'ne"),
     # Büyük harfli manşet: kelimeler harf harf okunmaz
     ("YENİ İMAR PLANI ASKIDA", "yeni imar planı askıda"),
     ("BÜTÇENİZ YOK", "bütçeniz yok"),
@@ -118,6 +120,8 @@ TABLO = [
     ("VE", "ve"),
     # Görünmez ve süs karakterleri
     ("✅ Tapu 🏠", "Tapu"),
+    ("Konuk ekip **Mbappe'nin** 54. dakikada", "Konuk ekip Mbappe'nin elli dördüncü dakikada"),  # Instabot özeti
+    ("__önemli__ not", "önemli not"),
     ("O​t​u​z", "Otuz"),
     ("‮tersine", "tersine"),
     ("satır bir\nsatır iki", "satır bir. satır iki"),
@@ -171,7 +175,7 @@ class TestOkunusTablosu(unittest.TestCase):
             cikti = okunusa_cevir(girdi)
             with self.subTest(girdi=girdi):
                 if len(re.sub(r"\D", "", girdi)) < 16:
-                    self.assertNotRegex(cikti, r"\d")
+                    self.assertNotRegex(re.sub(r"[A-ZÇĞİÖŞÜ]-\d+", "", cikti), r"\d")  # "D-100" yol kodu kalır
                 self.assertFalse(any(unicodedata.category(c)[0] == "C" for c in cikti))
                 self.assertNotRegex(cikti, _KISALTMA_KALINTISI)
 
