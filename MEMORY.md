@@ -222,7 +222,8 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    Pexels kimliği hariç). Uydurma etiket/rakam yedekleri kaldırıldı (`SEKTÖREL BÜLTEN`,
    `18.000 TL`, `%80-%130` …).
 7. **Fon müziği** (`assets/audio/1_emlak_haber_fonu.mp3`, Instabot'taki `haber_fon.mp3` ile
-   aynı dosya): kaynağı ve lisansı HİÇBİR YERDE kayıtlı değil; "telifsiz" doğrulanmadı.
+   aynı dosya): kaynağı ve lisansı kayıtlı değil. Kullanıcı 2026-09-26'da **müziğin kalmasına
+   karar verdi** (risk anlatıldı ve kabul edildi) — yeniden sorma, değiştirme.
 
 ### 9.2 Test izolasyonu (CI "Testler data/edm.db'yi değiştirmedi" adımı)
 1. Her `tests/test_*.py` VE `testler.yml`'deki her `python scripts/X.py`, `src`/`scripts`
@@ -257,8 +258,13 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    "beblokta", "da yüz", "kadeveliği" diye okunuyordu. Emin olunmayan çevrilmez
    (etiketsiz "142/85" kesir sayılmaz). Instabot'la BİREBİR AYNI dosya: birinde
    düzelteni ötekine taşı. `tests/test_okunus.py`: 100+ satır tablo, 3000 rastgele sayı,
-   3000 rastgele karışık girdi, ikinci kez çevirmede kararlılık. Bilinen sınır: tek
-   harflik kelime ("Uluslar A Ligi") uzun cümlede bazen okunmuyor.
+   3000 rastgele karışık girdi, ikinci kez çevirmede kararlılık.
+8. **Tek harf sese TIRNAKLA gider** (`okunus.tek_harfleri_belirginlestir`, okunuştan SONRA):
+   kullanıcı "A Milli Takım derken A çok hızlı söyleniyor" dedi. Kelime zaman damgasıyla
+   ölçüldü: düz "A" 0,02-0,04 sn ve 6'da 4 duyuldu, tırnaklı "A" 6'da 6. Harf-tire-sayı da:
+   düz "F-16" → "F-36"/"fon a…", "D-100" → "Kazadei 100"; '"F"-16' ve '"D"-100' doğru.
+   **`<break>` etiketi YASAK**: ses cümle başına uydurma kelime ekledi ("Ayrıca", "Hatta",
+   "Tacan") — sıfır tolerans ihlali. Virgül de "Uluslararası" okuttu.
 
 ### 9.4 Haber önerisi — Instabot'un öneri taslağı
 1. Günde iki tur (09:17, 18:17 TR, `haber-oneri.yml`); tek mesajda en fazla beş numaralı

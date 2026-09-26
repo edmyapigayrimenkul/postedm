@@ -130,7 +130,8 @@ def metin_seslendir(
         log.warning("ELEVENLABS_API_KEY bulunamadı, seslendirme atlanıyor.")
         return None
 
-    temiz_metin = okunus.okunusa_cevir(metin or "")
+    # Okunuş, sonra tek harfin tırnağı ("A Milli Takım": düz "A" çok hızlı okunuyordu — ölçüldü)
+    temiz_metin = okunus.tek_harfleri_belirginlestir(okunus.okunusa_cevir(metin or ""))
     if not temiz_metin:
         return None
 
