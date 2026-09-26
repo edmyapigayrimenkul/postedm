@@ -673,23 +673,88 @@ export default {
           const gecikme = data.startsWith("yayinla_sonra:") ? data.split(":")[1]
             : (data.startsWith("yayinla_ses_sonra:") ? data.split(":")[2] : null);
 
-          await cevapVer("Yayın süreci başlatıldı");
           const baslikEtiketi = tur === "reels" ? "Reels Videosu" : (tur === "ilan" ? "İlan Postu" : "İçerik");
           const kanallarStr = hedefKanalEtiketleri(hedef);
           const sesSatiri = sesli
             ? `\n\n🎙️ <b>Seslendirme:</b> ${sesModu === "muzikli" ? "fon müzikli" : "fon müziksiz"} (video kanallarında)`
             : "";
+
+          // PLANLI YAYIN (2026-09-26). Eskiden gecikme GitHub'a HİÇ iletilmiyordu: mesaj
+          // "30 dakika sonra" deyip yayını hemen yapıyordu. GitHub'da "N dakika sonra çalış"
+          // yok; plan KV'ye yazılır ve 10 dakikalık Cloudflare cron'u (scheduled) vakti
+          // gelince yayını tetikler. GitHub şimdi uyandırılmaz. Instabot'un deseni.
           if (gecikme) {
-            await mesajiGuncelle(`⏰ <b>${baslikEtiketi} Planlandı (${gecikme} dk)</b>\n\nİçerik <b>${gecikme} dakika sonra</b> yayına alınacaktır.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}${sesSatiri}`);
-          } else {
-            await mesajiGuncelle(`🚀 <b>${baslikEtiketi} Yayına Alınıyor...</b>\n\nİçerik dağıtım motoru çalıştırıldı, yayın durumu birazdan güncellenecek.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}${sesSatiri}`);
+            const dakika = parseInt(gecikme, 10);
+            // Tam kalıp: "yayinla_sonra:30:30" gibi bozuk girdi ikinci parçası yok sayılarak planlanmasın
+            const kalip = sesli ? /^yayinla_ses_sonra:(?:muzikli|muziksiz):\d{1,3}$/ : /^yayinla_sonra:\d{1,3}$/;
+            if (!kalip.test(data) || !PLAN_SURELERI.includes(dakika)) {
+              await cevapVer("Geçersiz süre");
+              return new Response("OK");
+            }
+            if (!env.PLANLAR) {
+              await cevapVer("⚠️ Planlama şu an kullanılamıyor; '▶️ Şimdi' ile yayınlayın");
+              return new Response("OK");
+            }
+            const an = new Date(Date.now() + dakika * 60000);
+            const plan = {
+              an: an.toISOString(),
+              sohbet: chatId,
+              adet: menuAdedi(klavye),
+              secili,
+              metin: cb.message?.text || "",
+              payload: { tur, hedef, id: icerikId, mesaj_id: messageId },
+            };
+            try {
+              await env.PLANLAR.put(`plan:${messageId}`, JSON.stringify(plan),
+                { expirationTtl: dakika * 60 + PLAN_AZAMI_GECIKME_SN + 3600 });
+            } catch (e) {
+              await cevapVer("⚠️ Plan kaydedilemedi; '▶️ Şimdi' ile yayınlayın");
+              return new Response("OK");
+            }
+            // Zaman içeriğe de yazılır: hatırlatıcı plan bekleyene "onay bekliyor" kartı atıp
+            // bu mesajı (ve "Planı iptal et" düğmesini) silmesin. Yayını bu dispatch YAPMAZ.
+            await tetikle(env, chatId, "yayinla", { tur, id: icerikId, hedef: "planla", an: an.toISOString() });
+            await cevapVer(`⏰ TR ${trSaati(an)} için planlandı`);
+            await mesajiGuncelle(
+              `⏰ <b>${baslikEtiketi} Planlandı — TR ${trSaati(an)}</b>\n\n` +
+              `İçerik <b>${dakika < 60 ? `${dakika} dakika` : `${dakika / 60} saat`} sonra</b> yayına alınacak ` +
+              `(kontrol 10 dakikada bir: en geç TR ${trSaati(new Date(an.getTime() + 10 * 60000))}).\n\n` +
+              `📡 <b>Hedef Kanallar:</b>\n${kanallarStr}${sesSatiri}`,
+              { inline_keyboard: [[{ text: "⏹ Planı iptal et", callback_data: "plan_iptal" }]] },
+            );
+            return new Response("OK");
           }
+
+          await cevapVer("Yayın süreci başlatıldı");
+          await mesajiGuncelle(`🚀 <b>${baslikEtiketi} Yayına Alınıyor...</b>\n\nİçerik dağıtım motoru çalıştırıldı, yayın durumu birazdan güncellenecek.\n\n📡 <b>Hedef Kanallar:</b>\n${kanallarStr}${sesSatiri}`);
           await tetikle(env, chatId, "yayinla", {
             tur,
             hedef,
             id: icerikId,
             mesaj_id: messageId,
           });
+          return new Response("OK");
+        }
+
+        // E2. PLANI İPTAL ET — plan KV'den silinir, onay menüsü seçilen kanallarla geri gelir
+        if (data === "plan_iptal") {
+          const ham = env.PLANLAR ? await env.PLANLAR.get(`plan:${messageId}`) : null;
+          if (!ham) {
+            await cevapVer("Bekleyen plan yok — yayınlanmış ya da iptal edilmiş olabilir");
+            await butonlariGuncelle([]);
+            return new Response("OK");
+          }
+          await env.PLANLAR.delete(`plan:${messageId}`);
+          let plan = {};
+          try { plan = JSON.parse(ham); } catch (_) {}
+          await cevapVer("Plan iptal edildi");
+          if (plan.payload?.id) {
+            await tetikle(env, chatId, "yayinla", { tur: plan.payload.tur, id: plan.payload.id, hedef: "plan_iptal" });
+          }
+          await mesajiGuncelle(
+            `⏹ <b>Yayın planı iptal edildi</b> — içerik onay bekliyor.\n\n${htmlKacis(plan.metin || "")}`.trim(),
+            anaMenu(plan.adet || 2, Array.isArray(plan.secili) ? plan.secili : undefined),
+          );
           return new Response("OK");
         }
 
@@ -1307,9 +1372,12 @@ export default {
   },
 
   // Zamanlanmış Cron (Sabah 10:00 TR)
+  // YALNIZCA planlı yayın çalar saati. Eskiden her cron "sabah_hazirla" gönderiyordu;
+  // günlük tur GitHub cron'unda (hazirla.yml) olduğu için cron açılınca aynı gün İKİ
+  // tur çalışırdı (bkz. tests/test_sozlesme.py › test_tek_tetikleyici_kurali).
   async scheduled(event, env, ctx) {
-    console.log("Cloudflare Cron tetiklendi, GitHub Actions uyarılıyor...");
-    await tetikleGitHub(env, "sabah_hazirla", { kaynak: "cloudflare_cron" });
+    if (event.cron !== PLAN_CRON || !env.PLANLAR) return;
+    await planlariIsle(env);
   },
 };
 
@@ -1708,6 +1776,71 @@ async function sohbeteGonder(env, sohbetId, metin, replyMarkup = null) {
       });
     }
   } catch (_) {}
+}
+
+// Planlı yayın (worker/wrangler.toml › triggers ve PLANLAR KV'si)
+const PLAN_CRON = "*/10 * * * *";
+const PLAN_SURELERI = [30, 60, 120, 180, 240];
+// Cron uzun süre çalışmazsa (Cloudflare kesintisi) saatler sonra "planlı" diye
+// yayın çıkmasın: 3 saatten geç kalan plan yapılmaz, gruba yazılır. Instabot'taki gibi.
+const PLAN_AZAMI_GECIKME_SN = 3 * 3600;
+
+function trSaati(an) {
+  // Türkiye yaz saati uygulamıyor: UTC+3 sabit
+  return new Date(an.getTime() + 3 * 3600000).toISOString().slice(11, 16);
+}
+
+function menuAdedi(klavye) {
+  for (const b of klavye.flat()) {
+    const m = /^(?:yayin_geri|ses_menu):(\d{1,2})$/.exec(String(b.callback_data || ""));
+    if (m) return parseInt(m[1], 10);
+  }
+  return 2;
+}
+
+// Vakti gelen planları yayınlar. GitHub yalnızca gerçek iş varken uyandırılır.
+// Dispatch başarısızsa plan kalır, sonraki turda yeniden denenir. Aynı plan iki kez
+// gönderilse bile yayinla.py'nin durum koruması yayınlanmış içeriği bir daha çıkarmaz.
+async function planlariIsle(env, simdi = Date.now()) {
+  let liste;
+  try {
+    liste = await env.PLANLAR.list({ prefix: "plan:" });
+  } catch (e) {
+    console.error("Plan listesi okunamadı:", e);
+    return 0;
+  }
+  let gonderilen = 0;
+  for (const anahtar of liste.keys) {
+    let plan = null;
+    try { plan = JSON.parse((await env.PLANLAR.get(anahtar.name)) || "null"); } catch (_) {}
+    if (!plan || !plan.payload || !Date.parse(plan.an)) {
+      await env.PLANLAR.delete(anahtar.name);
+      continue;
+    }
+    const an = Date.parse(plan.an);
+    if (an > simdi) continue;
+    if (simdi - an > PLAN_AZAMI_GECIKME_SN * 1000) {
+      await env.PLANLAR.delete(anahtar.name);
+      try {
+        await tetikleGitHub(env, "yayinla", { tur: plan.payload.tur, id: plan.payload.id, hedef: "plan_iptal" });
+      } catch (_) { /* işaret 3 saat sonra zaten geçersiz sayılır */ }
+      await sohbeteGonder(env, plan.sohbet || izinliSohbetler(env)[0],
+        `⌛ <b>Planlanan yayın ${Math.floor((simdi - an) / 3600000)} saat gecikti ve yapılmadı.</b>\n` +
+        `İçerik #${htmlKacis(String(plan.payload.id || "?"))} onay bekliyor; yeniden yayınlayabilirsiniz.`);
+      continue;
+    }
+    let tamam = false;
+    try {
+      tamam = await tetikleGitHub(env, "yayinla", { ...plan.payload, planli: "1" });
+    } catch (e) {
+      console.error("Planlı yayın tetiklenemedi:", e);
+    }
+    if (tamam) {
+      await env.PLANLAR.delete(anahtar.name);
+      gonderilen += 1;
+    }
+  }
+  return gonderilen;
 }
 
 function hedefKanalEtiketleri(hedef) {

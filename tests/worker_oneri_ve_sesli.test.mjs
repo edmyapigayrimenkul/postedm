@@ -178,10 +178,4 @@ test("uydurma ses kipi reddedilir", async () => {
   assert.equal(dispatchler.length, 0);
 });
 
-test("planlı sesli yayın mesajında süre ve kip yazar", async () => {
-  await tikla("yayinla_ses_sonra:muziksiz:60", kanallar(["youtube"]));
-  const m = telegramlar.find((t) => t.yontem === "editMessageText").govde.text;
-  assert.match(m, /60 dk/);
-  assert.match(m, /fon müziksiz/);
-  assert.equal(dispatchler[0].client_payload.hedef, "youtube,ses_muziksiz");
-});
+// Planlı (sesli) yayın: tests/worker_planli_yayin.test.mjs

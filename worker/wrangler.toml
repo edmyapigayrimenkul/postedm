@@ -29,20 +29,28 @@ workers_dev = true
 [vars]
 GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 
-# [triggers] BİLEREK KAPALI — açmadan önce oku.
+# [triggers] YALNIZCA PLANLI YAYIN ÇALAR SAATİ (2026-09-26)
 #
-# Worker'ın scheduled() işleyicisi "sabah_hazirla" gönderiyor ve hazirla.yml
-# bunu dinliyor. Ama hazirla.yml'nin KENDİ cron'u da var ("0 7 * * 1-5").
-# İkisi birden açıksa aynı gün İKİ tur çalışır: iki Telegram önizlemesi,
-# iki konu tüketimi, iki paylaşım.
+# "30 dk / 1-4 saat sonra yayınla" seçilince Worker planı PLANLAR KV'sine yazar;
+# bu cron 10 dakikada bir vakti gelen planı "yayinla" olarak GitHub'a yollar.
+# GitHub yalnızca gerçek iş varken uyanır (Actions kotası harcanmaz). Eskiden
+# gecikme hiç iletilmiyordu: mesaj "30 dakika sonra" deyip hemen yayınlıyordu.
 #
-# Tek tetikleyici kuralı: ya GitHub cron'u ya Cloudflare cron'u.
-# Şu an GitHub cron'u kullanılıyor (hafta içi 10:00 TR).
+# ⚠️ scheduled() YALNIZCA bu cron'a bakar. Eskiden her cron "sabah_hazirla"
+# gönderiyordu; günlük tur GitHub cron'unda (hazirla.yml) olduğu için ikisi
+# birlikte aynı gün İKİ tur çalıştırırdı. Günlük turu Cloudflare'e taşımak
+# istenirse scheduled()'a ayrı bir cron dalı ekle ve hazirla.yml cron'unu kaldır
+# (tests/test_sozlesme.py › test_tek_tetikleyici_kurali).
 #
-# Cloudflare cron'una geçmek istenirse (GitHub cron gecikmesi 5-30 dk):
-#   1. hazirla.yml'deki "0 7 * * 1-5" satırını KALDIR
-#   2. aşağıyı aç ve yeniden dağıt
-#   3. tests/test_sozlesme.py tek tetikleyici denetimini güncelle
-#
-# [triggers]
-# crons = ["0 7 * * 1-5"]
+# Hesap Workers Paid planında (kullanıcı, 2026-09-26): ücretsiz plandaki
+# "hesap başına 5 cron" sınırı yok. Dağıtımdan sonra cron'un gerçekten
+# yazıldığı doğrulanmalı: sınıra takılan dağıtım kodu yükleyip cron'u
+# sessizce yazmıyordu (Instabot, 5 Eyl 2026).
+[triggers]
+crons = ["*/10 * * * *"]
+
+# Planlar: anahtar plan:<telegram mesaj id>, değer JSON {an, payload, secili, ...}.
+# Instabot'un PLANLAR KV'sinden AYRI (o başka bir botun).
+[[kv_namespaces]]
+binding = "PLANLAR"
+id = "526f2913066e47c1be628e3daeda98b9"

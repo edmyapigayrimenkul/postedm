@@ -107,8 +107,10 @@ jobs:
           ID: ${{ github.event.client_payload.id || inputs.id || '' }}
           HEDEF: ${{ github.event.client_payload.hedef || inputs.hedef || github.event.client_payload.kanallar || 'hepsi' }}
           MESAJ_ID: ${{ github.event.client_payload.mesaj_id || '' }}
+          # hedef=planla: Worker'ın planladığı zaman (yalnızca hatırlatıcı için içeriğe yazılır)
+          PLAN_AN: ${{ github.event.client_payload.an || '' }}
         run: |
-          python scripts/yayinla.py --tur "$TUR" ${ID:+--id "$ID"} --hedef "$HEDEF" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
+          python scripts/yayinla.py --tur "$TUR" ${ID:+--id "$ID"} --hedef "$HEDEF" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"} ${PLAN_AN:+--plan-an "$PLAN_AN"}
 
       - name: Metin Düzenle (Telegram Reply)
         if: github.event.action == 'metin_duzenle'

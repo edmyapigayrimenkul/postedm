@@ -52,5 +52,26 @@ class TestIzolasyonu(unittest.TestCase):
         )
 
 
+    def test_cinin_calistirdigi_betikler_de_test_modunda(self) -> None:
+        """CI'daki `python scripts/X.py` adımları da üretim DB'sine dokunmamalı.
+
+        metin_butcesi.py test modunu açmıyordu; src'yi yükleyince DB göçü gerçek
+        data/edm.db'de çalıştı. Göçte yeni sütun yokken görünmüyordu; planlanan_yayin
+        sütunu eklenince (2026-09-26) CI korumasını kırdı.
+        """
+        import re as _re
+        is_akisi = (TESTLER.parent / ".github" / "workflows" / "testler.yml").read_text(encoding="utf-8")
+        betikler = sorted(set(_re.findall(r"python (scripts/[\w/]+\.py)", is_akisi)))
+        self.assertTrue(betikler, "testler.yml'de betik adımı bulunamadı")
+        eksikler = []
+        for yol in betikler:
+            govde = ast.parse((TESTLER.parent / yol).read_text(encoding="utf-8")).body
+            acan = next((i for i, d in enumerate(govde) if _test_modunu_aciyor_mu(d)), None)
+            ilk_import = next((i for i, d in enumerate(govde) if _proje_importu_mu(d)), len(govde))
+            if acan is None or acan > ilk_import:
+                eksikler.append(yol)
+        self.assertEqual(eksikler, [], "Bu CI betikleri src'yi test modu açılmadan yüklüyor")
+
+
 if __name__ == "__main__":
     unittest.main()

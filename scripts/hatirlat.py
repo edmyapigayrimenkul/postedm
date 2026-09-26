@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 KOK = Path(__file__).resolve().parent.parent
@@ -39,6 +39,16 @@ def bekleme_suresi_dakika(haber: dict) -> float | None:
         return None
 
 
+def planli_yayin_bekliyor(haber: dict, simdi: datetime | None = None) -> bool:
+    try:
+        an = datetime.fromisoformat(str(haber.get("planlanan_yayin") or ""))
+    except ValueError:
+        return False
+    if an.tzinfo is None:
+        an = an.replace(tzinfo=timezone.utc)
+    return (simdi or datetime.now(timezone.utc)) < an + timedelta(hours=3)
+
+
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="EDM Onay Bekleyen Paylaşımları Hatırlatıcı")
     parser.add_argument("--zorla", "-z", action="store_true", help="60 dakika bekleme sınırını yok say ve hemen hatırlat")
@@ -57,6 +67,13 @@ def main(argv: list[str] | None = None):
         dakika = bekleme_suresi_dakika(haber)
         baslik = haber.get("manset") or haber.get("orijinal_baslik") or "İçerik"
         mevcut_hatirlatma = haber.get("hatirlatma_sayisi") or 0
+
+        # Planlı yayını bekleyen içerik hatırlatılmaz: hatırlatma eski onay mesajlarını
+        # silip yeni kart attığı için "⏹ Planı iptal et" düğmesi kayboluyordu. Plan 3
+        # saatten fazla geçmişse (cron çalışmadıysa) hatırlatma yeniden devreye girer.
+        if planli_yayin_bekliyor(haber):
+            log.info("Haber #%d planlı yayını bekliyor (%s); hatırlatılmadı.", haber_id, haber.get("planlanan_yayin"))
+            continue
 
         # 1. Zaman aşımı kontrolü (Kullanıcı kuralı: 5 gün = 120 saat = 7200 dakika)
         # Gündüz gelen haberler unutulsa dahi 5 güne kadar onay kuyruğunda korunur, silinmez/arşivlenmez.

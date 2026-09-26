@@ -75,6 +75,7 @@ def main() -> None:
     parser.add_argument("--mesaj-id", default=None, type=int, help="Telegram mesaj ID")
     parser.add_argument("--hedef", default="hepsi", help="Hedef platform veya işlem")
     parser.add_argument("--yeniden-ciz", action="store_true", help="İlan kartlarını güncel site verisiyle yeniden üret")
+    parser.add_argument("--plan-an", default=None, help="hedef=planla: Worker'ın planladığı yayın zamanı (ISO)")
     args = parser.parse_args()
 
     tur = args.tur
@@ -101,6 +102,22 @@ def main() -> None:
         return "hepsi" in hedefler or bool(hedefler.intersection(adaylar))
 
     log.info("Yayın süreci başlatılıyor: Tür=%s, ID=%s, Hedef=%s", tur, ref_id, hedef)
+
+    # PLANLI YAYIN KAYDI (2026-09-26). Plan Worker'ın KV'sinde, yayını 10 dakikalık
+    # Cloudflare cron'u tetikliyor. Burada yalnızca zamanı içeriğe yazılır: hatırlatıcı
+    # plan bekleyen içeriğe "onay bekliyor" kartı atıp plan mesajını silmesin.
+    if hedef in ("planla", "plan_iptal"):
+        if tur in ("haber", "reels"):  # ilan kimlikleri başka tabloda; haberler'e yazılmaz
+            an = None
+            if hedef == "planla":
+                try:
+                    an = datetime.fromisoformat(str(args.plan_an).replace("Z", "+00:00")).isoformat()
+                except ValueError:
+                    log.warning("Geçersiz plan zamanı: %s", args.plan_an)
+                    return
+            db.haber_guncelle(int(ref_id), planlanan_yayin=an)
+            db.wal_bosalt()
+        return
 
     # DURUM KORUMASI — kurallar ve gerekçe: src/durum_kurali.py
     # Telegram'daki her buton, mesaj ne kadar eski olursa olsun buraya ulaşır.
@@ -1131,7 +1148,8 @@ def main() -> None:
     # 5. Veritabanını Güncelle
     herhangi_biri_basarili = any("✓" in satir for satir in rapor_satirlari)
     if tur in ("haber", "reels"):
-        guncelleme = {"durum": durum_kurali.sonraki_durum(haber.get("durum") if haber else None, herhangi_biri_basarili)}
+        guncelleme = {"durum": durum_kurali.sonraki_durum(haber.get("durum") if haber else None, herhangi_biri_basarili),
+                      "planlanan_yayin": None}
         if herhangi_biri_basarili and not (haber and haber.get("yayin_zamani")):
             guncelleme["yayin_zamani"] = datetime.now(timezone.utc).isoformat()
         if ig_id:

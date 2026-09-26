@@ -13,6 +13,9 @@ biten kart" hatası tam olarak bu uyumsuzluktu.
 
 from __future__ import annotations
 
+import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim DB'sine dokunma: CI'da çalışıyor, src göç çalıştırır
+
 import sys
 from pathlib import Path
 

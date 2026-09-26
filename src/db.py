@@ -162,6 +162,9 @@ def tablolari_olustur() -> None:
                 ("facebook_post_id", "TEXT"),
                 ("video_yolu", "TEXT"),
                 ("sutun", "TEXT"),  # S1–S5, analiz için — bkz. src/sutun.py
+                # Planlı yayının zamanı (ISO). Plan Worker KV'sinde; bu yalnızca hatırlatıcının
+                # planı bekleyen içeriğe "onay bekliyor" kartı atmaması için (2026-09-26)
+                ("planlanan_yayin", "TEXT"),
             ]
             for ad, tip in haber_ek_kolonlar:
                 if ad not in kolonlar:
