@@ -1061,7 +1061,10 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
     """Konu bankası kaydından slayt içeriği üretir. Faz 1'in ana giriş noktası."""
     from . import konu_bankasi
 
-    bicim = konu.get("bicim", "B1")
+    if format_turu in ("dailybrief", "haber", "haber_dailybrief"):
+        bicim = "B5"
+    else:
+        bicim = konu.get("bicim", "B1")
     girdi = (
         konu_bankasi.brief_metni(konu)
         + "\n\nBu brief'i yukarıdaki biçim şemasına göre işle. "
