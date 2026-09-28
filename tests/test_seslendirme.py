@@ -229,13 +229,15 @@ class TestKaristirma(unittest.TestCase):
 
 
 class TestOnayAkisi(unittest.TestCase):
-    def test_onayda_seslendirme_yok(self):
-        """2026-09-26: seslendirme yalnızca "🎙️ Sesli Yayınla" seçilince; onay eskisi gibi."""
+    def test_onay_videosu_seslendirmeli_ve_onaydan_once_gonderiliyor(self):
+        """Kullanıcı talebi: Onay akışında seslendirmeli video hazırlanır ve menüden önce iletilir."""
         kaynak = (Path(__file__).resolve().parent.parent / "src" / "telegram_bot.py").read_text(encoding="utf-8")
         govde = kaynak[kaynak.index("def _haber_onayina_sun("):]
         govde = govde[:govde.index("\ndef ")]
-        self.assertNotIn("anlatimli_video_uret(", govde)
-        self.assertNotIn("video_gonder(v_yolu", govde)
+        self.assertIn("ses.anlatimli_video_uret(", govde)
+        self.assertIn("medya_grubu_gonder(", govde)
+        self.assertIn("video_gonder(", govde)
+        self.assertLess(govde.rindex("video_gonder("), govde.index("reply_markup=butonlar"))
 
 
 if __name__ == "__main__":

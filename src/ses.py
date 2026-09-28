@@ -337,14 +337,14 @@ def sesli_video_hazirla(
     video_yolu: Path | str,
     ses_dosyasi: Optional[Path | str] = None,
     konusma_sesi: Optional[Path | str] = None,
-    ses_seviyesi: float = 0.14,
+    ses_seviyesi: float = 0.10,
     hedef_yol: Optional[Path | str] = None,
     muzik: bool = True,
 ) -> Path:
     """
     Videoya ElevenLabs seslendirmesi ve/veya kurumsal fon müziği miksler.
 
-    - konusma_sesi varsa: Konuşma sesi önde (%100), kurumsal fon müziği arkada (%14) mikslenir.
+    - konusma_sesi varsa: Konuşma sesi önde (%120), kurumsal fon müziği arkada (%10) mikslenir.
     - konusma_sesi yoksa: Yalnızca kurumsal fon müziği (%20) mikslenir.
     - Açılış/kapanış fade efektleri ve faststart moov atomu ile optimize edilir.
     """
@@ -355,7 +355,7 @@ def sesli_video_hazirla(
         # Onayda seslendirilmiş video: Facebook/YouTube yüklemesi yeniden
         # karıştırırsa anlatım silinip yerine yalnız müzik konuyordu.
         return yol
-    lufs = _ses_ayari("hedef_lufs", -14)
+    lufs = _ses_ayari("hedef_lufs", -11)
     ses_duzeyi = f"loudnorm=I={lufs}:TP=-1.5:LRA=11"
 
     if hedef_yol is None:
@@ -380,7 +380,7 @@ def sesli_video_hazirla(
                 "-i", str(secilen_konusma),
                 "-stream_loop", "-1", "-i", str(secilen_muzik),
                 "-filter_complex",
-                f"[1:a]volume=1.0[v];[2:a]volume={ses_seviyesi:.2f}[m];[v][m]amix=inputs=2:duration=first:dropout_transition=2,{ses_duzeyi}[aout]",
+                f"[1:a]volume=1.20[v];[2:a]volume={ses_seviyesi:.2f}[m];[v][m]amix=inputs=2:duration=first:dropout_transition=2,{ses_duzeyi}[aout]",
                 "-map", "0:v", "-map", "[aout]",
                 "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
                 "-shortest", "-movflags", "+faststart",

@@ -628,38 +628,40 @@ def main() -> None:
             # Video, kullanıcının Telegram'da görüp onayladığı slaytlardan derlenir.
             # Runner ortamında slaytlar sıfırdan üretilmez (aksi halde Pexels'ten bambaşka stok görsel çekebilir).
 
-            # 1. Öncelik: Onaylanan Public CDN URL'leri (public_urller veya DB'deki slayt_urlleri)
-            kaynak_slaytlar = []
-            if public_urller and len(public_urller) > 0:
-                kaynak_slaytlar = [str(u) for u in public_urller]
-            elif haber and haber.get("slayt_urlleri"):
+            # 1. Öncelik: Haber ve DailyBrief şablonu için native 9:16 dikey slaytlar (1080x1920) üret
+            if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") or (detay and detay.get("bicim") in ("haber", "B5")):
                 try:
-                    db_urller = json.loads(haber["slayt_urlleri"])
-                    if isinstance(db_urller, list) and len(db_urller) > 0:
-                        kaynak_slaytlar = [str(u) for u in db_urller]
-                except Exception:
-                    pass
-
-            # 2. Öncelik: Yerel slayt dosyaları (eğer bu ortamda diskte varsa)
-            if not kaynak_slaytlar and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
-                kaynak_slaytlar = [str(p) for p in slayt_yollari if Path(p).exists()]
-
-            if kaynak_slaytlar:
-                try:
-                    log.info("Onaylı slaytlardan (%d adet) 9:16 dikey video derleniyor...", len(kaynak_slaytlar))
-                    v_yolu = _video(kaynak_slaytlar, haber_bilgi)
-                except Exception as ve:
-                    log.warning("Onaylı slaytlardan video üretilemedi: %s", ve)
-
-            # 3. Öncelik (Son Çare): Ne URL ne yerel dosya varsa şablondan dikey üretim
-            if not v_yolu or not v_yolu.exists():
-                if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") or (detay and detay.get("bicim") in ("haber", "B5")):
-                    try:
-                        f_tur = fmt if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") else "dailybrief"
-                        d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=f_tur, cikti_onek=f"reels_{ref_id}", olcu="story")
+                    f_tur = fmt if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") else "dailybrief"
+                    d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=f_tur, cikti_onek=f"reels_{ref_id}", olcu="story")
+                    if d_slaytlar and all(Path(p).exists() for p in d_slaytlar):
+                        log.info("Native 9:16 dikey slaytlardan (%d adet) dikey video derleniyor...", len(d_slaytlar))
                         v_yolu = _video([str(p) for p in d_slaytlar], haber_bilgi)
+                except Exception as ve:
+                    log.warning("Native 9:16 dikey slaytlardan video üretilemedi: %s", ve)
+
+            # 2. Öncelik: Onaylanan Public CDN URL'leri (public_urller veya DB'deki slayt_urlleri)
+            if not v_yolu or not v_yolu.exists():
+                kaynak_slaytlar = []
+                if public_urller and len(public_urller) > 0:
+                    kaynak_slaytlar = [str(u) for u in public_urller]
+                elif haber and haber.get("slayt_urlleri"):
+                    try:
+                        db_urller = json.loads(haber["slayt_urlleri"])
+                        if isinstance(db_urller, list) and len(db_urller) > 0:
+                            kaynak_slaytlar = [str(u) for u in db_urller]
+                    except Exception:
+                        pass
+
+                # Yerel slayt dosyaları
+                if not kaynak_slaytlar and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
+                    kaynak_slaytlar = [str(p) for p in slayt_yollari if Path(p).exists()]
+
+                if kaynak_slaytlar:
+                    try:
+                        log.info("Onaylı slaytlardan (%d adet) 9:16 dikey video derleniyor...", len(kaynak_slaytlar))
+                        v_yolu = _video(kaynak_slaytlar, haber_bilgi)
                     except Exception as ve:
-                        log.warning("Yeni formatlardan dikey video üretilemedi: %s", ve)
+                        log.warning("Onaylı slaytlardan video üretilemedi: %s", ve)
 
             # 4. Öncelik: Klasik B1/B2/B3/B4 Otorite postu
             if (not v_yolu or not v_yolu.exists()) and detay and isinstance(detay, dict) and detay.get("bicim") in ("B1", "B2", "B3", "B4"):

@@ -3249,14 +3249,14 @@ def haber_dailybrief_slayti_ciz(
         kenar = 70
         kullanilabilir_w = genislik - (2 * kenar)
 
-        # 4:5 tabanlı güvenli alan hesaplaması
-        if yukseklik >= 1700:
-            y_ofset = (yukseklik - 1350) // 2  # 285 px
+        # Dikey Story (9:16) ve Besleme (4:5) güvenli alanları
+        dikey_story = yukseklik >= 1700
+        if dikey_story:
+            ust_y = 130
+            alt_y = yukseklik - 160  # 1760 px
         else:
-            y_ofset = 0
-
-        ust_y = y_ofset + 62
-        alt_y = y_ofset + 1250
+            ust_y = 62
+            alt_y = 1250
 
         if cikti_yolu is None:
             cikti_yolu = config.yol_al(f"data/output/haber_dailybrief_{os.getpid()}_{int(time.time())}.jpg")
@@ -3410,7 +3410,7 @@ def haber_dailybrief_slayti_ciz(
 
         # Spot metni formatlama (İri, okunaklı editoryal açıklayıcı başlık)
         spot_temiz = _temizle_tipografi(spot_raw)
-        punto_spot = 32
+        punto_spot = 34 if dikey_story else 32
         font_spot = _font_yukle(FONT_SANS, punto_spot)
         spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw) if spot_temiz else []
         while len(spot_satirlari) > 4 and punto_spot > 24:
@@ -3418,12 +3418,12 @@ def haber_dailybrief_slayti_ciz(
             font_spot = _font_yukle(FONT_SANS, punto_spot)
             spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw)
         spot_satirlari = spot_satirlari[:4]
-        spot_lh = int(punto_spot * 1.36)
+        spot_lh = int(punto_spot * (1.40 if dikey_story else 1.36))
         spot_h = len(spot_satirlari) * spot_lh
 
         # Manşet metni formatlama (Fraunces — Dev Editoryal Manşet)
         manset_temiz = _temizle_tipografi(manset_raw)
-        punto_manset = 68
+        punto_manset = 74 if dikey_story else 68
         font_manset = _font_yukle(FONT_FRAUNCES, punto_manset)
         manset_satirlari = _metin_sar(manset_temiz, font_manset, kullanilabilir_w, draw)
         while len(manset_satirlari) > 3 and punto_manset > 46:
@@ -3432,17 +3432,17 @@ def haber_dailybrief_slayti_ciz(
             manset_satirlari = _metin_sar(manset_temiz, font_manset, kullanilabilir_w, draw)
         manset_satirlari = manset_satirlari[:3]
 
-        manset_lh = int(punto_manset * 1.18)
+        manset_lh = int(punto_manset * (1.20 if dikey_story else 1.18))
         manset_h = len(manset_satirlari) * manset_lh
 
         # Pozisyonlama: Alt çizginin üzerinden yukarıya doğru yerleştirme
-        spot_ust_y = alt_y - 28 - spot_h
-        manset_ust_y = spot_ust_y - (22 if spot_h > 0 else 0) - manset_h
+        spot_ust_y = alt_y - (34 if dikey_story else 28) - spot_h
+        manset_ust_y = spot_ust_y - ((28 if dikey_story else 22) if spot_h > 0 else 0) - manset_h
 
         # 3.1. Kademeli okuma perdesi (Yazı ve kanca hizasına göre dinamik perde)
         if bg_img:
-            perde_bas = max(y_ofset + 320, manset_ust_y - 130)
-            perde_son = min(alt_y, manset_ust_y + int(manset_h * 0.75))
+            perde_bas = max(220 if dikey_story else 320, manset_ust_y - (160 if dikey_story else 130))
+            perde_son = min(alt_y, manset_ust_y + int(manset_h * 0.80))
             maske = _perde_maskesi_smoothstep(genislik, yukseklik, perde_bas, perde_son)
             koyu_zemin = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
             canvas = Image.composite(koyu_zemin, canvas, maske)
@@ -3692,14 +3692,14 @@ def haber_dailybrief_detay_slayti_ciz(
         kenar = 70
         kullanilabilir_w = genislik - (2 * kenar)
 
-        # 4:5 tabanlı güvenli alan hesaplaması
-        if yukseklik >= 1700:
-            y_ofset = (yukseklik - 1350) // 2  # 285 px
+        # Dikey Story (9:16) ve Besleme (4:5) güvenli alanları
+        dikey_story = yukseklik >= 1700
+        if dikey_story:
+            ust_y = 130
+            alt_y = yukseklik - 160  # 1760 px
         else:
-            y_ofset = 0
-
-        ust_y = y_ofset + 62
-        alt_y = y_ofset + 1250
+            ust_y = 62
+            alt_y = 1250
 
         if cikti_yolu is None:
             cikti_yolu = config.yol_al(f"data/output/haber_dailybrief_detay_{os.getpid()}_{int(time.time())}.jpg")
@@ -3767,31 +3767,36 @@ def haber_dailybrief_detay_slayti_ciz(
         # 4-5. Ölçerek yerleşim: başlangıç puntosu madde sayısından, sığmazsa 28px'e
         # kadar küçülür. Eskiden madde metni [:3]/[:4] satırda SESSİZCE kesiliyordu.
         n = len(temiz_maddeler)
-        bas_govde = (42 if n <= 1 else 38 if n == 2 else 34) if not goster_uzman_notu else (40 if n <= 1 else 36 if n == 2 else 32)
-        uzman_bas = 38 if n <= 1 else (34 if n == 2 else 32)
-        y_kursur = ust_y + 85
+        if dikey_story:
+            bas_govde = (46 if n <= 1 else 42 if n == 2 else 38) if not goster_uzman_notu else (44 if n <= 1 else 40 if n == 2 else 36)
+            uzman_bas = 40 if n <= 1 else (36 if n == 2 else 34)
+            y_kursur = ust_y + 105
+        else:
+            bas_govde = (42 if n <= 1 else 38 if n == 2 else 34) if not goster_uzman_notu else (40 if n <= 1 else 36 if n == 2 else 32)
+            uzman_bas = 38 if n <= 1 else (34 if n == 2 else 32)
+            y_kursur = ust_y + 85
         yerlesim_bulundu = False
         # Rahatlık eşiği başlangıç puntosunu aşamaz (uzman notlu 3 maddede başlangıç 32)
         for govde_p in range(bas_govde, min(asgari_punto, bas_govde) - 1, -2):
             etiket_p = govde_p + 6
             font_madde_etiket = _font_yukle(FONT_SANS_BOLD, etiket_p)
             font_madde_govde = _font_yukle(FONT_SANS, govde_p)
-            lh_govde = int(govde_p * 1.42)
+            lh_govde = int(govde_p * (1.44 if dikey_story else 1.42))
             lh_etiket = int(etiket_p * 1.18)
             if goster_uzman_notu:
                 uzman_p = min(uzman_bas, govde_p + 2)
-                font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 22)
+                font_uzman_etiket = _font_yukle(FONT_MONO_BOLD, 24 if dikey_story else 22)
                 font_uzman_govde = _font_yukle(FONT_SANS_BOLD, uzman_p)
-                uzman_lh = int(uzman_p * 1.4)
-                pad_y = 24
+                uzman_lh = int(uzman_p * (1.42 if dikey_story else 1.4))
+                pad_y = 30 if dikey_story else 24
                 uzman_satirlari = _metin_sar(_temizle_tipografi(uzman_notu), font_uzman_govde, kullanilabilir_w - 60, draw)
-                uzman_kart_h = pad_y + 26 + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
-                uzman_kart_y = alt_y - 25 - uzman_kart_h
-                kalan_h = (uzman_kart_y - 30) - y_kursur
+                uzman_kart_h = pad_y + (30 if dikey_story else 26) + 14 + (len(uzman_satirlari) * uzman_lh) + pad_y
+                uzman_kart_y = alt_y - (35 if dikey_story else 25) - uzman_kart_h
+                kalan_h = (uzman_kart_y - (38 if dikey_story else 30)) - y_kursur
             else:
                 uzman_kart_h = 0
-                uzman_kart_y = alt_y - 25
-                kalan_h = (alt_y - 25) - y_kursur
+                uzman_kart_y = alt_y - (35 if dikey_story else 25)
+                kalan_h = (alt_y - (35 if dikey_story else 25)) - y_kursur
 
             maddeler_olculu = []
             for m in temiz_maddeler:
@@ -3803,9 +3808,9 @@ def haber_dailybrief_detay_slayti_ciz(
                     "satirlar": satirlar_m,
                     "renk": m["renk"],
                     "h_etiket": h_etiket,
-                    "h": h_etiket + 14 + (len(satirlar_m) * lh_govde),
+                    "h": h_etiket + (16 if dikey_story else 14) + (len(satirlar_m) * lh_govde),
                 })
-            if sum(mo["h"] for mo in maddeler_olculu) + 35 * max(0, n - 1) <= kalan_h:
+            if sum(mo["h"] for mo in maddeler_olculu) + (45 if dikey_story else 35) * max(0, n - 1) <= kalan_h:
                 yerlesim_bulundu = True
                 break
         if not yerlesim_bulundu:
@@ -3818,14 +3823,16 @@ def haber_dailybrief_detay_slayti_ciz(
         madde_sayisi = max(1, n)
         toplam_madde_h = sum(mo["h"] for mo in maddeler_olculu)
         bosluk = (kalan_h - toplam_madde_h) // max(1, len(maddeler_olculu) - 1)
-        bosluk = max(35, min(90 if not goster_uzman_notu else 75, bosluk))
+        max_bosluk = (140 if not goster_uzman_notu else 100) if dikey_story else (90 if not goster_uzman_notu else 75)
+        min_bosluk = 45 if dikey_story else 35
+        bosluk = max(min_bosluk, min(max_bosluk, bosluk))
 
         toplam_blok_h = toplam_madde_h + (bosluk * max(0, madde_sayisi - 1))
         curr_m_y = y_kursur + max(0, (kalan_h - toplam_blok_h) // 2)
 
         # Maddeleri Çiz (Açık, ferah ve güçlü mimari akış)
-        notch_w = 10 if (not goster_uzman_notu or len(temiz_maddeler) <= 1) else 8
-        notch_pad = 32 if notch_w >= 10 else 28
+        notch_w = (12 if dikey_story else 10) if (not goster_uzman_notu or len(temiz_maddeler) <= 1) else (10 if dikey_story else 8)
+        notch_pad = 36 if dikey_story else (32 if notch_w >= 10 else 28)
         for mo in maddeler_olculu:
             m_h = mo["h"]
             draw.rounded_rectangle([kenar, curr_m_y + 3, kenar + notch_w, curr_m_y + m_h - 4], radius=4, fill=mo["renk"])

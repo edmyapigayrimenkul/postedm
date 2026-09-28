@@ -79,7 +79,7 @@ MODELLER_HIZLI = [
 # ---------------------------------------------------------------------------
 BUTCE: Dict[str, int] = {
     "manset_satir": 18,      # Fraunces 78px, satır başına
-    "spot": 150,             # kapak spot metni
+    "spot": 180,             # kapak spot metni (azami 187 karakter sığıyor)
     "kart_baslik": 42,       # slayt 2 kart başlığı
     "kart_aciklama": 210,    # slayt 2 kart gövdesi (4 satır)
     "adim_baslik": 44,       # slayt 3 adım başlığı
@@ -421,7 +421,7 @@ JSON:
   "rozet_metni": "EDM GÜNDEM // ARSA VE İMAR",
   "yasal_dayanak": "İlgili mevzuat veya resmi kurum adı",
   "manset": "Tek parça, akıcı ve vurucu haber manşeti (50-80 karakter)",
-  "spot": "Haberin sonucunu ve verilerini anlatan 2-3 cümlelik editoryal spot (140-200 karakter)",
+  "spot": "Haberin sonucunu ve verilerini anlatan 2-3 cümlelik editoryal spot (140-180 karakter)",
   "detay_maddeleri": [
     {
       "etiket": "01 // RESMİ GELİŞME VE İHALE/PROJE ŞARTLARI",

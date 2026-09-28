@@ -1658,6 +1658,40 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         rozet = otorite_verisi.get("rozet_metni", rozet)
         dayanak = otorite_verisi.get("yasal_dayanak", dayanak)
 
+    dm_raw = str(haber.get("detay_metni") or "").strip()
+    spot_val = haber.get("orijinal_ozet") or (dm_raw if not dm_raw.startswith("{") else "")
+    veri_icin = {
+        "manset": haber.get("manset") or haber.get("orijinal_baslik", ""),
+        "spot": spot_val,
+        "kategori": haber.get("kategori") or "TAPU_VE_HUKUK",
+        "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
+        "gorsel_yolu": haber.get("gorsel_url"),
+        "format_turu": format_turu or "dailybrief",
+        "detay_maddeleri": haber.get("detay_maddeleri"),
+        "uzman_notu": haber.get("uzman_notu"),
+    }
+    aktif_veri = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else veri_icin
+
+    if not slayt_yollari:
+        from . import yeni_formatlar, make_image
+
+        if format_turu == "reels":
+            # 9:16 Dikey Reels formatı seçildiğinde native story ölçüsünde üret
+            slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}", olcu="story")
+            slayt_yollari = [str(p) for p in slayt_listesi]
+        elif format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
+            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else "dailybrief"
+            slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}")
+            slayt_yollari = [str(p) for p in slayt_listesi]
+        elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
+            # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla üret
+            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}")
+            slayt_yollari = [str(p) for p in slayt_listesi]
+        else:
+            # Standart carousel / otorite postu: yüksek kontrastlı mimari fotoğraflı make_image motorunu kullan (4-7 slayt)
+            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(veri_icin, cikti_onek=f"gonderi_{haber_id}", olcu="besleme")
+            slayt_yollari = [str(p) for p in slayt_listesi]
+
     # 2.5 Slaytları Public CDN'e yükle (Runner bağımsızlığı ve API'ler için)
     slayt_urlleri = []
     try:
@@ -1666,16 +1700,16 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         log.warning("Görseller CDN'e yüklenemedi: %s", e)
 
     # 2.6 Eşzamanlı 9:16 Video Üretimi (Instabot Paritesi: Onaylanan slaytlarla video 1:1 kilitlenir)
-    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")) or (not otorite_verisi)
+    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief", "reels")) or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")) or (not otorite_verisi)
     v_yolu = None
     try:
         from . import video, ses
-        # Haber bülteni (DailyBrief) için native 9:16 (1080x1920) dikey slaytlar üret; böylece 4:5'ten crop/blur gereksiz kalır
+        # Haber bülteni için native 9:16 (1080x1920) dikey slaytlar üret; böylece 4:5'ten crop/blur gereksiz kalır
         video_slayt_yollari = slayt_yollari
-        if is_haber or format_turu in ("dailybrief", "haber", "haber_dailybrief"):
+        if is_haber or format_turu in ("dailybrief", "haber", "haber_dailybrief", "reels"):
             try:
                 v_slayt_listesi = yeni_formatlar.slaytlari_uret(
-                    otorite_verisi or veri_icin,
+                    aktif_veri,
                     format_turu="dailybrief",
                     cikti_onek=f"reels_{haber_id}",
                     olcu="story",
@@ -1683,14 +1717,15 @@ def _haber_onayina_sun(haber_id: int) -> bool:
                 if v_slayt_listesi and all(Path(p).exists() for p in v_slayt_listesi):
                     video_slayt_yollari = [str(p) for p in v_slayt_listesi]
             except Exception as d_err:
-                log.warning("Native 9:16 video slaytları üretilemedi, 4:5 dönüştürme kullanılacak: %s", d_err)
+                log.warning("Native 9:16 video slaytları üretilemedi, mevcut slaytlar kullanılacak: %s", d_err)
 
-        # Onayda seslendirme YOK: "✅ Yayınla" eskisi gibi seslendirmesiz çıkar, ses
-        # yalnızca "🎙️ Sesli Yayınla" seçilirse yayın anında üretilir (2026-09-26)
-        v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=otorite_verisi or veri_icin)
-        if v_ham and v_ham.exists():
-            v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
-            v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
+        # 🎙️ Seslendirmeli 9:16 Video Üret (ElevenLabs Sıla Özalp + Fon Müziği Ducking)
+        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=aktif_veri, muzik=True)
+        if not v_yolu or not Path(v_yolu).exists():
+            v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=aktif_veri)
+            if v_ham and v_ham.exists():
+                v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
+                v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
     except Exception as ve:
         log.warning("Haber videosu onay anında derlenemedi: %s", ve)
 
@@ -1702,7 +1737,7 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         durum="onay_bekliyor"
     )
 
-    # 3. Medya albümü gönder
+    # 3. Medya albümü ve video gönder
     caption_ozeti = (haber.get("ig_caption") or "")[:350]
 
     # Kapıdan geçen içeriğin kritik olmayan uyarıları onaylayana gösterilir
@@ -1712,15 +1747,37 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
 
     # Format bazlı başlık belirleme
-    if is_haber:
+    is_reels = (format_turu == "reels")
+    if is_reels:
+        album_caption = f"🎬 <b>EDM 9:16 REELS VİDEOSU & SLAYTLARI</b>\n📌 {haber['manset']}"
+        kart_baslik = f"🎬 <b>GÜNCEL REELS VİDEOSU ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+    elif is_haber:
         album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     else:
         album_caption = f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
 
-    # 3. Medya albümü gönder (HER ZAMAN ÖNCE GÖRÜNTÜLER DÜŞER)
-    medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    # 3. Medya albümü ve/veya dikey videoyu gönder
+    if is_reels and v_yolu and Path(v_yolu).exists():
+        try:
+            video_gonder(
+                v_yolu,
+                aciklama=f"🎬 <b>EDM 9:16 REELS VİDEOSU (SESLENDİRMELİ)</b>\n📌 {haber['manset']}",
+            )
+        except Exception as ve:
+            log.warning("Reels videosu gönderilemedi: %s", ve)
+            medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    else:
+        medya_grubu_gonder(slayt_yollari, caption=album_caption)
+        if v_yolu and Path(v_yolu).exists():
+            try:
+                video_gonder(
+                    v_yolu,
+                    aciklama=f"🎬 <b>9:16 REELS & SHORTS VİDEO ÖNİZLEME (SESLİ)</b>\n📌 {haber['manset']}",
+                )
+            except Exception as ve:
+                log.warning("Video önizlemesi Telegram'a iletilemedi: %s", ve)
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
     import html as html_lib
@@ -1747,7 +1804,11 @@ def _haber_onayina_sun(haber_id: int) -> bool:
     mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
 
     icerik_onceki_mesajlarini_temizle("haber", haber_id)
-    butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2)
+    if is_reels:
+        reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True}
+        butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 3, kanallar=reels_kanallari)
+    else:
+        butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2)
     res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
         _, chat_id = _bot_bilgileri()
@@ -2004,7 +2065,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     veri["slayt_4x5_yollari"] = [str(p) for p in slayt_4x5_yollari]
 
     # Dikey 1080x1920 MP4 Reels Videosu Derle (Instabot standardı)
-    from . import video
+    from . import video, ses
     v_yolu = None
     try:
         video_slayt_yollari = [str(p) for p in slayt_yollari]
@@ -2015,7 +2076,14 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
                     video_slayt_yollari = [str(p) for p in d_slaytlar]
             except Exception as d_err:
                 log.warning("Native 9:16 reels slaytları üretilemedi: %s", d_err)
-        v_yolu = video.slaytlardan_reels_uret(video_slayt_yollari, haber=veri)
+
+        # 🎙️ Seslendirmeli Reels Videosu Üret
+        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=veri, muzik=True)
+        if not v_yolu or not Path(v_yolu).exists():
+            v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=veri)
+            if v_ham and v_ham.exists():
+                v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
+                v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
     except Exception as ve:
         log.warning("Reels videosu üretilemedi: %s", ve)
 
