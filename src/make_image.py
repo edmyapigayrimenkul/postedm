@@ -3335,8 +3335,16 @@ def haber_dailybrief_slayti_ciz(
         if not bg_img:
             try:
                 from . import fetch_stock, gorsel_kalite
-                arama_sorgu = haber.get("manset") or haber.get("baslik") or "real estate"
-                kat = haber.get("kategori") or haber.get("kategori_kodu") or "TAPU_VE_HUKUK"
+                kat = haber.get("kategori") or haber.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ"
+                baslik_ham = (haber.get("orijinal_baslik") or haber.get("manset") or haber.get("baslik") or "").lower()
+                if any(w in baslik_ham for w in ("arsa", "arazi", "tarla", "parsel", "hazine", "milli emlak", "çatalca", "silivri")):
+                    arama_sorgu = "real estate land field plot aerial"
+                elif any(w in baslik_ham for w in ("kira", "kiracı", "tahliye", "ev sahibi", "daire", "konut")):
+                    arama_sorgu = "modern apartment house keys interior real estate"
+                elif any(w in baslik_ham for w in ("toki", "sosyal konut", "inşaat", "şantiye", "proje", "kentsel dönüşüm")):
+                    arama_sorgu = "modern residential buildings construction architecture"
+                else:
+                    arama_sorgu = "modern luxury architecture real estate villa"
                 stok_p = fetch_stock.stok_fotografi_ara(arama_sorgu, kategori_kodu=kat)
                 if stok_p and stok_p.exists():
                     stok_img = ImageOps.exif_transpose(Image.open(stok_p)).convert("RGB")
@@ -3519,25 +3527,33 @@ def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]
     """Haber verisinden editoryal Smart Brevity detay maddelerini normalize edilmiş liste olarak ayıklar."""
     maddeler = haber.get("detay_maddeleri") or haber.get("maddeler") or []
     if not maddeler:
-        s3 = haber.get("slayt_3_cozum")
-        if isinstance(s3, dict) and s3.get("maddeler"):
-            renk_sira = ["kirmizi", "kirec", "kirec"]
-            maddeler = [
-                {
-                    "etiket": m.get("baslik", "DETAY").upper(),
-                    "metin": m.get("aciklama", ""),
-                    "renk": renk_sira[i % len(renk_sira)],
-                }
-                for i, m in enumerate(s3.get("maddeler", [])[:3])
-            ]
-        elif isinstance(haber.get("slayt_2_detay"), dict):
+        # 1. Öncelik: Haberin gerçek analizi (Ne Oldu + Bölgesel/Sektörel Etki)
+        if isinstance(haber.get("slayt_2_detay"), dict):
             s2 = haber["slayt_2_detay"]
             k1 = s2.get("kart_1")
             k2 = s2.get("kart_2")
             if k1 and k2:
+                etiket_1 = k1.get("etiket") or k1.get("baslik") or "GÜNCEL GELİŞME"
+                metin_1 = k1.get("aciklama") or k1.get("metin") or ""
+                etiket_2 = k2.get("etiket") or k2.get("baslik") or "BÖLGESEL & SEKTÖREL ETKİ"
+                metin_2 = k2.get("aciklama") or k2.get("metin") or ""
+                if metin_1 and metin_2:
+                    maddeler = [
+                        {"etiket": etiket_1.upper(), "metin": metin_1, "renk": "kirmizi"},
+                        {"etiket": etiket_2.upper(), "metin": metin_2, "renk": "kirec"},
+                    ]
+        # 2. Öncelik: Eğer slayt_2_detay yoksa slayt_3_cozum maddeleri
+        if not maddeler:
+            s3 = haber.get("slayt_3_cozum")
+            if isinstance(s3, dict) and s3.get("maddeler"):
+                renk_sira = ["kirmizi", "kirec", "kirec"]
                 maddeler = [
-                    {"etiket": k1.get("etiket") or k1.get("baslik") or "NE OLDU", "metin": k1.get("aciklama", ""), "renk": "kirmizi"},
-                    {"etiket": k2.get("etiket") or k2.get("baslik") or "BÖLGESEL ETKİ", "metin": k2.get("aciklama", ""), "renk": "kirec"},
+                    {
+                        "etiket": m.get("baslik", "DETAY").upper(),
+                        "metin": m.get("aciklama", ""),
+                        "renk": renk_sira[i % len(renk_sira)],
+                    }
+                    for i, m in enumerate(s3.get("maddeler", [])[:3])
                 ]
     if not maddeler:
         detay_ham = haber.get("detay") or haber.get("detay_metni") or haber.get("spot") or haber.get("orijinal_ozet") or ""

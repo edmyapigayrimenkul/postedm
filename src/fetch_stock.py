@@ -28,6 +28,12 @@ VARSAYILAN_TERIMLER = {
     "KIRACI_VE_EV_SAHIBI": "modern apartment interior keys house rent",
     "KONUT_FINANSMANI": "real estate investment modern villa currency",
     "KENTSEL_DONUSUM": "modern urban architecture building construction",
+    "SEKTOREL_HABER_VE_ANALIZ": "real estate architecture land modern villa building",
+    "HABER": "real estate architecture land modern villa property",
+    "S1": "legal document deed real estate notary",
+    "S2": "modern apartment keys rent house interior",
+    "S3": "land field plot aerial real estate architecture",
+    "S4": "modern real estate architecture villa luxury house",
 }
 
 

@@ -1651,7 +1651,7 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         log.warning("Görseller CDN'e yüklenemedi: %s", e)
 
     # 2.6 Eşzamanlı 9:16 Video Üretimi (Instabot Paritesi: Onaylanan slaytlarla video 1:1 kilitlenir)
-    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (not otorite_verisi)
+    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")) or (not otorite_verisi)
     v_yolu = None
     try:
         from . import video, ses
@@ -1697,7 +1697,6 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
 
     # Format bazlı başlık belirleme
-    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (not otorite_verisi)
     if is_haber:
         album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
@@ -1766,10 +1765,11 @@ def haberden_icerik_hazirla(haber: Dict[str, Any], brief: Dict[str, Any]) -> boo
         f"<i>{haber.get('orijinal_baslik', '')[:120]}</i>\n\nİçerik hazırlanıyor..."
     )
 
-    veri = generate_text.konudan_uret(brief)
+    veri = generate_text.konudan_uret(brief, format_turu="dailybrief")
     if not veri:
         mesaj_gonder("❌ Haber içeriği üretilemedi.")
         return False
+    veri["format_turu"] = "dailybrief"
 
     db.haber_guncelle(
         haber["id"],

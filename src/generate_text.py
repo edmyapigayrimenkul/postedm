@@ -1075,6 +1075,19 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
             "'tavsiye_metin': (resmi adım, en fazla %(tavsiye)d karakter) alanlarını "
             "MUTLAKA doldur. Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz."
         ) % BUTCE
+    elif format_turu in ("dailybrief", "haber", "haber_dailybrief"):
+        girdi += (
+            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GÜNDEM // HABER BÜLTENİ' formatında üret. "
+            "JSON nesnesinde 'format_turu': 'dailybrief', 'bicim': 'B5', "
+            "'manset': (Çarpıcı, doğal ve akıcı editoryal haber manşeti - en fazla %(manset_satir)d karakter), "
+            "'spot': (Haberin en can alıcı sonucunu ve gerekçesini anlatan 2-3 cümlelik açıklayıcı editoryal spot, en fazla %(spot)d karakter), "
+            "'slayt_2_detay': { "
+            "  'kart_1': {'etiket': 'GÜNCEL GELİŞME // RESMİ DUYURU', 'baslik': 'Haberin Özeti', 'aciklama': 'Haberde ne oldu? Somut olgu ve rakamlarla net açıklama (en fazla %(kart_aciklama)d karakter)'}, "
+            "  'kart_2': {'etiket': 'BÖLGESEL & SEKTÖREL ETKİ', 'baslik': 'Piyasaya ve Bölgeye Yansıması', 'aciklama': 'Silivri, Trakya ve genel gayrimenkul piyasasına etkisi ne? Yatırımcı ve vatandaş için anlamı ne? (en fazla %(kart_aciklama)d karakter)'} "
+            "}, "
+            "'slayt_4_cta': {'aciklama': 'EDM Uzman Değerlendirmesi: Takipçiye tek cümlelik somut strateji tavsiyesi (en fazla %(spot)d karakter)'} "
+            "alanlarını MUTLAKA doldur. Bu format 2 slaytlık vurucu bir haber bültenidir."
+        ) % BUTCE
 
     def tamamla(v: Dict[str, Any]) -> None:
         v.setdefault("bicim", bicim)
