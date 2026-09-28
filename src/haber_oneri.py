@@ -208,7 +208,7 @@ def haber_detay_karti(h: Dict[str, Any]) -> Tuple[str, Optional[Dict[str, Any]]]
     if h.get("orijinal_url"):
         metin += f"\n🔗 <a href=\"{html.escape(h['orijinal_url'], quote=True)}\">Haberi kaynağında aç</a>"
     klavye = None
-    if h.get("durum") in ("onerildi", "yeni"):
+    if h.get("durum") in ("onerildi", "yeni", "elendi"):
         klavye = {"inline_keyboard": [[{"text": "📝 İçeriğe çevir", "callback_data": f"haber_uret:{h['id']}"}]]}
     return metin, klavye
 
@@ -221,9 +221,8 @@ def haberlerden_icerige(haber_idleri: List[int]) -> int:
 def haberden_icerige(haber_id: int) -> bool:
     """"📝 İçeriğe çevir": triyaj haberden brief çıkarır, içerik onaya sunulur.
 
-    Triyaj reddederse içerik ÜRETİLMEZ ve gerekçe gruba yazılır: haberde metinden
-    alıntılanabilir somut bir kural, süre ya da oran yoksa yazılacak her şey
-    modelin tahmini olur.
+    Kullanıcı açıkça bu haberi seçtiği için (insan iradesi) triyaj haberi
+    reddetmez (`zorla=True`), sektörel B5 formatında içerik onaya sunulur.
     """
     from . import haber_triyaj, telegram_bot
 
@@ -231,21 +230,20 @@ def haberden_icerige(haber_id: int) -> bool:
     if not haber:
         telegram_bot.mesaj_gonder(f"⚠️ Haber #{haber_id} bulunamadı (14 günden eskiyse havuzdan silinmiş olabilir).")
         return False
-    if haber.get("durum") not in ("onerildi", "yeni"):
+    if haber.get("durum") not in ("onerildi", "yeni", "elendi"):
         telegram_bot.mesaj_gonder(
             f"ℹ️ Haber #{haber_id} zaten işlenmiş (durum: <code>{html.escape(str(haber.get('durum')))}</code>)."
         )
         return False
 
-    brief = haber_triyaj.triyaj_et(haber, asgari_guven=0)
+    brief = haber_triyaj.triyaj_et(haber, asgari_guven=0, zorla=True)
     if not brief:
         gerekce = haber.get("_red_gerekcesi") or "triyaj yanıtı alınamadı"
         db.haber_guncelle(haber_id, durum="elendi")
         telegram_bot.mesaj_gonder(
             f"🚫 <b>Haber #{haber_id} içeriğe çevrilmedi.</b>\n"
             f"Neden: {html.escape(gerekce)}.\n"
-            "<i>Haberde metinden alıntılanabilecek somut bir kural, süre ya da oran yoksa "
-            "yazılacak her şey tahmin olur; yayınlamıyoruz.</i>"
+            "<i>Haber metninden brief çıkarılamadı.</i>"
         )
         return False
     return telegram_bot.haberden_icerik_hazirla(haber, brief)

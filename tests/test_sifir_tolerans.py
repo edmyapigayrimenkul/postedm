@@ -209,7 +209,7 @@ class TestHaberOnerisi(_GeciciDB):
                          " VALUES (9, 'Emlakkulisi', 'Fiyatlar arttı', 'https://ornek.com/9', '2026-09-24', 'onerildi')")
             conn.commit()
 
-        def reddet(haber, asgari_guven=6):
+        def reddet(haber, asgari_guven=6, *args, **kwargs):
             haber["_red_gerekcesi"] = "somut bir kural/süre/oran değişimi yok"
             return None
 
@@ -230,6 +230,52 @@ class TestHaberOnerisi(_GeciciDB):
         with patch("src.haber_triyaj.triyaj_et") as triyaj, patch("src.telegram_bot.mesaj_gonder"):
             self.assertFalse(haber_oneri.haberden_icerige(10))
         triyaj.assert_not_called()
+
+    def test_icerige_cevir_elendi_durumunu_da_kabul_eder(self):
+        from src import haber_oneri
+        with db._baglanti_al() as conn:
+            conn.execute("INSERT INTO haberler (id, kaynak, orijinal_baslik, orijinal_url, eklenme_tarihi, durum)"
+                         " VALUES (11, 'Emlakkulisi', 'Elendi haberi', 'https://ornek.com/11', '2026-09-24', 'elendi')")
+            conn.commit()
+        with patch("src.haber_triyaj.triyaj_et", return_value={"kod": "HABER-11", "bicim": "B5"}) as triyaj, \
+             patch("src.telegram_bot.haberden_icerik_hazirla", return_value=True) as uret:
+            self.assertTrue(haber_oneri.haberden_icerige(11))
+        triyaj.assert_called_once()
+        self.assertTrue(triyaj.call_args.kwargs.get("zorla"))
+        uret.assert_called_once()
+
+    def test_triyaj_et_zorla_kabul(self):
+        from src import haber_triyaj
+        haber = {
+            "id": 12,
+            "orijinal_baslik": "TOKİ Kura Çekilişi Başladı",
+            "orijinal_ozet": "TOKİ kuraları çekilmeye başlandı.",
+            "kategori": "konut",
+        }
+        # Model olgusal olarak somut kural bulamasa bile (ör. red) zorla=True olduğunda kabul etmeli
+        fake_llm = json.dumps({
+            "somut_kural": "hayir",
+            "okuyucu_eylemi": None,
+            "dayanak_alintisi": None,
+            "yerel_gecis": "hayir",
+            "mevzuat_alintisi": None,
+            "kalicilik": "guncel",
+            "zaten_biliniyor": "hayir",
+            "tekil_segment": "hayir",
+            "baslik": "TOKİ Kurası",
+            "aci": "Kura çekimi süreci ve başvuranlara etkisi.",
+            "sutun": "S4",
+            "bicim": "B5",
+            "kanca_kalip": "yaygin_yanlis",
+        })
+        with patch("src.generate_text._gemini_cagri", return_value=fake_llm):
+            # Normal triyaj reddeder
+            self.assertIsNone(haber_triyaj.triyaj_et(haber, asgari_guven=6, zorla=False))
+            # zorla=True kabul eder
+            brief = haber_triyaj.triyaj_et(haber, asgari_guven=6, zorla=True)
+            self.assertIsNotNone(brief)
+            self.assertEqual(brief["bicim"], "B5")
+            self.assertEqual(brief["kod"], "HABER-12")
 
     def test_gunluk_sinir(self):
         from src import haber_oneri

@@ -196,12 +196,14 @@ def _haber_metni(haber: Dict[str, Any], azami: int = 2200) -> str:
     return "\n".join(parcalar)
 
 
-def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6) -> Optional[Dict[str, Any]]:
+def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6, zorla: bool = False) -> Optional[Dict[str, Any]]:
     """Haberi brief'e çevirir; değmiyorsa None döner.
 
     `asgari_guven`: modelin kendi verdiği değerlilik puanı bunun altındaysa
     haber elenir. Modelin "uygun" demesi yetmiyor — ne kadar emin olduğunu da
     soruyoruz, çünkü zorlandığında kibarca "evet" deme eğiliminde.
+    `zorla`: Kullanıcı Telegram'dan haberi açıkça seçtiğinde (insan iradesi)
+    reddedilmez; B5 (Haber Analizi/Yorumu) veya uygun formatta brief üretilir.
     """
     from . import generate_text  # döngüsel içe aktarmayı önlemek için burada
 
@@ -212,11 +214,36 @@ def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6) -> Optional[Dict[str
     )
     sonuc = generate_text._json_coz(ham) if ham else None
     if not sonuc:
+        if zorla:
+            log.info("Zorla triyaj: model yanıtı yok, yerel özetle B5 brief üretiliyor: #%s", haber.get("id"))
+            from . import sutun
+            sutun_kodu = sutun.sutun_bul(haber.get("kategori") or "") or "S4"
+            ozet_aci = (haber.get("orijinal_ozet") or haber.get("orijinal_baslik") or "")[:200].strip()
+            return {
+                "kod": f"HABER-{haber.get('id', '?')}",
+                "sutun": sutun_kodu if sutun_kodu in ("S1", "S2", "S3", "S4") else "S4",
+                "bicim": "B5",
+                "baslik": haber.get("orijinal_baslik") or haber.get("baslik", ""),
+                "aci": ozet_aci or "Sektörel gelişme ve bölgeye etkileri.",
+                "kanca_kalip": "yaygin_yanlis",
+                "mevzuat": None,
+                "yerel": None,
+                "_guven": 5,
+                "_dayanak": haber.get("orijinal_ozet"),
+                "_eylem": None,
+                "_haber_id": haber.get("id"),
+                "_kaynak_url": haber.get("orijinal_url"),
+            }
         log.warning("Triyaj yanıtı çözülemedi: %s", str(haber.get("orijinal_baslik"))[:60])
         haber["_red_gerekcesi"] = "model yanıtı çözülemedi"
         return None
 
     kabul, gerekce, guven = _karar_ver(sonuc)
+    if zorla:
+        kabul = True
+        gerekce = "kullanici_secimi"
+        guven = max(guven, 5)
+
     if not kabul:
         log.info("Triyaj reddetti (%s): %s", gerekce, str(haber.get("orijinal_baslik"))[:60])
         # İnsan "İçeriğe çevir" dediğinde gerekçe gruba yazılır (haber_oneri)
@@ -224,7 +251,7 @@ def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6) -> Optional[Dict[str
         if gerekce.startswith("konu-adayi:"):
             haber["_konu_adayi"] = True   # çağıran konu bankası yoluna yönlendirsin
         return None
-    if guven < asgari_guven:
+    if not zorla and guven < asgari_guven:
         log.info("Triyaj puanı düşük (%d < %d): %s", guven, asgari_guven,
                  str(haber.get("orijinal_baslik"))[:60])
         return None
@@ -234,18 +261,22 @@ def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6) -> Optional[Dict[str
     if str(sonuc.get("yerel_gecis", "")).lower() == "yakin":
         yerel_bag = "Haberde bölge açıkça geçiyor"
 
+    aci = sonuc.get("aci")
+    if not aci or len(str(aci).strip()) < 5:
+        aci = (haber.get("orijinal_ozet") or haber.get("orijinal_baslik") or "")[:200].strip()
+
     # Konu bankası kaydıyla aynı şekil — içerik üretimi tek yoldan ilerlesin
     return {
         "kod": f"HABER-{haber.get('id', '?')}",
         "sutun": sonuc.get("sutun") or "S4",
         "bicim": sonuc.get("bicim") or "B5",
         "baslik": sonuc.get("baslik") or haber.get("orijinal_baslik", ""),
-        "aci": sonuc.get("aci", ""),
+        "aci": aci or "Sektörel gelişme ve bölgeye etkileri.",
         "kanca_kalip": sonuc.get("kanca_kalip") or "yaygin_yanlis",
         "mevzuat": sonuc.get("mevzuat_alintisi"),
         "yerel": yerel_bag,
         "_guven": guven,
-        "_dayanak": sonuc.get("dayanak_alintisi"),
+        "_dayanak": sonuc.get("dayanak_alintisi") or haber.get("orijinal_ozet"),
         "_eylem": sonuc.get("okuyucu_eylemi"),
         "_haber_id": haber.get("id"),
         "_kaynak_url": haber.get("orijinal_url"),

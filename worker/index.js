@@ -1187,6 +1187,14 @@ export default {
           return new Response("OK");
         }
 
+        const haberUretMatch = text.match(/^\/(?:haber|haber_uret|haberden)(?:\s+|_)#?(\d+)$/i);
+        if (haberUretMatch) {
+          const haberId = haberUretMatch[1];
+          await mesajGonder(`⏳ <b>Haber #${haberId}</b> içeriğe çevriliyor, onay kartı birazdan hazırlanacak...`);
+          await tetikle(env, chatId, "haber_uret", { haber_id: haberId });
+          return new Response("OK");
+        }
+
         if (text === "/haber" || text === "/sondakika") {
           await mesajGonder("🌐 Taze emlak haberleri taranıyor; öneriler tarihleriyle birazdan düşecek...");
           await tetikle(env, chatId, "haber_oneri", { kaynak: "telegram_komut" });
