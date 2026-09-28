@@ -3410,23 +3410,22 @@ def haber_dailybrief_slayti_ciz(
 
         # Spot metni formatlama (İri, okunaklı editoryal açıklayıcı başlık)
         spot_temiz = _temizle_tipografi(spot_raw)
-        punto_spot = 34
+        punto_spot = 32
         font_spot = _font_yukle(FONT_SANS, punto_spot)
         spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw) if spot_temiz else []
-        if len(spot_satirlari) > 2:
-            punto_spot = 30
+        while len(spot_satirlari) > 4 and punto_spot > 24:
+            punto_spot -= 2
             font_spot = _font_yukle(FONT_SANS, punto_spot)
-            spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw) if spot_temiz else []
-        spot_satirlari = spot_satirlari[:3]  # Maksimum 3 satır
-        spot_lh = int(punto_spot * 1.38)
+            spot_satirlari = _metin_sar(spot_temiz, font_spot, kullanilabilir_w, draw)
+        spot_satirlari = spot_satirlari[:4]
+        spot_lh = int(punto_spot * 1.36)
         spot_h = len(spot_satirlari) * spot_lh
 
         # Manşet metni formatlama (Fraunces — Dev Editoryal Manşet)
         manset_temiz = _temizle_tipografi(manset_raw)
-        punto_manset = 70
+        punto_manset = 68
         font_manset = _font_yukle(FONT_FRAUNCES, punto_manset)
         manset_satirlari = _metin_sar(manset_temiz, font_manset, kullanilabilir_w, draw)
-        
         while len(manset_satirlari) > 3 and punto_manset > 46:
             punto_manset -= 2
             font_manset = _font_yukle(FONT_FRAUNCES, punto_manset)
@@ -3525,6 +3524,18 @@ def haber_dailybrief_slayti_ciz(
 
 def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Haber verisinden editoryal Smart Brevity detay maddelerini normalize edilmiş liste olarak ayıklar."""
+    if isinstance(haber, dict):
+        dm = haber.get("detay_metni")
+        if dm and isinstance(dm, str) and dm.strip().startswith("{"):
+            try:
+                parsed = json.loads(dm)
+                if isinstance(parsed, dict):
+                    for k, v in parsed.items():
+                        if k not in haber or haber[k] is None:
+                            haber[k] = v
+            except Exception:
+                pass
+
     maddeler = haber.get("detay_maddeleri") or haber.get("maddeler") or []
     if not maddeler:
         # 1. Öncelik: Haberin gerçek analizi (Ne Oldu + Bölgesel/Sektörel Etki)
@@ -3546,28 +3557,24 @@ def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]
         if not maddeler:
             s3 = haber.get("slayt_3_cozum")
             if isinstance(s3, dict) and s3.get("maddeler"):
-                renk_sira = ["kirmizi", "kirec", "kirec"]
+                renk_sira = ["kirmizi", "kirec", "kirec", "kirec", "kirec"]
                 maddeler = [
                     {
                         "etiket": m.get("baslik", "DETAY").upper(),
                         "metin": m.get("aciklama", ""),
                         "renk": renk_sira[i % len(renk_sira)],
                     }
-                    for i, m in enumerate(s3.get("maddeler", [])[:3])
+                    for i, m in enumerate(s3.get("maddeler", []))
                 ]
     if not maddeler:
         detay_ham = haber.get("detay") or haber.get("detay_metni") or haber.get("spot") or haber.get("orijinal_ozet") or ""
-        cumleler = [c.strip() for c in re.split(r"(?<=[.!?])\s+", detay_ham) if len(c.strip()) > 8]
-        # Cümleler haberin kendisinden gelir; etiketleri NÖTR. Önceden her habere
-        # "KAPSANAN BÖLGE VE PARSELLER", "ASKI SÜRESİ VE İTİRAZ MERKEZİ" gibi imar
-        # etiketleri basılıyordu — cümle o konuda olmasa da (#170, #171).
-        # Metin yoksa madde de yok: "Sektörü ve mülk sahiplerini doğrudan
-        # ilgilendiren yasal düzenleme yürürlüğe girdi" yedeği uydurmaydı.
-        parcalar = cumleler[:2] + ([" ".join(cumleler[2:])] if len(cumleler) > 2 else [])
-        maddeler = [
-            {"etiket": f"AYRINTI {i:02d}", "metin": c, "renk": "kirmizi" if i == 1 else "kirec"}
-            for i, c in enumerate(parcalar, start=1)
-        ]
+        if isinstance(detay_ham, str) and not detay_ham.strip().startswith("{"):
+            cumleler = [c.strip() for c in re.split(r"(?<=[.!?])\s+", detay_ham) if len(c.strip()) > 8]
+            parcalar = cumleler[:4]
+            maddeler = [
+                {"etiket": f"AYRINTI {i:02d}", "metin": c, "renk": "kirmizi" if i == 1 else "kirec"}
+                for i, c in enumerate(parcalar, start=1)
+            ]
 
     varsayilan_etiketler = [f"AYRINTI {i:02d}" for i in range(1, 5)]
     # Marka paleti: kırmızı yalnızca ilk vurguda, gerisi kireç. Turkuaz, yeşil ve
@@ -3674,6 +3681,8 @@ def haber_dailybrief_detay_slayti_ciz(
     uzman_notu = (haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
     if not uzman_notu and isinstance(haber.get("slayt_4_cta"), dict):
         uzman_notu = str(haber["slayt_4_cta"].get("aciklama", "")).strip()
+    if uzman_notu:
+        uzman_notu = re.sub(r"^(?:EDM\s+)?(?:Uzman\s+)?(?:Değerlendirmesi|Analizi|Notu|Stratejisi)\s*:\s*", "", uzman_notu, flags=re.IGNORECASE).strip()
     if not uzman_notu:
         goster_uzman_notu = False
 
@@ -3919,6 +3928,31 @@ def _sayfalari_dengeli_bol(
     return en_iyi_bolum if en_iyi_bolum is not None else [maddeler[:n//2], maddeler[n//2:]]
 
 
+def _haber_slayt_ust_etiketi(bolum: List[Dict[str, Any]], slayt_no: int, toplam_slayt: int) -> str:
+    """Detay slaytı için içerikle uyumlu, editoryal üst etiket üretir."""
+    metinler = " ".join(
+        (str(m.get("etiket", "")) + " " + str(m.get("metin", ""))) for m in bolum
+    ).upper()
+
+    if any(k in metinler for k in ("BÖLGESEL", "PİYASA", "FİYAT", "TRAKYA", "SİLİVRİ", "ÇATALCA", "EMSAL", "ETKİ")):
+        return "// BÖLGESEL PİYASAYA ETKİSİ VE ANALİZ"
+    if any(k in metinler for k in ("RİSK", "HUKUK", "ŞART", "BAŞVURU", "TEMİNAT", "DİKKAT", "HAKLAR", "İTİRAZ")):
+        return "// BAŞVURU ŞARTLARI VE DİKKAT EDİLECEKLER"
+    if any(k in metinler for k in ("RESMİ", "İHALE", "DUYURU", "GELİŞME", "PROJE", "PARSEL", "METREKARE")):
+        return "// RESMİ GELİŞME VE İHALE DETAYLARI"
+
+    # Varsayılan editoryal hiyerarşi
+    if slayt_no == 2:
+        return "// HABERİN AYRINTILARI"
+    elif slayt_no == 3 and slayt_no == toplam_slayt:
+        return "// PİYASA ANALİZİ VE DEĞERLENDİRME"
+    elif slayt_no == 3:
+        return "// PİYASAYA VE BÖLGEYE ETKİSİ"
+    elif slayt_no == 4:
+        return "// DİKKAT EDİLECEK RİSKLER VE SÜREÇ"
+    return "// HABERİN AYRINTILARI"
+
+
 @_gorsel_girdisi
 def haber_dailybrief_slaytlari_uret(
     haber: Dict[str, Any],
@@ -3928,14 +3962,27 @@ def haber_dailybrief_slaytlari_uret(
     foto_yolu: Optional[Path | str] = None,
 ) -> List[Path]:
     """
-    DailyBrief Haber Carousel Üreticisi (Seçenek 2: Dinamik 2 veya 3 Slayt):
-    - Haber içeriği kapsamlı ve teknikse -> 3 Slayt (Kapak + Detay 1 + Detay 2 & Uzman Stratejisi)
-    - Haber kısa ve yalınsa -> 2 Slayt (Kapak + Detay & Uzman Stratejisi)
+    EDM Gündem // Haber Bülteni Çok Slaytlı Carousel Üreticisi:
+    - Kapak: Gazetecilik usulü doğal manşet + 2-3 cümlelik editoryal spot + kurumsal kimlik.
+    - Detay Slaytları: Haberin kapsamına göre dinamik 2-3-4 slayt (ferah, 34-40px punto, sol mimari çentik).
+    - Kapanış: EDM Uzman Değerlendirmesi & Yatırımcı Stratejisi kutusu.
     """
     if cikti_dizini is None:
         cikti_dizini = config.yol_al("data/output/gonderiler")
     cikti_dizini = Path(cikti_dizini)
     cikti_dizini.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(haber, dict):
+        dm = haber.get("detay_metni")
+        if dm and isinstance(dm, str) and dm.strip().startswith("{"):
+            try:
+                parsed = json.loads(dm)
+                if isinstance(parsed, dict):
+                    for k, v in parsed.items():
+                        if k not in haber or haber[k] is None:
+                            haber[k] = v
+            except Exception:
+                pass
 
     if not haber.get("manset"):
         m1 = haber.get("manset_parca_1", "")
@@ -3943,24 +3990,47 @@ def haber_dailybrief_slaytlari_uret(
         m2 = haber.get("manset_parca_2", "")
         haber["manset"] = f"{m1} {mv} {m2}".strip() or haber.get("orijinal_baslik", "")
     if not str(haber.get("manset") or "").strip():
+        haber["manset"] = str(haber.get("orijinal_baslik") or haber.get("baslik") or "").strip()
+    if not str(haber.get("manset") or "").strip():
         raise EksikIcerik("Haber: manşet yok")
+
+    if not haber.get("spot"):
+        haber["spot"] = haber.get("orijinal_ozet") or haber.get("ozet") or ""
 
     fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url")
     maddeler = haber_detay_maddelerini_ayikla(haber)
     uzman_var = bool((haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
                      or (isinstance(haber.get("slayt_4_cta"), dict) and str(haber["slayt_4_cta"].get("aciklama") or "").strip()))
 
-    # Slayt sayısı ÖLÇÜLEREK: önce bütün maddeler tek detay slaytında denenir, sığmazsa
-    # 2, sonra 3 dengeli slayt. Eskiden "anahtar kelime varsa 3 slayt" kuralı iki kısa
-    # maddeyi üç slayta yayıyor, 2. ve 3. slaytlar neredeyse boş kalıyordu; iki slaytlık
-    # yol da maddeler[:2] ile üçüncü maddeyi düşürüyordu.
     p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
     if not maddeler and not uzman_var:
         haber_dailybrief_slayti_ciz(haber=haber, foto_yolu=fp, cikti_yolu=p1, olcu=olcu, sayfa_no="01 / 01")
         return [p1]
 
     istenen = haber.get("slayt_sayisi")
-    denenecek = [int(istenen) - 1] if istenen in (2, 3) else [1, 2, 3]
+    if istenen in (2, 3, 4):
+        denenecek = [int(istenen) - 1]
+    else:
+        n_maddeler = len(maddeler)
+        toplam_metin_len = sum(len(str(m.get("metin", ""))) for m in maddeler)
+        if n_maddeler >= 5:
+            denenecek = [3, 2, 4]
+        elif n_maddeler >= 4:
+            denenecek = [2, 3, 1]
+        elif n_maddeler == 3:
+            # Uzun/zengin maddeler (toplam > 240 karakter) 2 detay slaytına yayılır; kısa maddeler tek detay slaytında kalır
+            if toplam_metin_len > 240:
+                denenecek = [2, 3, 1]
+            else:
+                denenecek = [1, 2]
+        elif n_maddeler == 2:
+            if toplam_metin_len > 240 and uzman_var:
+                denenecek = [2, 1]
+            else:
+                denenecek = [1, 2]
+        else:
+            denenecek = [1]
+
     for detay_sayisi in denenecek:
         # Az slayt tercihi yalnızca metin rahat okunurken (≥34px); son deneme 28px'e iner
         asgari = 28 if detay_sayisi == denenecek[-1] else 34
@@ -3974,9 +4044,10 @@ def haber_dailybrief_slaytlari_uret(
                 son_mu = i == toplam
                 yol = cikti_dizini / f"{cikti_onek}_dailybrief_s{i}.jpg"
                 sayfa = f"{i:02d} / {toplam:02d}" + ("" if son_mu else "  ›  KAYDIRIN")
+                etiket = _haber_slayt_ust_etiketi(bolum, i, toplam)
                 haber_dailybrief_detay_slayti_ciz(
                     haber=haber, foto_yolu=fp, cikti_yolu=yol, olcu=olcu, sayfa_no=sayfa, maddeler=bolum,
-                    ust_etiket="// HABERİN AYRINTILARI" if i == 2 else "// HABERİN AYRINTILARI · DEVAMI",
+                    ust_etiket=etiket,
                     goster_uzman_notu=son_mu,
                     asgari_punto=asgari,
                 )

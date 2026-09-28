@@ -1606,15 +1606,30 @@ def _haber_onayina_sun(haber_id: int) -> bool:
     if not slayt_yollari:
         from . import yeni_formatlar, make_image
 
+        if otorite_verisi and isinstance(otorite_verisi, dict):
+            if not otorite_verisi.get("foto_yolu") and not otorite_verisi.get("gorsel_yolu"):
+                otorite_verisi["foto_yolu"] = haber.get("gorsel_url")
+                otorite_verisi["gorsel_yolu"] = haber.get("gorsel_url")
+            if not otorite_verisi.get("orijinal_baslik"):
+                otorite_verisi["orijinal_baslik"] = haber.get("orijinal_baslik")
+            if not otorite_verisi.get("kaynak"):
+                otorite_verisi["kaynak"] = haber.get("kaynak")
+            if not otorite_verisi.get("manset"):
+                otorite_verisi["manset"] = haber.get("manset") or haber.get("orijinal_baslik")
+            if not otorite_verisi.get("spot"):
+                otorite_verisi["spot"] = haber.get("orijinal_ozet")
+
         if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
             f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else "dailybrief"
             slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}")
             slayt_yollari = [str(p) for p in slayt_listesi]
         elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
             # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla üret
+            dm_raw = str(haber.get("detay_metni") or "").strip()
+            spot_val = haber.get("orijinal_ozet") or (dm_raw if not dm_raw.startswith("{") else "")
             veri_icin = {
                 "manset": haber.get("manset") or haber.get("orijinal_baslik", ""),
-                "spot": haber.get("orijinal_ozet") or haber.get("detay_metni", ""),
+                "spot": spot_val,
                 "kategori": haber.get("kategori") or "TAPU_VE_HUKUK",
                 "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
                 "gorsel_yolu": haber.get("gorsel_url"),

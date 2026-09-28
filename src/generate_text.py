@@ -404,18 +404,52 @@ JSON:
 kart_1 sık yapılan yanlışı, kart_2 doğru yasal çerçeveyi anlatır.
 slayt_3_cozum maddeleri atılması gereken somut adımları listeler.""" % BUTCE
 
-_SEMA_B5 = """BİÇİM: B5 — HABER YORUMU (2 slayt)
-Ne oldu ve bu Silivri/Trakya'da ne anlama geliyor.
+_SEMA_B5 = """BİÇİM: B5 — EDM GÜNDEM // HABER BÜLTENİ VE ANALİZİ
+Kapak + Haberin derinlikli detay ve piyasa analizi sayfaları.
 
-İkinci kısım asıl değerdir: haberi tekrar etme, yerel sonucunu söyle.
-Haberin gerçekten sektörü ilgilendirdiğinden emin ol; ilgilendirmiyorsa
-"onem_puani" değerini 4'ün altında ver, sistem o içeriği yayınlamaz.
+KURALLAR:
+1. MANŞET: Gazetecilik usulü doğal, tek parça manşet. Parçalama yapma; tek ve akıcı bir haber başlığı yaz. Haberin en can alıcı olgusunu (rakam, ilçe, kurum, değişim) içermelidir (örn. "Milli Emlak Çatalca'da 49 Bin TL'den Arazi Satışına Başladı").
+2. SPOT: Haberin arka planını, en kritik verisini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot (140-200 karakter).
+3. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler).
+4. UZMAN NOTU: EDM Değerlendirmesi — takipçiye/yatırımcıya tek cümlelik somut strateji tavsiyesi.
 
-JSON: B1 ile aynı şema, ancak
-  slayt_2_detay.kart_1 → "NE OLDU" (renk: kirmizi)
-  slayt_2_detay.kart_2 → "SİLİVRİ VE TRAKYA İÇİN ANLAMI" (renk: yesil)
-  slayt_3_cozum.maddeler → haberden çıkan 3 somut sonuç
-""" + _SEMA_B1.split("JSON:", 1)[1]
+JSON:
+{
+  "bicim": "B5",
+  "format_turu": "dailybrief",
+  "kategori_kodu": "SEKTOREL_HABER_VE_ANALIZ",
+  "rozet_metni": "EDM GÜNDEM // ARSA VE İMAR",
+  "yasal_dayanak": "İlgili mevzuat veya resmi kurum adı",
+  "manset": "Tek parça, akıcı ve vurucu haber manşeti (50-80 karakter)",
+  "spot": "Haberin sonucunu ve verilerini anlatan 2-3 cümlelik editoryal spot (140-200 karakter)",
+  "detay_maddeleri": [
+    {
+      "etiket": "01 // RESMİ GELİŞME VE İHALE/PROJE ŞARTLARI",
+      "metin": "Ne oldu? İhale/proje nerede, kaç TL, hangi ada/parsel, metrekare veya başvuru tarihi ne? (120-170 karakter)",
+      "renk": "kirmizi"
+    },
+    {
+      "etiket": "02 // BÖLGESEL PİYASAYA VE FİYATLARA ETKİSİ",
+      "metin": "Silivri, Çatalca, Trakya ve gayrimenkul piyasasına etkisi ne? Fiyat dengesini, emsal değerleri nasıl etkiler? (120-170 karakter)",
+      "renk": "kirec"
+    },
+    {
+      "etiket": "03 // KİMLER KATILABİLİR & SÜREÇ NASIL İŞLİYOR",
+      "metin": "Başvuru süreci, teminat, KDV muafiyeti veya taksit avantajları neler? (120-170 karakter)",
+      "renk": "kirec"
+    },
+    {
+      "etiket": "04 // DİKKAT EDİLECEK RİSKLER VE HUKUKİ HAKLAR",
+      "metin": "Mülk alırken veya sürece girerken tapu, kadastro veya fiili zemin durumunda nelere dikkat edilmeli? (120-170 karakter)",
+      "renk": "kirec"
+    }
+  ],
+  "uzman_notu": "EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi (80-130 karakter)",
+  "onem_puani": 8,
+  "caption_instagram": "Hook ile başla, haberin tüm detaylarını ve bölgesel analizini 2-3 kısa paragrafta açıkla, kaydet/gönder çağrısıyla bitir, konuya özel 3 hashtag ekle.",
+  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + kaydet/gönder çağrısı + 3 hashtag.",
+  "caption_threads": "≤%(threads)d karakter. Hook + kısa analiz + kaydet/gönder çağrısı + 2-3 konu etiketi."
+}""" % BUTCE
 
 
 SEMALAR: Dict[str, str] = {"B1": _SEMA_B1, "B2": _SEMA_B2, "B3": _SEMA_B3, "B4": _SEMA_B2, "B5": _SEMA_B5}
@@ -1079,15 +1113,17 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GÜNDEM // HABER BÜLTENİ' formatında üret. "
             "JSON nesnesinde 'format_turu': 'dailybrief', 'bicim': 'B5', "
-            "'manset': (Çarpıcı, doğal ve akıcı editoryal haber manşeti - en fazla %(manset_satir)d karakter), "
-            "'spot': (Haberin en can alıcı sonucunu ve gerekçesini anlatan 2-3 cümlelik açıklayıcı editoryal spot, en fazla %(spot)d karakter), "
-            "'slayt_2_detay': { "
-            "  'kart_1': {'etiket': 'GÜNCEL GELİŞME // RESMİ DUYURU', 'baslik': 'Haberin Özeti', 'aciklama': 'Haberde ne oldu? Somut olgu ve rakamlarla net açıklama (en fazla %(kart_aciklama)d karakter)'}, "
-            "  'kart_2': {'etiket': 'BÖLGESEL & SEKTÖREL ETKİ', 'baslik': 'Piyasaya ve Bölgeye Yansıması', 'aciklama': 'Silivri, Trakya ve genel gayrimenkul piyasasına etkisi ne? Yatırımcı ve vatandaş için anlamı ne? (en fazla %(kart_aciklama)d karakter)'} "
-            "}, "
-            "'slayt_4_cta': {'aciklama': 'EDM Uzman Değerlendirmesi: Takipçiye tek cümlelik somut strateji tavsiyesi (en fazla %(spot)d karakter)'} "
-            "alanlarını MUTLAKA doldur. Bu format 2 slaytlık vurucu bir haber bültenidir."
-        ) % BUTCE
+            "'manset': (Gazetecilik usulü doğal, tek parça ve vurucu haber başlığı. Parçalama yapma, tek akıcı cümle yaz. Somut olgu, kurum, ilçe veya rakam içersin: örn. 'Milli Emlak Çatalca\\'da 49 Bin TL\\'ye Arazi Satışına Başladı' - en fazla 75 karakter), "
+            "'spot': (Haberin arka planını, en kritik verilerini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot, 140-200 karakter), "
+            "'detay_maddeleri': [ "
+            "  {'etiket': '01 // RESMİ GELİŞME VE İHALE/PROJE ŞARTLARI', 'metin': 'Ne oldu? İhale/proje nerede, kaç TL, hangi ilçe/parsel, metrekare veya başvuru tarihi ne? (120-170 karakter)', 'renk': 'kirmizi'}, "
+            "  {'etiket': '02 // BÖLGESEL PİYASAYA VE FİYATLARA ETKİSİ', 'metin': 'Silivri, Çatalca, Trakya ve gayrimenkul piyasasına etkisi ne? Fiyat dengesini ve emsal değerleri nasıl etkiler? (120-170 karakter)', 'renk': 'kirec'}, "
+            "  {'etiket': '03 // BAŞVURU ŞARTLARI VE ÖDEME AVANTAJLARI', 'metin': 'Kimler katılabilir? Peşinat, vade seçenekleri, KDV muafiyeti veya tapu harcı avantajları neler? (120-170 karakter)', 'renk': 'kirec'}, "
+            "  {'etiket': '04 // DİKKAT EDİLECEK RİSKLER VE HUKUKİ HAKLAR', 'metin': 'Sürece girerken tapu, imar durumu, sit/koruma alanı veya fiili zemin durumunda nelere dikkat edilmeli? (120-170 karakter)', 'renk': 'kirec'} "
+            "], "
+            "'uzman_notu': (EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi, 80-130 karakter) "
+            "alanlarını MUTLAKA doldur. Bu format kapak + derinlemesine detay ve piyasa analiz sayfalarından oluşan zengin ve çok slaytlı bir bültendir."
+        )
 
     def tamamla(v: Dict[str, Any]) -> None:
         v.setdefault("bicim", bicim)
