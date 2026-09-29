@@ -420,17 +420,22 @@ def _metin_sar(metin: str, font: ImageFont.FreeTypeFont, azami_genislik: int, dr
     return satirlar
 
 
-def _foto_indir_veya_ac(foto_url_veya_yol: str, deneme_adedi: int = 3) -> Optional[Image.Image]:
+_basarisiz_gorsel_urlleri: set[str] = set()
+
+def _foto_indir_veya_ac(foto_url_veya_yol: str, deneme_adedi: int = 2) -> Optional[Image.Image]:
     """
     URL veya yerel dosyadan görseli açar:
     1. Upload önbelleğinde yerel dosya varsa doğrudan diskten okur.
-    2. Uzak URL ise 3 denemeli ve artan bekleme ile çeker.
-    3. EXIF yön matrisini (ImageOps.exif_transpose) otomatik uygular; asla yan veya ters dönmez.
+    2. Uzak URL ise 2 denemeli ve artan bekleme ile çeker.
+    3. 404/403 gibi kesin hatalarda derhal durur ve başarısız URL'yi önbelleğe alıp diğer slaytları bekletmez.
+    4. EXIF yön matrisini (ImageOps.exif_transpose) otomatik uygular; asla yan veya ters dönmez.
     """
     if not foto_url_veya_yol:
         return None
 
     s = str(foto_url_veya_yol).strip()
+    if s in _basarisiz_gorsel_urlleri:
+        return None
 
     # 1. Upload önbelleğinde yerel dosya var mı?
     yerel = upload_image.yerel_karsiligi(s)
@@ -441,20 +446,24 @@ def _foto_indir_veya_ac(foto_url_veya_yol: str, deneme_adedi: int = 3) -> Option
         except Exception as e:
             log.warning("Önbellekteki görsel açılamadı (%s): %s", yerel, e)
 
-    # 2. Uzak URL ise 3 denemeli indir
+    # 2. Uzak URL ise indir
     if s.startswith("http://") or s.startswith("https://"):
         headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
         for deneme in range(1, deneme_adedi + 1):
             try:
-                resp = requests.get(s, headers=headers, timeout=15)
+                resp = requests.get(s, headers=headers, timeout=8)
                 if resp.status_code == 200:
                     with Image.open(io.BytesIO(resp.content)) as img:
                         return ImageOps.exif_transpose(img).convert("RGB")
                 log.warning("Görsel indirme HTTP %d (deneme %d/%d): %s", resp.status_code, deneme, deneme_adedi, s)
+                if resp.status_code in (404, 410, 403):
+                    _basarisiz_gorsel_urlleri.add(s)
+                    break
             except Exception as e:
                 log.warning("Görsel indirme hatası (%s, deneme %d/%d): %s", s, deneme, deneme_adedi, e)
             if deneme < deneme_adedi:
-                time.sleep(2 * deneme)
+                time.sleep(1)
+        _basarisiz_gorsel_urlleri.add(s)
         return None
 
     # 3. Yerel dosya
