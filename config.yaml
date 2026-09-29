@@ -182,17 +182,16 @@ sosyal:
 # Tek kaynak burası: ELEVENLABS_VOICE_ID ortam değişkeni artık okunmuyor
 # (yereldeki eski değer seçilen sesi sessizce geri çeviriyordu).
 seslendirme:
-  ses_id: "r3deco0KTo6o0Kb5inro"        # Sıla Özalp — haber sunucusu (profesyonel ses)
-  yedek_ses_id: "J17lijyP1BHYcM7ld0Rg"  # Adam — Sıla kütüphaneden kalkarsa
+  ses_id: "KediIz7pebzt5TaDHiiZ"        # Alex — derin, epik, güçlü bariton anlatıcı (Instabot ana sesi)
+  yedek_ses_id: "J17lijyP1BHYcM7ld0Rg"  # Adam — tok Türkçe İstanbul spikeri (1. yedek ses)
   model: "eleven_multilingual_v2"
-  # "Biraz daha hızlı ve heyecanlı": bugünkü ayar (1.0 / 0.60 / 0.0) ağır bulundu
-  ayarlar:
-    stability: 0.40
-    similarity_boost: 0.80
-    style: 0.30
+  ayarlar:                              # Derin, net ve akıcı haber spikeri ayarı (Alex)
+    stability: 0.55
+    similarity_boost: 0.75
+    style: 0.0
     use_speaker_boost: true
-    speed: 0.92
-  hedef_lufs: -11          # telefon hoparlöründe cılız kalmasın; sosyal medya standardı (-12 LUFS)
+    speed: 1.15
+  hedef_lufs: -14          # telefon hoparlöründe cılız kalmasın; sosyal medya standardı (-12 LUFS)
   # Son slaytta okunur. Önce gerekçe, sonra çağrı ("…istemiyorsanız"): emir değil
   # öneri gibi duyulsun. "Beğenin" bilerek yok: yalvarır gibi duruyor ve Reels'te
   # beğeniden çok kaydetme/paylaşma öne çıkarıyor.
