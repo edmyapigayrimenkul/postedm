@@ -1205,8 +1205,8 @@ export default {
           return new Response("OK");
         }
 
-        // /sil [sayi] — Son Telegram onay kartını ve albüm slaytlarını siler
-        if (komut === "/sil" || komut === "sil") {
+        // /mesaj_sil [sayi] — Son Telegram onay kartını ve albüm slaytlarını siler
+        if (komut === "/mesaj_sil" || komut === "/sil_mesaj") {
           const userMsgId = update.message.message_id;
           await mesajiSil(chatId, userMsgId);
           const sayi = /^\d+$/.test(arguman[0]) ? parseInt(arguman[0], 10) : 5;
@@ -1225,13 +1225,11 @@ export default {
           return new Response("OK");
         }
 
-        // /kaldir — Yayındaki içeriği sosyal medyadan geri alır
-        if (komut === "/kaldir") {
+        // /kaldir ve /sil — Yayındaki içeriği sosyal medyadan geri alır (yalnızca / ile ve tek ID ile)
+        if (komut === "/kaldir" || komut === "/sil") {
           const refId = arguman.length === 1 ? arguman[0] : "";
           if (/^\d+$/.test(refId)) {
             await mesajGonder(kaldirmaOnayMetni(refId), kaldirmaOnayMenusu("haber", refId));
-          } else {
-            await mesajGonder("⚠️ Lütfen yayından kaldırılacak ID'yi belirtin:\nÖrn: <code>/kaldir 170</code>");
           }
           return new Response("OK");
         }

@@ -612,56 +612,61 @@ def main() -> None:
                 else:
                     v_yolu = vy
 
-        # 3.0. Video: düz yayında eskisi gibi sessiz video (fon müziği aşağıda eklenir);
-        # sesli yayında kapak seslendirmesi + kapanış çağrısı (ses.anlatimli_video_uret).
+        # 3.0. Video: Instabot standardı — video her zaman ElevenLabs anlatımlı (Alex)
+        # ve fon müzikli üretilir; seslendirme düşerse zarifçe fon müzikli videoya geriler.
         def _video(slaytlar, veri=None):
-            if ses_modu:
-                return ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=(ses_modu == "muzikli"), sonuc=ses_sonucu)
+            muzik_aktif = (ses_modu != "muziksiz")
+            try:
+                v_anlatimli = ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=muzik_aktif, sonuc=ses_sonucu)
+                if v_anlatimli and Path(v_anlatimli).exists():
+                    return v_anlatimli
+            except Exception as e_anlatim:
+                log.warning("Anlatımlı video derlenemedi, sessiz reels üretilecek: %s", e_anlatim)
             return video.slaytlardan_reels_uret(slaytlar, haber=veri)
 
         if not v_yolu or not v_yolu.exists():
             from src import make_image, yeni_formatlar
-            haber_bilgi = detay if (detay and isinstance(detay, dict)) else (haber if isinstance(haber, dict) else None)
+            haber_bilgi = {**(haber if isinstance(haber, dict) else {}), **(detay if isinstance(detay, dict) else {})}
             fmt = detay.get("format_turu") if isinstance(detay, dict) else None
 
             # ⚠️ INSTABOT STANDARDI (CLAUDE.md §242): ONAYLANAN GÖRSEL YAYINA ÇIKAN GÖRSEL OLMALI.
             # Video, kullanıcının Telegram'da görüp onayladığı slaytlardan derlenir.
             # Runner ortamında slaytlar sıfırdan üretilmez (aksi halde Pexels'ten bambaşka stok görsel çekebilir).
 
-            # 1. Öncelik: Haber ve DailyBrief şablonu için native 9:16 dikey slaytlar (1080x1920) üret
-            if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") or (detay and detay.get("bicim") in ("haber", "B5")):
+            # 1. Öncelik: Onaylanan Public CDN URL'leri veya yerel slayt dosyaları
+            kaynak_slaytlar = []
+            if public_urller and len(public_urller) > 0:
+                kaynak_slaytlar = [str(u) for u in public_urller]
+            elif haber and haber.get("slayt_urlleri"):
                 try:
-                    f_tur = fmt if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") else "dailybrief"
-                    d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=f_tur, cikti_onek=f"reels_{ref_id}", olcu="story")
-                    if d_slaytlar and all(Path(p).exists() for p in d_slaytlar):
-                        log.info("Native 9:16 dikey slaytlardan (%d adet) dikey video derleniyor...", len(d_slaytlar))
-                        v_yolu = _video([str(p) for p in d_slaytlar], haber_bilgi)
+                    db_urller = json.loads(haber["slayt_urlleri"])
+                    if isinstance(db_urller, list) and len(db_urller) > 0:
+                        kaynak_slaytlar = [str(u) for u in db_urller]
+                except Exception:
+                    pass
+
+            # Yerel slayt dosyaları
+            if not kaynak_slaytlar and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
+                kaynak_slaytlar = [str(p) for p in slayt_yollari if Path(p).exists()]
+
+            if kaynak_slaytlar:
+                try:
+                    log.info("Onaylı slaytlardan (%d adet) 9:16 dikey video derleniyor...", len(kaynak_slaytlar))
+                    v_yolu = _video(kaynak_slaytlar, haber_bilgi)
                 except Exception as ve:
-                    log.warning("Native 9:16 dikey slaytlardan video üretilemedi: %s", ve)
+                    log.warning("Onaylı slaytlardan video üretilemedi: %s", ve)
 
-            # 2. Öncelik: Onaylanan Public CDN URL'leri (public_urller veya DB'deki slayt_urlleri)
+            # 2. Son Çare Fallback: Yalnızca onaylı slayt bulunamazsa sıfırdan üret
             if not v_yolu or not v_yolu.exists():
-                kaynak_slaytlar = []
-                if public_urller and len(public_urller) > 0:
-                    kaynak_slaytlar = [str(u) for u in public_urller]
-                elif haber and haber.get("slayt_urlleri"):
+                if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") or (detay and detay.get("bicim") in ("haber", "B5")):
                     try:
-                        db_urller = json.loads(haber["slayt_urlleri"])
-                        if isinstance(db_urller, list) and len(db_urller) > 0:
-                            kaynak_slaytlar = [str(u) for u in db_urller]
-                    except Exception:
-                        pass
-
-                # Yerel slayt dosyaları
-                if not kaynak_slaytlar and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
-                    kaynak_slaytlar = [str(p) for p in slayt_yollari if Path(p).exists()]
-
-                if kaynak_slaytlar:
-                    try:
-                        log.info("Onaylı slaytlardan (%d adet) 9:16 dikey video derleniyor...", len(kaynak_slaytlar))
-                        v_yolu = _video(kaynak_slaytlar, haber_bilgi)
+                        f_tur = fmt if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") else "dailybrief"
+                        d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=f_tur, cikti_onek=f"reels_{ref_id}", olcu="story")
+                        if d_slaytlar and all(Path(p).exists() for p in d_slaytlar):
+                            log.info("Fallback 9:16 dikey slaytlardan video derleniyor...")
+                            v_yolu = _video([str(p) for p in d_slaytlar], haber_bilgi)
                     except Exception as ve:
-                        log.warning("Onaylı slaytlardan video üretilemedi: %s", ve)
+                        log.warning("Fallback dikey slaytlardan video üretilemedi: %s", ve)
 
             # 4. Öncelik: Klasik B1/B2/B3/B4 Otorite postu
             if (not v_yolu or not v_yolu.exists()) and detay and isinstance(detay, dict) and detay.get("bicim") in ("B1", "B2", "B3", "B4"):
@@ -691,15 +696,13 @@ def main() -> None:
                 log.warning("Fon müziği mikslenemedi: %s", se)
                 sesli_video_yolu = v_yolu
 
-    if ses_modu and video_lazim:
-        # Seslendirme düşerse video seslendirmesiz çıkar; bu raporda saklanmaz. ✓/✗
-        # BİLEREK yok: o işaretler kanal sonucu sayılıyor (herhangi_biri_basarili, hata_var)
-        # ve bu satır ya başarısız bir yayını başarılı ya da başarılı olanı hatalı gösterirdi.
-        kip = "fon müzikli" if ses_modu == "muzikli" else "fon müziksiz"
-        rapor_satirlari.append(
-            f"🎙️ <b>Seslendirme ({kip}):</b> Eklendi" if ses_sonucu.get("anlatim")
-            else "⚠️ <b>Seslendirme:</b> Üretilemedi (ElevenLabs anahtarı/kotası) — videolar seslendirmesiz çıktı"
-        )
+    if video_lazim:
+        # Seslendirme durumu raporu
+        kip = "fon müziksiz" if ses_modu == "muziksiz" else "fon müzikli"
+        if ses_sonucu.get("anlatim"):
+            rapor_satirlari.append(f"🎙️ <b>Seslendirme ({kip}):</b> Eklendi (Alex)")
+        elif ses_modu:
+            rapor_satirlari.append("⚠️ <b>Seslendirme:</b> Üretilemedi (ElevenLabs anahtarı/kotası) — videolar seslendirmesiz çıktı")
 
     # -------------------------------------------------------------
     # 4. INSTABOT PARİTELİ PARALEL DAĞITIM MOTORU (ThreadPoolExecutor)
@@ -888,34 +891,8 @@ def main() -> None:
             story_dosya.parent.mkdir(parents=True, exist_ok=True)
             hazir_yol = None
 
-            if detay and isinstance(detay, dict) and (
-                detay.get("format_turu") in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief")
-                or detay.get("bicim") in ("haber", "B5")
-            ):
-                try:
-                    from src import yeni_formatlar
-                    fmt = detay.get("format_turu") or "dailybrief"
-                    d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"story_{ref_id}", olcu="story")
-                    if d_slaytlar and Path(d_slaytlar[0]).exists():
-                        hazir_yol = Path(d_slaytlar[0])
-                except Exception as de:
-                    log.warning("Yeni format story üretim hatası: %s", de)
-            elif detay:
-                try:
-                    with make_image.tuval("story"):
-                        hazir_yol = Path(make_image.otorite_slayt_1_kapak(detay, str(story_dosya)))
-                except Exception as de:
-                    log.warning("Story native 9:16 üretim hatası: %s", de)
-            elif tur == "ilan" and ilan:
-                try:
-                    ilan_kapak = make_image.ilan_kapak_slayti_ciz(ilan)
-                    if ilan_kapak and Path(ilan_kapak).exists():
-                        hazir_yol = Path(ilan_kapak)
-                except Exception as ie:
-                    log.warning("İlan story kapak hatası: %s", ie)
-            elif slayt_yollari and Path(slayt_yollari[0]).exists():
-                hazir_yol = Path(slayt_yollari[0])
-            elif public_urller:
+            # 1. Öncelik: Onaylanan kapak slaytı (public URL veya yerel dosya)
+            if public_urller and len(public_urller) > 0:
                 try:
                     import requests
                     resp = requests.get(public_urller[0], timeout=15)
@@ -925,6 +902,48 @@ def main() -> None:
                         hazir_yol = story_dosya
                 except Exception as ue:
                     log.warning("Story public URL indirme hatası: %s", ue)
+            elif haber and haber.get("slayt_urlleri"):
+                try:
+                    import requests
+                    db_urller = json.loads(haber["slayt_urlleri"])
+                    if isinstance(db_urller, list) and len(db_urller) > 0:
+                        resp = requests.get(db_urller[0], timeout=15)
+                        if resp.status_code == 200:
+                            with open(story_dosya, "wb") as f:
+                                f.write(resp.content)
+                            hazir_yol = story_dosya
+                except Exception as ue:
+                    log.warning("Story db URL indirme hatası: %s", ue)
+            elif slayt_yollari and Path(slayt_yollari[0]).exists():
+                hazir_yol = Path(slayt_yollari[0])
+
+            # 2. Fallback: Onaylı slayt yoksa sıfırdan üret
+            if not hazir_yol or not hazir_yol.exists():
+                if detay and isinstance(detay, dict) and (
+                    detay.get("format_turu") in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief")
+                    or detay.get("bicim") in ("haber", "B5")
+                ):
+                    try:
+                        from src import yeni_formatlar
+                        fmt = detay.get("format_turu") or "dailybrief"
+                        d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"story_{ref_id}", olcu="story")
+                        if d_slaytlar and Path(d_slaytlar[0]).exists():
+                            hazir_yol = Path(d_slaytlar[0])
+                    except Exception as de:
+                        log.warning("Yeni format story üretim hatası: %s", de)
+                elif detay:
+                    try:
+                        with make_image.tuval("story"):
+                            hazir_yol = Path(make_image.otorite_slayt_1_kapak(detay, str(story_dosya)))
+                    except Exception as de:
+                        log.warning("Story native 9:16 üretim hatası: %s", de)
+                elif tur == "ilan" and ilan:
+                    try:
+                        ilan_kapak = make_image.ilan_kapak_slayti_ciz(ilan)
+                        if ilan_kapak and Path(ilan_kapak).exists():
+                            hazir_yol = Path(ilan_kapak)
+                    except Exception as ie:
+                        log.warning("İlan story kapak hatası: %s", ie)
 
             if hazir_yol and hazir_yol.exists():
                 with Image.open(hazir_yol) as im:
@@ -1305,8 +1324,9 @@ def main() -> None:
         log.warning("Telegram sonuç bildirimi gönderilemedi: %s", bildirim_hatasi)
 
     # 7. Hazırlanan 9:16 Dikey Videoyu Telegram Grubuna İlet (Her yayında hazır video teslim edilir)
-    # Instabot standardı (21 Eyl): Telegram Reels videosu sessiz teslim edilir (kullanıcı trend müzik ekleyebilsin).
-    gonderilecek_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
+    gonderilecek_video = sesli_video_yolu if (sesli_video_yolu and Path(sesli_video_yolu).exists()) else (
+        v_yolu if (v_yolu and Path(v_yolu).exists()) else None
+    )
     if gonderilecek_video and gonderilecek_video.exists() and not video_telegrama_gitti:
         try:
             log.info("Hazırlanan dikey video Telegram grubuna iletiliyor: %s", gonderilecek_video)
@@ -1314,13 +1334,20 @@ def main() -> None:
                 gonderilecek_video,
                 aciklama=f"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\n\n"
                          f"📌 <b>Konu:</b> {html_lib.escape(baslik)}\n\n"
-                         f"💡 <i>Videoyu cihazınıza kaydedip Instagram uygulamasından trend müzik ekleyerek Reels olarak paylaşabilirsiniz.</i>",
+                         f"💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>",
             )
             video_telegrama_gitti = True
         except Exception as ve:
             log.warning("Telegram'a video iletilemedi: %s", ve)
 
-    # 8. Mükerrer açıklama metni kaldırıldı (Instabot commit 19355f4 referansı — onay kartında zaten mevcut)
+    # 8. Kopyalanabilir açıklama metni (Kullanıcı talebi: yayınla aşamasında video ve kopyalanabilir açıklama)
+    if caption:
+        try:
+            telegram_bot.mesaj_gonder(
+                f"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\n\n<code>{html_lib.escape(caption)}</code>"
+            )
+        except Exception as ce:
+            log.warning("Telegram'a kopyalanabilir açıklama iletilemedi: %s", ce)
     print("POSTEDM_SONUC=" + json.dumps({"hedefler": sorted(hedefler), "rapor": rapor_satirlari}, ensure_ascii=False))
     if hata_var:
         # Hata detayını son_hata.txt'ye yaz ki teşhis modülü tam nedenini bilsin

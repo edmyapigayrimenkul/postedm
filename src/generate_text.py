@@ -407,6 +407,7 @@ KURALLAR:
 1. MANŞET: Gazetecilik usulü doğal, tek parça manşet. Parçalama yapma; tek ve akıcı bir haber başlığı yaz. Haberin en can alıcı olgusunu (rakam, ilçe, kurum, değişim) içermelidir (örn. "Milli Emlak Çatalca'da 49 Bin TL'den Arazi Satışına Başladı").
 2. SPOT: Haberin arka planını, en kritik verisini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot (140-200 karakter).
 3. KANCA (HOOK): Kapak görseli üstü için DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy (örn. "47 İLDE 383 PARSEL // RESMİ SATIŞTA" veya "MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR").
+   KRİTİK KURAL: 'kanca' ve 'manset' KESİNLİKLE BİRBİRİNİ TEKRAR ETMEMELİDİR! Aynı kelimeleri hem kancaya hem manşete yazma. Kanca projenin/haberin rakamını, büyüklüğünü veya finansal/ihale boyutunu öne çıkaran farklı bir açı sunmalıdır.
 4. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler).
 5. UZMAN NOTU: EDM Değerlendirmesi — takipçiye/yatırımcıya tek cümlelik somut strateji tavsiyesi.
 
@@ -417,7 +418,7 @@ JSON:
   "kategori_kodu": "SEKTOREL_HABER_VE_ANALIZ",
   "rozet_metni": "EDM GÜNDEM // ARSA VE İMAR",
   "yasal_dayanak": "İlgili mevzuat veya resmi kurum adı",
-  "kanca": "4-7 kelimelik vurucu kanca (örn: 47 İLDE 383 PARSEL // RESMİ SATIŞTA)",
+  "kanca": "4-7 kelimelik vurucu kanca (Manşetteki kelimeleri ASLA tekrar etmeyen farklı bir sayısal/ihale açısı. Örn: 47 İLDE 383 PARSEL // RESMİ SATIŞTA)",
   "manset": "Tek parça, akıcı ve vurucu haber manşeti (50-80 karakter)",
   "spot": "Haberin sonucunu ve verilerini anlatan 2-3 cümlelik editoryal spot (140-180 karakter)",
   "detay_maddeleri": [
@@ -1117,7 +1118,7 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GÜNDEM // HABER BÜLTENİ' formatında üret. "
             "JSON nesnesinde 'format_turu': 'dailybrief', 'bicim': 'B5', "
-            "'kanca': (Kapak fotoğrafı üstüne basılacak DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy: örn. '47 İLDE 383 PARSEL // RESMİ SATIŞTA' veya 'MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR'), "
+            "'kanca': (Kapak fotoğrafı üstüne basılacak DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy: örn. '47 İLDE 383 PARSEL // RESMİ SATIŞTA' veya 'MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR'. KRİTİK: 'kanca' ve 'manset' KESİNLİKLE birbirini tekrar etmemelidir! Aynı kelimeleri hem kancaya hem manşete yazma; kanca projenin maliyet/ihale bedeli, arsa büyüklüğü veya resmi süreci gibi manşetten farklı bir sayısal/somut açı içermelidir), "
             "'manset': (Gazetecilik usulü doğal, tek parça ve vurucu haber başlığı. Parçalama yapma, tek akıcı cümle yaz. Somut olgu, kurum, ilçe veya rakam içersin: örn. 'Milli Emlak Çatalca\\'da 49 Bin TL\\'ye Arazi Satışına Başladı' - en fazla 75 karakter), "
             "'spot': (Haberin arka planını, en kritik verilerini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot, 140-200 karakter), "
             "'detay_maddeleri': [ "

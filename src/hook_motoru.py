@@ -128,8 +128,9 @@ def _sigar_mi(metin: str, font: ImageFont.FreeTypeFont, azami_px: int) -> bool:
     return (bb[2] - bb[0]) <= azami_px
 
 
-def _basliktan_farkli_mi(t1: str, t2: str, baslik: str, azami_ortusme: float = 0.70) -> bool:
-    """Kanca metninin başlıktan farklı bir şey söyleyip söylemediğini denetler."""
+def _basliktan_farkli_mi(t1: str, t2: str, baslik: str, azami_ortusme: float = 0.35) -> bool:
+    """Kanca metninin başlıktan farklı bir şey söyleyip söylemediğini denetler.
+    Kancanın manşetteki kelimeleri aynen veya kök olarak tekrar etmesini engeller."""
     def _kelimeler(metin: str) -> set[str]:
         s = metin.lower().replace("i̇", "i").replace("ı", "i")
         return {k for k in re.findall(r"\w+", s) if len(k) > 2}
@@ -140,8 +141,14 @@ def _basliktan_farkli_mi(t1: str, t2: str, baslik: str, azami_ortusme: float = 0
     baslik_k = _kelimeler(baslik)
     if not baslik_k:
         return True
-    ortak = len(kanca & baslik_k) / len(kanca)
-    return ortak < azami_ortusme
+
+    ortak = 0
+    for kw in kanca:
+        if kw in baslik_k or any((len(kw) >= 4 and len(bw) >= 4 and (kw in bw or bw in kw)) for bw in baslik_k):
+            ortak += 1
+
+    ortusme = ortak / len(kanca)
+    return ortusme <= azami_ortusme
 
 
 def _baslikta_sayi_var_mi(baslik: str) -> bool:
@@ -261,8 +268,9 @@ def ciz_minimal_vurgu(
     nokta = 14
     kicker_x = x + nokta + 12
 
-    # Tavan 56-64 punto (Manşet 70px olduğu için kanca hiyerarşik olarak zarif kalmalı)
-    f_title = _sigdiran_font([t1, t2], 62, minimal_alan, asgari=32, tip="sans_bold")
+    # Tavan punto (Manşet 68-74px olduğu için kanca hiyerarşik olarak zarif kalmalı, manşeti ezmemeli)
+    tavan_punto = 50 if gorsel.height >= 1700 else 44
+    f_title = _sigdiran_font([t1, t2], tavan_punto, minimal_alan, asgari=26, tip="sans_bold")
     if not (_sigar_mi(t1, f_title, minimal_alan) and _sigar_mi(t2, f_title, minimal_alan)):
         log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s / %s", t1, t2)
         return gorsel
@@ -336,7 +344,7 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             t1, t2 = tr_upper(parts[0]), tr_upper(parts[1])
         else:
             t1, t2 = _dengeli_bol(tr_upper(kanca_temiz).split())
-        if t1 or t2:
+        if (t1 or t2) and _basliktan_farkli_mi(t1, t2, baslik):
             return {
                 "format": "minimal_vurgu",
                 "kicker": "",
@@ -344,6 +352,8 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "t2": t2,
                 "renk": VURGU,
             }
+        else:
+            log.info("Açık kanca başlığı tekrar ediyor/örtüşüyor (%s // %s vs '%s'), alternatif aranıyor", t1, t2, baslik)
 
     # 2. Sayısal / Gayrimenkul Veri Tespiti (stat_punch)
     # Başlıkta rakam yoksa veya rakam başlıkla örtüşmüyorsa

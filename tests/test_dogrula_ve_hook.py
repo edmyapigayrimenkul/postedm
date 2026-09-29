@@ -106,5 +106,17 @@ class TestKancaKesilmez(unittest.TestCase):
         self.assertEqual(sonuc.tobytes(), zemin.tobytes(), "sığmayan kanca kırpılıp basılmamalı")
 
 
+    def test_kanca_manset_tekrar_engeli(self):
+        # Kanca ve manşet aynı kelimeleri içeriyorsa kanca reddedilmeli
+        haber = {
+            "manset": "Kemerburgaz 3. Etap Projesinde Sözleşme İmzalandı",
+            "kanca": "KEMERBURGAZ 3. ETAP // İMZALAR ATILDI",
+            "spot": "Emlak Konut GYO Eyüpsultan projesinde yüklenici ile anlaştı.",
+        }
+        hook = hook_motoru.hook_olustur(haber)
+        if hook:
+            self.assertNotEqual(f"{hook.get('t1', '')} {hook.get('t2', '')}".strip(), "KEMERBURGAZ 3. ETAP İMZALAR ATILDI")
+
+
 if __name__ == "__main__":
     unittest.main()

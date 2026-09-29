@@ -2103,28 +2103,9 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     veri["slayt_4x5_urlleri"] = slayt_urlleri
     veri["slayt_4x5_yollari"] = [str(p) for p in slayt_4x5_yollari]
 
-    # Dikey 1080x1920 MP4 Reels Videosu Derle (Instabot standardı)
-    from . import video, ses
+    # Video onay öncesinde DERLENMEZ (Instabot standardı).
+    # Slaytlar albüm olarak sunulur; kullanıcı 'Yayınla' dediğinde video derlenir.
     v_yolu = None
-    try:
-        video_slayt_yollari = [str(p) for p in slayt_yollari]
-        if fmt in ("dailybrief", "haber", "haber_dailybrief"):
-            try:
-                d_slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu="dailybrief", cikti_onek=f"reels_dikey_{konu['kod']}", olcu="story")
-                if d_slaytlar and all(Path(p).exists() for p in d_slaytlar):
-                    video_slayt_yollari = [str(p) for p in d_slaytlar]
-            except Exception as d_err:
-                log.warning("Native 9:16 reels slaytları üretilemedi: %s", d_err)
-
-        # 🎙️ Seslendirmeli Reels Videosu Üret
-        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=veri, muzik=True)
-        if not v_yolu or not Path(v_yolu).exists():
-            v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=veri)
-            if v_ham and v_ham.exists():
-                v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
-                v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
-    except Exception as ve:
-        log.warning("Reels videosu üretilemedi: %s", ve)
 
     # Veritabanına kaydet
     orijinal_url = f"edm://reels/{konu['kod']}/{int(time.time())}"
@@ -2149,7 +2130,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
                 veri.get("caption_threads", ""),
                 json.dumps([str(p) for p in slayt_yollari], ensure_ascii=False),
                 json.dumps(slayt_urlleri) if slayt_urlleri else None,
-                str(v_yolu) if (v_yolu and v_yolu.exists()) else None,
+                None,
             ),
         )
         haber_id = cur.lastrowid
@@ -2157,31 +2138,20 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
 
     konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
 
-    # Reels yolu yayın öncesi denetimden hiç geçmiyordu (#68 bu yoldan çıktı).
-    # Artık aynı kapıdan geçiyor: kritik bulguda video gruba hiç düşmez.
+    # Reels yolu yayın öncesi denetimden geçer
     from . import dogrula
     gecti, uyarilar = yayin_kapisi(haber_id, db.haber_getir(haber_id) or {}, veri)
     if not gecti:
         return False
 
-    # 1. HER ZAMAN ÖNCE VİDEO DÜŞER: 1080x1920 MP4 Dikey Video Gönder
-    video_gonderildi = False
-    if v_yolu and v_yolu.exists():
-        try:
-            video_gonder(
-                v_yolu,
-                aciklama=f"🎬 <b>EDM REELS VİDEOSU (1080x1920 MP4)</b>\n📌 {konu['baslik']}",
-            )
-            video_gonderildi = True
-        except Exception as ve:
-            log.warning("Telegram'a Reels videosu iletilemedi: %s", ve)
+    # Önceki tüm mesajları temizle
+    icerik_onceki_mesajlarini_temizle("reels", haber_id)
 
-    # Yedek / Tamamlayıcı: Slayt albümünü de ilet
-    if not video_gonderildi:
-        medya_grubu_gonder(
-            slayt_yollari,
-            caption=f"🎬 <b>EDM REELS SLAYTLARI (9:16 Dikey)</b>\n📌 {konu['baslik']}",
-        )
+    # 1. Slayt albümünü ilet (Instabot standardı: Onayda yalnızca görseller ve açıklama)
+    medya_grubu_gonder(
+        slayt_yollari,
+        caption=f"🎬 <b>EDM REELS SLAYTLARI (9:16 Dikey)</b>\n📌 {konu['baslik']}",
+    )
 
     # 2. Kopyalanabilir Caption ve Onay Menüsünü Gönder (Videonun altına düşer)
     import html as html_lib
