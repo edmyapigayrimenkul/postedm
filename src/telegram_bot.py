@@ -1611,18 +1611,18 @@ def _eksik_icerik_bildir(haber_id: Optional[int], hata: Exception) -> None:
     )
 
 
-def haber_onayina_sun(haber_id: int) -> bool:
+def haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
     """Haberin görselini ve metnini hazırlayıp Telegram onayına sunar."""
     from . import yeni_formatlar
     try:
-        return _haber_onayina_sun(haber_id)
+        return _haber_onayina_sun(haber_id, yeniden_ciz=yeniden_ciz)
     except yeni_formatlar.EksikIcerik as e:
         log.warning("İçerik #%s eksik alan yüzünden durdu: %s", haber_id, e)
         _eksik_icerik_bildir(haber_id, e)
         return False
 
 
-def _haber_onayina_sun(haber_id: int) -> bool:
+def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
     haber = db.haber_getir(haber_id)
     if not haber:
         return False
@@ -1635,9 +1635,9 @@ def _haber_onayina_sun(haber_id: int) -> bool:
             return False
         haber = db.haber_getir(haber_id)
 
-    # 2. Slayt görsellerini al veya üret
+    # 2. Slayt görsellerini al veya üret (yeniden_ciz=True ise bayat dosyaları kullanma)
     slayt_yollari = []
-    if haber.get("slayt_yollari"):
+    if not yeniden_ciz and haber.get("slayt_yollari"):
         try:
             mevcut = json.loads(haber["slayt_yollari"])
             if isinstance(mevcut, list) and len(mevcut) > 0 and all(Path(p).exists() for p in mevcut):
