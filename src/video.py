@@ -148,10 +148,10 @@ def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[I
         except Exception as e:
             log.warning("Yerel görsel açılamadı (%s): %s", p, e)
     return None
-# Kullanıcı kararı 2026-09-26: yoğun bir ayrıntı slaytı 5,5 sn'de geçiyordu ("diğer
-# sayfaların süresi çok az"). Sessiz slayt, üstündeki metnin okuma süresi kadar kalır.
-OKUMA_HIZI_KELIME_SN = 4.0            # telefonda sessiz okuma
-DETAY_ASGARI_SN, DETAY_AZAMI_SN = 6.0, 15.0
+# Kullanıcı kararı 2026-09-29: Detay slaytları çok uzun bekliyordu; Reels ve Shorts
+# temposuna uygun akıcı, dinamik süreler (3.2 - 5.5 sn).
+OKUMA_HIZI_KELIME_SN = 5.0            # telefonda hızlı okuma
+DETAY_ASGARI_SN, DETAY_AZAMI_SN = 3.2, 5.5
 GECIS_SN = 0.5
 _SLAYT_METNI = ("detay_maddeleri", "uzman_notu", "cikarilacak_ders", "stratejist_notu", "olay_detay",
                 "yargitay_hukmu", "puf_maddeleri", "maddeler", "adimlar", "altin_kural", "tavsiye", "tavsiye_metin")
@@ -199,8 +199,7 @@ def slayt_surelerini_hesapla(
     """Slayt başına ekranda kalma süresi (saniye).
 
     * Kapak: seslendirme varsa ses bitene kadar (+ nefes ve geçiş payı), yoksa 4,2 sn.
-    * Diğerleri: üstündeki metnin okuma süresi, 6-15 sn arası. Metin kapak dışındaki
-      slaytlara eşit dağıtılmış sayılır; hangi maddenin hangi slayta düştüğünü çizici bilir.
+    * Diğerleri: Reels temposuna uygun akıcı okuma süresi (3.2 - 5.5 sn arası).
     """
     if toplam_slayt <= 0:
         return []
@@ -211,9 +210,38 @@ def slayt_surelerini_hesapla(
     if toplam_slayt == 1:
         return sureler
     kelime = _detay_kelime_sayisi(haber)
-    slayt_basi = kelime / (toplam_slayt - 1) if kelime else 20
-    sure = round(min(DETAY_AZAMI_SN, max(DETAY_ASGARI_SN, 1.5 + slayt_basi / OKUMA_HIZI_KELIME_SN)), 2)
+    slayt_basi = kelime / (toplam_slayt - 1) if kelime else 15
+    sure = round(min(DETAY_AZAMI_SN, max(DETAY_ASGARI_SN, 1.0 + slayt_basi / OKUMA_HIZI_KELIME_SN)), 2)
     return sureler + [sure] * (toplam_slayt - 1)
+
+
+KEN_BURNS_ORAN: float = 0.016  # Yavaş, sinematik ve asil Ken Burns yakınlaşma oranı (%1.6 - belgesel standardı)
+
+
+def _ken_burns_kare(
+    img: Image.Image,
+    t_orani: float,
+    oran: float = KEN_BURNS_ORAN,
+    mod: str = "in",
+) -> np.ndarray:
+    """Tek bir kare için yavaş, sinematik Ken Burns (zoom-in / zoom-out) çerçevesi üretir."""
+    w, h = img.size
+    t_orani = max(0.0, min(1.0, float(t_orani)))
+    if mod == "in":
+        scale = 1.0 + oran * t_orani
+    else:
+        scale = (1.0 + oran) - oran * t_orani
+
+    if abs(scale - 1.0) < 1e-5:
+        return np.array(img, dtype=np.float32)
+
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+    zoomed = img.resize((new_w, new_h), Image.Resampling.BILINEAR)
+    sol = (new_w - w) // 2
+    ust = (new_h - h) // 2
+    kirp = zoomed.crop((sol, ust, sol + w, ust + h))
+    return np.array(kirp, dtype=np.float32)
 
 
 def slaytlardan_video_uret(
@@ -225,15 +253,17 @@ def slaytlardan_video_uret(
     fps: int = 30,
     slayt_sureleri: Optional[List[float]] = None,
     haber: Optional[dict] = None,
+    ken_burns_orani: float = KEN_BURNS_ORAN,
 ) -> Optional[Path]:
     """
-    Slayt görsellerini alıp akıcı Cosine S-Curve crossfade geçişleri ve
-    Stereo AAC ses izi ile 1080x1920 MP4 video üretir.
+    Slayt görsellerini alıp akıcı Cosine S-Curve crossfade geçişleri,
+    yavaş sinematik Ken Burns hareketi ve Stereo AAC ses izi ile 1080x1920 MP4 video üretir.
 
     * hedef_sure verilirse slayt süreleri bu süreye (örn: seslendirme süresi) göre dinamik ayarlanır.
     * hedef_sure yoksa slayt_surelerini_hesapla ile içerik yoğunluğuna göre dinamik insani süreler uygulanır.
     * İlk slaytta (Kapak) kanca etkisi ve okunabilirlik için 4.2 saniye bekleme.
     * S-Curve yumuşak kararma geçişleri (titremesiz).
+    * Yavaş, gözü yormayan %1.6 Ken Burns sinematik yaklaşma/uzaklaşma (belgesel standardı).
     * TikTok, Reels ve Shorts için standart stereo AAC ses kanalı eklenir.
     * Faststart moov atomu ile web ve sosyal medyada anında yüklenme.
     """
@@ -246,7 +276,7 @@ def slaytlardan_video_uret(
         cikti_yolu = Path(cikti_yolu)
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
 
-    log.info("Dikey video üretimi başlatılıyor: %d slayt -> %s (fps=%d, hedef_sure=%s)", len(slayt_yollari), cikti_yolu, fps, hedef_sure)
+    log.info("Dikey video üretimi başlatılıyor: %d slayt -> %s (fps=%d, hedef_sure=%s, ken_burns=%.3f)", len(slayt_yollari), cikti_yolu, fps, hedef_sure, ken_burns_orani)
 
     # 1. Tüm görselleri 1080x1920 formatına getir (Yerel dosya veya URL)
     kareler_ham: List[Image.Image] = []
@@ -276,7 +306,6 @@ def slaytlardan_video_uret(
         log.info("İçerik yoğunluğuna göre dinamik süreler belirlendi: %s (Toplam: %.1f sn)", hesaplanan_sureler, sum(hesaplanan_sureler))
 
     gecis_kare_sayisi = max(1, int(fps * gecis_suresi_saniye)) if toplam_slayt > 1 else 0
-    np_kareler = [np.array(img, dtype=np.float32) for img in kareler_ham]
 
     raw_video_yolu = cikti_yolu.with_name(f"{cikti_yolu.stem}_raw.mp4")
 
@@ -298,47 +327,60 @@ def slaytlardan_video_uret(
             ],
         )
 
-        toplam_slayt = len(np_kareler)
+        toplam_slayt = len(kareler_ham)
         if toplam_slayt == 1:
             # Tek sayfalık görsel için sinematik yavaş zoom; en az 6,5 sn, seslendirme
             # varsa ses bitene kadar (sözlük kartında ses 6,5 sn'de kesiliyordu)
             tek_img = kareler_ham[0]
-            w_img, h_img = tek_img.size
             toplam_kare_tek = int(fps * max(6.5, hesaplanan_sureler[0] if hesaplanan_sureler else 0))
             for k in range(toplam_kare_tek):
-                scale = 1.0 + 0.035 * (k / float(toplam_kare_tek))
-                new_w = int(w_img * scale)
-                new_h = int(h_img * scale)
-                img_zoomed = tek_img.resize((new_w, new_h), Image.Resampling.BILINEAR)
-                sol = (new_w - w_img) // 2
-                ust = (new_h - h_img) // 2
-                img_kirp = img_zoomed.crop((sol, ust, sol + w_img, ust + h_img))
-                writer.append_data(np.array(img_kirp, dtype=np.uint8))
+                t = k / float(toplam_kare_tek)
+                frame = _ken_burns_kare(tek_img, t, oran=ken_burns_orani, mod="in")
+                writer.append_data(np.clip(frame, 0, 255).astype(np.uint8))
         else:
+            ken_burns_modlar = ["in", "out"]
             for idx in range(toplam_slayt):
-                arr_simdiki = np_kareler[idx]
-                arr_sonraki = np_kareler[(idx + 1) % toplam_slayt] if toplam_slayt > 1 else None
+                cur_img = kareler_ham[idx]
+                next_img = kareler_ham[(idx + 1) % toplam_slayt] if idx < toplam_slayt - 1 else None
+                mod = ken_burns_modlar[idx % len(ken_burns_modlar)]
+                next_mod = ken_burns_modlar[(idx + 1) % len(ken_burns_modlar)]
 
                 # İçerik ve kelime yoğunluğuna göre dinamik hesaplanan kare sayısı
                 bu_slayt_suresi = hesaplanan_sureler[idx] if idx < len(hesaplanan_sureler) else slayt_suresi_saniye
                 bu_slayt_toplam_kare = max(1, int(fps * bu_slayt_suresi))
-                bu_slayt_sabit_kare = max(1, bu_slayt_toplam_kare - gecis_kare_sayisi)
+                bu_slayt_sabit_kare = max(1, bu_slayt_toplam_kare - gecis_kare_sayisi) if next_img else bu_slayt_toplam_kare
 
-                # A. Sabit Görsel Aşaması
-                arr_uint8 = np.clip(arr_simdiki, 0, 255).astype(np.uint8)
-                for _ in range(bu_slayt_sabit_kare):
-                    writer.append_data(arr_uint8)
+                # A. Sabit & Ken Burns hareketi aşaması
+                if ken_burns_orani > 0:
+                    for f in range(bu_slayt_sabit_kare):
+                        t = f / float(bu_slayt_toplam_kare)
+                        frame = _ken_burns_kare(cur_img, t, oran=ken_burns_orani, mod=mod)
+                        writer.append_data(np.clip(frame, 0, 255).astype(np.uint8))
+                else:
+                    arr_uint8 = np.clip(np.array(cur_img, dtype=np.float32), 0, 255).astype(np.uint8)
+                    for _ in range(bu_slayt_sabit_kare):
+                        writer.append_data(arr_uint8)
 
-                # B. Cosine S-Curve Crossfade Geçiş Aşaması (Yumuşak akıcı geçiş)
-                if gecis_kare_sayisi > 0 and arr_sonraki is not None and idx < toplam_slayt - 1:
-                    for k in range(gecis_kare_sayisi):
-                        t = (k + 1) / float(gecis_kare_sayisi)
-                        alpha = 0.5 * (1.0 - math.cos(math.pi * t))
-                        gecis_arr = (1.0 - alpha) * arr_simdiki + alpha * arr_sonraki
+                # B. Cosine S-Curve Crossfade Geçiş Aşaması (Ken Burns akarken geçiş)
+                if gecis_kare_sayisi > 0 and next_img:
+                    next_sure = hesaplanan_sureler[idx + 1] if idx + 1 < len(hesaplanan_sureler) else slayt_suresi_saniye
+                    next_toplam_kare = max(1, int(fps * next_sure))
+                    for f in range(gecis_kare_sayisi):
+                        if ken_burns_orani > 0:
+                            global_t = (bu_slayt_sabit_kare + f) / float(bu_slayt_toplam_kare)
+                            cur_frame = _ken_burns_kare(cur_img, global_t, oran=ken_burns_orani, mod=mod)
+                            next_t = f / float(next_toplam_kare)
+                            next_frame = _ken_burns_kare(next_img, next_t, oran=ken_burns_orani, mod=next_mod)
+                        else:
+                            cur_frame = np.array(cur_img, dtype=np.float32)
+                            next_frame = np.array(next_img, dtype=np.float32)
+
+                        alpha = 0.5 * (1.0 - math.cos(math.pi * ((f + 1) / float(gecis_kare_sayisi))))
+                        gecis_arr = (1.0 - alpha) * cur_frame + alpha * next_frame
                         writer.append_data(np.clip(gecis_arr, 0, 255).astype(np.uint8))
 
-
         writer.close()
+
 
         # 2. Stereo AAC Ses İzi Ekle (Sosyal medya algoritmalarının videoyu bekletmemesi için)
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -375,6 +417,7 @@ def slaytlardan_reels_uret(
     fps: int = 30,
     slayt_sureleri: Optional[List[float]] = None,
     haber: Optional[dict] = None,
+    ken_burns_orani: float = KEN_BURNS_ORAN,
 ) -> Optional[Path]:
     """slaytlardan_video_uret için uyumluluk fonksiyonu (instabot mimarisi)."""
     return slaytlardan_video_uret(
@@ -386,5 +429,6 @@ def slaytlardan_reels_uret(
         fps=fps,
         slayt_sureleri=slayt_sureleri,
         haber=haber,
+        ken_burns_orani=ken_burns_orani,
     )
 

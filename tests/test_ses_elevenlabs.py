@@ -159,12 +159,46 @@ class TestSesElevenLabs(unittest.TestCase):
         s3 = slayt_surelerini_hesapla(3, haber=h)
         self.assertEqual(len(s3), 3)
         self.assertEqual(s3[0], 4.2)
-        # Detay slaytları 4.8 ile 6.2 sn arasında olmalı
-        self.assertTrue(4.8 <= s3[1] <= 6.2)
-        self.assertTrue(4.8 <= s3[2] <= 6.2)
-        # Toplam süre algoritmanın zirve retention penceresinde (13-20 sn) olmalı
-        self.assertTrue(13.0 <= sum(s3) <= 20.0)
+        # Detay slaytları 3.2 ile 5.5 sn arasında olmalı
+        self.assertTrue(3.2 <= s3[1] <= 5.5)
+        self.assertTrue(3.2 <= s3[2] <= 5.5)
+        # Toplam süre algoritmanın zirve retention penceresinde (10-20 sn) olmalı
+        self.assertTrue(10.0 <= sum(s3) <= 20.0)
+
+
+    def test_ken_burns_yavas_oran_ve_kare_olcekleri(self):
+        """Ken Burns yavaşlatma testi (%1.6 oran ve çerçeve boyut koruma)."""
+        from PIL import Image
+        import numpy as np
+
+        # 1. Oran %1.6 olmalı
+        self.assertEqual(video.KEN_BURNS_ORAN, 0.016)
+
+        img = Image.new("RGB", (100, 200), color=(10, 20, 30))
+
+        # 2. t=0 için mod="in" ölçek 1.0 -> boyut ve pikseller korunmalı
+        kare_0 = video._ken_burns_kare(img, 0.0, oran=0.016, mod="in")
+        self.assertEqual(kare_0.shape, (200, 100, 3))
+        self.assertEqual(int(kare_0[100, 50, 0]), 10)
+
+        # 3. t=1 için mod="in" ölçek 1.016 -> boyut (200, 100, 3) olarak kırpılmalı
+        kare_1 = video._ken_burns_kare(img, 1.0, oran=0.016, mod="in")
+        self.assertEqual(kare_1.shape, (200, 100, 3))
+
+        # 4. mod="out" t=0'da maksimum zoom (1.016), t=1'de minimum (1.0)
+        kare_out_0 = video._ken_burns_kare(img, 0.0, oran=0.016, mod="out")
+        kare_out_1 = video._ken_burns_kare(img, 1.0, oran=0.016, mod="out")
+        self.assertEqual(kare_out_0.shape, (200, 100, 3))
+        self.assertEqual(kare_out_1.shape, (200, 100, 3))
+
+    @patch("src.video.slaytlardan_video_uret")
+    def test_slaytlardan_reels_uret_ken_burns_iletir(self, mock_video_uret):
+        """slaytlardan_reels_uret çağrısı ken_burns_orani parametresini iletmeli."""
+        video.slaytlardan_reels_uret(["s1.jpg"], ken_burns_orani=0.02)
+        mock_video_uret.assert_called_once()
+        self.assertEqual(mock_video_uret.call_args[1]["ken_burns_orani"], 0.02)
 
 
 if __name__ == "__main__":
     unittest.main()
+

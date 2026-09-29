@@ -22,7 +22,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, make_image, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
+from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, linkedin, make_image, ses, telegram_bot, threads, tiktok, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -719,6 +719,8 @@ def main() -> None:
         hedef_kanallar.append("facebook_reels" if reels_modu else "facebook")
     if hedef_mi("yt", "youtube", "shorts", "video"):
         hedef_kanallar.append("youtube")
+    if ("li" in hedefler or "linkedin" in hedefler) or ("hepsi" in hedefler and linkedin.kullanilabilir_mi()):
+        hedef_kanallar.append("linkedin")
 
     # Aynı kanala ikinci kez gönderme: "tekrar dene", "kurtar" ya da iki kez
     # basılan "Yayınla" yalnızca henüz yayında OLMAYAN kanallara gider.
@@ -745,6 +747,7 @@ def main() -> None:
 
     yt_res = {}
     tt_res = {}
+    linkedin_id = None
 
     def _bildir(kanal: str, durum: str, increment: bool = False) -> None:
         with _lock:
@@ -1115,6 +1118,32 @@ def main() -> None:
                 rapor_satirlari.append("▶️ <b>YouTube Shorts:</b> Dikey video üretilemedi ✗")
         _bildir("youtube", "✅ Yayında" if yt_res.get("durum") else "❌ Hata", increment=True)
 
+    def _is_linkedin() -> None:
+        nonlocal linkedin_id
+        _bildir("linkedin", "⏳ Yükleniyor...")
+        if not linkedin.kullanilabilir_mi():
+            with _lock:
+                rapor_satirlari.append("💼 <b>LinkedIn:</b> Yapılandırılmamış (LINKEDIN_ACCESS_TOKEN eksik) ✗")
+            _bildir("linkedin", "❌ Hata", increment=True)
+            return
+
+        try:
+            li_veri = detay if (detay and isinstance(detay, dict)) else (haber if isinstance(haber, dict) else {})
+            li_metin = linkedin.linkedin_metni_hazirla(li_veri, manset=baslik)
+            gorseller_li = [str(p) for p in slayt_yollari if Path(p).exists()]
+            lid = linkedin.paylas(li_metin, dosya_yollari=gorseller_li)
+            with _lock:
+                linkedin_id = lid
+                if lid:
+                    rapor_satirlari.append("💼 <b>LinkedIn:</b> Paylaşıldı ✓")
+                else:
+                    rapor_satirlari.append("💼 <b>LinkedIn:</b> Hata oluştu ✗")
+        except Exception as le:
+            log.warning("LinkedIn paylaşım hatası: %s", le)
+            with _lock:
+                rapor_satirlari.append(f"💼 <b>LinkedIn:</b> Hata ({le}) ✗")
+        _bildir("linkedin", "✅ Yayında" if linkedin_id else "❌ Hata", increment=True)
+
     kanal_islevleri = {
         "tiktok": _is_tiktok,
         "instagram": _is_instagram,
@@ -1124,6 +1153,7 @@ def main() -> None:
         "facebook": _is_facebook,
         "facebook_reels": _is_facebook,
         "youtube": _is_youtube,
+        "linkedin": _is_linkedin,
     }
 
     # Başlangıç ilerleme durumunu Telegram'da göster
@@ -1220,6 +1250,8 @@ def main() -> None:
             canli_linkler.append({"text": "📘 Facebook'ta Gör", "url": fb_url})
     if yt_res.get("durum") and yt_res.get("url"):
         canli_linkler.append({"text": "▶️ Shorts'ta İzle", "url": yt_res.get("url")})
+    if linkedin_id:
+        canli_linkler.append({"text": "💼 LinkedIn'de Gör", "url": f"https://www.linkedin.com/feed/update/{linkedin_id}/"})
 
     canli_link_dugmeleri = [canli_linkler[i:i + 2] for i in range(0, len(canli_linkler), 2)]
 
@@ -1237,6 +1269,8 @@ def main() -> None:
         telafi_dugmeleri.append([{"text": "🔄 🎵 TikTok'a Tekrar Yükle", "callback_data": f"retry_kanal:tiktok:{ref_id}"}])
     if paylas_reels and not video_telegrama_gitti:
         telafi_dugmeleri.append([{"text": "🔄 🎬 Reels'i Tekrar Gönder", "callback_data": f"retry_kanal:reels:{ref_id}"}])
+    if (("li" in hedefler or "linkedin" in hedefler) or ("hepsi" in hedefler and linkedin.kullanilabilir_mi())) and not linkedin_id:
+        telafi_dugmeleri.append([{"text": "🔄 💼 LinkedIn'i Tekrar Dene", "callback_data": f"retry_kanal:linkedin:{ref_id}"}])
 
     if len(telafi_dugmeleri) > 1:
         telafi_dugmeleri.insert(0, [{"text": "🔄 Başarısız Tüm Kanalları Tekrar Dene", "callback_data": f"retry_kanal:hepsi:{ref_id}"}])
@@ -1262,9 +1296,9 @@ def main() -> None:
             Path("data/son_rapor_gonderildi.txt").write_text(str(ref_id), encoding="utf-8")
         except Exception:
             pass
-        if caption_ayri_gonder:
+        if temiz_caption:
             telegram_bot.mesaj_gonder(
-                f"📝 <b>İçerik #{ref_id} Açıklama Metni (Caption):</b>\n"
+                f"📝 <b>İçerik #{ref_id} Kopyalanabilir Açıklama Metni (Caption):</b>\n\n"
                 f"<pre><code>{temiz_caption}</code></pre>"
             )
     except Exception as bildirim_hatasi:
@@ -1273,7 +1307,7 @@ def main() -> None:
     # 7. Hazırlanan 9:16 Dikey Videoyu Telegram Grubuna İlet (Her yayında hazır video teslim edilir)
     # Instabot standardı (21 Eyl): Telegram Reels videosu sessiz teslim edilir (kullanıcı trend müzik ekleyebilsin).
     gonderilecek_video = v_yolu if (v_yolu and v_yolu.exists()) else sesli_video_yolu
-    if gonderilecek_video and gonderilecek_video.exists() and not video_telegrama_gitti and (paylas_reels or reels_modu or ses_modu or args.hedef in ("manuel_paket", "reels")):
+    if gonderilecek_video and gonderilecek_video.exists() and not video_telegrama_gitti:
         try:
             log.info("Hazırlanan dikey video Telegram grubuna iletiliyor: %s", gonderilecek_video)
             telegram_bot.video_gonder(

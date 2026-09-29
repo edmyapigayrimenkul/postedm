@@ -83,11 +83,31 @@ def haber_site_girdisi(haber: Dict[str, Any]) -> Dict[str, Any]:
     if len(spot) < 30:
         spot = govde[:500].rsplit(" ", 1)[0]
 
+    # Uzman değerlendirmesi ve kaynak atfı ile gövdeyi zenginleştir
+    uzman_notu = str(detay.get("uzman_notu") or "").strip()
+    if uzman_notu and uzman_notu not in govde:
+        govde = f"{govde}\n\n### ⚖️ EDM Uzman Değerlendirmesi\n{uzman_notu}"
+
+    kaynak_adi = str(haber.get("kaynak") or "Resmi Kaynak")
+    if kaynak_url and "Kaynak:" not in govde:
+        govde = f"{govde}\n\n---\n*Kaynak: [{kaynak_adi}]({kaynak_url})*"
+
     sosyal_urlleri: list[str] = []
     try:
         sosyal_urlleri = [adres for adres in json.loads(str(haber.get("slayt_urlleri") or "[]")) if _https_adres(adres)][:12]
     except (TypeError, ValueError):
         pass
+
+    ek_gorseller: list[str] = []
+    try:
+        raw_ek = haber.get("ek_gorseller")
+        if isinstance(raw_ek, str):
+            ek_gorseller = [u for u in json.loads(raw_ek) if _https_adres(u)]
+        elif isinstance(raw_ek, list):
+            ek_gorseller = [u for u in raw_ek if _https_adres(u)]
+    except Exception:
+        pass
+
     kapak = _https_adres(haber.get("gorsel_url"))
     kategori_kodu = str(haber.get("kategori") or "").strip()
     return {
@@ -98,10 +118,11 @@ def haber_site_girdisi(haber: Dict[str, Any]) -> Dict[str, Any]:
         "spot": spot,
         "govde": govde,
         "kategori": KATEGORILER.get(kategori_kodu, kategori_kodu.replace("_", " ").title() or "Gayrimenkul"),
-        "kaynakAdlari": [str(haber.get("kaynak") or "Kaynak")],
+        "kaynakAdlari": [kaynak_adi],
         "kaynakUrlleri": [kaynak_url],
         "kapakUrl": kapak,
         "sosyalUrlleri": sosyal_urlleri,
+        "ekGorseller": ek_gorseller,
         "orijinalYayin": haber.get("yayin_tarihi") or haber.get("yayin_zamani") or datetime.now(timezone.utc).isoformat(),
     }
 

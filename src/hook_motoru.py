@@ -301,10 +301,23 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Haber içeriğini analiz ederek en etkili gayrimenkul kancasını (hook) üretir.
     Öncelik Sırası:
-      1. haber['kanca'] / haber['hook']
+      1. haber['kanca'] / haber['hook'] (veya detay_metni JSON içindeki 'kanca')
       2. Gayrimenkul / imar sayısal verisi (stat_punch)
       3. Haber detay maddeleri / spotundan rafine minimal_vurgu
     """
+    import json
+    if isinstance(haber, dict):
+        dm = haber.get("detay_metni")
+        if dm and isinstance(dm, str) and dm.strip().startswith("{"):
+            try:
+                parsed = json.loads(dm)
+                if isinstance(parsed, dict):
+                    haber = {**parsed, **haber}
+                    if not haber.get("kanca") and parsed.get("kanca"):
+                        haber["kanca"] = parsed["kanca"]
+            except Exception:
+                pass
+
     baslik = haber.get("manset") or haber.get("baslik") or haber.get("orijinal_baslik") or ""
     spot = haber.get("spot") or haber.get("ozet") or haber.get("orijinal_ozet") or ""
     metin_tum = f"{baslik} {spot}"
@@ -318,11 +331,12 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     kanca_raw = haber.get("kanca") or haber.get("hook") or ""
     if kanca_raw:
         kanca_temiz = str(kanca_raw).strip()
-        t1, t2 = _dengeli_bol(tr_upper(kanca_temiz).split())
-        if _basliktan_farkli_mi(t1, t2, baslik):
-            # Etiket yok: kategori kapağın üst etiketinde ("EDM GÜNDEM // ARSA & İMAR")
-            # zaten yazıyor, kancanın üstünde ikinci kez basılıyordu. Eskiden burada
-            # iddia taşıyan etiketler de vardı ("YARGITAY & HUKUK KARARI", #157).
+        if "//" in kanca_temiz:
+            parts = [p.strip() for p in kanca_temiz.split("//", 1)]
+            t1, t2 = tr_upper(parts[0]), tr_upper(parts[1])
+        else:
+            t1, t2 = _dengeli_bol(tr_upper(kanca_temiz).split())
+        if t1 or t2:
             return {
                 "format": "minimal_vurgu",
                 "kicker": "",

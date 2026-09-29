@@ -551,7 +551,7 @@ def _haber_gorseli_alternatifi(
     """
     from . import fetch_article, gorsel_kalite
     aday_linkler = []
-    ana_link = haber.get("link")
+    ana_link = haber.get("link") or haber.get("orijinal_url") or haber.get("url")
     if ana_link:
         aday_linkler.append(ana_link)
     aday_linkler.extend(kardes_linkler(con, haber))
@@ -560,6 +560,10 @@ def _haber_gorseli_alternatifi(
         link = aday_linkler[sira]
         try:
             url = fetch_article.og_gorseli_cek(link)
+            if not url:
+                ek_gorseller = fetch_article.tum_gorselleri_cek(link)
+                if ek_gorseller:
+                    url = ek_gorseller[0]
             if url:
                 foto = _foto_indir_veya_ac(url)
                 if foto:
@@ -3243,6 +3247,19 @@ def haber_dailybrief_slayti_ciz(
       hiçbir metin veya logo kesilmez; Story/Reels tam ekranda ise üst ve alt Instagram
       arayüz butonlarına asla çarpmaz.
     """
+    if isinstance(haber, dict):
+        dm = haber.get("detay_metni")
+        if dm and isinstance(dm, str) and dm.strip().startswith("{"):
+            try:
+                import json
+                parsed = json.loads(dm)
+                if isinstance(parsed, dict):
+                    haber = {**parsed, **haber}
+                    if parsed.get("kanca") and not haber.get("kanca"):
+                        haber["kanca"] = parsed["kanca"]
+            except Exception:
+                pass
+
     with tuval(olcu):
         genislik = GENISLIK
         yukseklik = YUKSEKLIK
@@ -3268,55 +3285,49 @@ def haber_dailybrief_slayti_ciz(
         bg_img: Optional[Image.Image] = None
         foto_kaynak = haber.get("foto_kaynak")
 
-        # 1.0. Önceden belirlenmiş/önbelleğe alınmış fotoğraf varsa doğrudan kullan
-        secilen_fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu")
+        # 1.0. Önceden belirlenmiş/önbelleğe alınmış fotoğraf veya haberin orijinal görseli (URL veya yerel dosya)
+        secilen_fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url")
         if secilen_fp:
-            p_sec = Path(secilen_fp)
-            if p_sec.exists() and p_sec.is_file():
-                try:
-                    img_ham = ImageOps.exif_transpose(Image.open(p_sec)).convert("RGB")
-                    bg_img = img_ham
-                except Exception as pe:
-                    log.warning("Kayıtlı haber fotoğrafı açılamadı: %s", pe)
-
-        # Telegram'dan '📸 Gerçek Fotoğraf Ara' seçilmişse veya web fotoğrafı istendiyse
-        if not bg_img and foto_kaynak == "gercek":
             try:
-                from . import fetch_web_image
-                sorgu = haber.get("manset") or haber.get("baslik") or ""
-                sonuc = fetch_web_image.fotograf_ara([sorgu, f"{sorgu} emlak", f"{sorgu} haber"])
-                if sonuc:
-                    bg_img, aday = sonuc
-                    atif = fetch_web_image.atif_metni(aday)
-                    if atif:
-                        haber["foto_atif"] = atif
-                    # Gelecek slaytlar ve 9:16 video için fotoğrafı önbelleğe yaz
+                foto_ham = _foto_indir_veya_ac(str(secilen_fp))
+                if foto_ham:
+                    from . import gorsel_kalite
+                    bg_img = gorsel_kalite.kristal_netlestir(foto_ham)
+                    # Diske sabitle ki sonraki slaytlar ve 9:16 video her zaman AYNI görseli kullansın!
                     try:
                         c_dir = cikti_yolu.parent if cikti_yolu else config.yol_al("data/output/gonderiler")
                         c_dir.mkdir(parents=True, exist_ok=True)
-                        cache_foto_yolu = c_dir / f"cache_foto_{cikti_yolu.stem if cikti_yolu else os.getpid()}.jpg"
-                        bg_img.save(cache_foto_yolu, "JPEG", quality=95)
-                        haber["foto_yolu"] = str(cache_foto_yolu)
+                        h_id = haber.get("id") or os.getpid()
+                        cache_p = c_dir / f"haber_foto_{h_id}.jpg"
+                        if not cache_p.exists():
+                            bg_img.save(cache_p, "JPEG", quality=95)
+                        haber["foto_yolu"] = str(cache_p)
+                        haber["gorsel_yolu"] = str(cache_p)
                     except Exception as ce:
-                        log.debug("Fotoğraf önbelleğe yazılamadı: %s", ce)
-                    log.info("Gerçek web basın fotoğrafı kullanılıyor (%s).", atif or "atıfsız")
-            except Exception as we:
-                log.warning("Gerçek web fotoğrafı aranamadı: %s", we)
+                        log.debug("Haber görseli diske sabitlenemedi: %s", ce)
+                    log.info("Haberin orijinal görseli başarıyla yüklendi ve kilitlendi: %s", str(secilen_fp)[:60])
+            except Exception as pe:
+                log.warning("Haber görseli açılamadı (%s): %s", secilen_fp, pe)
 
-        if not bg_img and foto_yolu:
-            fp = Path(foto_yolu)
-            if fp.exists() and fp.is_file():
+        # 1.1. Görsel bulunamadıysa doğrudan haberin orijinal web sayfasından çek
+        if not bg_img:
+            makale_link = haber.get("orijinal_url") or haber.get("link") or haber.get("url")
+            if makale_link and str(makale_link).startswith("http"):
                 try:
-                    img_ham = ImageOps.exif_transpose(Image.open(fp)).convert("RGB")
-                    # Instabot kalitesi: taranmış belge/tablo/PDF ve netlik denetimi
-                    from . import gorsel_kalite
-                    kaliteli, sebep = gorsel_kalite.gorsel_kalite_denetle(img_ham)
-                    if kaliteli:
-                        bg_img = gorsel_kalite.kristal_netlestir(img_ham)
-                    else:
-                        log.info("Haber fotoğrafı kalite süzgecinden geçemedi (%s), alternatif aranacak.", sebep)
-                except Exception as fe:
-                    log.warning("Haber fotoğrafı açılamadı: %s", fe)
+                    from . import fetch_article, gorsel_kalite
+                    og_u = fetch_article.og_gorseli_cek(makale_link)
+                    if not og_u:
+                        tum_u = fetch_article.tum_gorselleri_cek(makale_link)
+                        if tum_u:
+                            og_u = tum_u[0]
+                    if og_u:
+                        foto_og = _foto_indir_veya_ac(og_u)
+                        if foto_og:
+                            bg_img = gorsel_kalite.kristal_netlestir(foto_og)
+                            haber["gorsel_url"] = og_u
+                            log.info("Haberin web sayfasından görsel temin edildi: %s", og_u[:60])
+                except Exception as oe:
+                    log.debug("Orijinal web linkinden görsel çekilemedi: %s", oe)
 
         # Kardeş haber görsel havuzu (instabot paritesi): Fotoğraf yoksa veya kalitesizse kardeş haberleri tara
         if not bg_img:
@@ -3349,6 +3360,9 @@ def haber_dailybrief_slayti_ciz(
                 if stok_p and stok_p.exists():
                     stok_img = ImageOps.exif_transpose(Image.open(stok_p)).convert("RGB")
                     bg_img = gorsel_kalite.kristal_netlestir(stok_img)
+                    # KİLİTLE: 4:5 gönderi ve 9:16 video/story her zaman AYNI görseli kullansın
+                    haber["foto_yolu"] = str(stok_p)
+                    haber["gorsel_yolu"] = str(stok_p)
             except Exception as se:
                 log.warning("Stok fotoğraf aranamadı: %s", se)
 

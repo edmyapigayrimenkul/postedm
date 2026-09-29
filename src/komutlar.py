@@ -67,6 +67,10 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "ertele",
     "iptal",
     "yenile",
+    "tekrar",
+    "sil",
+    "kaldir",
+    "son_mesaji_sil",
     "yayinla",
     "cope_at",
 }
@@ -76,6 +80,7 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
     # ── ✍️ İÇERİK ÜRET & ARAŞTIR ─────────────────────────────────────
     {"command": "gonderi", "description": "✍️ Günün konusundan onaylı post üret (Rotasyon)"},
     {"command": "reels", "description": "🎬 9:16 Dikey Reels videosu ve metni üret"},
+    {"command": "yenile", "description": "🔄 Son içeriği sıfırdan yeniden üret"},
     {"command": "arastir", "description": "🔍 <konu> hakkında derin mevzuat araştırması yap"},
     {"command": "dosya", "description": "📂 <konu> kronolojik dosya ve süreç analizi"},
     {"command": "link", "description": "🌐 <url> ile linkten içerik üret"},
@@ -98,6 +103,7 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
 
     # ── 🎛 YÖNETİM & AYARLAR ─────────────────────────────────────────
     {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
+    {"command": "sil", "description": "🗑️ Son gönderilen onay kartını ve albümü sil"},
     {"command": "ayar", "description": "⚙️ Çalışma ayarlarını canlı düzenle"},
     {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},
     {"command": "saglik", "description": "🩺 Sistem ve API sağlık testi"},

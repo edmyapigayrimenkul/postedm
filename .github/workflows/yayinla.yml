@@ -74,7 +74,10 @@ jobs:
             python -c "from src import telegram_bot; telegram_bot.mesaj_gonder(telegram_bot.havuz_mesaji())"
           elif [ "$EYLEM" = "yayin_kontrol" ]; then
             python -c "import os; from src import telegram_bot; m, b = telegram_bot.yayin_kontrol_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
+          elif [ "$EYLEM" = "son_mesaji_sil" ] || [ "$EYLEM" = "mesaj_sil" ]; then
+            python -c "import os; from src import telegram_bot; a = os.environ.get('ADET', '1'); telegram_bot.son_mesajlari_sil(adet=int(a) if a.isdigit() else 1)"
           fi
+
 
       - name: Yayınla
         if: github.event.action == 'yayinla' || github.event_name == 'workflow_dispatch'

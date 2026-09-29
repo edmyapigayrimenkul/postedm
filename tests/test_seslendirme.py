@@ -142,7 +142,7 @@ class TestSureler(unittest.TestCase):
         self.assertEqual(video.slayt_surelerini_hesapla(2, haber=yogun), [4.2, video.DETAY_AZAMI_SN])
 
     def test_seyrek_slayt_asgari_sure(self):
-        self.assertEqual(video.slayt_surelerini_hesapla(3, haber={"uzman_notu": "kısa not"})[1:], [6.0, 6.0])
+        self.assertEqual(video.slayt_surelerini_hesapla(3, haber={"uzman_notu": "kısa not"})[1:], [video.DETAY_ASGARI_SN, video.DETAY_ASGARI_SN])
 
     def test_kapak_ses_bitene_kadar(self):
         self.assertEqual(video.slayt_surelerini_hesapla(2, haber=HABER_170, kapak_konusma_suresi=9.0)[0], 10.7)
@@ -229,15 +229,14 @@ class TestKaristirma(unittest.TestCase):
 
 
 class TestOnayAkisi(unittest.TestCase):
-    def test_onay_videosu_seslendirmeli_ve_onaydan_once_gonderiliyor(self):
-        """Kullanıcı talebi: Onay akışında seslendirmeli video hazırlanır ve menüden önce iletilir."""
+    def test_onay_akisi_instabot_paritesi_sadece_gorsel_ve_aciklama(self):
+        """Kullanıcı talebi 2026-09-29: Onay akışında video derlenmez/gönderilmez; yalnızca slayt albümü ve menü iletilir."""
         kaynak = (Path(__file__).resolve().parent.parent / "src" / "telegram_bot.py").read_text(encoding="utf-8")
         govde = kaynak[kaynak.index("def _haber_onayina_sun("):]
         govde = govde[:govde.index("\ndef ")]
-        self.assertIn("ses.anlatimli_video_uret(", govde)
         self.assertIn("medya_grubu_gonder(", govde)
-        self.assertIn("video_gonder(", govde)
-        self.assertLess(govde.rindex("video_gonder("), govde.index("reply_markup=butonlar"))
+        self.assertNotIn("ses.anlatimli_video_uret(", govde)
+        self.assertNotIn("video_gonder(", govde)
 
 
 if __name__ == "__main__":

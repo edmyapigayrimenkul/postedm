@@ -197,11 +197,25 @@ export default {
         return new Response("OK");
       }
 
+      // Mesaj silme yardımcısı (Telegram deleteMessage)
+      const mesajiSil = async (cId, mId) => {
+        try {
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/deleteMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: cId, message_id: mId }),
+          });
+        } catch (e) {
+          // sessizce yoksay
+        }
+      };
+
       // =====================================================================
       // 1. BUTON TIKLAMALARI (CALLBACK QUERY)
       // =====================================================================
       if (update.callback_query) {
         const cb = update.callback_query;
+
         const data = cb.data || "";
         const chatId = cb.message?.chat?.id;
         const messageId = cb.message?.message_id;
@@ -927,7 +941,19 @@ export default {
           return new Response("OK");
         }
 
+        // L1. MESAJI SİL (TELEGRAM KARTINI VE ALBÜM SLAYTLARINI ANINDA TEMİZLE)
+        if (data === "mesaji_sil" || data.startsWith("mesaji_sil:")) {
+          await cevapVer("🗑️ Mesaj siliniyor...");
+          await mesajiSil(chatId, messageId);
+          for (let delta = 1; delta <= 6; delta++) {
+            await mesajiSil(chatId, messageId - delta);
+          }
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "mesaj_sil", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
         // L2. YAYINDAN KALDIR (SOSYAL MEDYA YAYINLARINI GERİ ALMA)
+
         if (data === "kaldir" || data.startsWith("kaldir:")) {
           let tur = "haber";
           let refId = "";
@@ -1081,23 +1107,46 @@ export default {
           });
         };
 
-        // --- Yanıtlanan Mesajlar (Reply): Doğrudan başlık/metin düzenleme ---
-        // Önceden bot mesajına verilen HER yanıt ("güzel olmuş" dahil) o içeriğin
-        // yeni manşeti oluyordu. Artık yalnızca açık düzenleme sözdizimi sayılır:
-        //   "3: Yeni başlık"  ·  "başlık: Yeni başlık"  ·  "Yeni başlık | Yeni açıklama"
-        if (update.message.reply_to_message?.from?.is_bot && duzenlemeSozdizimiMi(rawText)) {
+        // --- Yanıtlanan Mesajlar (Reply) ---
+        if (update.message.reply_to_message) {
           const replyId = update.message.reply_to_message.message_id;
-          const replyMetin = rawText;
-          const gonderen = update.message.from ? `${update.message.from.first_name || ""} ${update.message.from.username ? "@" + update.message.from.username : ""}`.trim() : "";
+          const userMsgId = update.message.message_id;
+          const replyText = rawText.toLowerCase().trim();
 
-          await mesajGonder("✍️ Yeni metin işleniyor, slaytlar yeniden çiziliyor...");
-          await tetikle(env, chatId, "metin_duzenle", {
-            mesaj_id: replyId,
-            metin: replyMetin,
-            gonderen: gonderen,
-          });
-          return new Response("OK");
+          // Reply ile mesaj / onay silme
+          if (replyText === "sil" || replyText === "/sil" || replyText === "iptal" || replyText === "/iptal") {
+            await mesajiSil(chatId, userMsgId);
+            await mesajiSil(chatId, replyId);
+            for (let delta = 1; delta <= 6; delta++) {
+              await mesajiSil(chatId, replyId - delta);
+            }
+            await tetikle(env, chatId, "bot_yonetim", { eylem: "mesaj_sil", mesaj_id: replyId });
+            return new Response("OK");
+          }
+
+          // Reply ile sıfırdan yeniden üretme
+          if (replyText === "yenile" || replyText === "/yenile" || replyText === "tekrar" || replyText === "/tekrar") {
+            await mesajiSil(chatId, userMsgId);
+            await mesajGonder("🔄 İçerik sıfırdan yeniden hazırlanıyor, lütfen bekleyin...");
+            await tetikle(env, chatId, "yayinla", { hedef: "yenile", mesaj_id: replyId });
+            return new Response("OK");
+          }
+
+          // Reply ile başlık/metin düzenleme
+          if (update.message.reply_to_message?.from?.is_bot && duzenlemeSozdizimiMi(rawText)) {
+            const replyMetin = rawText;
+            const gonderen = update.message.from ? `${update.message.from.first_name || ""} ${update.message.from.username ? "@" + update.message.from.username : ""}`.trim() : "";
+
+            await mesajGonder("✍️ Yeni metin işleniyor, slaytlar yeniden çiziliyor...");
+            await tetikle(env, chatId, "metin_duzenle", {
+              mesaj_id: replyId,
+              metin: replyMetin,
+              gonderen: gonderen,
+            });
+            return new Response("OK");
+          }
         }
+
 
         if (text === "/panel" || text === "/menu" || text === "panel" || text === "menu") {
           await mesajGonder(
@@ -1156,8 +1205,28 @@ export default {
           return new Response("OK");
         }
 
-        // /kaldir, /sil — Yayındaki içeriği sosyal medyadan geri alır
-        if (komut === "/kaldir" || komut === "/sil") {
+        // /sil [sayi] — Son Telegram onay kartını ve albüm slaytlarını siler
+        if (komut === "/sil" || komut === "sil") {
+          const userMsgId = update.message.message_id;
+          await mesajiSil(chatId, userMsgId);
+          const sayi = /^\d+$/.test(arguman[0]) ? parseInt(arguman[0], 10) : 5;
+          const adet = Math.min(Math.max(sayi, 1), 15);
+          for (let i = 1; i <= adet; i++) {
+            await mesajiSil(chatId, userMsgId - i);
+          }
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "son_mesaji_sil", adet: adet });
+          return new Response("OK");
+        }
+
+        // /yenile, /tekrar — Son onay bekleyen içeriği sıfırdan yeniden üretir
+        if (komut === "/yenile" || komut === "yenile" || komut === "/tekrar" || komut === "tekrar") {
+          await mesajGonder("🔄 Son içerik sıfırdan yeniden hazırlanıyor, lütfen bekleyin...");
+          await tetikle(env, chatId, "yayinla", { hedef: "yenile" });
+          return new Response("OK");
+        }
+
+        // /kaldir — Yayındaki içeriği sosyal medyadan geri alır
+        if (komut === "/kaldir") {
           const refId = arguman.length === 1 ? arguman[0] : "";
           if (/^\d+$/.test(refId)) {
             await mesajGonder(kaldirmaOnayMetni(refId), kaldirmaOnayMenusu("haber", refId));
@@ -1166,6 +1235,7 @@ export default {
           }
           return new Response("OK");
         }
+
 
         // /rapor, /kullanim, /kota — Detaylı sistem, GitHub Actions ve yapay zeka kota tablosu
         if (["/rapor", "rapor", "/kullanim", "kullanim", "/kota", "kota"].includes(komut)) {

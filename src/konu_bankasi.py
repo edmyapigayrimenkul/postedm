@@ -425,6 +425,10 @@ def brief_metni(konu: Dict[str, Any]) -> str:
         f"AÇI (içeriğin merkezi budur): {konu['aci']}",
         f"KANCA KALIBI: {konu['kanca_kalip']}",
     ]
+    if konu.get("_dayanak"):
+        satirlar.append(f"KAYNAK HABER / DAYANAK METNİ (buradaki somut yer, kurum, rakam ve şartları esas al):\n{konu['_dayanak']}")
+    elif konu.get("orijinal_ozet"):
+        satirlar.append(f"KAYNAK HABER / DAYANAK METNİ (buradaki somut yer, kurum, rakam ve şartları esas al):\n{konu['orijinal_ozet']}")
     if konu.get("mevzuat"):
         satirlar.append(f"DOĞRULANMIŞ MEVZUAT (aynen kullan): {konu['mevzuat']}")
         guncel = guncel_mevzuat(konu)

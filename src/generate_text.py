@@ -52,15 +52,11 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model
 # Ders: her üyesi aynı katmandan olan zincir yedek zinciri değildir.
 # Gözetimsiz cron için biraz daha sade içerik, hiç içerik olmamasından iyidir.
 MODELLER = [
-    "gemini-3.7-flash",          # ölçüm: 18,7 sn
-    "gemini-3.6-flash",          # ölçüm: 21,5 sn
-    "gemini-flash-latest",       # ölçüm: 26,1 sn
-    "gemini-3.8-flash",
-    # Son çare: yoğunluk fırtınasında ayakta kalan katman.
-    # Sabitlenmiş sürüm önce: "-latest" takma adı en yeni (dolayısıyla en yoğun)
-    # modeli işaret ettiği için süresi oynak ölçüldü (0,6 sn ve 29,5 sn),
-    # sabitlenmiş sürüm tutarlı (0,9 ve 0,7 sn).
-    "gemini-3.5-flash-lite",
+    "gemini-3.7-flash",          # En yeni, zengin editoryal kanca ve analiz kalitesi
+    "gemini-3.5-flash",          # Kararlı güçlü ara sürüm
+    "gemini-flash-latest",       # Google güncel flash takma adı
+    # Yoğunluk fırtınasında ve kota dolumunda devreye giren son çare hafif katman:
+    "gemini-3.5-flash-lite",     # Hızlı ve tutarlı kurtarıcı
     "gemini-flash-lite-latest",
 ]
 
@@ -410,8 +406,9 @@ Kapak + Haberin derinlikli detay ve piyasa analizi sayfaları.
 KURALLAR:
 1. MANŞET: Gazetecilik usulü doğal, tek parça manşet. Parçalama yapma; tek ve akıcı bir haber başlığı yaz. Haberin en can alıcı olgusunu (rakam, ilçe, kurum, değişim) içermelidir (örn. "Milli Emlak Çatalca'da 49 Bin TL'den Arazi Satışına Başladı").
 2. SPOT: Haberin arka planını, en kritik verisini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot (140-200 karakter).
-3. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler).
-4. UZMAN NOTU: EDM Değerlendirmesi — takipçiye/yatırımcıya tek cümlelik somut strateji tavsiyesi.
+3. KANCA (HOOK): Kapak görseli üstü için DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy (örn. "47 İLDE 383 PARSEL // RESMİ SATIŞTA" veya "MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR").
+4. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler).
+5. UZMAN NOTU: EDM Değerlendirmesi — takipçiye/yatırımcıya tek cümlelik somut strateji tavsiyesi.
 
 JSON:
 {
@@ -420,6 +417,7 @@ JSON:
   "kategori_kodu": "SEKTOREL_HABER_VE_ANALIZ",
   "rozet_metni": "EDM GÜNDEM // ARSA VE İMAR",
   "yasal_dayanak": "İlgili mevzuat veya resmi kurum adı",
+  "kanca": "4-7 kelimelik vurucu kanca (örn: 47 İLDE 383 PARSEL // RESMİ SATIŞTA)",
   "manset": "Tek parça, akıcı ve vurucu haber manşeti (50-80 karakter)",
   "spot": "Haberin sonucunu ve verilerini anlatan 2-3 cümlelik editoryal spot (140-180 karakter)",
   "detay_maddeleri": [
@@ -446,9 +444,9 @@ JSON:
   ],
   "uzman_notu": "EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi (80-130 karakter)",
   "onem_puani": 8,
-  "caption_instagram": "Hook ile başla, haberin tüm detaylarını ve bölgesel analizini 2-3 kısa paragrafta açıkla, kaydet/gönder çağrısıyla bitir, konuya özel 3 hashtag ekle.",
-  "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + kaydet/gönder çağrısı + 3 hashtag.",
-  "caption_threads": "≤%(threads)d karakter. Hook + kısa analiz + kaydet/gönder çağrısı + 2-3 konu etiketi."
+  "caption_instagram": "Zengin ve derinlemesine editoryal Instagram metni (700-1100 karakter). 3 ana bölümden oluşsun:\\n1. Paragraf (Resmi Gelişme): Vurucu bir ilk cümle (hook) ile başla. İhalenin/projenin nerede olduğu, şartları, metrekare, teminat ve resmi kurum bilgilerini net verilerle aktar.\\n2. Paragraf (Piyasa ve Bölge Analizi): Bu gelişmenin Silivri, Trakya ve genel gayrimenkul piyasasına etkisini, emsal değerleri ve yatırımcı için fırsat/fiyat dengesini açıkla.\\n3. Paragraf (EDM Değerlendirmesi & Riskler): Tapu, hisse durumu, kadastro veya başvuru sürecinde hak kaybı yaşamamak için dikkat edilmesi gereken somut tavsiyeleri belirt.\\nSonunda: 'Bölgedeki gelişmeleri ve fırsatları kaçırmamak için kaydedin, ilgilenen dostlarınızla paylaşın.' çağrısı ve konuya özel 3-4 hashtag ekle.",
+  "caption_facebook": "Instagram metninin Facebook için optimize edilmiş tam detaylı hali.",
+  "caption_threads": "≤%(threads)d karakter. Vurucu kanca + haberin en kritik 2 verisi ve bölgesel analiz + kaydet/takip çağrısı + 2-3 konu etiketi."
 }""" % BUTCE
 
 
@@ -574,9 +572,12 @@ def _gemini_cagri(
 
                     log.warning("%s hata [%d]: %s", model, resp.status_code, resp.text[:120])
                     break
+                except requests.Timeout:
+                    log.warning("%s zaman aşımına uğradı (25 sn), sıradaki modele geçiliyor", model)
+                    break
                 except Exception as e:
-                    log.warning("%s istek istisnası: %s", model, e)
-                    time.sleep(1)
+                    log.warning("%s istek istisnası: %s, sıradaki modele geçiliyor", model, e)
+                    break
 
     return None
 
@@ -1116,6 +1117,7 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GÜNDEM // HABER BÜLTENİ' formatında üret. "
             "JSON nesnesinde 'format_turu': 'dailybrief', 'bicim': 'B5', "
+            "'kanca': (Kapak fotoğrafı üstüne basılacak DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy: örn. '47 İLDE 383 PARSEL // RESMİ SATIŞTA' veya 'MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR'), "
             "'manset': (Gazetecilik usulü doğal, tek parça ve vurucu haber başlığı. Parçalama yapma, tek akıcı cümle yaz. Somut olgu, kurum, ilçe veya rakam içersin: örn. 'Milli Emlak Çatalca\\'da 49 Bin TL\\'ye Arazi Satışına Başladı' - en fazla 75 karakter), "
             "'spot': (Haberin arka planını, en kritik verilerini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot, 140-200 karakter), "
             "'detay_maddeleri': [ "
@@ -1124,7 +1126,8 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
             "  {'etiket': '03 // BAŞVURU ŞARTLARI VE ÖDEME AVANTAJLARI', 'metin': 'Kimler katılabilir? Peşinat, vade seçenekleri, KDV muafiyeti veya tapu harcı avantajları neler? (120-170 karakter)', 'renk': 'kirec'}, "
             "  {'etiket': '04 // DİKKAT EDİLECEK RİSKLER VE HUKUKİ HAKLAR', 'metin': 'Sürece girerken tapu, imar durumu, sit/koruma alanı veya fiili zemin durumunda nelere dikkat edilmeli? (120-170 karakter)', 'renk': 'kirec'} "
             "], "
-            "'uzman_notu': (EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi, 80-130 karakter) "
+            "'uzman_notu': (EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi, 80-130 karakter), "
+            "'caption_instagram': (Zengin ve derinlemesine editoryal Instagram açıklaması - 700-1000 karakter: 1. Paragraf: Hook ile başla, resmi kurum, yer, fiyat ve şartları net verilerle aktar; 2. Paragraf: Silivri, Trakya ve bölge piyasasına etkisini, emsal değerleri ve fırsatları analiz et; 3. Paragraf: EDM uzman notu ve tapu/imar/hisse risklerini belirt; Kapanış: 'Bölgedeki gelişmeleri ve fırsatları kaçırmamak için kaydedin, ilgilenen dostlarınızla paylaşın.' çağrısı ve konuya özel 3 hashtag) "
             "alanlarını MUTLAKA doldur. Bu format kapak + derinlemesine detay ve piyasa analiz sayfalarından oluşan zengin ve çok slaytlı bir bültendir."
         )
 

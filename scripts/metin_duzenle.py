@@ -121,11 +121,19 @@ def haber_metni_guncelle(
             if yeni_aciklama:
                 otorite_verisi["cozum"] = yeni_aciklama
         else:
-            otorite_verisi["manset_parca_1"] = yeni_baslik
-            otorite_verisi["manset_vurgu"] = ""
-            otorite_verisi["manset_parca_2"] = ""
+            if yeni_baslik.lower().startswith("kanca:"):
+                kanca_val = yeni_baslik.split(":", 1)[1].strip()
+                otorite_verisi["kanca"] = kanca_val
+                haber["kanca"] = kanca_val
+            else:
+                otorite_verisi["manset"] = yeni_baslik
+                otorite_verisi["manset_parca_1"] = yeni_baslik
+                otorite_verisi["manset_vurgu"] = ""
+                otorite_verisi["manset_parca_2"] = ""
+                haber["manset"] = yeni_baslik
             if yeni_aciklama:
                 otorite_verisi["spot"] = yeni_aciklama
+                haber["spot"] = yeni_aciklama
 
     # Eski geçici dosyaları temizle
     if haber.get("slayt_yollari"):

@@ -249,7 +249,30 @@ def video_gonder(
     return None
 
 
-def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> bool:
+_son_medya_grubu_mesaj_idleri: List[int] = []
+
+
+def son_medya_grubu_mesaj_idleri() -> List[int]:
+    """Son başarılı sendMediaGroup çağrısında dönen telegram message_id listesini döner."""
+    global _son_medya_grubu_mesaj_idleri
+    return list(_son_medya_grubu_mesaj_idleri)
+
+
+def _ayikla_medya_mesaj_idleri(resp: requests.Response) -> List[int]:
+    global _son_medya_grubu_mesaj_idleri
+    try:
+        data = resp.json()
+        if data.get("ok") and isinstance(data.get("result"), list):
+            mids = [m["message_id"] for m in data["result"] if isinstance(m, dict) and "message_id" in m]
+            if mids:
+                _son_medya_grubu_mesaj_idleri = mids
+                return mids
+    except Exception:
+        pass
+    return []
+
+
+def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> List[int] | bool:
     """Carousel önizlemesi için albüm (medya grubu) gönderir.
 
     WEBPAGE_CURL_FAILED ve ağ zaman aşımına karşı instabot koruması içerir:
@@ -306,7 +329,8 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> boo
 
             r = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=60)
             if r.status_code == 200:
-                return True
+                mids = _ayikla_medya_mesaj_idleri(r)
+                return mids if mids else True
 
             # Caption parse hatası varsa parse_mode kaldırıp tekrar dene
             if "can't parse entities" in r.text.lower() and caption:
@@ -318,7 +342,8 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> boo
                     fh.seek(0)
                 r_fallback = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=60)
                 if r_fallback.status_code == 200:
-                    return True
+                    mids = _ayikla_medya_mesaj_idleri(r_fallback)
+                    return mids if mids else True
 
             log.warning("Yerel multipart medya grubu gönderimi başarısız [%d]: %s", r.status_code, r.text[:200])
         except Exception as e:
@@ -342,7 +367,8 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> boo
     try:
         r = requests.post(url, json={"chat_id": chat_id, "media": media_url}, timeout=30)
         if r.status_code == 200:
-            return True
+            mids = _ayikla_medya_mesaj_idleri(r)
+            return mids if mids else True
 
         hata_aciklama = r.text.lower()
         if "can't parse entities" in hata_aciklama and caption:
@@ -352,7 +378,8 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> boo
                     m["caption"] = re.sub(r"<[^>]+>", "", m["caption"])
             r_fb = requests.post(url, json={"chat_id": chat_id, "media": media_url}, timeout=30)
             if r_fb.status_code == 200:
-                return True
+                mids = _ayikla_medya_mesaj_idleri(r_fb)
+                return mids if mids else True
 
         # Telegram WEBPAGE_CURL_FAILED veya indirme zaman aşımı verdiyse:
         if "webpage_curl_failed" in hata_aciklama or "failed to send message" in hata_aciklama:
@@ -383,11 +410,13 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> boo
                         f_tuple[1].close()
                 if r_dl.status_code == 200:
                     log.info("WEBPAGE_CURL_FAILED hatası stream multipart ile başarıyla kurtarıldı.")
-                    return True
+                    mids = _ayikla_medya_mesaj_idleri(r_dl)
+                    return mids if mids else True
     except Exception as e:
         log.error("Telegram medya grubu gönderme hatası: %s", e)
 
     return False
+
 
 
 def slaytlari_gonder(foto_yollari: List[Path | str], basliklar: Optional[List[str]] = None) -> bool:
@@ -425,6 +454,30 @@ def icerik_onceki_mesajlarini_temizle(tur: str, referans_id: Any, haric_mesaj_id
     except Exception as e:
         log.warning("Önceki mesajlar temizlenirken hata: %s", e)
         return 0
+
+
+def son_mesajlari_sil(adet: int = 1) -> int:
+    """
+    Son onay isteklerine ait tüm Telegram mesajlarını (albüm slaytları ve onay kartları) siler.
+    /sil komutu veya bot yönetim aksiyonu ile tetiklenir.
+    """
+    try:
+        mids = db.son_onay_istegi_mesajlarini_getir(adet=adet)
+        silinen = 0
+        for mid in mids:
+            try:
+                if mesaji_sil(mid):
+                    silinen += 1
+                db.onay_mesaj_silindi_isaretle(mid)
+            except Exception as e:
+                log.warning("Mesaj #%d silinemedi: %s", mid, e)
+        if silinen > 0:
+            log.info("Son onay isteklerinden %d adet Telegram mesajı silindi.", silinen)
+        return silinen
+    except Exception as e:
+        log.warning("Son mesajlar silinirken hata: %s", e)
+        return 0
+
 
 
 def mesaji_guncelle(mesaj_id: int, metin: str, reply_markup: Optional[Dict[str, Any]] = None) -> bool:
@@ -778,7 +831,7 @@ def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dic
     if kanallar is None:
         kanallar = {
             "ig": True, "reels": False, "story": True, "threads": True,
-            "facebook": True, "youtube": True, "tiktok": True,
+            "facebook": True, "youtube": True, "tiktok": True, "linkedin": True,
         }
 
     def _simge(k: str) -> str:
@@ -796,6 +849,7 @@ def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dic
             {"text": f"{_simge('facebook')} FB", "callback_data": "kanal:facebook"},
             {"text": f"{_simge('youtube')} YT", "callback_data": "kanal:youtube"},
             {"text": f"{_simge('tiktok')} TT", "callback_data": "kanal:tiktok"},
+            {"text": f"{_simge('linkedin')} LI", "callback_data": "kanal:linkedin"},
         ],
     ]
 
@@ -878,6 +932,10 @@ def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[
                 {"text": f"🎨 Slayt düzenle ({adet} slayt)", "callback_data": f"slayt_menu:{adet}"},
             ],
             [
+                {"text": "🔄 Sıfırdan Yeniden Üret", "callback_data": f"yenile:{adet}"},
+                {"text": "🗑️ Mesajı Sil", "callback_data": "mesaji_sil"},
+            ],
+            [
                 {"text": "⏰ 1 saat ertele", "callback_data": "ertele"},
             ],
             [
@@ -886,6 +944,7 @@ def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[
             ],
         ]
     }
+
 
 
 def yayin_zamani_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
@@ -1699,45 +1758,17 @@ def _haber_onayina_sun(haber_id: int) -> bool:
     except Exception as e:
         log.warning("Görseller CDN'e yüklenemedi: %s", e)
 
-    # 2.6 Eşzamanlı 9:16 Video Üretimi (Instabot Paritesi: Onaylanan slaytlarla video 1:1 kilitlenir)
+    # 2.6 Veritabanına kaydet (Video onaya sunulmaz; kullanıcı 'Yayınla' dediğinde derlenir - Instabot standardı)
     is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief", "reels")) or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")) or (not otorite_verisi)
-    v_yolu = None
-    try:
-        from . import video, ses
-        # Haber bülteni için native 9:16 (1080x1920) dikey slaytlar üret; böylece 4:5'ten crop/blur gereksiz kalır
-        video_slayt_yollari = slayt_yollari
-        if is_haber or format_turu in ("dailybrief", "haber", "haber_dailybrief", "reels"):
-            try:
-                v_slayt_listesi = yeni_formatlar.slaytlari_uret(
-                    aktif_veri,
-                    format_turu="dailybrief",
-                    cikti_onek=f"reels_{haber_id}",
-                    olcu="story",
-                )
-                if v_slayt_listesi and all(Path(p).exists() for p in v_slayt_listesi):
-                    video_slayt_yollari = [str(p) for p in v_slayt_listesi]
-            except Exception as d_err:
-                log.warning("Native 9:16 video slaytları üretilemedi, mevcut slaytlar kullanılacak: %s", d_err)
-
-        # 🎙️ Seslendirmeli 9:16 Video Üret (ElevenLabs Sıla Özalp + Fon Müziği Ducking)
-        v_yolu = ses.anlatimli_video_uret(video_slayt_yollari, veri=aktif_veri, muzik=True)
-        if not v_yolu or not Path(v_yolu).exists():
-            v_ham = video.slaytlardan_reels_uret(video_slayt_yollari, haber=aktif_veri)
-            if v_ham and v_ham.exists():
-                v_sesli = ses.sesli_video_hazirla(v_ham, ses_seviyesi=0.20)
-                v_yolu = v_sesli if (v_sesli and v_sesli.exists()) else v_ham
-    except Exception as ve:
-        log.warning("Haber videosu onay anında derlenemedi: %s", ve)
-
     db.haber_guncelle(
         haber_id,
         slayt_yollari=json.dumps(slayt_yollari),
         slayt_urlleri=json.dumps(slayt_urlleri) if slayt_urlleri else None,
-        video_yolu=str(v_yolu) if v_yolu else None,
+        video_yolu=None,
         durum="onay_bekliyor"
     )
 
-    # 3. Medya albümü ve video gönder
+    # 3. Medya albümü ve içerik kartı hazırla
     caption_ozeti = (haber.get("ig_caption") or "")[:350]
 
     # Kapıdan geçen içeriğin kritik olmayan uyarıları onaylayana gösterilir
@@ -1749,8 +1780,8 @@ def _haber_onayina_sun(haber_id: int) -> bool:
     # Format bazlı başlık belirleme
     is_reels = (format_turu == "reels")
     if is_reels:
-        album_caption = f"🎬 <b>EDM 9:16 REELS VİDEOSU & SLAYTLARI</b>\n📌 {haber['manset']}"
-        kart_baslik = f"🎬 <b>GÜNCEL REELS VİDEOSU ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+        album_caption = f"🎬 <b>EDM 9:16 REELS SLAYTLARI</b>\n📌 {haber['manset']}"
+        kart_baslik = f"🎬 <b>GÜNCEL REELS İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif is_haber:
         album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
@@ -1758,26 +1789,19 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         album_caption = f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
 
-    # 3. Medya albümü ve/veya dikey videoyu gönder
-    if is_reels and v_yolu and Path(v_yolu).exists():
+    # 2.7 Önceki tüm mesajları (eski onay kartı ve albüm slaytları) temizle
+    icerik_onceki_mesajlarini_temizle("haber", haber_id)
+
+    # 3. Slayt görsellerini albüm olarak gönder (Instabot standardı: Onayda yalnızca görseller ve açıklama)
+    album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    _, chat_id = _bot_bilgileri()
+    cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
+    album_mids = album_res if isinstance(album_res, list) else son_medya_grubu_mesaj_idleri()
+    for mid in album_mids:
         try:
-            video_gonder(
-                v_yolu,
-                aciklama=f"🎬 <b>EDM 9:16 REELS VİDEOSU (SESLENDİRMELİ)</b>\n📌 {haber['manset']}",
-            )
-        except Exception as ve:
-            log.warning("Reels videosu gönderilemedi: %s", ve)
-            medya_grubu_gonder(slayt_yollari, caption=album_caption)
-    else:
-        medya_grubu_gonder(slayt_yollari, caption=album_caption)
-        if v_yolu and Path(v_yolu).exists():
-            try:
-                video_gonder(
-                    v_yolu,
-                    aciklama=f"🎬 <b>9:16 REELS & SHORTS VİDEO ÖNİZLEME (SESLİ)</b>\n📌 {haber['manset']}",
-                )
-            except Exception as ve:
-                log.warning("Video önizlemesi Telegram'a iletilemedi: %s", ve)
+            db.onay_istegi_kaydet("haber", str(haber_id), mid, cid)
+        except Exception as e:
+            log.warning("Albüm mesaj ID kaydedilemedi: %s", e)
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
     import html as html_lib
@@ -1803,17 +1827,17 @@ def _haber_onayina_sun(haber_id: int) -> bool:
         mesaj_metni += f"<pre><code>{temiz_caption}</code></pre>\n\n"
     mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
 
-    icerik_onceki_mesajlarini_temizle("haber", haber_id)
-    if is_reels:
-        reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True}
+    if is_reels or is_haber:
+        # Haber ve Reels içeriklerinde varsayılan: Reels AÇIK, IG Besleme KAPALI
+        reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
         butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 3, kanallar=reels_kanallari)
     else:
-        butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2)
+        # Otorite, sözlük, rehber carousel içeriklerinde varsayılan: IG Besleme AÇIK, Reels KAPALI
+        ig_kanallari = {"ig": True, "reels": False, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
+        butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2, kanallar=ig_kanallari)
     res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
-        _, chat_id = _bot_bilgileri()
         try:
-            cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
             db.onay_istegi_kaydet("haber", str(haber_id), res["message_id"], cid)
         except Exception as e:
             log.warning("Onay isteği kaydedilemedi: %s", e)
@@ -1841,11 +1865,26 @@ def haberden_icerik_hazirla(haber: Dict[str, Any], brief: Dict[str, Any]) -> boo
         f"<i>{haber.get('orijinal_baslik', '')[:120]}</i>\n\nİçerik hazırlanıyor..."
     )
 
+    if not brief.get("_dayanak"):
+        brief["_dayanak"] = haber.get("orijinal_ozet") or haber.get("orijinal_baslik") or ""
+    if haber.get("orijinal_baslik") and not brief.get("baslik"):
+        brief["baslik"] = haber["orijinal_baslik"]
+    if haber.get("kaynak"):
+        brief["kaynak"] = haber["kaynak"]
+
     veri = generate_text.konudan_uret(brief, format_turu="dailybrief")
     if not veri:
         mesaj_gonder("❌ Haber içeriği üretilemedi.")
         return False
     veri["format_turu"] = "dailybrief"
+    if haber.get("gorsel_url"):
+        veri["gorsel_url"] = haber["gorsel_url"]
+        veri["gorsel_yolu"] = haber["gorsel_url"]
+        veri["foto_yolu"] = haber["gorsel_url"]
+    if haber.get("orijinal_url"):
+        veri["orijinal_url"] = haber["orijinal_url"]
+    if haber.get("kaynak"):
+        veri["kaynak"] = haber["kaynak"]
 
     db.haber_guncelle(
         haber["id"],
@@ -2163,7 +2202,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         f"<pre><code>{temiz_caption}</code></pre>\n\n"
         f"💡 <i>Videoyu kaydedebilir veya '✅ Yayınla' -> '▶️ Şimdi' butonuna basarak doğrudan tüm platformlara otomatik yayınlayabilirsiniz.</i>"
     )
-    reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True}
+    reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
     icerik_onceki_mesajlarini_temizle("reels", haber_id)
     res = mesaj_gonder(mesaj_metni, reply_markup=ana_menu(adet=len(slayt_yollari) if slayt_yollari else 7, kanallar=reels_kanallari))
     if res and isinstance(res, dict) and "message_id" in res:

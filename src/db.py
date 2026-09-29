@@ -511,6 +511,30 @@ def onay_mesaj_silindi_isaretle(telegram_mesaj_id: int) -> None:
         conn.commit()
 
 
+def son_onay_istegi_mesajlarini_getir(adet: int = 1) -> List[int]:
+    """Son onay isteklerine ait telegram_mesaj_id değerlerini döner."""
+    with _baglanti_al() as conn:
+        ref_rows = conn.execute(
+            "SELECT DISTINCT tur, referans_id FROM onay_istekleri "
+            "WHERE durum != 'silindi' AND telegram_mesaj_id IS NOT NULL "
+            "ORDER BY id DESC LIMIT ?",
+            (adet,),
+        ).fetchall()
+        if not ref_rows:
+            return []
+        tum_mids: List[int] = []
+        for r in ref_rows:
+            tur, ref_id = r["tur"], r["referans_id"]
+            rows = conn.execute(
+                "SELECT telegram_mesaj_id FROM onay_istekleri "
+                "WHERE tur = ? AND referans_id = ? AND durum != 'silindi' AND telegram_mesaj_id IS NOT NULL "
+                "ORDER BY id ASC",
+                (tur, ref_id),
+            ).fetchall()
+            tum_mids.extend([int(row["telegram_mesaj_id"]) for row in rows if row["telegram_mesaj_id"]])
+        return tum_mids
+
+
 def onay_istegi_ertele(tur: str, referans_id: str, dakika: int = 60) -> bool:
     """
     Onay bekleyen bir içeriğin bekleme süresini belirtilen dakika kadar ileri öteler

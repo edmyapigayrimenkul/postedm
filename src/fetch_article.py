@@ -86,8 +86,12 @@ def _jsonld_articlebody(soup: BeautifulSoup) -> Optional[str]:
 
 
 def _paragraf_metni(oge) -> str:
-    paragraflar = [p.get_text(" ", strip=True) for p in oge.find_all("p")]
-    return " ".join(p for p in paragraflar if len(p) > 35)
+    parcalar = []
+    for eleman in oge.find_all(["p", "h2", "h3", "h4", "li"]):
+        txt = eleman.get_text(" ", strip=True)
+        if len(txt) > 25:
+            parcalar.append(txt)
+    return " ".join(parcalar)
 
 
 def _paragraflardan_topla(soup: BeautifulSoup) -> Optional[str]:
@@ -364,3 +368,74 @@ def og_gorseli_cek(link: str, zaman_asimi: int = 15) -> Optional[str]:
             return img["src"]
 
     return None
+
+
+def tum_gorselleri_cek(link: str, zaman_asimi: int = 15) -> List[str]:
+    """
+    Haber sayfasındaki tüm geçerli içerik görsellerini sıralı ve tekil liste olarak döner.
+    Web sitesi makalesi ve alternatif slayt görselleri için kullanılır.
+    Reklam, sayaç, 1x1 piksel ve ikonları eler.
+    """
+    resp = _sayfayi_getir(link, zaman_asimi)
+    if resp is None:
+        return []
+
+    try:
+        soup = BeautifulSoup(resp.content, "html.parser")
+    except Exception:
+        return []
+
+    gorseller: List[str] = []
+    gorulen: set[str] = set()
+
+    def _ekle(raw_url: str):
+        if not raw_url:
+            return
+        u = urllib.parse.urljoin(link, raw_url.strip())
+        if not u.startswith("http"):
+            return
+        u_temiz = u.split("?")[0].lower()
+        if any(eng in u_temiz for eng in (
+            "doubleclick", "googleads", "analytics", "pixel", "tracking",
+            "facebook.com/tr", ".svg", "/logo", "/icon", "avatar", "spacer"
+        )):
+            return
+        if u not in gorulen:
+            gorulen.add(u)
+            gorseller.append(u)
+
+    # 1. OpenGraph / Twitter meta
+    for ozellik in ("og:image", "twitter:image", "twitter:image:src"):
+        meta = soup.find("meta", property=ozellik) or soup.find("meta", attrs={"name": ozellik})
+        if meta and meta.get("content"):
+            _ekle(meta["content"])
+
+    # 2. JSON-LD Images
+    for etiket in soup.find_all("script", attrs={"type": "application/ld+json"}):
+        if not etiket.string:
+            continue
+        try:
+            veri = json.loads(etiket.string)
+            if isinstance(veri, dict):
+                g = veri.get("image")
+                if isinstance(g, str):
+                    _ekle(g)
+                elif isinstance(g, dict) and g.get("url"):
+                    _ekle(g["url"])
+                elif isinstance(g, list):
+                    for item in g:
+                        if isinstance(item, str):
+                            _ekle(item)
+                        elif isinstance(item, dict) and item.get("url"):
+                            _ekle(item["url"])
+        except Exception:
+            continue
+
+    # 3. Makale içi img etiketleri
+    for secici in ("article img", ".content img", ".post-content img", ".entry-content img", "figure img", "main img"):
+        for img in soup.select(secici):
+            src = img.get("src") or img.get("data-src") or img.get("data-original")
+            if src:
+                _ekle(src)
+
+    return gorseller

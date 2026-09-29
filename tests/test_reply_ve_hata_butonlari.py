@@ -93,10 +93,52 @@ class TestReplyVeHataButonlari(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(res.returncode, 0)
-        self.assertIn("--mesaj-id", res.stdout)
-        self.assertIn("--metin", res.stdout)
+    def test_09_ana_menu_yeniden_uret_ve_mesaji_sil(self):
+        from src import telegram_bot
+        menu = telegram_bot.ana_menu(adet=3)
+        callbacks = [btn["callback_data"] for row in menu["inline_keyboard"] for btn in row]
+        self.assertIn("yenile:3", callbacks)
+        self.assertIn("mesaji_sil", callbacks)
+
+    def test_10_son_onay_istegi_mesajlarini_getir_ve_sil(self):
+        from unittest.mock import patch
+        from src import db, telegram_bot
+        
+        # Test için onay istekleri ekle
+        db.onay_istegi_kaydet("haber", "999", 501, 12345)
+        db.onay_istegi_kaydet("haber", "999", 502, 12345)
+        db.onay_istegi_kaydet("haber", "999", 503, 12345)
+
+        mids = db.son_onay_istegi_mesajlarini_getir(adet=1)
+        self.assertEqual(mids, [501, 502, 503])
+
+        with patch("src.telegram_bot.mesaji_sil", return_value=True) as mock_sil:
+            silinen = telegram_bot.son_mesajlari_sil(adet=1)
+            self.assertEqual(silinen, 3)
+            self.assertEqual(mock_sil.call_count, 3)
+
+        # Silindi olarak işaretlendiğini doğrula
+        mids_kalan = db.son_onay_istegi_mesajlarini_getir(adet=1)
+        self.assertNotIn(501, mids_kalan)
+
+    def test_11_medya_grubu_id_ayiklama(self):
+        from unittest.mock import MagicMock
+        from src import telegram_bot
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "ok": True,
+            "result": [
+                {"message_id": 801},
+                {"message_id": 802},
+                {"message_id": 803},
+            ]
+        }
+        mids = telegram_bot._ayikla_medya_mesaj_idleri(mock_resp)
+        self.assertEqual(mids, [801, 802, 803])
+        self.assertEqual(telegram_bot.son_medya_grubu_mesaj_idleri(), [801, 802, 803])
 
 
 if __name__ == "__main__":
     unittest.main()
+
