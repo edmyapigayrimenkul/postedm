@@ -128,12 +128,16 @@ def _sigar_mi(metin: str, font: ImageFont.FreeTypeFont, azami_px: int) -> bool:
     return (bb[2] - bb[0]) <= azami_px
 
 
-def _basliktan_farkli_mi(t1: str, t2: str, baslik: str, azami_ortusme: float = 0.35) -> bool:
+def _basliktan_farkli_mi(t1: str, t2: str, baslik: str, azami_ortusme: float = 0.40) -> bool:
     """Kanca metninin başlıktan farklı bir şey söyleyip söylemediğini denetler.
-    Kancanın manşetteki kelimeleri aynen veya kök olarak tekrar etmesini engeller."""
+    Kancanın manşetteki kelimeleri aynen veya kök olarak tekrar etmesini engeller.
+    Kelime veya kök örtüşmesi %40'ı geçiyorsa kanca ÇİZİLMEZ (A kuralı)."""
+    import re as _re
+    from . import dogrula
+
     def _kelimeler(metin: str) -> set[str]:
-        s = metin.lower().replace("i̇", "i").replace("ı", "i")
-        return {k for k in re.findall(r"\w+", s) if len(k) > 2}
+        sadelesmis = dogrula._sadelestir(metin or "")
+        return {k for k in _re.findall(r"\w+", sadelesmis) if len(k) > 2}
 
     kanca = _kelimeler(f"{t1} {t2}")
     if not kanca:
@@ -489,6 +493,51 @@ def hook_rengi_belirle(
         return varsayilan_dikkat_rengi
 
 
+# Kanca ile başlık bloğu arasında bırakılacak EN AZ boşluk (instabot standardı).
+# Kanca fotoğrafın içinde durmalı, metin rafının veya manşetin üstüne oturmamalı.
+AYRIM_PAYI = 130
+LOGO_ALT_SINIR = 500
+
+
+def _bant_yogunlugu(edges: Image.Image, x0: int, y0: int, x1: int, y1: int) -> float:
+    """Bir bandın kenar yoğunluğu — yazı ve ince detay burada yükselir."""
+    from PIL import ImageStat
+    if y1 <= y0 or x1 <= x0:
+        return 999.0
+    return ImageStat.Stat(edges.crop((x0, y0, x1, y1))).mean[0]
+
+
+def uygun_alan_tespit_et(gorsel: Image.Image, baslik_ust: int, hook_h: int = 180, ust_sinir: int = 420) -> Tuple[str, int]:
+    """Fotoğrafın kanca çizilmeye en sakin, ferah alanını tespit eder (instabot paritesi)."""
+    from PIL import ImageFilter
+    en_alt = baslik_ust - hook_h - AYRIM_PAYI
+    varsayilan_y = max(ust_sinir, en_alt)
+    try:
+        genislik, _ = gorsel.size
+        edges = gorsel.convert("L").filter(ImageFilter.FIND_EDGES)
+        sag = min(genislik - KENAR_BOSLUK, 1006)
+        adaylar = list(range(max(ust_sinir, 380), max(ust_sinir + 1, en_alt + 1), 45))
+        if not adaylar:
+            return "zemin", varsayilan_y
+        olculen = [(_bant_yogunlugu(edges, KENAR_BOSLUK, y, sag, y + hook_h), y) for y in adaylar]
+        en_dusuk = min(t[0] for t in olculen)
+        y_sec = max(y for yog, y in olculen if yog <= en_dusuk + 2.0)
+        return ("zemin" if y_sec >= en_alt - 45 else "foto"), y_sec
+    except Exception as e:
+        log.warning("Hook alan tespitinde hata: %s", e)
+        return "zemin", varsayilan_y
+
+
+def _metin_kutusu(oncesi: Image.Image, sonrasi: Image.Image) -> Optional[Tuple[int, int, int, int]]:
+    """Çizilen kancanın GERÇEK metin sınırlarını döndürür."""
+    try:
+        from PIL import ImageChops
+        return (ImageChops.difference(oncesi.convert("RGB"), sonrasi.convert("RGB"))
+                .convert("L").point(lambda v: 255 if v > 110 else 0).getbbox())
+    except Exception:
+        return None
+
+
 def hook_uygula(
     canvas: Image.Image,
     haber: Dict[str, Any],
@@ -498,7 +547,7 @@ def hook_uygula(
 ) -> Image.Image:
     """
     Kapak slaytına (Slayt 1) akıllı editoryal hook metnini ve difüzyon gölgesini yerleştirir.
-    4:5 ve 9:16 oranlarında güvenli alanda, başlığa yapışmayacak ve logonun altına oturacak şekilde konumlanır.
+    Instabot standardında AYRIM_PAYI (130px) ile başlığa asla yapışmaz; başlığı tekrarlıyorsa hiç çizilmez.
     """
     hook_veri = hook_olustur(haber)
     if not hook_veri:
@@ -506,51 +555,62 @@ def hook_uygula(
 
     fmt = hook_veri.get("format", "minimal_vurgu")
     override_renk = haber.get("hook_renk_override")
+    hook_h = 160 if fmt == "stat_punch" else 140
+    logo_alt = max(ust_y + 130, 380)
 
-    # Dikey koordinat hesabı:
-    # Üst sınır: ust_y + 120 (EDM logosu ve rozetin altı)
-    # Alt sınır: manset_ust_y - 65 (Manşetle aradaki ferah ayrım payı — instabot AYRIM_PAYI standardı)
-    ust_sinir = ust_y + 120
-    hook_h = 145 if fmt == "stat_punch" else 130
-    alt_sinir = manset_ust_y - 65
+    # 1. Fotoğrafın en sakin alanını tespit et
+    konum, y = uygun_alan_tespit_et(canvas, manset_ust_y, hook_h=hook_h, ust_sinir=logo_alt)
+    if y is None:
+        y = max(logo_alt, manset_ust_y - hook_h - AYRIM_PAYI)
 
-    if alt_sinir - hook_h < ust_sinir:
-        y_pos = max(ust_sinir, alt_sinir - hook_h)
-    else:
-        y_pos = alt_sinir - hook_h
-
+    # Üst ve alt sınır garantisi
+    y = max(logo_alt, min(y, manset_ust_y - hook_h - AYRIM_PAYI))
     x_pos = KENAR_BOSLUK
 
-    # Arka plan kontrastına göre dinamik renk adaptasyonu (Kullanıcı Kuralı)
+    # Dinamik renk belirleme
     renk = hook_rengi_belirle(
         canvas=canvas,
         x=x_pos,
-        y=y_pos,
+        y=y,
         w=650,
         h=hook_h,
         tercih_edilen_renk=override_renk,
         varsayilan_dikkat_rengi=hook_veri.get("renk", VURGU),
     )
 
-    if fmt == "stat_punch":
-        return ciz_stat_punch(
-            canvas,
-            x=x_pos,
-            y=y_pos,
-            num_txt=hook_veri.get("num_txt", ""),
-            unit_txt=hook_veri.get("unit_txt", ""),
-            lbl_txt=hook_veri.get("lbl_txt", ""),
-            t1=hook_veri.get("t1", ""),
-            t2=hook_veri.get("t2", ""),
-            renk=renk,
-        )
-    else:
-        return ciz_minimal_vurgu(
-            canvas,
-            x=x_pos,
-            y=y_pos,
-            kicker=hook_veri.get("kicker", ""),
-            t1=hook_veri.get("t1", ""),
-            t2=hook_veri.get("t2", ""),
-            renk=renk,
-        )
+    def _ciz(hedef: Image.Image, cizim_y: int) -> Image.Image:
+        if fmt == "stat_punch":
+            return ciz_stat_punch(
+                hedef,
+                x=x_pos,
+                y=cizim_y,
+                num_txt=hook_veri.get("num_txt", ""),
+                unit_txt=hook_veri.get("unit_txt", ""),
+                lbl_txt=hook_veri.get("lbl_txt", ""),
+                t1=hook_veri.get("t1", ""),
+                t2=hook_veri.get("t2", ""),
+                renk=renk,
+            )
+        else:
+            return ciz_minimal_vurgu(
+                hedef,
+                x=x_pos,
+                y=cizim_y,
+                kicker=hook_veri.get("kicker", ""),
+                t1=hook_veri.get("t1", ""),
+                t2=hook_veri.get("t2", ""),
+                renk=renk,
+            )
+
+    sonuc = _ciz(canvas, y)
+
+    # Nefes payı denetimi: Metin başlığa AYRIM_PAYI'ndan daha fazla yaklaştıysa yukarı al
+    kutu = _metin_kutusu(canvas, sonuc)
+    if kutu:
+        tasma = kutu[3] - (manset_ust_y - AYRIM_PAYI)
+        if tasma > 0:
+            y = max(logo_alt, y - int(tasma))
+            sonuc = _ciz(canvas, y)
+
+    log.info("Hook başarıyla çizildi: fmt=%s, y=%d (ayrım payı %d)", fmt, y, AYRIM_PAYI)
+    return sonuc

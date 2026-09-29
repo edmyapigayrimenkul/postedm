@@ -62,17 +62,17 @@ def _cercevele_9_16(kart_img: Image.Image, genislik: int = HEDEF_W, yukseklik: i
         tuval.paste(kart_rgb, (0, card_y))
         return tuval
 
-    # B. Fotoğraflı veya hibrit zemin: Sinematik derin difüzyon + koyu EDM perdesi
+    # B. Fotoğraflı veya hibrit zemin: Sinematik derin difüzyon + kurumsal perde
     oran = max(genislik / w, yukseklik / h)
     bg_w, bg_h = int(w * oran), int(h * oran)
     bg = kart_rgb.resize((bg_w, bg_h), Image.Resampling.LANCZOS)
     sol = (bg_w - genislik) // 2
     ust = (bg_h - yukseklik) // 2
     bg = bg.crop((sol, ust, sol + genislik, ust + yukseklik))
-    bg = bg.filter(ImageFilter.GaussianBlur(75))
+    bg = bg.filter(ImageFilter.GaussianBlur(35))
 
-    # Koyu kurumsal EDM mürekkep perdesi (derin cam efekti, hayalet rozetleri tamamen yutar)
-    perde = Image.new("RGBA", (genislik, yukseklik), (18, 19, 22, 220))
+    # Yumuşak kurumsal perde (fotoğrafın estetiğini boğmadan kontrast sağlar)
+    perde = Image.new("RGBA", (genislik, yukseklik), (15, 18, 24, 130))
     bg = Image.alpha_composite(bg.convert("RGBA"), perde)
 
     # Alt kenar düz renk ise (örn: Dailybrief haber kapaklarındaki siyah alt bant), aşağıya yekpare uzat
@@ -87,7 +87,7 @@ def _cercevele_9_16(kart_img: Image.Image, genislik: int = HEDEF_W, yukseklik: i
         udraw = ImageDraw.Draw(bg)
         udraw.rectangle([0, 0, genislik, card_y], fill=ust_renk + (255,))
 
-    # Kartı yerleştirmeden önce üst kenara yumuşak geçiş maskesi (keskin yatay bıçak izini yok eder)
+    # Kartı yerleştirmeden önce üst kenara yumuşak geçiş maskesi
     kart_rgba = kart_rgb.convert("RGBA")
     if ust_std >= 4.0:
         mask = Image.new("L", (w, h), 255)

@@ -612,16 +612,11 @@ def main() -> None:
                 else:
                     v_yolu = vy
 
-        # 3.0. Video: Instabot standardı — video her zaman ElevenLabs anlatımlı (Alex)
-        # ve fon müzikli üretilir; seslendirme düşerse zarifçe fon müzikli videoya geriler.
+        # 3.0. Video: düz yayında eskisi gibi sessiz video (fon müziği aşağıda eklenir);
+        # sesli yayında kapak seslendirmesi + kapanış çağrısı (ses.anlatimli_video_uret).
         def _video(slaytlar, veri=None):
-            muzik_aktif = (ses_modu != "muziksiz")
-            try:
-                v_anlatimli = ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=muzik_aktif, sonuc=ses_sonucu)
-                if v_anlatimli and Path(v_anlatimli).exists():
-                    return v_anlatimli
-            except Exception as e_anlatim:
-                log.warning("Anlatımlı video derlenemedi, sessiz reels üretilecek: %s", e_anlatim)
+            if ses_modu:
+                return ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=(ses_modu == "muzikli"), sonuc=ses_sonucu)
             return video.slaytlardan_reels_uret(slaytlar, haber=veri)
 
         if not v_yolu or not v_yolu.exists():
@@ -633,60 +628,72 @@ def main() -> None:
             # Video, kullanıcının Telegram'da görüp onayladığı slaytlardan derlenir.
             # Runner ortamında slaytlar sıfırdan üretilmez (aksi halde Pexels'ten bambaşka stok görsel çekebilir).
 
-            # 1. Öncelik: Onaylanan Public CDN URL'leri veya yerel slayt dosyaları
-            kaynak_slaytlar = []
-            if public_urller and len(public_urller) > 0:
-                kaynak_slaytlar = [str(u) for u in public_urller]
-            elif haber and haber.get("slayt_urlleri"):
+            # 1. Öncelik: Tam Ekran Native 9:16 Slaytlar (1080x1920)
+            # Video (Reels/Shorts/TikTok) asla 4:5 kırpılmış ve tepesi boş bırakılmış zeminle üretilmez.
+            # Onaylanan görsel/fotoğraf yolu kilitlenerek 2 ila 3 slaytlık native 9:16 akış hazırlanır.
+            dikey_slaytlar = []
+            if detay and isinstance(detay, dict):
                 try:
-                    db_urller = json.loads(haber["slayt_urlleri"])
-                    if isinstance(db_urller, list) and len(db_urller) > 0:
-                        kaynak_slaytlar = [str(u) for u in db_urller]
-                except Exception:
-                    pass
+                    if fmt in ("dailybrief", "haber", "haber_dailybrief") or detay.get("bicim") in ("haber", "B5"):
+                        uretim = yeni_formatlar.slaytlari_uret(detay, format_turu="dailybrief", cikti_onek=f"reels_{ref_id}", olcu="story")
+                        if uretim:
+                            dikey_slaytlar = [str(p) for p in uretim[:3]]
+                    elif fmt in ("sozluk", "sozluk_uret"):
+                        uretim = yeni_formatlar.slaytlari_uret(detay, format_turu="sozluk", cikti_onek=f"reels_{ref_id}", olcu="story")
+                        if uretim:
+                            dikey_slaytlar = [str(p) for p in uretim]
+                    elif fmt in ("nedir_dogrusu", "net_cevap", "vaka"):
+                        uretim = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"reels_{ref_id}", olcu="story")
+                        if uretim:
+                            dikey_slaytlar = [str(uretim[0]), str(uretim[1]), str(uretim[-1])] if len(uretim) > 3 else [str(p) for p in uretim]
+                    elif detay.get("bicim") in ("B1", "B2", "B3", "B4") or not fmt or fmt == "otorite":
+                        uretim = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
+                        if uretim:
+                            # 3 kilit slayt: Kapak + Özet/Detay + Kapanış CTA (Asla 7 slayt boca edilmez)
+                            dikey_slaytlar = [str(uretim[0]), str(uretim[1]), str(uretim[-1])] if len(uretim) > 3 else [str(p) for p in uretim]
+                except Exception as de:
+                    log.warning("Native 9:16 dikey slayt üretimi başarısız: %s", de)
 
-            # Yerel slayt dosyaları
-            if not kaynak_slaytlar and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
-                kaynak_slaytlar = [str(p) for p in slayt_yollari if Path(p).exists()]
-
-            if kaynak_slaytlar:
+            if dikey_slaytlar and all(Path(p).exists() for p in dikey_slaytlar):
                 try:
-                    log.info("Onaylı slaytlardan (%d adet) 9:16 dikey video derleniyor...", len(kaynak_slaytlar))
-                    v_yolu = _video(kaynak_slaytlar, haber_bilgi)
+                    log.info("Native 9:16 slaytlardan (%d adet) dikey video derleniyor...", len(dikey_slaytlar))
+                    v_yolu = _video(dikey_slaytlar, haber_bilgi)
                 except Exception as ve:
-                    log.warning("Onaylı slaytlardan video üretilemedi: %s", ve)
+                    log.warning("Native 9:16 slaytlardan video üretilemedi: %s", ve)
 
-            # 2. Son Çare Fallback: Yalnızca onaylı slayt bulunamazsa sıfırdan üret
-            if not v_yolu or not v_yolu.exists():
-                if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") or (detay and detay.get("bicim") in ("haber", "B5")):
-                    try:
-                        f_tur = fmt if fmt in ("dailybrief", "haber", "haber_dailybrief", "sozluk", "nedir_dogrusu", "net_cevap", "vaka") else "dailybrief"
-                        d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=f_tur, cikti_onek=f"reels_{ref_id}", olcu="story")
-                        if d_slaytlar and all(Path(p).exists() for p in d_slaytlar):
-                            log.info("Fallback 9:16 dikey slaytlardan video derleniyor...")
-                            v_yolu = _video([str(p) for p in d_slaytlar], haber_bilgi)
-                    except Exception as ve:
-                        log.warning("Fallback dikey slaytlardan video üretilemedi: %s", ve)
-
-            # 4. Öncelik: Klasik B1/B2/B3/B4 Otorite postu
-            if (not v_yolu or not v_yolu.exists()) and detay and isinstance(detay, dict) and detay.get("bicim") in ("B1", "B2", "B3", "B4"):
-                try:
-                    dikey_slaytlar = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
-                    dikey_yollar = [str(p) for p in dikey_slaytlar]
-                    v_yolu = _video(dikey_yollar, haber_bilgi)
-                except Exception as ve:
-                    log.warning("Dikey otorite slaytlarından video üretilemedi: %s", ve)
-
-            # 5. Öncelik: İlan postu
+            # 2. Öncelik: İlan postu
             if (not v_yolu or not v_yolu.exists()) and tur == "ilan" and "ilan" in locals() and ilan:
                 try:
-                    from src import make_image
                     ik1 = make_image.ilan_kapak_slayti_ciz(ilan)
                     ik2 = make_image.ilan_detay_slayti_ciz(ilan)
                     ik3 = make_image.ilan_kapanis_slayti_ciz(ilan)
                     v_yolu = _video([str(ik1), str(ik2), str(ik3)])
                 except Exception as ve:
                     log.warning("İlan slaytlarından video üretilemedi: %s", ve)
+
+            # 3. Son Çare Fallback: Yalnızca native 9:16 üretilemezse mevcut onaylı slaytları kullan (en fazla 3 slayt)
+            if not v_yolu or not v_yolu.exists():
+                kaynak_slaytlar = []
+                if public_urller and len(public_urller) > 0:
+                    kaynak_slaytlar = [str(u) for u in public_urller]
+                elif haber and haber.get("slayt_urlleri"):
+                    try:
+                        db_urller = json.loads(haber["slayt_urlleri"])
+                        if isinstance(db_urller, list) and len(db_urller) > 0:
+                            kaynak_slaytlar = [str(u) for u in db_urller]
+                    except Exception:
+                        pass
+                if not kaynak_slaytlar and slayt_yollari and any(Path(p).exists() for p in slayt_yollari):
+                    kaynak_slaytlar = [str(p) for p in slayt_yollari if Path(p).exists()]
+
+                if kaynak_slaytlar:
+                    if len(kaynak_slaytlar) > 3:
+                        kaynak_slaytlar = [kaynak_slaytlar[0], kaynak_slaytlar[1], kaynak_slaytlar[-1]]
+                    try:
+                        log.info("Fallback onaylı slaytlardan (%d adet) video derleniyor...", len(kaynak_slaytlar))
+                        v_yolu = _video(kaynak_slaytlar, haber_bilgi)
+                    except Exception as ve:
+                        log.warning("Fallback onaylı slaytlardan video üretilemedi: %s", ve)
 
         if v_yolu and v_yolu.exists():
             try:

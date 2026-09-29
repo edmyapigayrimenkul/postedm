@@ -84,7 +84,7 @@ def ses_sec(tercih: Optional[str] = None) -> Optional[Path]:
     if mevcutlar:
         return random.choice(mevcutlar)
 
-DEFAULT_ELEVENLABS_VOICE_ID = "J17lijyP1BHYcM7ld0Rg"  # Adam — config.yaml'da ses yoksa
+DEFAULT_ELEVENLABS_VOICE_ID = "KediIz7pebzt5TaDHiiZ"  # Alex — Instabot ana sesi (derin, epik, güçlü bariton)
 
 
 def _ses_ayari(anahtar: str, varsayilan: Any = None) -> Any:
@@ -271,7 +271,6 @@ def _anlatim_izi(parcalar: List[tuple], toplam_sure: float, cikti: Path) -> Opti
         log.warning("Anlatım izi kurulamadı, video müzikle çıkacak: %s", e)
         return None
 
-
 def anlatimli_video_uret(
     slayt_yollari: List[Path | str],
     veri: Optional[Dict[str, Any]] = None,
@@ -283,6 +282,7 @@ def anlatimli_video_uret(
 
     Kapak, okunan metin bitene kadar ekranda kalır; diğer slaytlar okuma süresi
     kadar (video.slayt_surelerini_hesapla). Son slaytta kapanış çağrısı.
+    Video en fazla 3 kilit slayttan oluşur (Kapak, Detay/Vurgu, Kapanış).
     `muzik=False`: fon müziksiz — yalnızca ses. Anahtar yoksa ya da ElevenLabs
     düşerse video seslendirmesiz çıkar; `sonuc["anlatim"]` bunu yayın raporuna taşır.
     """
@@ -290,6 +290,11 @@ def anlatimli_video_uret(
 
     if not slayt_yollari:
         return None
+
+    # Videoda asla 7 slayt boca edilmez; en fazla 3 kilit slayt kullanılır
+    if len(slayt_yollari) > 3:
+        slayt_yollari = [slayt_yollari[0], slayt_yollari[1], slayt_yollari[-1]]
+
     kapak_sesi = cagri_sesi = None
     try:
         metin = kapak_seslendirme_metni(veri)
@@ -318,12 +323,15 @@ def anlatimli_video_uret(
 
     if sonuc is not None:
         sonuc["anlatim"] = bool(kapak_sesi)
+
     sessiz = video.slaytlardan_reels_uret(slayt_yollari, cikti_yolu=cikti_yolu, slayt_sureleri=sureler, haber=veri)
     if not sessiz or not Path(sessiz).exists():
         return sessiz
+
     anlatim = _anlatim_izi(parcalar, sum(sureler), Path(sessiz).with_name(f"{Path(sessiz).stem}_anlatim.wav")) if parcalar else None
     if sonuc is not None:
         sonuc["anlatim"] = bool(anlatim)
+
     karisik = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20, muzik=muzik)
     if karisik and Path(karisik) != Path(sessiz) and Path(karisik).exists():
         # Ara dosyalar: sessiz video ve anlatım izi artık gerekmiyor

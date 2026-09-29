@@ -1,6 +1,9 @@
 """
 okunus.py — Seslendirme metnini Türkçe okunuşa çevirir.
 
+postedm'den taşındı (2026-09-26); iki projede aynı dosya — birinde düzeltilen
+bir okuma hatası ötekine de taşınmalı.
+
 NİYE VAR: ElevenLabs yazıyı gördüğü gibi okur. Örnek okumada "1/5000" "bir
 bölü beş bin", "0.50" "sıfır nokta elli" olacaktı; başka bir üründe "Hz."
 "hezt" diye okundu (doğrusu "Hazreti"). "Av." "av" diye, "3. kat" "üç nokta
@@ -12,6 +15,13 @@ bozuyordu: "be blok" → "beblokta", "de yüz" → "da yüz", "ka de veli" → "
 küçük "a" ise yutuluyordu ("Uluslar a Ligi" → "Uluslar Ligi"). Yalnızca açılımı
 bilinen kurumlar (İBB, TKGM…) açılır ve okunabilen büyük harfli kelimeler
 ("YENİ İMAR PLANI") küçültülür.
+
+İNGİLİZCE KISALTMA VE TERİMLER TÜRKÇE FONETİKLE YAZILIR (2026-09-28):
+ElevenLabs'a "language_code: tr" verildiği için İngilizce unvan ve terimler
+Türkçe harf harf okunuyordu: "CEO" → "ce-o" / "ceosu", "AI" → "a-ı", "Wi-Fi" → "vi-fi",
+"online" → "on-li-ne". Bunlar haber spikeri standartlarında fonetik karşılıklarına
+çevrilir ("si-i-o'su", "ey-ay", "vay-fay", "onlayn"). Ek uyumu (_ek_uyumu) ile
+çekim ekleri yeni köke otomatik uyarlanır ("CEO'ya" → "si-i-o'ya").
 
 Slayttaki metne DOKUNULMAZ; yalnızca sese giden kopya çevrilir.
 
@@ -133,14 +143,81 @@ def _sayi_oku(belirtec: str) -> str:
     return f"{_tam_oku(tam or '0')} virgül {' '.join(ondalik) or 'sıfır'}"
 
 
+# 3. tekil iyelik ile biten kurum ve tamlamalar (zamir n'si alır: Emirlikleri'ne, Birliği'nde vb.)
+_IYELIKLI_BITISLER = (
+    "devletleri", "emirlikleri", "cumhuriyeti", "yönetimi", "birliği",
+    "belediyesi", "müdürlüğü", "bakanlığı", "başkanlığı", "konseyi", "örgütü",
+    "mahkemesi", "kurulu", "kurumu", "teşkilatı", "ajansı", "yolları", "bankası", "kanunu",
+    "kuvvetleri", "federasyonu", "komutanlığı", "işletmesi", "meclisi", "fonu", "sistemi",
+    "piyasası", "merkezi", "kulübü", "derneği",
+    "payı", "ortaklığı", "idaresi",
+)
+
+
+def _tr_kucuk(s: str) -> str:
+    return s.replace("I", "ı").replace("İ", "i").lower()
+
+
+# Arapça/Farsça/Batı kökenli olup ince l, ince t veya istisnai ince ünlüyle biten kelimeler
+# (saate, saatlik, petrole, kontrole, alkolün, kalbe, harfe vb.)
+_INCE_UNLULU_ISTISNALAR = (
+    "saat", "santral", "petrol", "alkol", "rol", "gol", "kontrol",
+    "sembol", "protokol", "terminal", "metal", "moral", "hilal",
+    "hayal", "helal", "kalp", "harf", "dikkat", "şefkat", "sıhhat"
+)
+
+
 def _ek_uyumu(kok: str, ek: str) -> str:
     """Kökü değişen ekin ünlülerini ve baştaki d/t'sini yeni köke uydurur ("TL'lik" → "liralık")."""
-    onceki = _son_unlu(kok)
-    son = kok[-1].lower() if kok else "a"
+    if not ek:
+        return ""
+    kok_kucuk = _tr_kucuk(kok)
+    if any(kok_kucuk.endswith(son) for son in _INCE_UNLULU_ISTISNALAR):
+        kalin = False
+        onceki = "e"
+        u_dortlu = "i"
+        e_a = "e"
+    else:
+        onceki = _son_unlu(kok)
+        kalin = onceki in _KALIN
+        u_dortlu = _dortlu(onceki)
+        e_a = "a" if kalin else "e"
+    son_harf = kok[-1].lower() if kok else "a"
+
+    # 3. tekil iyelik ile biten kurum ve tamlamalar (Devletleri, Emirlikleri, Birliği, Belediyesi, Kurulu, Bakanlığı vb.)
+    kok_kucuk = _tr_kucuk(kok)
+    iyelikli = any(kok_kucuk.endswith(son) for son in _IYELIKLI_BITISLER)
+
+    ek_l = ek.lower()
+    if iyelikli:
+        # Yönelme: -ye / -ya / -e / -a -> -ne / -na (Emirlikleri'ne, Birliği'ne, Bakanlığı'na)
+        if ek_l in ("ye", "ya", "e", "a"):
+            return f"n{e_a}"
+        # Bulunma: -de / -da / -te / -ta -> -nde / -nda (Emirlikleri'nde, Birliği'nde)
+        if ek_l in ("de", "da", "te", "ta"):
+            return f"nd{e_a}"
+        # Ayrılma: -den / -dan / -ten / -tan -> -nden / -ndan (Emirlikleri'nden, Birliği'nden)
+        if ek_l in ("den", "dan", "ten", "tan"):
+            return f"nd{e_a}n"
+        # Belirtme: -yi / -yı / -yu / -yü / -i / -ı / -u / -ü -> -ni / -nı (Emirlikleri'ni)
+        if ek_l in ("yi", "yı", "yu", "yü", "i", "ı", "u", "ü"):
+            return f"n{u_dortlu}"
+        # İlgi / tamlayan: -nin / -nın / -in / -ın -> -nin / -nın (Emirlikleri'nin)
+        if ek_l in ("nin", "nın", "nun", "nün", "in", "ın", "un", "ün"):
+            return f"n{u_dortlu}n"
+
+    # Ünsüzle biten köklerde kısaltmadan kalan kaynaştırma 'y' veya 'n' harfi düşer:
+    # (Program'ye -> Program'a, Tren'ye -> Tren'e, Mevduat'ye -> Mevduata, Tren'nin -> Trenin)
+    if son_harf not in _UNLULER:
+        if ek_l.startswith("y"):
+            ek_l = ek_l[1:]
+        elif ek_l in ("nin", "nın", "nun", "nün"):
+            ek_l = ek_l[1:]
+
     cikti = []
-    for i, c in enumerate(ek):
+    for i, c in enumerate(ek_l):
         if i == 0 and c in "dt":
-            c = "t" if son in _SERT else "d"
+            c = "t" if son_harf in _SERT else "d"
         if c in "ıiuü":
             c = _dortlu(onceki)
             onceki = c
@@ -175,15 +252,76 @@ _NOKTALI: List[Tuple[str, str, bool]] = [
     ("Bkz.", "Bakınız", False), ("örn.", "örneğin", False), ("Örn.", "Örneğin", False), ("yak.", "yaklaşık", False),
     ("yy.", "yüzyıl", True), ("maks.", "maksimum", True), ("max.", "maksimum", True), ("min.", "minimum", True),
     ("ort.", "ortalama", True), ("Ort.", "Ortalama", False), ("sy.", "sayılı", False),
+    ("A.B.D.", "Amerika Birleşik Devletleri", False), ("B.A.E.", "Birleşik Arap Emirlikleri", False),
+    ("K.K.T.C.", "Kuzey Kıbrıs Türk Cumhuriyeti", False), ("A.B.", "Avrupa Birliği", False),
 ]
 
-# Harfle okununca anlaşılmayan ya da yanlış okunan kurum/kanun kısaltmaları
+# Harfle okununca anlaşılmayan ya da editoryal olarak açılması gereken kurum/ülke kısaltmaları
 _ACILIM = {
+    # Kamu, Kanunlar ve Para Birimleri
     "İBB": "İstanbul Büyükşehir Belediyesi", "TKGM": "Tapu ve Kadastro Genel Müdürlüğü",
     "TMK": "Türk Medeni Kanunu", "TBK": "Türk Borçlar Kanunu", "HMK": "Hukuk Muhakemeleri Kanunu",
-    "İİK": "İcra ve İflas Kanunu", "DOP": "düzenleme ortaklık payı", "KOP": "kamu ortaklık payı",
+    "İİK": "İcra ve İflas Kanunu", "VUK": "Vergi Usul Kanunu",
+    "DOP": "düzenleme ortaklık payı", "KOP": "kamu ortaklık payı",
     "TL": "lira", "USD": "dolar", "EUR": "avro", "GBP": "sterlin", "RG": "Resmî Gazete",
-    "ABD": "Amerika Birleşik Devletleri",
+    "GİB": "Gelir İdaresi Başkanlığı", "GIB": "Gelir İdaresi Başkanlığı",
+    "TÜİK": "Türkiye İstatistik Kurumu", "TUIK": "Türkiye İstatistik Kurumu",
+    "GYO": "Gayrimenkul Yatırım Ortaklığı", "EKGYO": "Emlak Konut Gayrimenkul Yatırım Ortaklığı",
+    # Ülkeler
+    "ABD": "Amerika Birleşik Devletleri", "BAE": "Birleşik Arap Emirlikleri",
+    "KKTC": "Kuzey Kıbrıs Türk Cumhuriyeti", "GKRY": "Güney Kıbrıs Rum Yönetimi",
+    "RF": "Rusya Federasyonu", "ÇHC": "Çin Halk Cumhuriyeti", "BK": "Birleşik Krallık",
+    # Uluslararası Birlikler ve Örgütler
+    "AB": "Avrupa Birliği", "BM": "Birleşmiş Milletler", "BMGK": "Birleşmiş Milletler Güvenlik Konseyi",
+    "DSÖ": "Dünya Sağlık Örgütü", "DTÖ": "Dünya Ticaret Örgütü",
+    "AİHM": "Avrupa İnsan Hakları Mahkemesi", "AIHM": "Avrupa İnsan Hakları Mahkemesi",
+    "AYM": "Anayasa Mahkemesi", "YSK": "Yüksek Seçim Kurulu",
+    "TDT": "Türk Devletleri Teşkilatı", "İİT": "İslam İşbirliği Teşkilatı", "IIT": "İslam İşbirliği Teşkilatı",
+    "UAEA": "Uluslararası Atom Enerjisi Ajansı",
+    # Finans, Ekonomi & Merkez Bankaları
+    "BİST": "Borsa İstanbul", "BIST": "Borsa İstanbul",
+    "TCMB": "Türkiye Cumhuriyet Merkez Bankası", "SPK": "Sermaye Piyasası Kurulu",
+    "BDDK": "Bankacılık Düzenleme ve Denetleme Kurumu",
+    "ECB": "Avrupa Merkez Bankası",
+    "OVP": "Orta Vadeli Program",
+    "KKM": "Kur Korumalı Mevduat",
+    "GSYİH": "Gayri Safi Yurt İçi Hasıla", "GSYH": "Gayri Safi Yurt İçi Hasıla",
+    "BOE": "İngiltere Merkez Bankası",
+    "BOJ": "Japonya Merkez Bankası",
+    "KGF": "Kredi Garanti Fonu",
+    "IMF": "Uluslararası Para Fonu",
+    "VİOP": "Vadeli İşlem ve Opsiyon Piyasası", "VIOP": "Vadeli İşlem ve Opsiyon Piyasası",
+    # Savunma, Güvenlik, Asayiş & Yargı
+    "THY": "Türk Hava Yolları", "MSB": "Milli Savunma Bakanlığı", "MEB": "Milli Eğitim Bakanlığı",
+    "TSK": "Türk Silahlı Kuvvetleri",
+    "SSB": "Savunma Sanayii Başkanlığı",
+    "EGM": "Emniyet Genel Müdürlüğü",
+    "JGK": "Jandarma Genel Komutanlığı",
+    "MİT": "Milli İstihbarat Teşkilatı", "MIT": "Milli İstihbarat Teşkilatı",
+    "UCM": "Uluslararası Ceza Mahkemesi",
+    # Ulaşım & Altyapı
+    "YHT": "Yüksek Hızlı Tren",
+    "TCDD": "Devlet Demiryolları",
+    "KGM": "Karayolları Genel Müdürlüğü",
+    "DHMİ": "Devlet Hava Meydanları İşletmesi", "DHMI": "Devlet Hava Meydanları İşletmesi",
+    "SHGM": "Sivil Havacılık Genel Müdürlüğü",
+    # Spor Dünyası
+    "TFF": "Türkiye Futbol Federasyonu",
+    "PFDK": "Profesyonel Futbol Disiplin Kurulu",
+    "TBF": "Türkiye Basketbol Federasyonu",
+    "TVF": "Türkiye Voleybol Federasyonu",
+    "FK": "Futbol Kulübü",
+    "JK": "Jimnastik Kulübü",
+    "SK": "Spor Kulübü",
+    # Sosyal, Eğitim & İş Dünyası
+    "KYK": "Kredi ve Yurtlar Kurumu",
+    "TOBB": "Türkiye Odalar ve Borsalar Birliği",
+    "TİM": "Türkiye İhracatçılar Meclisi", "TIM": "Türkiye İhracatçılar Meclisi",
+    "DEİK": "Dış Ekonomik İlişkiler Kurulu", "DEIK": "Dış Ekonomik İlişkiler Kurulu",
+    "KHK": "Kanun Hükmünde Kararname",
+    "HGS": "Hızlı Geçiş Sistemi",
+    "OGS": "Otomatik Geçiş Sistemi",
+    "TMD": "Türkiye Madenciler Derneği",
 }
 
 # Büyük harfle yazılmış iki harfli GERÇEK kelimeler: harf harf okunmaz ("VE", "EN")
@@ -194,10 +332,6 @@ _IKI_HARFLI_KELIME = {
 # Dört harfe kadar kelimede izin verilen son ünsüz ikilisi: HARÇ, ŞERH, RİSK, MÜLK, TERK
 _IZINLI_SON = {"rt", "rk", "st", "sk", "nk", "nt", "lk", "lt", "ls", "rs", "rp", "rç", "nç", "lç", "lp", "ks",
                "ft", "şt", "rz", "rd", "rm", "rh", "nd", "ng", "yt", "yk", "lm", "rf", "rn", "yl", "ym", "yn"}
-
-
-def _tr_kucuk(s: str) -> str:
-    return s.replace("I", "ı").replace("İ", "i").lower()
 
 
 def _okunamaz(kelime: str) -> bool:
@@ -218,6 +352,22 @@ def _buyuk_harfli(m: "re.Match[str]") -> str:
     kok, ek = m.group(1), m.group(2) or ""
     if kok in _ACILIM:
         acilim = _ACILIM[kok]
+        if acilim.lower().endswith("ortaklığı") and ek.lower().startswith(("lar", "ler")):
+            base = acilim[:-4] + "lıkları"
+            kalan = ek.lower()[3:]
+            if not kalan:
+                return base
+            if kalan in ("a", "e", "ya", "ye"):
+                return base + "na"
+            if kalan in ("in", "ın", "un", "ün", "nin", "nın"):
+                return base + "nın"
+            if kalan in ("da", "de", "ta", "te"):
+                return base + "nda"
+            if kalan in ("dan", "den", "tan", "ten"):
+                return base + "ndan"
+            if kalan in ("i", "ı", "u", "ü", "yi", "yı"):
+                return base + "nı"
+            return base + kalan
         return acilim + _ek_uyumu(acilim, ek) if ek else acilim
     if len(kok) == 1 or _okunamaz(kok):
         # Kısaltma ve tek harf: ses doğru okuyor ("KDV'li", "SGK'ya" — kesme işaretiyle ölçüldü)
@@ -229,11 +379,22 @@ def _buyuk_harfli(m: "re.Match[str]") -> str:
 # Adımlar
 # ---------------------------------------------------------------------------
 _BIRIMLER = [  # uzun olan önce: m² "m"den, km "m"den önce
-    ("km²", "kilometrekare"), ("km2", "kilometrekare"), ("m²", "metrekare"), ("m2", "metrekare"),
-    ("m³", "metreküp"), ("m3", "metreküp"), ("km", "kilometre"), ("cm", "santimetre"), ("mm", "milimetre"),
-    ("m", "metre"), ("ha", "hektar"), ("kg", "kilogram"), ("lt", "litre"), ("dk", "dakika"), ("sn", "saniye"),
+    ("km²", "kilometrekare"), ("km2", "kilometrekare"),
+    ("m²", "metrekare"), ("m2", "metrekare"),
+    ("m³", "metreküp"), ("m3", "metreküp"),
+    ("cm²", "santimetrekare"), ("mm²", "milimetrekare"),
+    ("cm³", "santimetreküp"), ("mm³", "milimetreküp"),
+    ("km", "kilometre"), ("cm", "santimetre"), ("mm", "milimetre"),
+    ("m", "metre"), ("ha", "hektar"),
+    ("kg", "kilogram"), ("mg", "miligram"), ("gr", "gram"), ("g", "gram"), ("ton", "ton"),
+    ("lt", "litre"), ("ml", "mililitre"), ("cl", "santilitre"),
+    ("dk", "dakika"), ("sn", "saniye"),
     ("TL", "lira"), ("₺", "lira"), ("USD", "dolar"), ("$", "dolar"), ("EUR", "avro"), ("€", "avro"),
     ("GBP", "sterlin"), ("£", "sterlin"),
+    ("kW", "kilovat"), ("MW", "megavat"), ("GW", "gigavat"), ("W", "vat"),
+    ("GHz", "gigahertz"), ("MHz", "megahertz"), ("kHz", "kilohertz"), ("Hz", "hertz"),
+    ("TB", "terabayt"), ("GB", "gigabayt"), ("MB", "megabayt"), ("KB", "kilobayt"),
+    ("bar", "bar"),
 ]
 _SAYI_BICIMI = r"\d{1,3}(?:\.\d{3})+(?:,\d+)?(?![.\d])|\d+(?:\.\d+){2,}|\d+[.,]\d+|\d+"
 _EK = rf"(?:['’]([{_KUCUK}]+))?"
@@ -292,6 +453,51 @@ def _kisaltmalar(metin: str) -> str:
     metin = re.sub(r"(?i)\bh\s*max\b", "azami yükseklik", metin)
     metin = re.sub(rf"(?<![{_HARF}])E\s*[:=]\s*(?=\d)", "emsal ", metin)
     metin = re.sub(rf"(?<![{_HARF}])H\s*[:=]\s*(?=\d)", "yükseklik ", metin)
+    # Noktalı ve yaygın ülke kısaltmaları (G. Kore, S. Arabistan, K. Kore, K. Kıbrıs vb.)
+    metin = re.sub(r"(?i)\bG\.\s*Kore\b", "Güney Kore", metin)
+    metin = re.sub(r"(?i)\bK\.\s*Kore\b", "Kuzey Kore", metin)
+    metin = re.sub(r"(?i)\bG\.\s*Afrika\b", "Güney Afrika", metin)
+    metin = re.sub(r"(?i)\bS\.\s*Arabistan\b", "Suudi Arabistan", metin)
+    metin = re.sub(r"(?i)\bK\.\s*Kıbrıs\b", "Kuzey Kıbrıs", metin)
+    # Başlık düzeninden gelen (Title-Case) yaygın kısaltmaları büyük harfe çevirir ki
+    # _buyuk_harfler ve _ACILIM tüm ek uyumlarıyla (zamir n'si, ünsüz düşmesi vb.) eksiksiz işletsin.
+    _BASLIK_KISALTMALARI = (
+        "Bae", "Abd", "Tsk", "Yht", "Ovp", "Kkm", "Tff", "Ecb", "Kyk", "Tobb",
+        "Spk", "Bddk", "Pfdk", "Ucm", "Tcdd", "Kgm", "Dhmi", "Shgm", "Tbf", "Tvf",
+        "Gsyih", "Gsyh", "Viop", "Kgf", "Ssb", "Egm", "Jgk", "Deik", "Khk", "Hgs", "Ogs",
+    )
+    for bk in _BASLIK_KISALTMALARI:
+        metin = re.sub(rf"\b{bk}\b(?=[ \t'’]|$)", bk.upper(), metin)
+    # MİT için özel koruma: Türkçe "mit" (efsane) kelimesini ezmemek için yalnızca kesmeli
+    # (Mit'e, Mit'ten) veya unvan/operasyon bağlamında büyük harfe çevrilir
+    metin = re.sub(r"\bMit(?=['’](?:e|a|in|ın|te|ta|ten|tan|le|la|i|ı)\b)", "MİT", metin)
+    metin = re.sub(r"\bMit(?=\s+(?:mensub|operasyon|başkan|müsteşar|rapor|bina|yerleşke))", "MİT", metin)
+    return metin
+
+
+def _borsa_kisaltmalari(metin: str) -> str:
+    """BİST / BIST / Bist kısaltmalarını editoryal olarak 'Borsa İstanbul'a çevirir.
+
+    Sayı ve eklerden ÖNCE çözülmeli:
+      * 'BİST-100' / 'BİST 100' / 'BİST100' → 'Borsa İstanbul 100' (sonrasında 100 → 'yüz' olur)
+      * 'BİST'te' / 'BİST'e' / 'BİST'in' → 'Borsa İstanbul'da' / 'Borsa İstanbul'a' / 'Borsa İstanbul'un'
+      * 'BİST' → 'Borsa İstanbul' (yalın)
+    """
+    # 1. BİST 100, BİST-100, BIST100, Bist-30, BİST 50 vb.
+    metin = re.sub(r"(?i)\b(?:b[iıİI]st)[ -]?(\d+)\b", r"Borsa İstanbul \1", metin)
+
+    # 2. BİST'te, BIST'e, Bist'in, BİST'i ve kesmesiz BİSTte, BİSTe, BİSTin vb.
+    def bist_ek(m: "re.Match[str]") -> str:
+        ek = m.group(1) or m.group(2)
+        return "Borsa İstanbul'" + _ek_uyumu("Borsa İstanbul", ek)
+
+    metin = re.sub(
+        r"(?i)\b(?:b[iıİI]st)(?:['’]([a-zçğıöşü]+)|(te|de|e|a|in|ın|un|ün|ten|tan|den|dan|i|ı|u|ü|le|la|ye|ya))\b",
+        bist_ek, metin,
+    )
+
+    # 3. Yalın BİST, BIST, Bist
+    metin = re.sub(r"(?i)\b(?:b[iıİI]st)\b", "Borsa İstanbul", metin)
     return metin
 
 
@@ -319,24 +525,167 @@ def _tarih_saat(metin: str) -> str:
 
 
 _PARA = {"TL": "lira", "₺": "lira", "lira": "lira", "USD": "dolar", "$": "dolar", "dolar": "dolar",
-         "EUR": "avro", "€": "avro", "avro": "avro"}
+         "EUR": "avro", "€": "avro", "avro": "avro", "GBP": "sterlin", "£": "sterlin", "sterlin": "sterlin"}
 
 
 def _birimler(metin: str) -> str:
-    # "18.000 TL/m²'den satıldı" → "metrekaresi on sekiz bin liradan satıldı"; ek para
-    # birimine uydurulur ("metrekare başına'den" diye okunuyordu)
+    # 1. Sıcaklık: °C, ° C, ° (ek uyumu ile: 25°C'ye -> 25 dereceye)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*°\s*C(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} derece" + (_ek_uyumu("derece", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*°(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} derece" + (_ek_uyumu("derece", m[2]) if m[2] else ""), metin)
+
+    # 2. Hız & Hareket Birimleri (km/s, km/h, km/saat, km/sa, m/s, m/sn, km/sn, mph, knot):
+    # A) Önünde 'saatte' geçen kalıplar (çift 'saatte'yi önler: "saatte 80 km/s" -> "saatte 80 kilometre")
+    p_saatte = rf"\bsaatte\s+({_SAYI_BICIMI})\s*(?:km\s*/\s*(?:s|saat|sa|h)|km/s|km/h|km/saat|km/sa){_EK}"
+    metin = re.sub(p_saatte, lambda m: f"saatte {m[1]} kilometre" + (_ek_uyumu("kilometre", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # B) Apostrofsuz ek almış hız birimleri ("80 km/saatte", "80 km/saate", "80 km/saatten", "80 km/saatlik")
+    p_hiz_ekli = rf"({_SAYI_BICIMI})\s*km\s*/\s*saat(te|te|ten|lik|e|i|in)\b"
+    metin = re.sub(p_hiz_ekli, lambda m: f"{m[1]} kilometre bölü saat{m[2]}", metin, flags=re.IGNORECASE)
+
+    # C) km/s, km/h, km/saat, km/sa (saat ince ünlü alır: "80 km/s'ye" -> "80 kilometre bölü saate")
+    p_km_s = rf"({_SAYI_BICIMI})\s*(?:km\s*/\s*(?:s|saat|sa|h)|km/s|km/h|km/saat|km/sa)(?![{_HARF}0-9²³]){_EK}"
+    metin = re.sub(p_km_s, lambda m: f"{m[1]} kilometre bölü saat" + (_ek_uyumu("kilometre bölü saat", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # D) m/s, m/sn (metre bölü saniye)
+    p_m_s = rf"({_SAYI_BICIMI})\s*(?:m\s*/\s*(?:s|sn)|m/s|m/sn)(?![{_HARF}0-9²³]){_EK}"
+    metin = re.sub(p_m_s, lambda m: f"{m[1]} metre bölü saniye" + (_ek_uyumu("metre bölü saniye", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # E) km/sn (kilometre bölü saniye)
+    p_km_sn = rf"({_SAYI_BICIMI})\s*(?:km\s*/\s*sn|km/sn)(?![{_HARF}0-9²³]){_EK}"
+    metin = re.sub(p_km_sn, lambda m: f"{m[1]} kilometre bölü saniye" + (_ek_uyumu("kilometre bölü saniye", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # F) mil/saat, mph, knot
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:mil\s*/\s*saat|mph)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} mil bölü saat" + (_ek_uyumu("mil bölü saat", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:knot|kt)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} knot" + (_ek_uyumu("knot", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # 3. Otomotiv & Motor Birimleri:
+    # A) d/d, dev/dak, rpm (devir bölü dakika)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:d\s*/\s*d|dev\s*/\s*dak|rpm)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} devir bölü dakika" + (_ek_uyumu("devir bölü dakika", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # B) hp, bg (beygir gücü / beygirlik / beygir gücünde)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:hp|bg)\s*(?:gücü(?:nde)?|gücünde)\b",
+                   r"\1 beygir gücünde", metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:hp|bg)[\'’]lik\b",
+                   r"\1 beygirlik", metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:hp|bg)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} beygir gücü" + (_ek_uyumu("beygir gücü", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # C) Tork: Nm
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*Nm(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} newton metre" + (_ek_uyumu("newton metre", m[2]) if m[2] else ""), metin)
+
+    # D) Motor Hacmi: cc
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*cc(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} santimetreküp" + (_ek_uyumu("santimetreküp", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # 4. Ticari ve Oransal Kesirli Birimler:
     para = "|".join(re.escape(p) for p in _PARA)
     metin = re.sub(rf"({_SAYI_BICIMI})\s*({para})\s*/\s*m[²2](?![0-9]){_EK}",
                    lambda m: f"metrekaresi {m[1]} {_PARA[m[2]]}" + (_ek_uyumu(_PARA[m[2]], m[3]) if m[3] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*({para})\s*/\s*(?:kg|kilo(?:gram)?)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"kilogramı {m[1]} {_PARA[m[2]]}" + (_ek_uyumu(_PARA[m[2]], m[3]) if m[3] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*({para})\s*/\s*l[t|itre]?(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"litresi {m[1]} {_PARA[m[2]]}" + (_ek_uyumu(_PARA[m[2]], m[3]) if m[3] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*({para})\s*/\s*adet(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"adedi {m[1]} {_PARA[m[2]]}" + (_ek_uyumu(_PARA[m[2]], m[3]) if m[3] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*({para})\s*/\s*varil(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"varili {m[1]} {_PARA[m[2]]}" + (_ek_uyumu(_PARA[m[2]], m[3]) if m[3] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*({para})\s*/\s*ons(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"onsu {m[1]} {_PARA[m[2]]}" + (_ek_uyumu(_PARA[m[2]], m[3]) if m[3] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*varil\s*/\s*gün(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"günlük {m[1]} varil" + (_ek_uyumu("varil", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*bpd(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"günlük {m[1]} varil" + (_ek_uyumu("varil", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*ton\s*/\s*gün(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"günlük {m[1]} ton" + (_ek_uyumu("ton", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*kg\s*/\s*m[²2](?![{_HARF}0-9]){_EK}",
+                   lambda m: f"metrekareye {m[1]} kilogram" + (_ek_uyumu("kilogram", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # 5. Dijital Hız, Veri Akışı ve Kamera:
+    # A) Bayt Hızları (Büyük B harfi korunmalı: MB/s, GB/s, KB/s, TB/s)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*MB/s(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} megabayt bölü saniye" + (_ek_uyumu("megabayt bölü saniye", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*GB/s(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} gigabayt bölü saniye" + (_ek_uyumu("gigabayt bölü saniye", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*KB/s(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} kilobayt bölü saniye" + (_ek_uyumu("kilobayt bölü saniye", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*TB/s(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} terabayt bölü saniye" + (_ek_uyumu("terabayt bölü saniye", m[2]) if m[2] else ""), metin)
+    # B) Bit Hızları (mbps, mb/s, gbps, kbps)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:mbps|mb/s)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} megabit bölü saniye" + (_ek_uyumu("megabit bölü saniye", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:gbps|gb/s)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} gigabit bölü saniye" + (_ek_uyumu("gigabit bölü saniye", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:kbps|kb/s)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} kilobit bölü saniye" + (_ek_uyumu("kilobit bölü saniye", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    # C) Kamera Sensörü: MP
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:MP|mp)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} megapiksel" + (_ek_uyumu("megapiksel", m[2]) if m[2] else ""), metin)
+
+    # 6. Enerji, Elektrik ve Batarya:
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:kWh|kwh|kW/h|kw/h)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} kilovatsaat" + (_ek_uyumu("kilovatsaat", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:MWh|mwh|MW/h|mw/h)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} megavatsaat" + (_ek_uyumu("megavatsaat", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:GWh|gwh|GW/h|gw/h)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} gigavatsaat" + (_ek_uyumu("gigavatsaat", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:TWh|twh)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} teravatsaat" + (_ek_uyumu("teravatsaat", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:mAh|mah)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} miliamper saat" + (_ek_uyumu("miliamper saat", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:Ah|ah)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} amper saat" + (_ek_uyumu("amper saat", m[2]) if m[2] else ""), metin)
+
+    # 7. Basınç:
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:hPa|hpa)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} hektopaskal" + (_ek_uyumu("hektopaskal", m[2]) if m[2] else ""), metin)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*(?:mbar|mb)(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} milibar" + (_ek_uyumu("milibar", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+    metin = re.sub(rf"({_SAYI_BICIMI})\s*psi(?![{_HARF}0-9]){_EK}",
+                   lambda m: f"{m[1]} pi-es-ay" + (_ek_uyumu("pi-es-ay", m[2]) if m[2] else ""), metin, flags=re.IGNORECASE)
+
+    # 8. Genel Metrekare Başına
     metin = re.sub(rf"\s*/\s*m[²2](?![0-9])(?:['’][{_KUCUK}]+)?", " metrekare başına", metin)
+
+    # 9. Sayı + ölçek + para birimi: "6,3 milyar $", "100 milyon ₺'lik", "50 bin €", "2 trilyon dolar"
+    olcek_para = rf"({_SAYI_BICIMI}\s+(?:trilyon|milyar|milyon|bin))\s*({para}){_EK}"
+    def olcek_para_cevir(m: "re.Match[str]") -> str:
+        kok = _PARA[m[2]]
+        ek = _ek_uyumu(kok, m[3]) if m[3] else ""
+        return f"{m[1]} {kok}{ek}"
+    metin = re.sub(olcek_para, olcek_para_cevir, metin)
     metin = re.sub(rf"%\s*({_SAYI_BICIMI})", r"yüzde \1", metin)
     metin = re.sub(rf"({_SAYI_BICIMI})\s*%", r"yüzde \1", metin)
+
+    # 10. Standart Birimler Listesi (_BIRIMLER)
+    # ⚠️ Bölü çizgisi (/) içeren birimlerden sonra başka birim gelmesini veya
+    # tek birimin (km, m, kg vb.) bileşik kesirli birimleri yutmasını önlemek için:
+    # Kesirli olmayan birimlerin ardında '/' aranmaz (?![{_HARF}0-9²³/]).
     for kisa, acik in _BIRIMLER:
         if not kisa[0].isalnum():  # "₺500", "$500"
             metin = re.sub(rf"{re.escape(kisa)}\s*({_SAYI_BICIMI})", rf"\1 {acik}", metin)
-        harf_duyarsiz = "(?i:" + re.escape(kisa) + ")" if kisa.isalpha() and kisa != "m" else re.escape(kisa)
-        desen = rf"({_SAYI_BICIMI})\s*{harf_duyarsiz}(?![{_HARF}0-9²³]){_EK}"
+        if kisa == "m":
+            desen = rf"({_SAYI_BICIMI})\s*m(?![{_HARF}0-9²³/]){_EK}"
+        else:
+            harf_duyarsiz = "(?i:" + re.escape(kisa) + ")"
+            desen = rf"({_SAYI_BICIMI})\s*{harf_duyarsiz}(?![{_HARF}0-9²³/]){_EK}"
         metin = re.sub(desen, lambda m, a=acik: f"{m[1]} {a}" + (_ek_uyumu(a, m[2]) if m[2] else ""), metin)
+
+    # 11. Sayısız Tek Başına Kalan Birimler
+    metin = re.sub(r"\bkm\s*/\s*s\b", "kilometre bölü saat", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bkm\s*/\s*h\b", "kilometre bölü saat", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bkm\s*/\s*sa(?:at)?\b", "kilometre bölü saat", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bm\s*/\s*s\b", "metre bölü saniye", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bm\s*/\s*sn\b", "metre bölü saniye", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bkm\s*/\s*sn\b", "kilometre bölü saniye", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bd\s*/\s*d\b", "devir bölü dakika", metin, flags=re.IGNORECASE)
+    metin = re.sub(r"\bbpd\b", "varil bölü gün", metin, flags=re.IGNORECASE)
+
     return metin
 
 
@@ -357,19 +706,94 @@ def _kesirler(metin: str) -> str:
     return re.sub(rf"(?<![\d.,]){sayi}\s*/\s*{sayi}(?![\d,]|\.\d)", kesir, metin)
 
 
-_ROMEN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}
+_ROMEN = {
+    "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10,
+    "XI": 11, "XII": 12, "XIII": 13, "XIV": 14, "XV": 15, "XVI": 16, "XVII": 17, "XVIII": 18, "XIX": 19, "XX": 20
+}
+_ROMEN_DESEN = r"XX|XIX|XVIII|XVII|XVI|XV|XIV|XIII|XII|XI|IX|VIII|VII|VI|IV|III|II"
+_TEK_ROMEN_DESEN = r"X|V|I"
+_ROMEN_SINIFLANDIRICI = (
+    r"Faz|Tip|Etap|Bölüm|Kısım|Cilt|Bölge|Seviye|Grup|Kategori|Tier|Sınıf|Derece|"
+    r"Hürkuş|HÜRKUŞ|Anka|ANKA|Hürjet|HÜRJET|Gökbey|GÖKBEY|Akıncı|AKINCI|PlayStation|PS|GTA|Apollo"
+)
 
 
 def _siralar(metin: str) -> str:
     # Yalnızca noktalı ve ardından bir isim gelen Romen rakamı: tek "V" bir harf olabilir
     # Ardından büyük harfli bir isim gelmeli ("II. Etap"): tek harf artık olduğu gibi
     # kaldığı için "X. iki yüz…" gibi bir cümle sonu da Romen rakamı sanılıyordu
-    metin = re.sub(rf"(?<![{_HARF}])(X|IX|VIII|VII|VI|V|IV|III|II|I)\.(?=[ \t]+[A-ZÇĞİÖŞÜ])",
+    metin = re.sub(rf"(?<![{_HARF}])(XX|XIX|XVIII|XVII|XVI|XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)\.(?=[ \t]+[A-ZÇĞİÖŞÜ])",
                    lambda m: sira_yazi(_ROMEN[m[1]]), metin)
     sira = _guvenli(lambda m: sira_yazi(int(m[1])))
     metin = re.sub(r"\b(\d+)['’](?:inci|ıncı|uncu|üncü|nci|ncı|ncu|ncü)\b", sira, metin)
     # Satır atlamaz ([ \t], \s değil); "D-100." yol kodu sıra sayısı değildir
-    return re.sub(rf"(?<![A-ZÇĞİÖŞÜ]-)\b(\d+)\.(?=[ \t]+(?:[{_KUCUK}]|{_SIRA_ISIMLERI}\b))", sira, metin)
+    return re.sub(rf"(?<!(?<![{_HARF}])[A-ZÇĞİÖŞÜ]-)\b(\d+)\.(?=[ \t]+(?:[{_KUCUK}]|{_SIRA_ISIMLERI}\b))", sira, metin)
+
+
+def _romen_rakamlari(metin: str) -> str:
+    """Noktasız Romen rakamlarını model, nesil veya aşama bağlamında sayıya çevirir:
+    'HÜRKUŞ-II' → 'HÜRKUŞ iki', 'ANKA III'ü' → 'ANKA üçü', 'Faz-II' → 'Faz iki'
+    """
+    tum_romen = rf"(?:{_ROMEN_DESEN}|{_TEK_ROMEN_DESEN})"
+
+    # 1. Tire ile bağlanan Romen rakamları (tek harfliler I, V, X dahil):
+    # 'HÜRKUŞ-II', 'ANKA-III', 'Faz-I', 'Tip-II'nin'
+    desen_tireli = rf"(?<![{_HARF}\d])([A-Za-zÇĞİÖŞÜçğıöşü]+)[ \t]*-[ \t]*({tum_romen}){_EK}(?![{_HARF}\d])"
+    def cevir_tireli(m: "re.Match[str]") -> str:
+        kok, rom, ek = m.group(1), m.group(2), m.group(3) or ""
+        sayi_metin = sayi_yazi(_ROMEN[rom])
+        if ek:
+            return f"{kok} {sayi_metin}{_ek_uyumu(sayi_metin, ek)}"
+        return f"{kok} {sayi_metin}"
+    metin = re.sub(desen_tireli, cevir_tireli, metin)
+
+    # 2. Boşlukla gelen çok harfli Romen rakamları:
+    # 'ANKA III', 'Hürkuş II', 'Faz II', 'Tip II', 'PlayStation IV'
+    # (II, III, IV, VI, VII, VIII, IX vb. Türkçe kelime olamaz)
+    desen_bosluklu = rf"(?<![{_HARF}\d])([A-Za-zÇĞİÖŞÜçğıöşü]+)[ \t]+({_ROMEN_DESEN}){_EK}(?![{_HARF}\d])"
+    def cevir_bosluklu(m: "re.Match[str]") -> str:
+        kok, rom, ek = m.group(1), m.group(2), m.group(3) or ""
+        sayi_metin = sayi_yazi(_ROMEN[rom])
+        if ek:
+            return f"{kok} {sayi_metin}{_ek_uyumu(sayi_metin, ek)}"
+        return f"{kok} {sayi_metin}"
+    metin = re.sub(desen_bosluklu, cevir_bosluklu, metin)
+
+    # 3. Sınıflandırıcı/model kelimesiyle gelen tek harfli Romenler:
+    # 'Faz I', 'Tip I', 'Etap V', 'Bölüm X'
+    desen_sinif = rf"\b({_ROMEN_SINIFLANDIRICI})[ \t]+({_TEK_ROMEN_DESEN}){_EK}(?![{_HARF}\d])"
+    def cevir_sinif(m: "re.Match[str]") -> str:
+        kok, rom, ek = m.group(1), m.group(2), m.group(3) or ""
+        sayi_metin = sayi_yazi(_ROMEN[rom])
+        if ek:
+            return f"{kok} {sayi_metin}{_ek_uyumu(sayi_metin, ek)}"
+        return f"{kok} {sayi_metin}"
+    return re.sub(desen_sinif, cevir_sinif, metin)
+
+
+def _model_ve_surum_sayilari(metin: str) -> str:
+    """İki veya daha fazla harfli kelimelerden sonra gelen tireli model/sürüm sayıları:
+    'HÜRKUŞ-2' → 'HÜRKUŞ iki', 'Hürkuş -2' → 'Hürkuş iki', 'KAAN-2' → 'KAAN iki',
+    'Bayraktar TB-2' → 'Bayraktar TB iki', 'TB2' → 'TB iki'.
+    Tek harfliler (D-100, E-5, F-16) korunur, dokunulmaz.
+    """
+    # Bayraktar TB2 / TB3 (bitişik yazılanlar)
+    metin = re.sub(rf"\bTB([23]){_EK}(?![{_HARF}\d])",
+                   lambda m: f"TB {sayi_yazi(int(m[1]))}" + (_ek_uyumu(sayi_yazi(int(m[1])), m[2]) if m[2] else ""),
+                   metin)
+    # 2 veya daha fazla harfli kelimeden sonra tire ve sayı
+    desen_tireli = rf"(?<![{_HARF}\d])([A-Za-zÇĞİÖŞÜçğıöşü]{{2,}})[ \t]*-[ \t]*(\d+){_EK}(?![{_HARF}\d])"
+    def cevir_tireli(m: "re.Match[str]") -> str:
+        kok, num_str, ek = m.group(1), m.group(2), m.group(3) or ""
+        try:
+            num = int(num_str)
+            sayi_metin = sayi_yazi(num)
+        except ValueError:
+            return m.group(0)
+        if ek:
+            return f"{kok} {sayi_metin}{_ek_uyumu(sayi_metin, ek)}"
+        return f"{kok} {sayi_metin}"
+    return re.sub(desen_tireli, cevir_tireli, metin)
 
 
 def _isaretler_sayi(metin: str) -> str:
@@ -390,8 +814,194 @@ def _sayilar(metin: str) -> str:
         if ek and ek[0] in _UNLULER and okunus.endswith("dört"):  # boş ek her dizginin "içinde"dir
             okunus = okunus[:-1] + "d"  # "dörte" değil "dörde"
         return okunus + ek
-    # "D-100", "E-5" yol kodu olduğu gibi kalır: ses doğru okuyor, "D yüz" "Kazada 100" oldu (ölçüldü)
-    return re.sub(rf"(?<![{_HARF}\d])(?<![A-ZÇĞİÖŞÜ]-)({_SAYI_BICIMI}){_EK}(?![{_HARF}\d])", cevir, metin)
+    # "D-100", "E-5", "F-16" yol ve uçak kodu olduğu gibi kalır: ses doğru okuyor, "D yüz" "Kazada 100" oldu (ölçüldü)
+    return re.sub(rf"(?<![{_HARF}\d])(?<!(?<![{_HARF}])[A-ZÇĞİÖŞÜ]-)({_SAYI_BICIMI}){_EK}(?![{_HARF}\d])", cevir, metin)
+
+
+# ---------------------------------------------------------------------------
+# İngilizce terimler, unvanlar ve kısaltmalar (Türkçe fonetik okunuş)
+# ---------------------------------------------------------------------------
+# Türkçe haberlerde sıkça geçen ve doğrudan Türkçe harfleriyle okunduğunda
+# ("ceosu", "a-ı", "vi-fi", "on-li-ne") kulağı tırmalayan İngilizce kısaltma,
+# unvan ve kelimeler. Doğrudan Türkçe fonetik okunuşa çevrilir.
+_C_SUITE_MAP = {
+    "CEO": "si-i-o", "CFO": "si-ef-o", "CTO": "si-ti-o", "COO": "si-o-o",
+    "CMO": "si-em-o", "CIO": "si-ay-o", "CPO": "si-pi-o", "CSO": "si-es-o",
+    "CRO": "si-ar-o",
+}
+
+_INGILIZCE_TABLO: List[Tuple[str, str]] = [
+    # Markalar ve yapay zeka modelleri
+    (rf"(?i)(?<![{_HARF}])ChatGPT(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "çet ci-pi-ti"),
+    (rf"(?i)(?<![{_HARF}])OpenAI(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "open ey-ay"),
+    (rf"(?i)(?<![{_HARF}])DeepSeek(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "dip siik"),
+    (rf"(?i)(?<![{_HARF}])Copilot(?:['’]([{_KUCUK}]+)|(u|ü|a|e|da|de|tan|ten))?(?![{_HARF}])", "kopaylıt"),
+    (rf"(?i)(?<![{_HARF}])Midjourney(?:['’]([{_KUCUK}]+)|(ye|ya|de|da|den|dan))?(?![{_HARF}])", "midcörni"),
+    (rf"(?i)(?<![{_HARF}])Perplexity(?:['’]([{_KUCUK}]+)|(ye|ya|de|da|den|dan))?(?![{_HARF}])", "pörpleksiti"),
+    (rf"(?i)(?<![{_HARF}])Claude(?:['’]([{_KUCUK}]+)|(un|ün|a|e|da|de))?(?![{_HARF}])", "klod"),
+    (rf"(?i)(?<![{_HARF}])Daily\s+Brief(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "Deyli Brif"),
+    (r"(?i)\bUI\s*/\s*UX\b", "yu-ay, yu-eks"),
+    # Spor ve Uluslararası Organizasyonlar
+    (rf"(?i)(?<![{_HARF}])Grand\s+Prix(?:['’]([{_KUCUK}]+)|(si|sine|sinde|sinden|sinin|ye|den))?(?![{_HARF}])", "gran pri"),
+    (r"(?i)\bF1\b", "ef-bir"),
+    (rf"(?i)(?<![{_HARF}])FIFA(?:['’]([{_KUCUK}]+)|(dan|den|ya|ye|da|de|nın|nin))?(?![{_HARF}])", "fifa"),
+    (rf"(?i)(?<![{_HARF}])UEFA(?:['’]([{_KUCUK}]+)|(dan|den|ya|ye|da|de|nın|nin))?(?![{_HARF}])", "uefa"),
+    (rf"(?i)(?<![{_HARF}])play-?off(?:['’]([{_KUCUK}]+)|(lar|ler|a|e|ta|te))?(?![{_HARF}])", "pley-of"),
+    (rf"(?i)(?<![{_HARF}])play-?in(?:['’]([{_KUCUK}]+)|(e|de))?(?![{_HARF}])", "pley-in"),
+    # Tanınmış Liderler ve Kurucular
+    (rf"(?i)(?<![{_HARF}])Bill\s+Gates(?:['’]([{_KUCUK}]+)|(in|e|den))?(?![{_HARF}])", "Bil Geyts"),
+    (rf"(?i)(?<![{_HARF}])Elon\s+Musk(?:['’]([{_KUCUK}]+)|(ın|a|tan))?(?![{_HARF}])", "İlan Mask"),
+    (rf"(?i)(?<![{_HARF}])Mark\s+Zuckerberg(?:['’]([{_KUCUK}]+)|(in|e|ten))?(?![{_HARF}])", "Mark Zakırbörg"),
+    # C-Suite unvanlar
+    (rf"(?i)(?<![{_HARF}])(CEO|CFO|CTO|COO|CMO|CIO|CPO|CSO|CRO)"
+     rf"(?:['’]([{_KUCUK}]+)|(su|sü|ya|ye|nun|nün|da|de|dan|den|lar|ler|luk|lük|yu|yü|"
+     rf"suna|süne|sunda|sünde|sundan|sünden|larının|lerinin))?(?![{_HARF}])", "c_suite"),
+    # Tüketici elektroniği, mobil ve donanım
+    (rf"(?i)(?<![{_HARF}])Apple\s+Watch(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "epıl voç"),
+    (rf"(?i)(?<![{_HARF}])App\s+Store(?:['’]([{_KUCUK}]+)|(da|de|dan|den|a|e))?(?![{_HARF}])", "ep stor"),
+    (rf"(?i)(?<![{_HARF}])Google\s+Play(?:['’]([{_KUCUK}]+)|(de|da|den|dan|e|a))?(?![{_HARF}])", "gugıl pley"),
+    (rf"(?i)(?<![{_HARF}])Play\s+Store(?:['’]([{_KUCUK}]+)|(da|de|dan|den|a|e))?(?![{_HARF}])", "pley stor"),
+    (rf"(?i)(?<![{_HARF}])Google\s+Cloud(?:['’]([{_KUCUK}]+)|(da|de|a|e))?(?![{_HARF}])", "gugıl klaud"),
+    (rf"(?i)(?<![{_HARF}])iCloud(?:['’]([{_KUCUK}]+)|(a|e|da|de|dan|den|un|ün))?(?![{_HARF}])", "ayklaud"),
+    (rf"(?i)(?<![{_HARF}])(?:i-?phone|iphone)(?:['’]([{_KUCUK}]+)|(lar|ler|u|ı|a|e|da|de|dan|den|un|ın))?(?![{_HARF}])", "ayfon"),
+    (rf"(?i)(?<![{_HARF}])ipad(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı|e|a|de|da|den|dan|in|ın))?(?![{_HARF}])", "ayped"),
+    (rf"(?i)(?<![{_HARF}])imac(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı|e|a|de|da|den|dan))?(?![{_HARF}])", "aymek"),
+    (rf"(?i)(?<![{_HARF}])(?:macbook|mac-book)(?:['’]([{_KUCUK}]+)|(lar|ler|u|ı|a|e|da|de|dan|den|un|ın))?(?![{_HARF}])", "mekbuk"),
+    (rf"(?i)(?<![{_HARF}])airpods(?:['’]([{_KUCUK}]+)|(ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "eyrpods"),
+    (rf"(?i)(?<![{_HARF}])bluetooth(?:['’]([{_KUCUK}]+)|(la|le|a|e|da|de|dan|den|u|ü))?(?![{_HARF}])", "blutut"),
+    # Teknoloji & Kısaltmalar
+    (rf"(?i)(?<![{_HARF}])GenAI(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "cen ey-ay"),
+    (rf"(?<![{_HARF}])(?:AI|Ai|Aİ|A\.I\.|A\.İ\.)(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "ey-ay"),
+    (rf"(?<![{_HARF}])GPU(?:['’]([{_KUCUK}]+)|(lar|ler|yu|yi|da|de))?(?![{_HARF}])", "ci-pi-yu"),
+    (rf"(?<![{_HARF}])CPU(?:['’]([{_KUCUK}]+)|(lar|ler|yu|yi|da|de))?(?![{_HARF}])", "si-pi-yu"),
+    (rf"(?<![{_HARF}])LLM(?:['’]([{_KUCUK}]+)|(ler|lar|i|e|de|den))?(?![{_HARF}])", "el-el-em"),
+    (rf"(?<![{_HARF}])AGI(?:['’]([{_KUCUK}]+)|(ye|ya|de|da))?(?![{_HARF}])", "ey-ci-ay"),
+    (rf"(?<![{_HARF}])NFT(?:['’]([{_KUCUK}]+)|(ler|lar|i|e|de|den))?(?![{_HARF}])", "en-ef-ti"),
+    (rf"(?<![{_HARF}])VPN(?:['’]([{_KUCUK}]+)|(ler|lar|i|e|de|den))?(?![{_HARF}])", "vi-pi-en"),
+    (rf"(?<![{_HARF}])SSD(?:['’]([{_KUCUK}]+)|(ler|lar|ye|ya|de|da|den|dan|si|sı|nin|nın))?(?![{_HARF}])", "es-es-di"),
+    (rf"(?<![{_HARF}])USB(?:['’]([{_KUCUK}]+)|(ler|lar|ye|ya|de|da|den|dan))?(?![{_HARF}])", "yu-es-bi"),
+    (rf"(?i)(?<![{_HARF}])(?:wi-fi|wifi)(?:['’]([{_KUCUK}]+)|(ya|ye|a|e|da|de|dan|den|ın|in))?(?![{_HARF}])", "vay-fay"),
+    (rf"(?<![{_HARF}])(?:API|Api)(?:['’]([{_KUCUK}]+)|(ler|lar|si|sı|ye|ya|de|da))?(?![{_HARF}])", "ey-pi-ay"),
+    (rf"(?<![{_HARF}])UI(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "yu-ay"),
+    (rf"(?<![{_HARF}])UX(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "yu-eks"),
+    (rf"(?<![{_HARF}])IT(?:['’]([{_KUCUK}]+)|(de|da|ye|ya|nin|nin|sektörü|ekibi))?(?![{_HARF}])", "ay-ti"),
+    (rf"(?<![{_HARF}])PR(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "pi-ar"),
+    (rf"(?<![{_HARF}])HR(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "eyç-ar"),
+    (rf"(?i)(?<![{_HARF}])(?:FBI|Fbi)(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "ef-bi-ay"),
+    (rf"(?i)(?<![{_HARF}])(?:CIA|Cia)(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "si-ay-ey"),
+    (rf"(?i)(?<![{_HARF}])B2B(?![{_HARF}])", "bi-tu-bi"),
+    (rf"(?i)(?<![{_HARF}])B2C(?![{_HARF}])", "bi-tu-si"),
+    (rf"(?i)(?<![{_HARF}])SpaceX(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "speys-eks"),
+    (rf"(?i)(?<![{_HARF}])Microsoft(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "maykrosoft"),
+    (rf"(?i)(?<![{_HARF}])Google(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "gugıl"),
+    (rf"(?i)(?<![{_HARF}])WhatsApp(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "vatsap"),
+    (rf"(?i)(?<![{_HARF}])Netflix(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "netfliks"),
+    (rf"(?i)(?<![{_HARF}])PlayStation(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "pleysteyşın"),
+    (rf"(?i)(?<![{_HARF}])Xbox(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "iks-boks"),
+    (rf"(?i)(?<![{_HARF}])GitHub(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "githab"),
+    (rf"(?i)(?<![{_HARF}])benchmark(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı))?(?![{_HARF}])", "bençmark"),
+    (rf"(?i)(?<![{_HARF}])open\s+source(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "opın sors"),
+    (rf"(?i)(?<![{_HARF}])screenshot(?:['’]([{_KUCUK}]+)|(ler|lar|ı|i))?(?![{_HARF}])", "skrinşat"),
+    (rf"(?i)(?<![{_HARF}])livestream(?:['’]([{_KUCUK}]+))?(?![{_HARF}])", "layvstrim"),
+    (rf"(?i)(?<![{_HARF}])trailer(?:['’]([{_KUCUK}]+)|(ı|i|ler|lar))?(?![{_HARF}])", "treyler"),
+    # Kripto ve Blokzincir
+    (rf"(?i)(?<![{_HARF}])blockchain(?:\.com)?(?:['’]([{_KUCUK}]+)|(da|de|a|e|in|ın))?(?![{_HARF}])", "blokçeyn"),
+    (rf"(?i)(?<![{_HARF}])bitcoin(?:['’]([{_KUCUK}]+)|(de|da|den|dan|e|a|in|ın))?(?![{_HARF}])", "bitkoyn"),
+    (rf"(?<![{_HARF}])RAM\b", "rem"),
+    (rf"(?<![{_HARF}])AMD(?:['’]([{_KUCUK}]+)|(nin|nin|ye|den))?(?![{_HARF}])", "ey-em-di"),
+    # Sosyal Medya ve İletişim
+    (rf"(?i)(?<![{_HARF}])YouTube(?:['’]([{_KUCUK}]+)|(da|de|a|e|un|ün|dan|den))?(?![{_HARF}])", "yutub"),
+    (rf"(?i)(?<![{_HARF}])Threads(?:['’]([{_KUCUK}]+)|(te|ta|e|a|in|ın|ten|tan))?(?![{_HARF}])", "treds"),
+    (rf"(?i)(?<![{_HARF}])LinkedIn(?:['’]([{_KUCUK}]+)|(de|da|e|a|in|ın|den|dan))?(?![{_HARF}])", "linkdin"),
+    (rf"(?i)(?<![{_HARF}])Spotify(?:['’]([{_KUCUK}]+)|(da|de|a|e|dan|den|ın|in))?(?![{_HARF}])", "spatifay"),
+    (rf"(?i)(?<![{_HARF}])Twitch(?:['’]([{_KUCUK}]+)|(te|ta|e|a|ten|tan))?(?![{_HARF}])", "tiviç"),
+    (rf"(?<![{_HARF}\d])DM(?:['’]([{_KUCUK}]+)|(den|de|ye|e|ler))?(?![{_HARF}])", "di-em"),
+    (rf"(?<![{_HARF}])TT(?:['’]([{_KUCUK}]+)|(?=[ \t]+(?:oldu|olmuş|listesi|girdi|sıralaması)))(?![{_HARF}])", "ti-ti"),
+    # Otomotiv ve Donanım
+    (rf"(?i)(?<![{_HARF}])BYD(?:['’]([{_KUCUK}]+)|(nin|nin|ye|den|da))?(?![{_HARF}])", "bi-vay-di"),
+    (rf"(?i)(?<![{_HARF}])Dacia(?:['’]([{_KUCUK}]+)|(nın|nin|ya|ye|da|de|dan|den))?(?![{_HARF}])", "Daçya"),
+    (rf"(?i)(?<![{_HARF}])Peugeot(?:['’]([{_KUCUK}]+)|(nun|nün|ya|ye|da|de))?(?![{_HARF}])", "Pejo"),
+    (rf"(?i)(?<![{_HARF}])Renault(?:['’]([{_KUCUK}]+)|(nun|nün|ya|ye|da|de))?(?![{_HARF}])", "Reno"),
+    (rf"(?i)(?<![{_HARF}])Citro[eë]n(?:['’]([{_KUCUK}]+)|(in|e|de))?(?![{_HARF}])", "Sitroen"),
+    (rf"(?i)(?<![{_HARF}])Porsche(?:['’]([{_KUCUK}]+)|(nin|nin|ye|de))?(?![{_HARF}])", "Porşe"),
+    (rf"(?i)(?<![{_HARF}])Chevrolet(?:['’]([{_KUCUK}]+)|(nin|ye|de))?(?![{_HARF}])", "Şevrole"),
+    (rf"(?i)(?<![{_HARF}])SUV(?:['’]([{_KUCUK}]+)|(lar|ler|a|e|da|de|dan|den|u|ü|un|ün|ın|in))?(?![{_HARF}])", "es-yu-vi"),
+    (rf"(?<![{_HARF}])EV(?:['’]([{_KUCUK}]+)|(?=[ \t]+(?:pazarı|piyasası|satış|üretim|model|şarj|batarya|sektör|araç)))(?![{_HARF}])", "i-vi"),
+    (rf"(?i)(?<![{_HARF}])Cybertruck(?:['’]([{_KUCUK}]+)|(ı|i|a|e|da|de|tan|ten))?(?![{_HARF}])", "saybırtrak"),
+    (rf"(?i)(?<![{_HARF}])Autopilot(?:['’]([{_KUCUK}]+)|(ı|i|a|e|da|de|tan|ten))?(?![{_HARF}])", "otopaylıt"),
+    (rf"(?i)(?<![{_HARF}])Big\s+Tech(?:['’]([{_KUCUK}]+)|(in|ın|e|a|de|da))?(?![{_HARF}])", "big tek"),
+    # Yarı İletken ve Donanım Devleri
+    (rf"(?<![{_HARF}])TSMC(?:['’]([{_KUCUK}]+)|(nin|nin|ye|de))?(?![{_HARF}])", "ti-es-em-si"),
+    (rf"(?<![{_HARF}])ASML(?:['’]([{_KUCUK}]+)|(in|e|de))?(?![{_HARF}])", "ey-es-em-el"),
+    (rf"(?i)(?<![{_HARF}])Xiaomi(?:['’]([{_KUCUK}]+)|(nin|nın|ye|ya|de|da))?(?![{_HARF}])", "Şaomi"),
+    (rf"(?i)(?<![{_HARF}])Huawei(?:['’]([{_KUCUK}]+)|(nin|nin|ye|den))?(?![{_HARF}])", "Huavey"),
+    # Güvenlik ve Tehdit Terimleri
+    (rf"(?i)(?<![{_HARF}])phishing(?:['’]([{_KUCUK}]+)|(e|a|de|da))?(?![{_HARF}])", "fişing"),
+    (rf"(?i)(?<![{_HARF}])ransomware(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da))?(?![{_HARF}])", "rensımver"),
+    (rf"(?i)(?<![{_HARF}])malware(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da))?(?![{_HARF}])", "melver"),
+    (rf"(?i)(?<![{_HARF}])spyware(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da))?(?![{_HARF}])", "spayver"),
+    (rf"(?i)(?<![{_HARF}])clickbait(?:['’]([{_KUCUK}]+)|(ler|lar|e|a))?(?![{_HARF}])", "klikbeyt"),
+    # Yaygın İngilizce kelimeler
+    (rf"(?i)(?<![{_HARF}])online(?:['’]([{_KUCUK}]+)|(da|de|dan|den|a|e|ya|ye))?(?![{_HARF}])", "onlayn"),
+    (rf"(?i)(?<![{_HARF}])offline(?:['’]([{_KUCUK}]+)|(da|de|dan|den|a|e|ya|ye))?(?![{_HARF}])", "oflayn"),
+    (rf"(?i)(?<![{_HARF}])(?:startup|start-up)(?:['’]([{_KUCUK}]+)|(lar|ler|ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "startap"),
+    (rf"(?i)(?<![{_HARF}])(?:scaleup|scale-up)(?:['’]([{_KUCUK}]+)|(lar|ler|ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "skeylap"),
+    (rf"(?i)(?<![{_HARF}])fintech(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı|e|a|de|da|den|dan))?(?![{_HARF}])", "fintek"),
+    (rf"(?i)(?<![{_HARF}])podcast(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı|e|a|de|da|den|dan))?(?![{_HARF}])", "podkast"),
+    (rf"(?i)(?<![{_HARF}])streaming(?:['’]([{_KUCUK}]+)|(ler|lar|e|a|de|da))?(?![{_HARF}])", "striming"),
+    (rf"(?i)(?<![{_HARF}])briefing(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da))?(?![{_HARF}])", "brifing"),
+    (rf"(?i)(?<![{_HARF}])developer(?:['’]([{_KUCUK}]+)|(lar|ler|ı|i))?(?![{_HARF}])", "divelopır"),
+    (rf"(?i)(?<![{_HARF}])software(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da))?(?![{_HARF}])", "softver"),
+    (rf"(?i)(?<![{_HARF}])hardware(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da))?(?![{_HARF}])", "hardver"),
+    (rf"(?i)(?<![{_HARF}])update(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da|den|dan|ler|lar))?(?![{_HARF}])", "apdeyt"),
+    (rf"(?i)(?<![{_HARF}])upgrade(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da|den|dan|ler|lar))?(?![{_HARF}])", "apgreyd"),
+    (rf"(?i)(?<![{_HARF}])reels(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da|den|dan|ler|lar))?(?![{_HARF}])", "rils"),
+    (rf"(?i)(?<![{_HARF}])tweet(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da|den|dan|ler|lar))?(?![{_HARF}])", "tivit"),
+    (rf"(?i)(?<![{_HARF}])retweet(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da|den|dan|ler|lar))?(?![{_HARF}])", "ritivit"),
+    (rf"(?i)(?<![{_HARF}])story(?:['’]([{_KUCUK}]+)|(si|ye|ya|de|da|den|dan|ler|lar))?(?![{_HARF}])", "stori"),
+    (rf"(?i)(?<![{_HARF}])like(?:['’]([{_KUCUK}]+)|(lar|ler|a|e|da|de))?(?![{_HARF}])", "layk"),
+    (rf"(?i)(?<![{_HARF}])dislike(?:['’]([{_KUCUK}]+)|(lar|ler|a|e|da|de))?(?![{_HARF}])", "dislayk"),
+    (rf"(?i)(?<![{_HARF}])influencer(?:['’]([{_KUCUK}]+)|(lar|ler|ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "influensır"),
+    (rf"(?i)(?<![{_HARF}])hacker(?:['’]([{_KUCUK}]+)|(lar|ler|ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "hekır"),
+    (rf"(?i)(?<![{_HARF}])fake(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı))?(?![{_HARF}])", "feyk"),
+    (rf"(?i)(?<![{_HARF}])workshop(?:['’]([{_KUCUK}]+)|(lar|ler|ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "vörkşap"),
+    (rf"(?i)(?<![{_HARF}])deadline(?:['’]([{_KUCUK}]+)|(ı|i|a|e|da|de|dan|den))?(?![{_HARF}])", "dedlayn"),
+    (rf"(?i)(?<![{_HARF}])feedback(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı|e|a|de|da|den|dan))?(?![{_HARF}])", "fidbek"),
+    (rf"(?i)(?<![{_HARF}])networking(?:['’]([{_KUCUK}]+)|(e|a|de|da))?(?![{_HARF}])", "netvörking"),
+    (rf"(?i)(?<![{_HARF}])deepfake(?:['’]([{_KUCUK}]+)|(ler|lar|i|ı))?(?![{_HARF}])", "dipfeyk"),
+    (rf"(?i)(?<![{_HARF}])e-?mail(?:['’]([{_KUCUK}]+)|(i|ı|e|a|de|da|den|dan|ler|lar))?(?![{_HARF}])", "i-meyl"),
+]
+
+
+def _ingilizce_terimler(metin: str) -> str:
+    for desen, okunus in _INGILIZCE_TABLO:
+        if okunus == "c_suite":
+            def cevir_c(m: "re.Match[str]") -> str:
+                unvan = m.group(1).upper()
+                kok = _C_SUITE_MAP[unvan]
+                ek_apostrof = m.group(2)
+                ek_duz = m.group(3)
+                if ek_apostrof:
+                    ek_uyumlu = _ek_uyumu(kok, ek_apostrof)
+                    return f"{kok}'{ek_uyumlu}"
+                elif ek_duz:
+                    ek_uyumlu = _ek_uyumu(kok, ek_duz)
+                    return f"{kok}'{ek_uyumlu}"
+                return kok
+            metin = re.sub(desen, cevir_c, metin)
+        else:
+            def cevir_genel(m: "re.Match[str]", o: str = okunus) -> str:
+                ek_apostrof = m.group(1) if m.re.groups >= 1 else None
+                ek_duz = m.group(2) if m.re.groups >= 2 else None
+                if ek_apostrof:
+                    ek_uyumlu = _ek_uyumu(o, ek_apostrof)
+                    return f"{o}'{ek_uyumlu}"
+                elif ek_duz:
+                    ek_uyumlu = _ek_uyumu(o, ek_duz)
+                    return f"{o}{ek_uyumlu}"
+                return o
+            metin = re.sub(desen, cevir_genel, metin)
+    return metin
 
 
 def _buyuk_harfler(metin: str) -> str:
@@ -414,7 +1024,9 @@ def _son_temizlik(metin: str) -> str:
     metin = re.sub(r"([^\s.!?:;,]+)[ \t]*\n+", _satir_sonu, metin)
     metin = re.sub(r"\s*\n+\s*", " ", metin)
     metin = metin.replace("&", " ve ").replace("=", " eşittir ").replace("~", " yaklaşık ").replace("@", " ")
-    for simge, okunus in (("km²", "kilometrekare"), ("m²", "metrekare"), ("m³", "metreküp"), ("°", " derece"), ("₺", " lira")):
+    metin = re.sub(r"°\s*C\b", " santigrat derece", metin)
+    for simge, okunus in (("km²", "kilometrekare"), ("m²", "metrekare"), ("m³", "metreküp"), ("°", " derece"),
+                          ("₺", " lira"), ("$", " dolar"), ("€", " avro"), ("£", " sterlin")):
         # "m²'si" → "metrekaresi": ek kelimeye yapışır, ünlüsü yeni köke uyar
         metin = re.sub(rf"{re.escape(simge)}['’]([{_KUCUK}]+)",
                        lambda m, o=okunus: o.strip() + _ek_uyumu(o.strip(), m[1]), metin)
@@ -432,8 +1044,9 @@ def _son_temizlik(metin: str) -> str:
 
 
 ADIMLAR: List[Callable[[str], str]] = [
-    _temizle, _kisaltmalar, _ada_parsel, _tarih_saat, _birimler, _kesirler, _siralar,
-    _isaretler_sayi, _sayilar, _buyuk_harfler, _son_temizlik,
+    _temizle, _kisaltmalar, _borsa_kisaltmalari, _ada_parsel, _tarih_saat, _birimler, _kesirler, _siralar,
+    _romen_rakamlari, _model_ve_surum_sayilari,
+    _isaretler_sayi, _sayilar, _ingilizce_terimler, _buyuk_harfler, _son_temizlik,
 ]
 
 
