@@ -357,6 +357,283 @@ def uret_sozluk(
     return cikti_yolu
 
 
+def ciz_diyagram_imar_capi(w: int = 920, h: int = 330) -> Image.Image:
+    """Otantik mimari imar çapı ve kadastro parselasyon şeması çizer."""
+    img = Image.new("RGB", (w, h), (246, 247, 244))
+    draw = ImageDraw.Draw(img)
+
+    # Grid
+    grid_col = (232, 234, 228)
+    for x in range(0, w, 35):
+        draw.line([(x, 0), (x, h)], fill=grid_col, width=1)
+    for y in range(0, h, 35):
+        draw.line([(0, y), (w, y)], fill=grid_col, width=1)
+
+    draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(198, 202, 192), width=2)
+
+    # Header bar
+    draw.rectangle([(0, 0), (w - 1, 34)], fill=(32, 35, 42))
+    f_header = make_image._font_yukle(FONT_MONO_BOLD, 14)
+    f_header_sub = make_image._font_yukle(FONT_MONO, 13)
+    draw.text((16, 9), "T.C. BELEDİYESİ // İMAR VE ŞEHİRCİLİK MÜDÜRLÜĞÜ", font=f_header, fill=(240, 240, 240))
+    draw.text((w - 235, 9), "İMAR DURUM BELGESİ (ÇAP)", font=f_header_sub, fill=(255, 120, 120))
+
+    # Kuzey Oku
+    nx, ny = w - 50, 54
+    draw.polygon([(nx, ny), (nx - 9, ny + 28), (nx, ny + 21)], fill=(32, 35, 42))
+    draw.polygon([(nx, ny), (nx + 9, ny + 28), (nx, ny + 21)], fill=(180, 185, 180))
+    draw.text((nx - 4, ny + 30), "K", font=make_image._font_yukle(FONT_SANS_BOLD, 12), fill=(32, 35, 42))
+
+    # Ada / Parsel Künyesi
+    draw.text((20, 46), "ADA: 402  /  PARSEL: 12  /  ALAN: 1.000 m²  /  FONKSİYON: AYRIK NİZAM KONUT", 
+              font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(70, 75, 85))
+
+    yol_x = 75
+    draw.line([(yol_x, 70), (yol_x, h - 20)], fill=(120, 125, 135), width=3)
+    draw.text((yol_x - 55, h // 2 - 12), "10m YOL", font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(100, 105, 115))
+
+    p_x1, p_y1 = yol_x + 30, 80
+    p_x2, p_y2 = w - 90, h - 22
+    draw.rectangle([(p_x1, p_y1), (p_x2, p_y2)], outline=(218, 41, 28), width=3)
+    draw.text((p_x1 + 8, p_y1 + 8), "PARSEL SINIRI (1.000 m²)", font=make_image._font_yukle(FONT_MONO_BOLD, 12), fill=(218, 41, 28))
+
+    bina_x1 = p_x1 + 95
+    bina_y1 = p_y1 + 44
+    bina_x2 = p_x2 - 50
+    bina_y2 = p_y2 - 38
+
+    draw.line([(p_x1, bina_y1 + 28), (bina_x1, bina_y1 + 28)], fill=(130, 135, 145), width=1)
+    draw.text((p_x1 + 8, bina_y1 + 10), "ÖN: 5.0m", font=make_image._font_yukle(FONT_MONO, 12), fill=(80, 85, 95))
+
+    draw.line([(bina_x1 + 35, p_y1), (bina_x1 + 35, bina_y1)], fill=(130, 135, 145), width=1)
+    draw.text((bina_x1 + 40, p_y1 + 16), "YAN: 3.0m", font=make_image._font_yukle(FONT_MONO, 12), fill=(80, 85, 95))
+
+    draw.rectangle([(bina_x1, bina_y1), (bina_x2, bina_y2)], fill=(225, 230, 225), outline=(32, 35, 42), width=2)
+    draw.text((bina_x1 + 24, bina_y1 + 12), "BİNA TABAN OTURUM ALANI", font=make_image._font_yukle(FONT_SANS_BOLD, 15), fill=(20, 24, 30))
+    draw.text((bina_x1 + 24, bina_y1 + 36), "TAKS: 0.20 -> Zemin Oturumu: 200 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(20, 24, 30))
+    draw.text((bina_x1 + 24, bina_y1 + 58), "KAKS (EMSAL): 0.40 -> Toplam İnşaat: 400 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(20, 24, 30))
+    draw.text((bina_x1 + 24, bina_y1 + 80), "HMAX (GABARİ): 6.50 m (2 KAT KONUT)", font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(20, 24, 30))
+
+    f_b_num = make_image._font_yukle(FONT_SANS_BOLD, 13)
+    # Badge 1: TAKS
+    draw.ellipse([(bina_x1 - 11, bina_y1 + 34), (bina_x1 + 11, bina_y1 + 56)], fill=(218, 41, 28))
+    draw.text((bina_x1 - 4, bina_y1 + 37), "1", font=f_b_num, fill=(255, 255, 255))
+    # Badge 2: KAKS
+    draw.ellipse([(bina_x1 - 11, bina_y1 + 56), (bina_x1 + 11, bina_y1 + 78)], fill=(218, 41, 28))
+    draw.text((bina_x1 - 4, bina_y1 + 59), "2", font=f_b_num, fill=(255, 255, 255))
+    # Badge 3: Çekme
+    draw.ellipse([(p_x1 + 48, bina_y1 + 16), (p_x1 + 70, bina_y1 + 38)], fill=(218, 41, 28))
+    draw.text((p_x1 + 55, bina_y1 + 19), "3", font=f_b_num, fill=(255, 255, 255))
+    # Badge 4: Gabari
+    draw.ellipse([(bina_x1 - 11, bina_y1 + 78), (bina_x1 + 11, bina_y1 + 100)], fill=(218, 41, 28))
+    draw.text((bina_x1 - 4, bina_y1 + 81), "4", font=f_b_num, fill=(255, 255, 255))
+
+    return img
+
+
+def ciz_diyagram_tapu_serh(w: int = 920, h: int = 330) -> Image.Image:
+    """Resmi TKGM Tapu Kaydı Şerhler ve Takyidat Tablosu çizer."""
+    img = Image.new("RGB", (w, h), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+
+    draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(198, 202, 192), width=2)
+
+    # Başlık Şeridi
+    draw.rectangle([(0, 0), (w - 1, 35)], fill=(32, 35, 42))
+    f_h1 = make_image._font_yukle(FONT_MONO_BOLD, 14)
+    f_h2 = make_image._font_yukle(FONT_MONO, 13)
+    draw.text((16, 10), "T.C. TKGM // TAPU VE KADASTRO GENEL MÜDÜRLÜĞÜ", font=f_h1, fill=(240, 240, 240))
+    draw.text((w - 245, 10), "TAPU KAYDI (TAKYİDAT)", font=f_h2, fill=(255, 120, 120))
+
+    # Bilgi Bandı
+    draw.rectangle([(0, 35), (w - 1, 68)], fill=(246, 247, 244))
+    draw.line([(0, 68), (w - 1, 68)], fill=(210, 214, 206), width=1)
+    f_info = make_image._font_yukle(FONT_MONO_BOLD, 13)
+    draw.text((16, 44), "TAŞINMAZ: İSTANBUL / SİLİVRİ // ADA: 512 / PARSEL: 8 // NİTELİK: ARSA", font=f_info, fill=(60, 65, 75))
+
+    # Tablo Başlıkları
+    ty = 69
+    th = 30
+    draw.rectangle([(0, ty), (w - 1, ty + th)], fill=(235, 238, 232))
+    draw.line([(0, ty + th), (w - 1, ty + th)], fill=(190, 195, 185), width=2)
+    f_th = make_image._font_yukle(FONT_MONO_BOLD, 13)
+
+    c1_x, c2_x, c3_x = 16, 260, 670
+    draw.text((c1_x, ty + 7), "ŞERH / REHİN TÜRÜ", font=f_th, fill=(30, 35, 40))
+    draw.text((c2_x, ty + 7), "ALACAKLI / MAHKEME / AÇIKLAMA", font=f_th, fill=(30, 35, 40))
+    draw.text((c3_x, ty + 7), "YEVMİYE / TARİH", font=f_th, fill=(30, 35, 40))
+
+    # Satırlar
+    f_satir_b = make_image._font_yukle(FONT_SANS_BOLD, 14)
+    f_satir_m = make_image._font_yukle(FONT_SANS_MEDIUM, 13)
+    f_satir_mono = make_image._font_yukle(FONT_MONO, 12)
+
+    satirlar = [
+        ("1", "İHTİYATİ HACİZ", "4. İcra Dairesi Esas: 2024/1102 (Alacak: 850.000 TL)", "Y: 18402  14.03.2024", True),
+        ("2", "AİLE KONUTU ŞERHİ", "TMK Madde 194 (Eş Muvafakati Olmadan Satılamaz)", "Y: 09140  22.01.2023", False),
+        ("3", "ÖNALIM SÖZLEŞMESİ", "Noter Onaylı Vefa/Şufa Hakkı Şerhi (10 Yıl Süreli)", "Y: 04501  09.08.2022", False),
+    ]
+
+    curr_ry = ty + th
+    row_h = 54
+    for no, tur, aciklama, yevmiye, riskli in satirlar:
+        if riskli:
+            draw.rectangle([(1, curr_ry), (w - 2, curr_ry + row_h)], fill=(255, 240, 240))
+            draw.rectangle([(1, curr_ry), (6, curr_ry + row_h)], fill=(218, 41, 28))
+        else:
+            if int(no) % 2 == 1:
+                draw.rectangle([(1, curr_ry), (w - 2, curr_ry + row_h)], fill=(250, 251, 248))
+
+        draw.line([(0, curr_ry + row_h), (w - 1, curr_ry + row_h)], fill=(220, 224, 216), width=1)
+
+        draw.ellipse([(c1_x, curr_ry + 15), (c1_x + 22, curr_ry + 37)], fill=(218, 41, 28) if riskli else (50, 55, 65))
+        draw.text((c1_x + 7, curr_ry + 18), no, font=make_image._font_yukle(FONT_SANS_BOLD, 12), fill=(255, 255, 255))
+        draw.text((c1_x + 30, curr_ry + 17), tur, font=f_satir_b, fill=(218, 41, 28) if riskli else (20, 24, 30))
+        draw.text((c2_x, curr_ry + 18), aciklama, font=f_satir_m, fill=(50, 55, 65))
+        draw.text((c3_x, curr_ry + 19), yevmiye, font=f_satir_mono, fill=(90, 95, 105))
+        curr_ry += row_h
+
+    # Alt kırmızı uyarı bandı
+    draw.rectangle([(0, h - 38), (w - 1, h - 1)], fill=(254, 242, 242))
+    draw.line([(0, h - 38), (w - 1, h - 38)], fill=(254, 202, 202), width=1)
+    f_warn = make_image._font_yukle(FONT_MONO_BOLD, 12)
+    draw.text((16, h - 26), "UYARI: Şerhler tapu senedine basılmaz! Devir günü WebTapu'dan takyidat alınmalıdır.", font=f_warn, fill=(185, 28, 28))
+
+    return img
+
+
+def ciz_diyagram_taks_kaks(w: int = 920, h: int = 330) -> Image.Image:
+    """TAKS (Taban Alanı) ve KAKS (Emsal) teknik karşılaştırma diyagramı."""
+    img = Image.new("RGB", (w, h), (246, 247, 244))
+    draw = ImageDraw.Draw(img)
+
+    grid_col = (234, 236, 230)
+    for x in range(0, w, 35):
+        draw.line([(x, 0), (x, h)], fill=grid_col, width=1)
+    for y in range(0, h, 35):
+        draw.line([(0, y), (w, y)], fill=grid_col, width=1)
+
+    draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(198, 202, 192), width=2)
+
+    # Header bar
+    draw.rectangle([(0, 0), (w - 1, 34)], fill=(32, 35, 42))
+    f_h1 = make_image._font_yukle(FONT_MONO_BOLD, 14)
+    f_h2 = make_image._font_yukle(FONT_MONO, 13)
+    draw.text((16, 9), "MİMARİ TEKNİK HESAPLAMA // İMAR VE PARSELASYON", font=f_h1, fill=(240, 240, 240))
+    draw.text((w - 240, 9), "TAKS & KAKS ŞEMASI", font=f_h2, fill=(255, 120, 120))
+
+    mid_x = w // 2
+    draw.line([(mid_x, 34), (mid_x, h - 36)], fill=(210, 214, 206), width=2)
+
+    # SOL: TAKS
+    draw.ellipse([(20, 48), (44, 72)], fill=(218, 41, 28))
+    draw.text((27, 51), "1", font=make_image._font_yukle(FONT_SANS_BOLD, 13), fill=(255, 255, 255))
+    draw.text((54, 50), "TAKS (TABAN ALANI KATSAYISI)", font=make_image._font_yukle(FONT_SANS_BOLD, 15), fill=(20, 24, 30))
+
+    ax1, ay1, ax2, ay2 = 30, 84, mid_x - 30, h - 48
+    draw.rectangle([(ax1, ay1), (ax2, ay2)], outline=(140, 145, 155), width=2, fill=(255, 255, 255))
+    draw.text((ax1 + 10, ay1 + 10), "ARSA ALANI: 1.000 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 12), fill=(100, 105, 115))
+
+    bx1, by1, bx2, by2 = ax1 + 60, ay1 + 35, ax2 - 60, ay2 - 35
+    draw.rectangle([(bx1, by1), (bx2, by2)], fill=(218, 224, 218), outline=(218, 41, 28), width=2)
+    draw.text((bx1 + 14, by1 + 16), "TABAN OTURUMU (ZEMİN)", font=make_image._font_yukle(FONT_SANS_BOLD, 14), fill=(20, 24, 30))
+    draw.text((bx1 + 14, by1 + 38), "TAKS: 0.30 -> 300 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 14), fill=(218, 41, 28))
+    draw.text((bx1 + 14, by1 + 60), "Arsanın en fazla %30'u", font=make_image._font_yukle(FONT_SANS_MEDIUM, 12), fill=(70, 75, 85))
+
+    # SAĞ: KAKS
+    draw.ellipse([(mid_x + 20, 48), (mid_x + 44, 72)], fill=(218, 41, 28))
+    draw.text((mid_x + 27, 51), "2", font=make_image._font_yukle(FONT_SANS_BOLD, 13), fill=(255, 255, 255))
+    draw.text((mid_x + 54, 50), "KAKS (EMSAL / TOPLAM İNŞAAT)", font=make_image._font_yukle(FONT_SANS_BOLD, 15), fill=(20, 24, 30))
+
+    kx1, ky1, kx2, ky2 = mid_x + 60, 84, w - 60, h - 48
+    kat_h = (ky2 - ky1) // 4
+    katlar = ["4. KAT (300 m²)", "3. KAT (300 m²)", "2. KAT (300 m²)", "ZEMİN KAT (300 m²)"]
+    colors = [(235, 240, 235), (225, 232, 225), (218, 226, 218), (210, 220, 210)]
+
+    for idx, (kat_adi, col) in enumerate(zip(katlar, colors)):
+        y_ust = ky1 + (idx * kat_h)
+        y_alt = y_ust + kat_h - 2
+        draw.rectangle([(kx1, y_ust), (kx2, y_alt)], fill=col, outline=(32, 35, 42), width=1)
+        draw.text((kx1 + 16, y_ust + 6), kat_adi, font=make_image._font_yukle(FONT_MONO_BOLD, 12), fill=(30, 35, 45))
+
+    draw.rectangle([(0, h - 34), (w - 1, h - 1)], fill=(238, 240, 234))
+    f_btm = make_image._font_yukle(FONT_MONO_BOLD, 12)
+    draw.text((20, h - 23), "FORMÜL: TABAN ALANI = ARSA x TAKS", font=f_btm, fill=(50, 55, 65))
+    draw.text((mid_x + 20, h - 23), "TOPLAM İNŞAAT = ARSA x KAKS = 1.000 x 1.20 = 1.200 m²", font=f_btm, fill=(218, 41, 28))
+
+    return img
+
+
+def ciz_diyagram_ifraz_tevhid(w: int = 920, h: int = 330) -> Image.Image:
+    """İfraz (Ayırma) ve Tevhid (Birleştirme) kadastro plan şeması çizer."""
+    img = Image.new("RGB", (w, h), (246, 247, 244))
+    draw = ImageDraw.Draw(img)
+
+    grid_col = (234, 236, 230)
+    for x in range(0, w, 35):
+        draw.line([(x, 0), (x, h)], fill=grid_col, width=1)
+    for y in range(0, h, 35):
+        draw.line([(0, y), (w, y)], fill=grid_col, width=1)
+
+    draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(198, 202, 192), width=2)
+
+    # Header bar
+    draw.rectangle([(0, 0), (w - 1, 34)], fill=(32, 35, 42))
+    f_h1 = make_image._font_yukle(FONT_MONO_BOLD, 14)
+    f_h2 = make_image._font_yukle(FONT_MONO, 13)
+    draw.text((16, 9), "KADASTRO VE İMAR UYGULAMASI // PARSELASYON", font=f_h1, fill=(240, 240, 240))
+    draw.text((w - 240, 9), "İFRAZ (AYIRMA) ŞEMASI", font=f_h2, fill=(255, 120, 120))
+
+    mid_x = w // 2
+
+    # SOL PANEL: KÖK PARSEL
+    draw.ellipse([(20, 48), (44, 72)], fill=(50, 55, 65))
+    draw.text((27, 51), "1", font=make_image._font_yukle(FONT_SANS_BOLD, 13), fill=(255, 255, 255))
+    draw.text((54, 50), "İFRAZ ÖNCESİ (KÖK PARSEL)", font=make_image._font_yukle(FONT_SANS_BOLD, 15), fill=(20, 24, 30))
+
+    kx1, ky1, kx2, ky2 = 30, 84, mid_x - 30, h - 48
+    draw.rectangle([(kx1, ky1), (kx2, ky2)], fill=(238, 240, 235), outline=(100, 105, 115), width=2)
+    draw.text((kx1 + 20, ky1 + 20), "ADA: 210 // PARSEL: 1", font=make_image._font_yukle(FONT_MONO_BOLD, 14), fill=(30, 35, 45))
+    draw.text((kx1 + 20, ky1 + 46), "TOPLAM ALAN: 6.000 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 15), fill=(218, 41, 28))
+    draw.text((kx1 + 20, ky1 + 72), "Tek tapu, hisseli veya müstakil kullanım.", font=make_image._font_yukle(FONT_SANS_MEDIUM, 13), fill=(70, 75, 85))
+
+    draw.line([(mid_x, 34), (mid_x, h - 36)], fill=(210, 214, 206), width=2)
+
+    # SAĞ PANEL: İFRAZ SONRASI
+    draw.ellipse([(mid_x + 20, 48), (mid_x + 44, 72)], fill=(218, 41, 28))
+    draw.text((mid_x + 27, 51), "2", font=make_image._font_yukle(FONT_SANS_BOLD, 13), fill=(255, 255, 255))
+    draw.text((mid_x + 54, 50), "İFRAZ SONRASI (YENİ PARSELLER)", font=make_image._font_yukle(FONT_SANS_BOLD, 15), fill=(20, 24, 30))
+
+    sx1, sy1, sx2, sy2 = mid_x + 30, 84, w - 30, h - 48
+    pw = (sx2 - sx1 - 40) // 2
+
+    # Parsel A
+    pa_x1, pa_y1, pa_x2, pa_y2 = sx1, sy1, sx1 + pw, sy2
+    draw.rectangle([(pa_x1, pa_y1), (pa_x2, pa_y2)], fill=(225, 235, 225), outline=(218, 41, 28), width=2)
+    draw.text((pa_x1 + 10, pa_y1 + 14), "PARSEL: 2", font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(20, 24, 30))
+    draw.text((pa_x1 + 10, pa_y1 + 36), "2.750 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 14), fill=(218, 41, 28))
+    draw.text((pa_x1 + 10, pa_y1 + 58), "Müstakil Tapu", font=make_image._font_yukle(FONT_SANS_MEDIUM, 12), fill=(60, 65, 75))
+
+    # Yola Terk
+    terk_x1 = pa_x2
+    terk_x2 = terk_x1 + 40
+    draw.rectangle([(terk_x1, sy1), (terk_x2, sy2)], fill=(245, 225, 225), outline=(200, 150, 150), width=1)
+    draw.text((terk_x1 + 5, sy1 + 36), "YOLA\nTERK\n500m²", font=make_image._font_yukle(FONT_MONO_BOLD, 10), fill=(185, 28, 28))
+
+    # Parsel B
+    pb_x1, pb_y1, pb_x2, pb_y2 = terk_x2, sy1, sx2, sy2
+    draw.rectangle([(pb_x1, pb_y1), (pb_x2, pb_y2)], fill=(225, 235, 225), outline=(218, 41, 28), width=2)
+    draw.text((pb_x1 + 10, pb_y1 + 14), "PARSEL: 3", font=make_image._font_yukle(FONT_MONO_BOLD, 13), fill=(20, 24, 30))
+    draw.text((pb_x1 + 10, pb_y1 + 36), "2.750 m²", font=make_image._font_yukle(FONT_MONO_BOLD, 14), fill=(218, 41, 28))
+    draw.text((pb_x1 + 10, pb_y1 + 58), "Müstakil Tapu", font=make_image._font_yukle(FONT_SANS_MEDIUM, 12), fill=(60, 65, 75))
+
+    draw.rectangle([(0, h - 34), (w - 1, h - 1)], fill=(238, 240, 234))
+    f_btm = make_image._font_yukle(FONT_MONO_BOLD, 12)
+    draw.text((20, h - 23), "ŞART: İfraz edilen her iki parselin de imar yoluna cephesi bulunması zorunludur.", font=f_btm, fill=(50, 55, 65))
+
+    return img
+
+
 def uret_sozluk_detay(
     cikti_yolu: Path,
     terim: str,
@@ -365,11 +642,13 @@ def uret_sozluk_detay(
     ornek_detay: str = "",
     uygulama_notu: str = "",
     foto_yolu: Optional[Path | str] = None,
+    maddeler: Optional[List[Any]] = None,
+    diyagram_tipi: Optional[str] = None,
     sayfa_no: str = "02 / 02",
 ) -> Path:
-    """Emlak Sözlüğü 2. Slaytı (Saha Örneği, Detaylı İnceleme veya Görsel Açıklama):
-    Ana sözlük şemasını ve Kireç Bej kurumsal dilini bozmadan, terimin sahada nasıl
-    karşılık bulduğunu somut bir hayat örneği, fotoğraf/kroki ve uyarı kutusuyla açıklar.
+    """Emlak Sözlüğü 2. Slaytı (Teknik Şema, Resmi Belge veya Saha Örneği İncelemesi):
+    Ana sözlük şemasını ve Kireç Bej kurumsal dilini bozmadan, terimi güçlendiren
+    resmi belge/şema görseli ve görsel üzerinden madde madde anlatımla açıklar.
     """
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_KIREC_BEJ)
     canvas = make_image._filigran_uygula(canvas, acik_zemin=True)
@@ -411,86 +690,174 @@ def uret_sozluk_detay(
     curr_y += 34
 
     # Başlık: Ornek baslik
-    baslik_res = _sigdir(ornek_baslik or "SAHADAN UYGULAMA ÖRNEĞİ", FONT_FRAUNCES, range(54, 36, -2), kullanilabilir_w, 140, 1.18, azami_satir=2)
+    baslik_res = _sigdir(ornek_baslik or "SAHADAN UYGULAMA ÖRNEĞİ", FONT_FRAUNCES, range(48, 34, -2), kullanilabilir_w, 120, 1.18, azami_satir=2)
     if baslik_res:
         f_b, b_satirlar, b_lh, _ = baslik_res
         for s in b_satirlar:
             draw.text((kenar, curr_y), s, font=f_b, fill=RENK_MUREKKEP)
             curr_y += b_lh
-    curr_y += 18
+    curr_y += 14
     draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_KIREC_BORDER, width=2)
-    curr_y += 28
+    curr_y += 22
 
     # Alt Kutu Ölçümü: Uygulama Notu
     h_kutu = 0
     kutu_y = alt_y
-    f_not = make_image._font_yukle(FONT_SANS_MEDIUM, 26)
+    f_not = make_image._font_yukle(FONT_SANS_MEDIUM, 23)
     not_satirlar = []
-    not_lh = 36
+    not_lh = 33
     if uygulama_notu:
-        for p in (28, 26, 24):
+        for p in (25, 23, 21):
             f_cand = make_image._font_yukle(FONT_SANS_MEDIUM, p)
             sats = _girintili_sar(uygulama_notu, f_cand, kullanilabilir_w - 56)
-            lh = int(p * 1.36)
-            if len(sats) * lh <= 160:
+            lh = int(p * 1.34)
+            if len(sats) * lh <= 140:
                 f_not = f_cand
                 not_satirlar = sats
                 not_lh = lh
                 break
         if not_satirlar:
-            h_kutu = 52 + len(not_satirlar) * not_lh + 20
-            kutu_y = alt_y - 24 - h_kutu
+            h_kutu = 46 + len(not_satirlar) * not_lh + 18
+            kutu_y = alt_y - 20 - h_kutu
 
-    # Orta Alan: Fotoğraf veya Büyük Örnek Metni
-    orta_alt = (kutu_y - 28) if h_kutu else (alt_y - 36)
-    kalan_orta_h = max(100, orta_alt - curr_y)
+    # Görsel / Diyagram Belirleme
+    gorsel_img: Optional[Image.Image] = None
+    callout_maddeleri: List[Dict[str, str]] = []
 
-    foto_cizildi = False
     if foto_yolu:
         try:
             foto_ham = Image.open(str(foto_yolu)).convert("RGB")
-            foto_hedef_h = min(340, max(240, int(kalan_orta_h * 0.50)))
-            foto_oran = max(kullanilabilir_w / foto_ham.width, foto_hedef_h / foto_ham.height)
-            fw, fh = int(foto_ham.width * foto_oran), int(foto_ham.height * foto_oran)
+            hedef_h = 330
+            oran = max(kullanilabilir_w / foto_ham.width, hedef_h / foto_ham.height)
+            fw, fh = int(foto_ham.width * oran), int(foto_ham.height * oran)
             foto_res = foto_ham.resize((fw, fh), Image.Resampling.LANCZOS)
-            x_kirp = (fw - kullanilabilir_w) // 2
-            y_kirp = (fh - foto_hedef_h) // 2
-            foto_crop = foto_res.crop((x_kirp, y_kirp, x_kirp + kullanilabilir_w, y_kirp + foto_hedef_h))
-
-            mask = Image.new("L", (kullanilabilir_w, foto_hedef_h), 0)
-            mdraw = ImageDraw.Draw(mask)
-            mdraw.rounded_rectangle([(0, 0), (kullanilabilir_w, foto_hedef_h)], radius=14, fill=255)
-            canvas.paste(foto_crop, (kenar, curr_y), mask)
-            draw.rounded_rectangle([(kenar, curr_y), (kenar + kullanilabilir_w, curr_y + foto_hedef_h)], radius=14, outline=RENK_KIREC_BORDER, width=2)
-            curr_y += foto_hedef_h + 24
-            kalan_orta_h = max(80, orta_alt - curr_y)
-            foto_cizildi = True
+            x_k = (fw - kullanilabilir_w) // 2
+            y_k = (fh - hedef_h) // 2
+            gorsel_img = foto_res.crop((x_k, y_k, x_k + kullanilabilir_w, y_k + hedef_h))
         except Exception as fe:
             log.warning("Sözlük detay fotoğrafı açılamadı: %s", fe)
+    else:
+        # Dahili teknik diyagram seçimi
+        d_tip = (diyagram_tipi or "").lower()
+        t_up = make_image._temizle_tipografi(terim.upper())
+        if not d_tip:
+            if any(k in t_up for k in ("İMAR ÇAPI", "İMAR DURUM", "ÇAP", "GABARİ", "HMAX")):
+                d_tip = "imar_capi"
+            elif any(k in t_up for k in ("ŞERH", "TAKYİDAT", "BEYAN", "HACİZ", "AİLE KONUTU", "İPOTEK")):
+                d_tip = "tapu_serh"
+            elif any(k in t_up for k in ("TAKS", "KAKS", "EMSAL", "TABAN ALANI")):
+                d_tip = "taks_kaks"
+            elif any(k in t_up for k in ("İFRAZ", "TEVHİD", "PARSELASYON", "AYIRMA", "BİRLEŞTİRME")):
+                d_tip = "ifraz_tevhid"
 
-    # Örnek Detay Metni
-    detay_txt = ornek_detay or ""
-    if detay_txt:
-        sol_pay = 28
-        metin_w = kullanilabilir_w - sol_pay
-        puntolar = range(36, 26, -2) if foto_cizildi else range(42, 28, -2)
-        detay_res = _sigdir(detay_txt, FONT_SANS_MEDIUM, puntolar, metin_w, kalan_orta_h, 1.38)
-        if detay_res:
-            f_d, d_satirlar, d_lh, _ = detay_res
-            blok_h = len(d_satirlar) * d_lh
-            dy = curr_y + max(0, (kalan_orta_h - blok_h) // 2)
-            draw.line([(kenar + 6, dy + 4), (kenar + 6, dy + blok_h - 4)], fill=RENK_LOGO_KIRMIZI, width=4)
-            for s in d_satirlar:
-                draw.text((kenar + sol_pay, dy), s, font=f_d, fill=RENK_MUREKKEP)
-                dy += d_lh
+        if d_tip == "imar_capi":
+            gorsel_img = ciz_diyagram_imar_capi(kullanilabilir_w, 330)
+            if not maddeler:
+                callout_maddeleri = [
+                    {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Parselde zemin oturumunun azami sınırıdır (1.000 m² x 0.20 = 200 m²)."},
+                    {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "Katlar toplamında yapılabilecek toplam inşaat alanıdır (400 m²)."},
+                    {"no": "3", "baslik": "ÇEKME MESAFELERİ:", "aciklama": "Yoldan 5m, komşu sınırdan 3m bırakılacak zorunlu yeşil mesafedir."},
+                    {"no": "4", "baslik": "GABARİ (Hmax):", "aciklama": "Saçak seviyesine kadar izin verilen bina tavan yüksekliğidir (6.50m = 2 Kat)."}
+                ]
+        elif d_tip == "tapu_serh":
+            gorsel_img = ciz_diyagram_tapu_serh(kullanilabilir_w, 330)
+            if not maddeler:
+                callout_maddeleri = [
+                    {"no": "1", "baslik": "HACİZ ŞERHİ:", "aciklama": "Mülkün icraen satışına yol açabilir; borç kapanmadan tapu devri yapılamaz."},
+                    {"no": "2", "baslik": "AİLE KONUTU:", "aciklama": "Malik tek başına satamaz; eşin noter/resmi muvafakati yasal şarttır."},
+                    {"no": "3", "baslik": "ÖNALIM SÖZLEŞMESİ:", "aciklama": "Satış durumunda hak sahibine aynı bedelle satın alma hakkı tanır."}
+                ]
+        elif d_tip == "taks_kaks":
+            gorsel_img = ciz_diyagram_taks_kaks(kullanilabilir_w, 330)
+            if not maddeler:
+                callout_maddeleri = [
+                    {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Arsanın yüzde kaçına temel atabileceğinizi gösterir (Örn: %30 = 300 m²)."},
+                    {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "Parsel üzerine toplamda kaç metrekare kapalı inşaat yapılabileceğini belirler."},
+                    {"no": "3", "baslik": "AYKIRILIK RİSKİ:", "aciklama": "Emsal aşımı kaçak yapı sayılır; yapı kullanım izin belgesine (iskan) engeldir."}
+                ]
+        elif d_tip == "ifraz_tevhid":
+            gorsel_img = ciz_diyagram_ifraz_tevhid(kullanilabilir_w, 330)
+            if not maddeler:
+                callout_maddeleri = [
+                    {"no": "1", "baslik": "KÖK PARSEL:", "aciklama": "Bölünmeden önceki tek tapulu ana gayrimenkul alanıdır."},
+                    {"no": "2", "baslik": "YENİ PARSELLER:", "aciklama": "İfrazla oluşan her bir bağımsız parsel ayrı müstakil tapuya kavuşur."},
+                    {"no": "3", "baslik": "YOLA CEPHE:", "aciklama": "İfraz edilen her parselin imar yoluna en az yönetmelikteki cephesi olmalıdır."}
+                ]
+
+    # Dışarıdan maddeler geldiyse dönüştür
+    if maddeler:
+        callout_maddeleri = []
+        for idx, m in enumerate(maddeler):
+            if isinstance(m, dict):
+                callout_maddeleri.append({
+                    "no": str(m.get("no", idx + 1)),
+                    "baslik": str(m.get("baslik", "")),
+                    "aciklama": str(m.get("aciklama", m.get("metin", "")))
+                })
+            else:
+                s_m = str(m)
+                b_part, _, a_part = s_m.partition(":")
+                callout_maddeleri.append({
+                    "no": str(idx + 1),
+                    "baslik": (b_part.strip() + ":") if a_part else "",
+                    "aciklama": a_part.strip() if a_part else b_part.strip()
+                })
+
+    # Görsel Varsa Çiz
+    if gorsel_img:
+        canvas.paste(gorsel_img, (kenar, curr_y))
+        draw.rectangle([(kenar, curr_y), (kenar + gorsel_img.width, curr_y + gorsel_img.height)], outline=RENK_KIREC_BORDER, width=2)
+        curr_y += gorsel_img.height + 22
+
+    # Maddeler veya Metin Çizimi
+    if callout_maddeleri:
+        kalan_madde_h = kutu_y - 14 - curr_y
+        satir_sayisi = len(callout_maddeleri)
+        aralik = min(66, max(48, kalan_madde_h // satir_sayisi))
+
+        f_num = make_image._font_yukle(FONT_SANS_BOLD, 14)
+        f_mb = make_image._font_yukle(FONT_SANS_BOLD, 21)
+        f_mt = make_image._font_yukle(FONT_SANS_MEDIUM, 20)
+
+        for i, m in enumerate(callout_maddeleri):
+            my = curr_y + (i * aralik)
+            no_str = str(m.get("no", i + 1))
+            draw.ellipse([(kenar, my + 2), (kenar + 26, my + 28)], fill=RENK_LOGO_KIRMIZI)
+            draw.text((kenar + (9 if len(no_str) == 1 else 5), my + 5), no_str, font=f_num, fill=RENK_BEYAZ)
+
+            b_txt = m.get("baslik", "")
+            a_txt = m.get("aciklama", "")
+            tx = kenar + 36
+            if b_txt:
+                draw.text((tx, my + 2), b_txt, font=f_mb, fill=RENK_MUREKKEP)
+                bw = draw.textbbox((0, 0), b_txt + " ", font=f_mb)[2]
+                draw.text((tx + bw, my + 3), a_txt, font=f_mt, fill=RENK_KURSUN)
+            else:
+                draw.text((tx, my + 2), a_txt, font=f_mt, fill=RENK_MUREKKEP)
+    else:
+        detay_txt = ornek_detay or ""
+        if detay_txt:
+            kalan_orta_h = max(80, kutu_y - 20 - curr_y)
+            sol_pay = 28
+            metin_w = kullanilabilir_w - sol_pay
+            puntolar = range(34, 24, -2) if gorsel_img else range(42, 28, -2)
+            detay_res = _sigdir(detay_txt, FONT_SANS_MEDIUM, puntolar, metin_w, kalan_orta_h, 1.38)
+            if detay_res:
+                f_d, d_satirlar, d_lh, _ = detay_res
+                blok_h = len(d_satirlar) * d_lh
+                dy = curr_y + max(0, (kalan_orta_h - blok_h) // 2)
+                draw.line([(kenar + 6, dy + 4), (kenar + 6, dy + blok_h - 4)], fill=RENK_LOGO_KIRMIZI, width=4)
+                for s in d_satirlar:
+                    draw.text((kenar + sol_pay, dy), s, font=f_d, fill=RENK_MUREKKEP)
+                    dy += d_lh
 
     # Alt Kutu Çizimi
     if h_kutu and not_satirlar:
         draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
         draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
-        f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
-        draw.text((kenar + 28, kutu_y + 18), "DİKKAT EDİLECEK AYRINTI:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
-        py = kutu_y + 52
+        f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 18)
+        draw.text((kenar + 28, kutu_y + 16), "DİKKAT EDİLECEK AYRINTI:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
+        py = kutu_y + 46
         for s in not_satirlar:
             draw.text((kenar + 28, py), s, font=f_not, fill=RENK_BEYAZ)
             py += not_lh
@@ -499,6 +866,7 @@ def uret_sozluk_detay(
     canvas.save(cikti_yolu, "JPEG", quality=95)
     log.info("Sözlük detay slaytı üretildi: %s", cikti_yolu.name)
     return cikti_yolu
+
 
 
 # =============================================================================
@@ -1275,11 +1643,13 @@ def slaytlari_uret(
         if not maddeler:
             maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
 
-        # 2. Sayfa var mı? (ornek, ornek_metin, detay, foto_yolu, ornek_olay)
+        # 2. Sayfa var mı? (ornek, ornek_metin, detay, foto_yolu, ornek_olay, anlatim_maddeleri, diyagram_tipi)
         ornek = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
                           veri.get("ornek_olay"), veri.get("detay"))
         foto = veri.get("foto_yolu") or veri.get("gorsel_yolu") or veri.get("foto_url")
-        iki_sayfa = bool(ornek or foto or veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
+        anlatim_maddeleri = veri.get("anlatim_maddeleri") or veri.get("ornek_maddeleri") or veri.get("detay_maddeleri")
+        diyagram = veri.get("diyagram_tipi") or veri.get("sema_tipi")
+        iki_sayfa = bool(ornek or foto or anlatim_maddeleri or diyagram or veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
 
         if iki_sayfa:
             toplam = 2
@@ -1288,8 +1658,18 @@ def slaytlari_uret(
             uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam))
             ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA ÖRNEĞİ")
             uygulama_notu = _ilk_dolu(veri.get("uygulama_notu"), veri.get("dikkat_notu"), (maddeler[0] if maddeler else ""))
-            uret_sozluk_detay(p2, terim=terim, kategori=kategori, ornek_baslik=ornek_baslik,
-                              ornek_detay=ornek or tanim, uygulama_notu=uygulama_notu, foto_yolu=foto, sayfa_no=_sayfa(2, toplam))
+            uret_sozluk_detay(
+                p2,
+                terim=terim,
+                kategori=kategori,
+                ornek_baslik=ornek_baslik,
+                ornek_detay=ornek or tanim,
+                uygulama_notu=uygulama_notu,
+                foto_yolu=foto,
+                maddeler=anlatim_maddeleri,
+                diyagram_tipi=diyagram,
+                sayfa_no=_sayfa(2, toplam),
+            )
             log.info("Format üretildi (SÖZLÜK, 2 slayt): %s, %s", p1, p2)
             return [p1, p2]
 
