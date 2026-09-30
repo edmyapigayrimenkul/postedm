@@ -168,9 +168,14 @@ def ciz_01_luks_kartvizit(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yo
 
     # Havada Süzülen Lüks Kartvizit
     kart_w = GEN - (2 * KENAR)
-    kart_h = 380
     kart_x = KENAR
-    kart_y = yer["alt"] - kart_h - 40
+    if YUK >= 1700:
+        kart_h = 420
+        kalan = (yer["alt_bar"] - 30) - (y + 42)
+        kart_y = (y + 42) + max(30, (kalan - kart_h) // 2)
+    else:
+        kart_h = 380
+        kart_y = yer["alt"] - kart_h - 40
 
     golge_katman = Image.new("RGBA", (GEN, YUK), (0, 0, 0, 0))
     g_draw = ImageDraw.Draw(golge_katman)
@@ -196,12 +201,13 @@ def ciz_01_luks_kartvizit(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yo
 
     qr = _qr_uret(b["qr_link"], 164)
     qr_x = kart_x + kart_w - 44 - 164
-    qr_y = kart_y + 115
+    qr_y = kart_y + (130 if YUK >= 1700 else 115)
     canvas.paste(qr, (qr_x, qr_y))
     draw.text((qr_x + 36, qr_y + 172), "OFİS KONUMU", font=_font_yukle(FONT_MONO_BOLD, 13), fill=RENK_SILIK)
 
     draw.text((KENAR, yer["alt_bar"] + 26), "EDM YAPI & GAYRİMENKUL", font=_font_yukle(FONT_MONO, 19), fill=RENK_SILIK)
-    draw.text((GEN - KENAR - 80, yer["alt_bar"] + 26), sayfa, font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI)
+    if sayfa and str(sayfa).strip():
+        draw.text((GEN - KENAR - 80, yer["alt_bar"] + 26), sayfa, font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI)
 
     yol = _cikti_belirle(cikti_yolu, "01_luks_kartvizit")
     canvas.save(yol, "JPEG", quality=95)
@@ -330,7 +336,8 @@ def ciz_03_split_screen(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu
     draw.text((qr_x + 36, qr_y + 168 + 14), "OFİS KONUMU", font=_font_yukle(FONT_MONO_BOLD, 13), fill=(180, 185, 195))
 
     draw.text((KENAR, yer["alt_bar"] + 26), "EDM YAPI & GAYRİMENKUL // DANIŞMANLIK", font=_font_yukle(FONT_MONO, 18), fill=(100, 105, 115))
-    draw.text((GEN - KENAR - 80, yer["alt_bar"] + 26), sayfa, font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI)
+    if sayfa and str(sayfa).strip():
+        draw.text((GEN - KENAR - 80, yer["alt_bar"] + 26), sayfa, font=_font_yukle(FONT_MONO_BOLD, 19), fill=RENK_KIRMIZI)
 
     yol = _cikti_belirle(cikti_yolu, "03_split_screen")
     canvas.save(yol, "JPEG", quality=95)
@@ -761,16 +768,17 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     _logo_yerlestir(canvas, beyaz=False, y=yer["kronik_ust"] - 5, lw=285, golge=True)
 
     # 2. Üst Editoryal Başlık Bloğu (ÇİZGİNİN ÜSTÜNDE)
-    y = yer["ust"] + 20
-    f_b = _font_yukle(FONT_FRAUNCES, 56)
+    y = yer["ust"] + (30 if YUK >= 1700 else 20)
+    f_b_punto = 64 if YUK >= 1700 else 56
+    f_b = _font_yukle(FONT_FRAUNCES, f_b_punto)
     max_w = GEN - (2 * KENAR)
     s1_satirlar = _metin_sar(b["s1"], f_b, max_w, draw)[:1]
     s2_satirlar = _metin_sar(b["s2"], f_b, max_w, draw)[:1]
-    draw.text((KENAR, y), s1_satirlar[0] if s1_satirlar else "", font=f_b, fill=RENK_KOYU); y += 68
-    draw.text((KENAR, y), s2_satirlar[0] if s2_satirlar else "", font=f_b, fill=RENK_KIRMIZI); y += 78
+    draw.text((KENAR, y), s1_satirlar[0] if s1_satirlar else "", font=f_b, fill=RENK_KOYU); y += int(f_b_punto * 1.2)
+    draw.text((KENAR, y), s2_satirlar[0] if s2_satirlar else "", font=f_b, fill=RENK_KIRMIZI); y += int(f_b_punto * 1.35)
 
     # Açıklama: üç satıra kadar (eskiden [:2] ile üçüncü satır sessizce atılıyordu)
-    for punto in (28, 26, 24):
+    for punto in ((30, 28, 26) if YUK >= 1700 else (28, 26, 24)):
         f_a = _font_yukle(FONT_SANS_MEDIUM, punto)
         a_satirlar = _metin_sar(b["aciklama"], f_a, max_w, draw)
         if len(a_satirlar) <= 3:
@@ -781,33 +789,30 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
         y += int(f_a.size * 1.42)
 
     # 3. EKRANIN ORTASINDAKİ YATAY ÇİZGİ
-    cizgi_y = max(y + 14, int(YUK * 0.38))
+    cizgi_y = max(y + 20, int(YUK * (0.34 if YUK >= 1700 else 0.38)))
     draw.line([(KENAR, cizgi_y), (GEN - KENAR, cizgi_y)], fill=RENK_CIZGI, width=1)
 
     # 4. KAYDET / GÖNDER / TAKİP (2026-09-25: okunur boyut)
-    # Eski düzende alt yazılar 16-17px'ti (telefonda ~6pt, okunmuyordu); alt yazı
-    # "İleride hukuki risk yaşamamak için saklayın" diye korkutuyordu ve "Sorularınızı
-    # yorumda sorun" çağrısı soru yerine kaydet/gönder kararıyla çelişiyordu.
-    y_cta = cizgi_y + 24
+    y_cta = cizgi_y + (30 if YUK >= 1700 else 24)
     toplam_w = GEN - (2 * KENAR)
-    card_h = 108
+    card_h = 118 if YUK >= 1700 else 108
 
     draw.rounded_rectangle([(KENAR, y_cta), (KENAR + toplam_w, y_cta + card_h)], radius=16, fill=(255, 255, 255), outline=RENK_CIZGI, width=1)
     draw.rounded_rectangle([(KENAR, y_cta), (KENAR + 6, y_cta + card_h)], radius=3, fill=RENK_KIRMIZI)
-    ik_sz = 40
+    ik_sz = 44 if YUK >= 1700 else 40
     try:
         ik = _vektor_ikon_uret("bookmark", ik_sz, RENK_KIRMIZI)
         canvas.paste(ik, (KENAR + 26, y_cta + (card_h - ik_sz) // 2), ik)
     except Exception as e:
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     tx = KENAR + 26 + ik_sz + 20
-    draw.text((tx, y_cta + 20), "BU REHBERİ KAYDEDİN", font=_font_yukle(FONT_SANS_BOLD, 28), fill=RENK_KOYU)
-    draw.text((tx, y_cta + 60), "Lazım olduğu gün elinizin altında olsun.", font=_font_yukle(FONT_SANS_MEDIUM, 24), fill=RENK_GRI_METIN)
+    draw.text((tx, y_cta + 22), "BU REHBERİ KAYDEDİN", font=_font_yukle(FONT_SANS_BOLD, 30 if YUK >= 1700 else 28), fill=RENK_KOYU)
+    draw.text((tx, y_cta + 66), "Lazım olduğu gün elinizin altında olsun.", font=_font_yukle(FONT_SANS_MEDIUM, 24), fill=RENK_GRI_METIN)
 
     gap = 16
     pill_w = (toplam_w - gap) // 2
-    pill_h = 62
-    py = y_cta + card_h + 14
+    pill_h = 68 if YUK >= 1700 else 62
+    py = y_cta + card_h + (18 if YUK >= 1700 else 14)
     f_rp = _font_yukle(FONT_SANS_BOLD, 24)
     ik_sz_r = 26
     for i, (ic_name, text) in enumerate((("share", "Bir tanıdığınıza gönderin"), ("follow", "Takip edin"))):
@@ -820,8 +825,14 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
             log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
         draw.text((rx + 18 + ik_sz_r + 14, py + (pill_h - 30) // 2), text, font=f_rp, fill=RENK_KOYU)
 
-    # 5. ALTA DAYALI (DOCKED TO BOTTOM) İLETİŞİM BLOĞU
-    by = yer["alt"] - 380   # 24px adres ve 22px not için 30px yukarı
+    # 5. ALTA DAYALI İLETİŞİM BLOĞU (9:16'da dikey optik dengeleme)
+    cta_bitis = py + pill_h
+    blok_h = 360
+    if YUK >= 1700:
+        kalan = (yer["alt"] - 60 - blok_h) - cta_bitis
+        by = cta_bitis + max(40, kalan // 2)
+    else:
+        by = yer["alt"] - 380
 
     # 5A. METİN ÖZDOĞAN (42px Bold) & Kurucu Danışman
     draw.text((KENAR, by), b["isim"], font=_font_yukle(FONT_SANS_BOLD, 42), fill=RENK_KOYU); by += 50
@@ -920,8 +931,9 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     # Sorumluluk notu okunur boyutta: 16px'te telefonda seçilmiyordu
     f_not = _font_yukle(FONT_SANS_MEDIUM, 22)
     draw.text((KENAR, yer["alt"] - 30), "Genel bilgilendirmedir; bağlayıcı hukuki görüş için avukatınıza danışın.", font=f_not, fill=RENK_GRI_METIN)
-    sf = _font_yukle(FONT_MONO_BOLD, 19)
-    draw.text((GEN - KENAR - draw.textbbox((0, 0), sayfa, font=sf)[2], yer["alt_bar"] + 26), sayfa, font=sf, fill=RENK_KIRMIZI)
+    if sayfa and str(sayfa).strip():
+        sf = _font_yukle(FONT_MONO_BOLD, 19)
+        draw.text((GEN - KENAR - draw.textbbox((0, 0), sayfa, font=sf)[2], yer["alt_bar"] + 26), sayfa, font=sf, fill=RENK_KIRMIZI)
 
     yol = _cikti_belirle(cikti_yolu, "11_editoryal")
     canvas.save(yol, "JPEG", quality=95)

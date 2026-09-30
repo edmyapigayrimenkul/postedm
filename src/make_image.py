@@ -1620,9 +1620,9 @@ def _yerlesim() -> Dict[str, int]:
     9:16 dikey story hem de 16:9 yatay üretmesini sağlıyor.
     """
     if YUKSEKLIK >= 1700:
-        # 9:16 Dikey — üstte profil başlığı, altta yanıt çubuğu ve eylem butonları var.
+        # 9:16 Dikey — üstte rozet/logo (y=130), altta eylem butonları güvenli alanı (1760).
         kenar = max(48, round(GENISLIK * 0.072))
-        kronik_ust, ust, icerik_alt_payi, bar_payi = 180, 380, 340, 300
+        kronik_ust, ust, icerik_alt_payi, bar_payi = 130, 260, 200, 160
     elif GENISLIK > YUKSEKLIK:
         # 16:9 Yatay (1920x1080) — ferah genişlik, daha alçak yükseklik
         kenar = max(60, round(GENISLIK * 0.055))
@@ -1641,7 +1641,7 @@ def _yerlesim() -> Dict[str, int]:
         "alt": icerik_alt,
         "alt_bar": alt_bar,
         # Kapak manşeti ve tek fikirli slaytların ortak taban çizgisi
-        "taban": icerik_alt - 95,
+        "taban": icerik_alt - (40 if YUKSEKLIK >= 1700 else 95),
     }
 
 
@@ -1702,9 +1702,10 @@ def _slayt_cercevesi(
     draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=p["cizgi"], width=1)
     draw.text((kenar, alt_y + 26), _temizle_tipografi(alt_metin),
               font=_font_yukle(FONT_MONO, 19), fill=p["silik"])
-    sf = _font_yukle(FONT_MONO_BOLD, 19)
-    sw = draw.textbbox((0, 0), sayfa, font=sf)[2]
-    draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa, font=sf, fill=p["vurgu"])
+    if sayfa and str(sayfa).strip():
+        sf = _font_yukle(FONT_MONO_BOLD, 19)
+        sw = draw.textbbox((0, 0), sayfa, font=sf)[2]
+        draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa, font=sf, fill=p["vurgu"])
 
     return canvas, draw, p
 
@@ -1833,10 +1834,16 @@ def slayt_tek_fikir(
     kenar = yer["kenar"]
     genislik = GENISLIK - (2 * kenar) - (40 if vurgu_cizgili else 0)
 
+    baslik_punto = 74 if YUKSEKLIK >= 1700 else 66
+    govde_punto = 42 if YUKSEKLIK >= 1700 else 40
     olcu = _fikir_blogu_olc(draw, etiket, baslik, govde, genislik,
-                            baslik_punto=66, govde_punto=40)
+                            baslik_punto=baslik_punto, govde_punto=govde_punto)
     olcu = _blogu_sigdir(olcu, yer["alt"] - yer["ust"])
-    y = max(yer["ust"], yer["taban"] - olcu["h"])
+    if YUKSEKLIK >= 1700:
+        alan = yer["alt"] - yer["ust"]
+        y = yer["ust"] + max(0, (alan - olcu["h"]) // 2 - (OPTIK_KALDIRMA + 20))
+    else:
+        y = max(yer["ust"], yer["taban"] - olcu["h"])
 
     _fikir_blogu_ciz(canvas, draw, olcu, kenar, y, p,
                      vurgu_cizgisi=p["vurgu"] if vurgu_cizgili else None,
@@ -1941,11 +1948,17 @@ def slayt_adim(
     not_metni = _temizle_tipografi(str(onemli_not or "")).strip()
     ek_alan = 150 if not_metni else 0
 
-    olcu = _fikir_blogu_olc(draw, "", baslik, govde, genislik, baslik_punto=64, govde_punto=40)
+    baslik_punto = 70 if YUKSEKLIK >= 1700 else 64
+    govde_punto = 42 if YUKSEKLIK >= 1700 else 40
+    olcu = _fikir_blogu_olc(draw, "", baslik, govde, genislik, baslik_punto=baslik_punto, govde_punto=govde_punto)
     n_yuk = 150
     olcu = _blogu_sigdir(olcu, yer["alt"] - yer["ust"] - n_yuk - 26 - ek_alan)
     toplam = n_yuk + 26 + olcu["h"] + ek_alan
-    y = max(yer["ust"], yer["taban"] - toplam)
+    if YUKSEKLIK >= 1700:
+        alan = yer["alt"] - yer["ust"]
+        y = yer["ust"] + max(0, (alan - toplam) // 2 - OPTIK_KALDIRMA)
+    else:
+        y = max(yer["ust"], yer["taban"] - toplam)
 
     draw.text((kenar, y - 30), no_gosterim, font=n_font, fill=p["vurgu"])
     kf = _font_yukle(FONT_MONO_BOLD, 20)
@@ -2030,13 +2043,13 @@ def slayt_adimlar_toplu(
 
 def _sayfa_etiketi(veri: Dict[str, Any], sira: int) -> str:
     """Slayt sayacını gerçek slayt sayısından üretir.
-    Dikey video (Reels/Shorts/Story) formatında 'KAYDIRIN' yazılmaz; yalnızca sayaç yazılır.
+    Dikey video (Reels/Shorts/Story) formatında 'KAYDIRIN' veya sayaç yazılmaz.
     """
+    olcu = str(veri.get("olcu") or "").lower()
+    if YUKSEKLIK >= 1700 or olcu in ("story", "reels", "shorts", "dikey") or veri.get("_video_modu"):
+        return ""
     toplam = veri.get("_toplam_slayt") or 4
     etiket = f"{str(sira).zfill(2)} / {str(toplam).zfill(2)}"
-    olcu = str(veri.get("olcu") or "").lower()
-    if YUKSEKLIK == 1920 or olcu in ("story", "reels", "shorts", "dikey") or veri.get("_video_modu"):
-        return etiket
     return etiket if sira >= toplam else f"{etiket}  ›  KAYDIRIN"
 
 
@@ -2169,7 +2182,7 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         raise TasmaHatasi("Kapak manşeti ve spot üst rozete dayanıyor")
 
     # 5. Dinamik Karartma Perdesi
-    serit_basi = max(180, by - 140)
+    serit_basi = max(180, by - (160 if YUKSEKLIK >= 1700 else 140))
     serit_tam = by + 220
     PANEL_ALFA = 185
 
@@ -2177,20 +2190,22 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     p_draw = ImageDraw.Draw(perde)
 
     # Üst hafif vignette (doğal atmosfer, gökyüzünü karartmadan logo ve rozeti öne çıkarır)
-    for y in range(200):
-        alfa = int(75 * ((200 - y) / 200) ** 1.8)
+    vignette_h = 240 if YUKSEKLIK >= 1700 else 200
+    for y in range(vignette_h):
+        alfa = int(75 * ((vignette_h - y) / vignette_h) ** 1.8)
         p_draw.line([(0, y), (GENISLIK, y)], fill=(8, 10, 14, alfa))
 
     # Alt derin karartma (manşet ve spot metinlerinin okunabilirliği için)
+    azami_alfa = 240 if YUKSEKLIK >= 1700 else 252
     for y in range(serit_basi, YUKSEKLIK):
         if y < by:
             oran = (y - serit_basi) / max(1, by - serit_basi)
             alfa = int(PANEL_ALFA * (oran ** 1.15))
         elif y < serit_tam:
             oran = (y - by) / max(1, serit_tam - by)
-            alfa = int(PANEL_ALFA + (252 - PANEL_ALFA) * (oran ** 0.85))
+            alfa = int(PANEL_ALFA + (azami_alfa - PANEL_ALFA) * (oran ** 0.85))
         else:
-            alfa = 252
+            alfa = azami_alfa
         p_draw.line([(0, y), (GENISLIK, y)], fill=(10, 12, 16, min(alfa, 255)))
 
     c_rgba = canvas.convert("RGBA")
@@ -2258,8 +2273,9 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     draw.line([(kenar_bosluk, alt_y), (GENISLIK - kenar_bosluk, alt_y)], fill=(55, 62, 75), width=1)
     draw.text((kenar_bosluk, alt_y + 22), "EDM YAPI & GAYRİMENKUL // BÜLTEN", font=_font_yukle(FONT_MONO_BOLD, 21), fill=RENK_KURSUN)
     kapak_etiket = _sayfa_etiketi(veri, 1)
-    ke_w = draw.textbbox((0, 0), kapak_etiket, font=_font_yukle(FONT_MONO_BOLD, 18))[2]
-    _rozet_ciz(draw, GENISLIK - kenar_bosluk - ke_w - 38, alt_y + 12, kapak_etiket, bg_color=RENK_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=18)
+    if kapak_etiket and str(kapak_etiket).strip():
+        ke_w = draw.textbbox((0, 0), kapak_etiket, font=_font_yukle(FONT_MONO_BOLD, 18))[2]
+        _rozet_ciz(draw, GENISLIK - kenar_bosluk - ke_w - 38, alt_y + 12, kapak_etiket, bg_color=RENK_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=18)
 
     if cikti_yolu is None:
         cikti_yolu = config.yol_al(f"data/output/otorite_01_kapak_{os.getpid()}.jpg")
@@ -3126,9 +3142,12 @@ def _gonderi_slaytlarini_ciz(veri: Dict[str, Any], cikti_onek: Optional[str]) ->
 
     yollar: List[Path] = []
     for i, adim in enumerate(plan, start=1):
-        sayfa = f"{str(i).zfill(2)} / {str(toplam).zfill(2)}"
-        if i < toplam and YUKSEKLIK != 1920 and GENISLIK != 1920:
-            sayfa += "  ›"
+        if YUKSEKLIK >= 1700 or veri.get("_video_modu"):
+            sayfa = ""
+        else:
+            sayfa = f"{str(i).zfill(2)} / {str(toplam).zfill(2)}"
+            if i < toplam and YUKSEKLIK != 1920 and GENISLIK != 1920:
+                sayfa += "  ›"
         yol = config.yol_al(f"data/output/{onek}_{str(i).zfill(2)}_{adim['tur']}.jpg")
         tur = adim["tur"]
 
@@ -3173,7 +3192,7 @@ def _gonderi_slaytlarini_ciz(veri: Dict[str, Any], cikti_onek: Optional[str]) ->
 
         elif tur == "kapanis":
             veri["_toplam_slayt"] = toplam
-            yollar.append(slayt_kapanis(veri, f"{str(i).zfill(2)} / {str(toplam).zfill(2)}", yol))
+            yollar.append(slayt_kapanis(veri, sayfa, yol))
 
     return yollar
 

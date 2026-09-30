@@ -647,7 +647,9 @@ def main() -> None:
                         if uretim:
                             dikey_slaytlar = [str(uretim[0]), str(uretim[1]), str(uretim[-1])] if len(uretim) > 3 else [str(p) for p in uretim]
                     elif detay.get("bicim") in ("B1", "B2", "B3", "B4") or not fmt or fmt == "otorite":
-                        uretim = make_image.otorite_gonderi_slaytlari_uret(detay, cikti_onek=f"reels_{ref_id}", olcu="story")
+                        detay_reels = dict(detay)
+                        detay_reels["_video_modu"] = True
+                        uretim = make_image.otorite_gonderi_slaytlari_uret(detay_reels, cikti_onek=f"reels_{ref_id}", olcu="story")
                         if uretim:
                             # 3 kilit slayt: Kapak + Özet/Detay + Kapanış CTA (Asla 7 slayt boca edilmez)
                             dikey_slaytlar = [str(uretim[0]), str(uretim[1]), str(uretim[-1])] if len(uretim) > 3 else [str(p) for p in uretim]
