@@ -1092,10 +1092,7 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
             "'terim': (SADECE 1-3 KELİMELİK TEKNİK EMLAK/İMAR/TAPU TERİMİ - Örn: 'İMAR ÇAPI', 'GABARİ', 'TAKS / KAKS', 'İFRAZ VE TEVHİD', 'TAPUDA ŞERH', 'İNTİFA HAKKI'. KESİNLİKLE vaka, haber başlığı, olay veya şehir ismi içeren cümle YAZMA; burası bir sözlüktür!), "
             "'tanim_metni': (Terimin gayrimenkul ve tapu pratiğinde ne anlama geldiğini ve taraflara etkisini 2-3 cümleyle açıklayan metin, en fazla %(tanim)d karakter), "
             "'puf_maddeleri': [(Bilinmesi gereken 2-3 somut kural; her biri tek cümle, en fazla %(puf_madde)d karakter)] alanlarını MUTLAKA doldur. "
-            "Eğer terim teknik bir plan, belge veya şema üzerinden anlatılmaya uygunsa (örn: İmar Çapı, Tapu Şerhi, TAKS/KAKS, İfraz): "
-            "'iki_sayfa': true, 'ornek_baslik': 'RESMİ BELGE / ŞEMA NASIL OKUNUR?', "
-            "'anlatim_maddeleri': [{'no': '1', 'baslik': 'Madde Başlığı', 'aciklama': 'Görsel üzerindeki öğenin kısa somut açıklaması'}], "
-            "'uygulama_notu': 'Vatandaşın veya yatırımcının sahada dikkat etmesi gereken kritik ayrıntı' alanlarını ekle."
+            "Sözlük tek karedir; başka bir slayt veya alan ekleme."
         ) % BUTCE
     elif format_turu in ("vaka", "emsal_karar"):
         girdi += (

@@ -747,79 +747,47 @@ def uret_sozluk_detay(
             h_kutu = 46 + len(not_satirlar) * not_lh + 18
             kutu_y = alt_y - 20 - h_kutu
 
-    # Görsel / Gerçek Belge / Diyagram Belirleme
-    gorsel_img: Optional[Image.Image] = None
+    # 2. Sayfada resim/çizim/belge KESİNLİKLE yer almaz (kullanıcı direktifi: "2. sayfalarda resim olmasın")
     callout_maddeleri: List[Dict[str, str]] = []
-    hedef_h = 350
-    belgeler_dizini = config.yol_al("assets/belgeler")
-
-    secilen_foto = foto_yolu
     d_tip = (diyagram_tipi or "").lower()
     t_up = make_image._temizle_tipografi(terim.upper())
 
-    if not secilen_foto:
-        if not d_tip:
-            if any(k in t_up for k in ("İMAR ÇAPI", "İMAR DURUM", "ÇAP", "GABARİ", "HMAX")):
-                d_tip = "imar_capi"
-            elif any(k in t_up for k in ("ŞERH", "TAKYİDAT", "BEYAN", "HACİZ", "AİLE KONUTU", "İPOTEK")):
-                d_tip = "tapu_serh"
-            elif any(k in t_up for k in ("TAKS", "KAKS", "EMSAL", "TABAN ALANI", "RUHSAT")):
-                d_tip = "taks_kaks"
-            elif any(k in t_up for k in ("İFRAZ", "TEVHİD", "PARSELASYON", "AYIRMA", "BİRLEŞTİRME")):
-                d_tip = "ifraz_tevhid"
-
-        # Gerçek arşivlenmiş resmi belge önceliği
-        if d_tip == "imar_capi" and (belgeler_dizini / "ornek_imar_durumu.jpg").exists():
-            secilen_foto = belgeler_dizini / "ornek_imar_durumu.jpg"
-        elif d_tip == "tapu_serh" and (belgeler_dizini / "ornek_tapu_serh.jpg").exists():
-            secilen_foto = belgeler_dizini / "ornek_tapu_serh.jpg"
-        elif d_tip == "taks_kaks" and (belgeler_dizini / "ornek_mimari_ruhsat.jpg").exists():
-            secilen_foto = belgeler_dizini / "ornek_mimari_ruhsat.jpg"
-
-    if secilen_foto:
-        try:
-            foto_ham = Image.open(str(secilen_foto)).convert("RGB")
-            gorsel_img = _belge_yerlestir(foto_ham, kullanilabilir_w, hedef_h)
-        except Exception as fe:
-            log.warning("Sözlük detay fotoğrafı açılamadı: %s", fe)
-
-    # Eğer gerçek belge yoksa çizim fonksiyonlarına fallback yap
-    if gorsel_img is None and d_tip:
-        if d_tip == "imar_capi":
-            gorsel_img = ciz_diyagram_imar_capi(kullanilabilir_w, hedef_h)
-        elif d_tip == "tapu_serh":
-            gorsel_img = ciz_diyagram_tapu_serh(kullanilabilir_w, hedef_h)
-        elif d_tip == "taks_kaks":
-            gorsel_img = ciz_diyagram_taks_kaks(kullanilabilir_w, hedef_h)
-        elif d_tip == "ifraz_tevhid":
-            gorsel_img = ciz_diyagram_ifraz_tevhid(kullanilabilir_w, hedef_h)
+    if not d_tip:
+        if any(k in t_up for k in ("İMAR ÇAPI", "İMAR DURUM", "ÇAP", "GABARİ", "HMAX")):
+            d_tip = "imar_capi"
+        elif any(k in t_up for k in ("ŞERH", "TAKYİDAT", "BEYAN", "HACİZ", "AİLE KONUTU", "İPOTEK")):
+            d_tip = "tapu_serh"
+        elif any(k in t_up for k in ("TAKS", "KAKS", "EMSAL", "TABAN ALANI", "RUHSAT")):
+            d_tip = "taks_kaks"
+        elif any(k in t_up for k in ("İFRAZ", "TEVHİD", "PARSELASYON", "AYIRMA", "BİRLEŞTİRME")):
+            d_tip = "ifraz_tevhid"
 
     # Varsayılan callout maddeleri (Eğer dışarıdan maddeler verilmediyse)
     if not maddeler:
         if d_tip == "imar_capi":
             callout_maddeleri = [
-                {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Tablodaki 0.20 katsayısı, arsa tabanında en fazla %20 oturum hakkı tanır."},
-                {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "0.40 katsayısı, binanın katlar toplamındaki azami kapalı inşaat hakkıdır."},
-                {"no": "3", "baslik": "ÇEKME MESAFELERİ:", "aciklama": "Krokideki Ön=5.0m, Yan=3.0m hatları zorunlu yeşil bahçe mesafeleridir."},
-                {"no": "4", "baslik": "RESMİ MÜHÜR & İMZA:", "aciklama": "Belediye İmar Müdürlüğü ıslak mührü bulunmayan taslaklara itibar edilmez."}
+                {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Parsel alanında binanın zemin kat taban oturumunun azami yasal sınırıdır."},
+                {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "Binanın tüm katlarındaki kapalı inşaat alanlarının arsa büyüklüğüne azami oranıdır."},
+                {"no": "3", "baslik": "ÇEKME MESAFELERİ:", "aciklama": "İmar yolundan ve komşu parsellerden bırakılması zorunlu koruma ve bahçe hatlarıdır."},
+                {"no": "4", "baslik": "RESMİ ONAY VE MÜHÜR:", "aciklama": "İlçe Belediyesi İmar Müdürlüğü ıslak mührü bulunmayan taslak belgelere itibar edilmez."}
             ]
         elif d_tip == "tapu_serh":
             callout_maddeleri = [
-                {"no": "1", "baslik": "ŞERHLER VE REHİNLER:", "aciklama": "Kırmızı çerçeveli alanda taşınmaz üzerindeki tüm yasal kısıtlamalar listelenir."},
-                {"no": "2", "baslik": "İCRA HACZİ KAYDI:", "aciklama": "Örnekteki icra haczinde borç ödenmeden veya fek edilmeden devir büyük risk taşır."},
-                {"no": "3", "baslik": "RESMİ YEVMİYE VE TARİH:", "aciklama": "Şerhin düşüldüğü tarih ve yevmiye numarası mahkemedeki hak sırasını belirler."}
+                {"no": "1", "baslik": "ŞERHLER VE REHİNLER:", "aciklama": "Taşınmazın mülkiyet ve tasarruf yetkisini kısıtlayan tüm resmi adli/idari kayıtlardır."},
+                {"no": "2", "baslik": "İCRA VE HACİZ KAYDI:", "aciklama": "Borç ödenip icra dairesinden resmi fek yazısı gelmeden tapu devri yapılamaz veya devir büyük risk taşır."},
+                {"no": "3", "baslik": "RESMİ YEVMİYE VE TARİH:", "aciklama": "Şerhin tapu kütüğüne işlendiği yevmiye numarası mahkemedeki hak ve rüçhan sırasını belirler."}
             ]
         elif d_tip == "taks_kaks":
             callout_maddeleri = [
-                {"no": "1", "baslik": "TABAN ALANI HESABI:", "aciklama": "Proje tablosundaki TAKS oranıyla binanın oturduğu zemin izdüşümü onaylanır."},
-                {"no": "2", "baslik": "KATLAR TOPLAMI (KAKS):", "aciklama": "Kesitteki 4 katın toplam inşaat alanı emsal katsayısını aşamaz."},
-                {"no": "3", "baslik": "BELEDİYE ONAY MÜHRÜ:", "aciklama": "Büyükşehir / İlçe İmar Müdürlüğü onay kaşesi olmayan proje ruhsat alamaz."}
+                {"no": "1", "baslik": "TABAN ALANI HESABI:", "aciklama": "TAKS oranı arsa alanıyla çarpılarak yapının zemine basabileceği en fazla alan bulunur."},
+                {"no": "2", "baslik": "KATLAR TOPLAMI (KAKS):", "aciklama": "Emsal katsayısı tüm normal katlardaki azami kapalı kullanım alanını tayin eder."},
+                {"no": "3", "baslik": "RUHSAT PROJE UYUMU:", "aciklama": "Onaylı mimari projede emsal dışı bırakılan alanlar mevzuat limitlerini aşamaz."}
             ]
         elif d_tip == "ifraz_tevhid":
             callout_maddeleri = [
-                {"no": "1", "baslik": "KÖK PARSEL:", "aciklama": "Bölünmeden önceki tek tapulu ana gayrimenkul alanıdır."},
+                {"no": "1", "baslik": "KÖK PARSEL:", "aciklama": "Bölünmeden önceki tek tapulu ana gayrimenkul mülkiyet alanıdır."},
                 {"no": "2", "baslik": "YENİ PARSELLER:", "aciklama": "İfrazla oluşan her bir bağımsız parsel ayrı müstakil tapuya kavuşur."},
-                {"no": "3", "baslik": "YOLA CEPHE:", "aciklama": "İfraz edilen her parselin imar yoluna en az yönetmelikteki cephesi olmalıdır."}
+                {"no": "3", "baslik": "YOLA CEPHE ŞARTI:", "aciklama": "İfraz edilen her parselin imar yoluna mevzuatta öngörülen minimum cephesi bulunmalıdır."}
             ]
 
     # Dışarıdan maddeler geldiyse dönüştür
@@ -841,49 +809,58 @@ def uret_sozluk_detay(
                     "aciklama": a_part.strip() if a_part else b_part.strip()
                 })
 
-    # Görsel Varsa Çiz
-    if gorsel_img:
-        canvas.paste(gorsel_img, (kenar, curr_y))
-        draw.rectangle([(kenar, curr_y), (kenar + gorsel_img.width, curr_y + gorsel_img.height)], outline=RENK_KIREC_BORDER, width=2)
-        curr_y += gorsel_img.height + 22
-
-    # Maddeler veya Metin Çizimi
+    # Maddeler veya Metin Çizimi (Görselsiz, tertemiz editoryal tipografi)
     if callout_maddeleri:
-        kalan_madde_h = kutu_y - 14 - curr_y
+        kalan_madde_h = kutu_y - 20 - curr_y
         satir_sayisi = len(callout_maddeleri)
-        aralik = min(66, max(48, kalan_madde_h // satir_sayisi))
+        aralik = min(150, max(85, kalan_madde_h // max(1, satir_sayisi)))
 
-        f_num = make_image._font_yukle(FONT_SANS_BOLD, 14)
-        f_mb = make_image._font_yukle(FONT_SANS_BOLD, 21)
-        f_mt = make_image._font_yukle(FONT_SANS_MEDIUM, 20)
+        f_num = make_image._font_yukle(FONT_SANS_BOLD, 15)
+        f_mb = make_image._font_yukle(FONT_SANS_BOLD, 23)
+        f_mt = make_image._font_yukle(FONT_SANS_MEDIUM, 21)
+        lh_mt = 30
 
         for i, m in enumerate(callout_maddeleri):
             my = curr_y + (i * aralik)
             no_str = str(m.get("no", i + 1))
-            draw.ellipse([(kenar, my + 2), (kenar + 26, my + 28)], fill=RENK_LOGO_KIRMIZI)
-            draw.text((kenar + (9 if len(no_str) == 1 else 5), my + 5), no_str, font=f_num, fill=RENK_BEYAZ)
+            draw.ellipse([(kenar, my + 2), (kenar + 28, my + 30)], fill=RENK_LOGO_KIRMIZI)
+            draw.text((kenar + (10 if len(no_str) == 1 else 6), my + 5), no_str, font=f_num, fill=RENK_BEYAZ)
 
-            b_txt = m.get("baslik", "")
-            a_txt = m.get("aciklama", "")
-            tx = kenar + 36
-            if b_txt:
+            b_txt = m.get("baslik", "").strip()
+            a_txt = m.get("aciklama", "").strip()
+            tx = kenar + 42
+            text_w = kullanilabilir_w - 42
+
+            if b_txt and a_txt:
+                bw = _satir_genisligi(b_txt + " ", f_mb)
                 draw.text((tx, my + 2), b_txt, font=f_mb, fill=RENK_MUREKKEP)
-                bw = draw.textbbox((0, 0), b_txt + " ", font=f_mb)[2]
-                draw.text((tx + bw, my + 3), a_txt, font=f_mt, fill=RENK_KURSUN)
+                satirlar = _girintili_sar(a_txt, f_mt, text_w, girinti=bw)
+                if satirlar:
+                    draw.text((tx + bw, my + 3), satirlar[0], font=f_mt, fill=RENK_KURSUN)
+                    sub_y = my + 3 + lh_mt
+                    for extra_s in satirlar[1:3]:
+                        draw.text((tx, sub_y), extra_s, font=f_mt, fill=RENK_KURSUN)
+                        sub_y += lh_mt
+            elif b_txt:
+                draw.text((tx, my + 2), b_txt, font=f_mb, fill=RENK_MUREKKEP)
             else:
-                draw.text((tx, my + 2), a_txt, font=f_mt, fill=RENK_MUREKKEP)
+                satirlar = _girintili_sar(a_txt, f_mt, text_w)
+                sub_y = my + 2
+                for s in satirlar[:3]:
+                    draw.text((tx, sub_y), s, font=f_mt, fill=RENK_MUREKKEP)
+                    sub_y += lh_mt
     else:
         detay_txt = ornek_detay or ""
         if detay_txt:
             kalan_orta_h = max(80, kutu_y - 20 - curr_y)
             sol_pay = 28
             metin_w = kullanilabilir_w - sol_pay
-            puntolar = range(34, 24, -2) if gorsel_img else range(42, 28, -2)
-            detay_res = _sigdir(detay_txt, FONT_SANS_MEDIUM, puntolar, metin_w, kalan_orta_h, 1.38)
+            puntolar = range(38, 26, -2)
+            detay_res = _sigdir(detay_txt, FONT_SANS_MEDIUM, puntolar, metin_w, kalan_orta_h, 1.40)
             if detay_res:
                 f_d, d_satirlar, d_lh, _ = detay_res
                 blok_h = len(d_satirlar) * d_lh
-                dy = curr_y + max(0, (kalan_orta_h - blok_h) // 2)
+                dy = curr_y + max(0, (kalan_orta_h - blok_h) // 3)
                 draw.line([(kenar + 6, dy + 4), (kenar + 6, dy + blok_h - 4)], fill=RENK_LOGO_KIRMIZI, width=4)
                 for s in d_satirlar:
                     draw.text((kenar + sol_pay, dy), s, font=f_d, fill=RENK_MUREKKEP)
@@ -1681,34 +1658,31 @@ def slaytlari_uret(
         if not maddeler:
             maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
 
-        # 2. Sayfa var mı? (ornek, ornek_metin, detay, foto_yolu, ornek_olay, anlatim_maddeleri, diyagram_tipi)
-        ornek = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
-                          veri.get("ornek_olay"), veri.get("detay"))
-        foto = veri.get("foto_yolu") or veri.get("gorsel_yolu") or veri.get("foto_url")
-        anlatim_maddeleri = veri.get("anlatim_maddeleri") or veri.get("ornek_maddeleri") or veri.get("detay_maddeleri")
-        diyagram = veri.get("diyagram_tipi") or veri.get("sema_tipi")
-        iki_sayfa = bool(ornek or foto or anlatim_maddeleri or diyagram or veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
+        # Kullanıcı direktifi: Sözlük varsayılan olarak kesinlikle TEK karedir ("gerekmiyosa 2. sayfa olmasın direkt vazgeçtim").
+        # Yalnızca açıkça iki_sayfa=True veya detay_sayfasi=True istenirse 2. slayt üretilir.
+        iki_sayfa = bool(veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
 
         if iki_sayfa:
             toplam = 2
             p1 = cikti_dizini / f"{cikti_onek}_01_sozluk.jpg"
             p2 = cikti_dizini / f"{cikti_onek}_02_sozluk_detay.jpg"
             uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam))
-            ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA ÖRNEĞİ")
+            ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA VE DETAYLAR")
             uygulama_notu = _ilk_dolu(veri.get("uygulama_notu"), veri.get("dikkat_notu"), (maddeler[0] if maddeler else ""))
+            ornek_detay = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
+                                    veri.get("ornek_olay"), veri.get("detay"), tanim)
+            anlatim_maddeleri = veri.get("anlatim_maddeleri") or veri.get("ornek_maddeleri") or veri.get("detay_maddeleri")
             uret_sozluk_detay(
                 p2,
                 terim=terim,
                 kategori=kategori,
                 ornek_baslik=ornek_baslik,
-                ornek_detay=ornek or tanim,
+                ornek_detay=ornek_detay,
                 uygulama_notu=uygulama_notu,
-                foto_yolu=foto,
                 maddeler=anlatim_maddeleri,
-                diyagram_tipi=diyagram,
                 sayfa_no=_sayfa(2, toplam),
             )
-            log.info("Format üretildi (SÖZLÜK, 2 slayt): %s, %s", p1, p2)
+            log.info("Format üretildi (SÖZLÜK, 2 slayt - metin odaklı): %s, %s", p1, p2)
             return [p1, p2]
 
         p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
