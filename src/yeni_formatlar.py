@@ -357,6 +357,150 @@ def uret_sozluk(
     return cikti_yolu
 
 
+def uret_sozluk_detay(
+    cikti_yolu: Path,
+    terim: str,
+    kategori: str,
+    ornek_baslik: str = "SAHADAN UYGULAMA ÖRNEĞİ",
+    ornek_detay: str = "",
+    uygulama_notu: str = "",
+    foto_yolu: Optional[Path | str] = None,
+    sayfa_no: str = "02 / 02",
+) -> Path:
+    """Emlak Sözlüğü 2. Slaytı (Saha Örneği, Detaylı İnceleme veya Görsel Açıklama):
+    Ana sözlük şemasını ve Kireç Bej kurumsal dilini bozmadan, terimin sahada nasıl
+    karşılık bulduğunu somut bir hayat örneği, fotoğraf/kroki ve uyarı kutusuyla açıklar.
+    """
+    canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_KIREC_BEJ)
+    canvas = make_image._filigran_uygula(canvas, acik_zemin=True)
+
+    yer = make_image._yerlesim()
+    kenar = yer["kenar"]
+    kullanilabilir_w = GENISLIK - (2 * kenar)
+    ku = yer["kronik_ust"]
+    alt_y = yer["alt_bar"]
+    ust_sinir = ku + 80
+
+    # Header
+    kat_temiz = kategori_temizle(kategori)
+    draw_init = ImageDraw.Draw(canvas)
+    logo_x = GENISLIK - kenar - 285
+    make_image._rozet_ciz(draw_init, kenar, ku, make_image._rozet_kirp(f"EMLAK SÖZLÜĞÜ // {kat_temiz.upper()}", 44),
+                          bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20, max_w=logo_x - kenar - 30)
+    make_image._logo_yerlestir(canvas, beyaz=False, y=ku - 5, lw=285, golge=False, kirmizi_zemin=False)
+
+    # Filigran
+    overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=330, w=520, h=350, alpha=16)
+    canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(canvas)
+
+    # Footer
+    draw.line([(kenar, alt_y), (GENISLIK - kenar, alt_y)], fill=RENK_KIREC_BORDER, width=1)
+    draw.text((kenar, alt_y + 26), "EDM YAPI & GAYRİMENKUL // EMLAK SÖZLÜĞÜ", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
+    sf = make_image._font_yukle(FONT_MONO_BOLD, 19)
+    sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
+    draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
+
+    curr_y = ust_sinir
+
+    # Kicker: Terim referansı
+    kicker_txt = f"TERİM DETAYI // {make_image._temizle_tipografi(terim.upper())}"
+    draw.text((kenar, curr_y), kicker_txt, font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_KURSUN)
+    curr_y += 34
+
+    # Başlık: Ornek baslik
+    baslik_res = _sigdir(ornek_baslik or "SAHADAN UYGULAMA ÖRNEĞİ", FONT_FRAUNCES, range(54, 36, -2), kullanilabilir_w, 140, 1.18, azami_satir=2)
+    if baslik_res:
+        f_b, b_satirlar, b_lh, _ = baslik_res
+        for s in b_satirlar:
+            draw.text((kenar, curr_y), s, font=f_b, fill=RENK_MUREKKEP)
+            curr_y += b_lh
+    curr_y += 18
+    draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_KIREC_BORDER, width=2)
+    curr_y += 28
+
+    # Alt Kutu Ölçümü: Uygulama Notu
+    h_kutu = 0
+    kutu_y = alt_y
+    f_not = make_image._font_yukle(FONT_SANS_MEDIUM, 26)
+    not_satirlar = []
+    not_lh = 36
+    if uygulama_notu:
+        for p in (28, 26, 24):
+            f_cand = make_image._font_yukle(FONT_SANS_MEDIUM, p)
+            sats = _girintili_sar(uygulama_notu, f_cand, kullanilabilir_w - 56)
+            lh = int(p * 1.36)
+            if len(sats) * lh <= 160:
+                f_not = f_cand
+                not_satirlar = sats
+                not_lh = lh
+                break
+        if not_satirlar:
+            h_kutu = 52 + len(not_satirlar) * not_lh + 20
+            kutu_y = alt_y - 24 - h_kutu
+
+    # Orta Alan: Fotoğraf veya Büyük Örnek Metni
+    orta_alt = (kutu_y - 28) if h_kutu else (alt_y - 36)
+    kalan_orta_h = max(100, orta_alt - curr_y)
+
+    foto_cizildi = False
+    if foto_yolu:
+        try:
+            foto_ham = Image.open(str(foto_yolu)).convert("RGB")
+            foto_hedef_h = min(340, max(240, int(kalan_orta_h * 0.50)))
+            foto_oran = max(kullanilabilir_w / foto_ham.width, foto_hedef_h / foto_ham.height)
+            fw, fh = int(foto_ham.width * foto_oran), int(foto_ham.height * foto_oran)
+            foto_res = foto_ham.resize((fw, fh), Image.Resampling.LANCZOS)
+            x_kirp = (fw - kullanilabilir_w) // 2
+            y_kirp = (fh - foto_hedef_h) // 2
+            foto_crop = foto_res.crop((x_kirp, y_kirp, x_kirp + kullanilabilir_w, y_kirp + foto_hedef_h))
+
+            mask = Image.new("L", (kullanilabilir_w, foto_hedef_h), 0)
+            mdraw = ImageDraw.Draw(mask)
+            mdraw.rounded_rectangle([(0, 0), (kullanilabilir_w, foto_hedef_h)], radius=14, fill=255)
+            canvas.paste(foto_crop, (kenar, curr_y), mask)
+            draw.rounded_rectangle([(kenar, curr_y), (kenar + kullanilabilir_w, curr_y + foto_hedef_h)], radius=14, outline=RENK_KIREC_BORDER, width=2)
+            curr_y += foto_hedef_h + 24
+            kalan_orta_h = max(80, orta_alt - curr_y)
+            foto_cizildi = True
+        except Exception as fe:
+            log.warning("Sözlük detay fotoğrafı açılamadı: %s", fe)
+
+    # Örnek Detay Metni
+    detay_txt = ornek_detay or ""
+    if detay_txt:
+        sol_pay = 28
+        metin_w = kullanilabilir_w - sol_pay
+        puntolar = range(36, 26, -2) if foto_cizildi else range(42, 28, -2)
+        detay_res = _sigdir(detay_txt, FONT_SANS_MEDIUM, puntolar, metin_w, kalan_orta_h, 1.38)
+        if detay_res:
+            f_d, d_satirlar, d_lh, _ = detay_res
+            blok_h = len(d_satirlar) * d_lh
+            dy = curr_y + max(0, (kalan_orta_h - blok_h) // 2)
+            draw.line([(kenar + 6, dy + 4), (kenar + 6, dy + blok_h - 4)], fill=RENK_LOGO_KIRMIZI, width=4)
+            for s in d_satirlar:
+                draw.text((kenar + sol_pay, dy), s, font=f_d, fill=RENK_MUREKKEP)
+                dy += d_lh
+
+    # Alt Kutu Çizimi
+    if h_kutu and not_satirlar:
+        draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
+        draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
+        f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
+        draw.text((kenar + 28, kutu_y + 18), "DİKKAT EDİLECEK AYRINTI:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
+        py = kutu_y + 52
+        for s in not_satirlar:
+            draw.text((kenar + 28, py), s, font=f_not, fill=RENK_BEYAZ)
+            py += not_lh
+
+    cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(cikti_yolu, "JPEG", quality=95)
+    log.info("Sözlük detay slaytı üretildi: %s", cikti_yolu.name)
+    return cikti_yolu
+
+
 # =============================================================================
 # 2. FORMAT: NEDİR DOĞRUSU? (YANLIŞ / DOĞRU)
 # =============================================================================
@@ -1120,7 +1264,7 @@ def slaytlari_uret(
     kartlar = _kartlar(veri)
     adimlar = _adimlar(veri)
 
-    # 1. SÖZLÜK — tek kare kalır (kullanıcı kararı, 2026-09-24)
+    # 1. SÖZLÜK — tek veya iki kare (kullanıcı kuralı: örnek, detay veya görsel varsa 2 slayt)
     if format_turu in ("sozluk", "sozluk_uret") or ("terim" in veri and ("tanim_metni" in veri or "tanim" in veri)):
         terim = _ilk_dolu(veri.get("terim"), veri.get("manset_vurgu"))
         tanim = _ilk_dolu(veri.get("tanim_metni"), veri.get("tanim"), veri.get("spot"))
@@ -1130,9 +1274,28 @@ def slaytlari_uret(
         maddeler = _madde_listesi(veri.get("puf_maddeleri") or veri.get("maddeler"))
         if not maddeler:
             maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
+
+        # 2. Sayfa var mı? (ornek, ornek_metin, detay, foto_yolu, ornek_olay)
+        ornek = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
+                          veri.get("ornek_olay"), veri.get("detay"))
+        foto = veri.get("foto_yolu") or veri.get("gorsel_yolu") or veri.get("foto_url")
+        iki_sayfa = bool(ornek or foto or veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
+
+        if iki_sayfa:
+            toplam = 2
+            p1 = cikti_dizini / f"{cikti_onek}_01_sozluk.jpg"
+            p2 = cikti_dizini / f"{cikti_onek}_02_sozluk_detay.jpg"
+            uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam))
+            ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA ÖRNEĞİ")
+            uygulama_notu = _ilk_dolu(veri.get("uygulama_notu"), veri.get("dikkat_notu"), (maddeler[0] if maddeler else ""))
+            uret_sozluk_detay(p2, terim=terim, kategori=kategori, ornek_baslik=ornek_baslik,
+                              ornek_detay=ornek or tanim, uygulama_notu=uygulama_notu, foto_yolu=foto, sayfa_no=_sayfa(2, toplam))
+            log.info("Format üretildi (SÖZLÜK, 2 slayt): %s, %s", p1, p2)
+            return [p1, p2]
+
         p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
         uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler)
-        log.info("Format üretildi (SÖZLÜK): %s", p1)
+        log.info("Format üretildi (SÖZLÜK, 1 slayt): %s", p1)
         return [p1]
 
     # 2. NEDİR DOĞRUSU

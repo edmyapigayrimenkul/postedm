@@ -35,7 +35,7 @@ from . import config, make_image, dogrula
 log = logging.getLogger(__name__)
 
 # --- RENK PALETİ ---
-KIRMIZI_CANLI = (255, 59, 48) # #FF3B30 EDM kırmızısının koyu/fotoğraflı zemin tonu
+KIRMIZI_CANLI = (255, 38, 48) # #FF2630 Ultra canlı, parlak ve fotoğrafta patlayan EDM kırmızısı
 VURGU = KIRMIZI_CANLI         # kanca vurgusu ve etiket (eskiden amber #F59E0B / #FACC15)
 KIREC = (228, 228, 225)       # #E4E4E1
 WHITE = (255, 255, 255)
@@ -176,14 +176,14 @@ def ciz_stat_punch(
     Arka planda GaussianBlur(14) difüzyon gölgesiyle sıfır taşma garantili çizilir.
     """
     out = gorsel.copy()
-    f_unit = _font(32, "sans_bold")
-    f_lbl = _font(16, "mono_bold")
+    f_unit = _font(36, "sans_bold")
+    f_lbl = _font(18, "mono_bold")
     satirlar = [s for s in [t1, t2] if s]
 
     # Rakam ve sol blok genişlik hesabı (Düz tabanlı modern lining rakamlar)
     sag_blok_asgari = 380
-    f_num = _font(96, "sans_bold")
-    for num_punto in range(96, 54, -4):
+    f_num = _font(108, "sans_bold")
+    for num_punto in range(108, 64, -4):
         f_num = _font(num_punto, "sans_bold")
         w_num_d = f_num.getbbox(num_txt)[2] - f_num.getbbox(num_txt)[0]
         w_unit_d = (f_unit.getbbox(unit_txt)[2] - f_unit.getbbox(unit_txt)[0]) if unit_txt else 0
@@ -206,7 +206,7 @@ def ciz_stat_punch(
     sag_x = sep_x + 24
 
     sag_alan = max(160, (TUVAL_GENISLIK - SAG_PAY) - sag_x)
-    f_t = _sigdiran_font(satirlar, 40, sag_alan, asgari=24, tip="sans_bold")
+    f_t = _sigdiran_font(satirlar, 46, sag_alan, asgari=26, tip="sans_bold")
     if not all(_sigar_mi(sat, f_t, sag_alan) for sat in satirlar):
         log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s", satirlar)
         return gorsel
@@ -266,14 +266,14 @@ def ciz_minimal_vurgu(
     out = gorsel.copy()
     # 22px kırmızı etiket parlak gökyüzünde okunmuyordu; 26px açık renk + kırmızı nokta.
     # "●" karakteri IBM Plex Sans'ta yok, kutu (□) basılıyordu: nokta ayrıca çiziliyor.
-    f_kicker = _font(26, "sans_bold")
+    f_kicker = _font(28, "sans_bold")
     minimal_alan = max(200, (TUVAL_GENISLIK - SAG_PAY) - x)
     kicker = kicker.lstrip("●• ").strip()
-    nokta = 14
+    nokta = 15
     kicker_x = x + nokta + 12
 
-    # Tavan punto (Manşet 68-74px olduğu için kanca hiyerarşik olarak zarif kalmalı, manşeti ezmemeli)
-    tavan_punto = 50 if gorsel.height >= 1700 else 44
+    # Tavan punto (Daha iri, vurucu ve okunaklı editoryal kanca)
+    tavan_punto = 58 if gorsel.height >= 1700 else 52
     f_title = _sigdiran_font([t1, t2], tavan_punto, minimal_alan, asgari=26, tip="sans_bold")
     if not (_sigar_mi(t1, f_title, minimal_alan) and _sigar_mi(t2, f_title, minimal_alan)):
         log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s / %s", t1, t2)
@@ -281,7 +281,7 @@ def ciz_minimal_vurgu(
     if not _sigar_mi(kicker, f_kicker, minimal_alan - (kicker_x - x)):
         kicker = ""
 
-    ust = 44 if kicker else 0
+    ust = 46 if kicker else 0
     satir_y = int(f_title.size * 1.18)
     govde_h = ust + (satir_y if t2 else 0) + int(f_title.size * 1.2)
 
@@ -309,13 +309,14 @@ def ciz_minimal_vurgu(
     return out
 
 
-def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def hook_olustur(haber: Dict[str, Any], fallback: bool = False) -> Optional[Dict[str, Any]]:
     """
     Haber içeriğini analiz ederek en etkili gayrimenkul kancasını (hook) üretir.
     Öncelik Sırası:
       1. haber['kanca'] / haber['hook'] (veya detay_metni JSON içindeki 'kanca')
       2. Gayrimenkul / imar sayısal verisi (stat_punch)
       3. Haber detay maddeleri / spotundan rafine minimal_vurgu
+      4. Kategori ve konuya duyarlı garantili somut kanca (fallback=True ise)
     """
     import json
     if isinstance(haber, dict):
@@ -363,12 +364,6 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     # Başlıkta rakam yoksa veya rakam başlıkla örtüşmüyorsa
     baslikta_sayi_var = _baslikta_sayi_var_mi(baslik)
     
-    # Sayısal kancalar: RAKAM ve BİRİM kaynaktan gelir; yanındaki iki satır da
-    # rakamın geçtiği KAYNAK CÜMLEDEN alınır. Eskiden kalıp başına sabit hüküm
-    # basılıyordu ("YENİ İMAR PLANI YÜRÜRLÜKTE", "RESMİ ASKI VE İTİRAZ SÜRECİ
-    # BAŞLAMIŞTIR", her yüzdeye "RESMİ TARİFE") — haberde öyle bir şey yazmasa da.
-    # Kaynak cümleler başlık DIŞINDAN (spot + detay maddeleri): başlıkta nokta
-    # olmadığı için başlıkla spot tek cümle sayılıyor, kanca başlığı tekrarlıyordu.
     govde_metni = " ".join([str(spot)] + [str(dm.get("metin", "")) for dm in detay_maddeleri])
 
     def _cumleden(eslesme: "re.Match[str]") -> Optional[Tuple[str, str]]:
@@ -376,12 +371,9 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             konum = cumle.lower().find(eslesme.group(0).lower())
             if konum < 0:
                 continue
-            # Rakam iri puntoyla ayrıca yazılıyor; kanca onu izleyen sözlerden kurulur
             sonrasi = cumle[konum + len(eslesme.group(0)):].split()
             while sonrasi and sonrasi[0].lower().strip(",") in ("ve", "ile", "ise", "da", "de", "olan"):
                 sonrasi.pop(0)
-            # Cümle kesilmez: "itirazlar belediyeye yazılı" gibi yarım bir parça
-            # kaynağın söylemediği bir şey olur. Sığmayan cümle kanca olmaz.
             kelimeler = [k.rstrip(".;") for k in sonrasi]
             if len(kelimeler) < 3:
                 kelimeler = [k.rstrip(".;") for k in cumle.replace(eslesme.group(0), " ").split()]
@@ -428,8 +420,6 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             metin = ilk_madde.get("metin", "")
             if dogrula.bos_ovgu_mu(metin):
                 continue
-            # Maddenin TAM ilk cümlesi; ilk sekiz kelimede kesmek yarım (ve bazen
-            # ters anlamlı) bir iddia üretiyordu.
             ilk_cumle = re.split(r"(?<=[.!?;])\s+", str(metin).strip())[0]
             kelimeler = ilk_cumle.split()
             if 4 <= len(kelimeler) <= 9:
@@ -444,9 +434,40 @@ def hook_olustur(haber: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                         "renk": VURGU,
                     }
 
-    # 4. Kaynaktan kanca çıkmadıysa kanca YOK. Eskiden her habere "YATIRIMCILAR VE
-    # MÜLK SAHİPLERİ İÇİN KRİTİK DETAY" basılıyordu: habere ait olmayan bir iddia.
-    return None
+    if not fallback:
+        return None
+
+    # 4. Kaynaktan kanca çıkmadıysa: her haber için akıllı kategori/spot kancası
+    kat = tr_upper(haber.get("kategori") or haber.get("kategori_kodu") or "")
+    if any(w in (metin_tum + " " + kat).lower() for w in ("ihale", "milli emlak", "arazi", "satış", "hazine")):
+        t1, t2 = "MİLLİ EMLAK & ARSA", "RESMİ SATIŞ VE İHALE"
+    elif any(w in (metin_tum + " " + kat).lower() for w in ("vergi", "harç", "maliye", "ceza", "masak", "rayiç")):
+        t1, t2 = "MALİYE VE TAPU", "CEZA VE DENETİM RİSKİ"
+    elif any(w in (metin_tum + " " + kat).lower() for w in ("kredi", "faiz", "banka", "bddk", "tcmb", "ipotek")):
+        t1, t2 = "KREDİ PİYASASI", "GÜNCEL ORAN VE LİMİT"
+    elif any(w in (metin_tum + " " + kat).lower() for w in ("imar", "plan", "askı", "parsel", "kaks", "taks")):
+        t1, t2 = "İMAR VE PARSELASYON", "ASKI VE İTİRAZ SÜRECİ"
+    elif any(w in (metin_tum + " " + kat).lower() for w in ("kira", "tahliye", "kiracı", "ev sahibi", "depozito")):
+        t1, t2 = "KİRA VE TAHLİYE", "YASAL HAK VE SÜREÇLER"
+    else:
+        if spot:
+            ilk_spot_cumle = re.split(r"(?<=[.!?;])\s+", str(spot).strip())[0]
+            k_spot = [k.rstrip(".,;") for k in ilk_spot_cumle.split() if len(k) > 2]
+            if 3 <= len(k_spot) <= 7:
+                s1, s2 = _dengeli_bol(k_spot)
+                t1, t2 = tr_upper(s1), tr_upper(s2)
+            else:
+                t1, t2 = "SEKTÖR GÜNDEMİ", "GÜNCEL GELİŞME VE ANALİZ"
+        else:
+            t1, t2 = "SEKTÖR GÜNDEMİ", "GÜNCEL GELİŞME VE ANALİZ"
+
+    return {
+        "format": "minimal_vurgu",
+        "kicker": "ÖNEMLİ GELİŞME",
+        "t1": t1,
+        "t2": t2,
+        "renk": VURGU,
+    }
 
 
 def hook_rengi_belirle(
