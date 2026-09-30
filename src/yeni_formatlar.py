@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from . import config, make_image
 
@@ -631,7 +631,34 @@ def ciz_diyagram_ifraz_tevhid(w: int = 920, h: int = 330) -> Image.Image:
     f_btm = make_image._font_yukle(FONT_MONO_BOLD, 12)
     draw.text((20, h - 23), "ŞART: İfraz edilen her iki parselin de imar yoluna cephesi bulunması zorunludur.", font=f_btm, fill=(50, 55, 65))
 
-    return img
+def _belge_yerlestir(foto_ham: Image.Image, w: int, h: int) -> Image.Image:
+    """Resmi belge veya fotoğrafı orantısını bozmadan, kesmeden paspartu ve gölgeyle çerçeveler."""
+    canvas = Image.new("RGB", (w, h), (242, 244, 239))
+    draw = ImageDraw.Draw(canvas)
+    grid_col = (230, 232, 226)
+    for x in range(0, w, 28):
+        draw.line([(x, 0), (x, h)], fill=grid_col, width=1)
+    for y in range(0, h, 28):
+        draw.line([(0, y), (w, y)], fill=grid_col, width=1)
+
+    pay = 8
+    scale = min((w - (2 * pay)) / foto_ham.width, (h - (2 * pay)) / foto_ham.height)
+    dw, dh = int(foto_ham.width * scale), int(foto_ham.height * scale)
+    doc_res = foto_ham.resize((dw, dh), Image.Resampling.LANCZOS).convert("RGBA")
+
+    dx = (w - dw) // 2
+    dy = (h - dh) // 2
+    golge = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    gdraw = ImageDraw.Draw(golge)
+    gdraw.rectangle([(dx + 3, dy + 4), (dx + dw + 3, dy + dh + 4)], fill=(0, 0, 0, 45))
+    golge = golge.filter(ImageFilter.GaussianBlur(6))
+
+    canvas = Image.alpha_composite(canvas.convert("RGBA"), golge)
+    canvas.paste(doc_res, (dx, dy), doc_res)
+    cdraw = ImageDraw.Draw(canvas)
+    cdraw.rectangle([(dx, dy), (dx + dw, dy + dh)], outline=(195, 200, 190), width=1)
+    cdraw.rectangle([(0, 0), (w - 1, h - 1)], outline=(200, 204, 196), width=2)
+    return canvas.convert("RGB")
 
 
 def uret_sozluk_detay(
@@ -720,69 +747,80 @@ def uret_sozluk_detay(
             h_kutu = 46 + len(not_satirlar) * not_lh + 18
             kutu_y = alt_y - 20 - h_kutu
 
-    # Görsel / Diyagram Belirleme
+    # Görsel / Gerçek Belge / Diyagram Belirleme
     gorsel_img: Optional[Image.Image] = None
     callout_maddeleri: List[Dict[str, str]] = []
+    hedef_h = 350
+    belgeler_dizini = config.yol_al("assets/belgeler")
 
-    if foto_yolu:
-        try:
-            foto_ham = Image.open(str(foto_yolu)).convert("RGB")
-            hedef_h = 330
-            oran = max(kullanilabilir_w / foto_ham.width, hedef_h / foto_ham.height)
-            fw, fh = int(foto_ham.width * oran), int(foto_ham.height * oran)
-            foto_res = foto_ham.resize((fw, fh), Image.Resampling.LANCZOS)
-            x_k = (fw - kullanilabilir_w) // 2
-            y_k = (fh - hedef_h) // 2
-            gorsel_img = foto_res.crop((x_k, y_k, x_k + kullanilabilir_w, y_k + hedef_h))
-        except Exception as fe:
-            log.warning("Sözlük detay fotoğrafı açılamadı: %s", fe)
-    else:
-        # Dahili teknik diyagram seçimi
-        d_tip = (diyagram_tipi or "").lower()
-        t_up = make_image._temizle_tipografi(terim.upper())
+    secilen_foto = foto_yolu
+    d_tip = (diyagram_tipi or "").lower()
+    t_up = make_image._temizle_tipografi(terim.upper())
+
+    if not secilen_foto:
         if not d_tip:
             if any(k in t_up for k in ("İMAR ÇAPI", "İMAR DURUM", "ÇAP", "GABARİ", "HMAX")):
                 d_tip = "imar_capi"
             elif any(k in t_up for k in ("ŞERH", "TAKYİDAT", "BEYAN", "HACİZ", "AİLE KONUTU", "İPOTEK")):
                 d_tip = "tapu_serh"
-            elif any(k in t_up for k in ("TAKS", "KAKS", "EMSAL", "TABAN ALANI")):
+            elif any(k in t_up for k in ("TAKS", "KAKS", "EMSAL", "TABAN ALANI", "RUHSAT")):
                 d_tip = "taks_kaks"
             elif any(k in t_up for k in ("İFRAZ", "TEVHİD", "PARSELASYON", "AYIRMA", "BİRLEŞTİRME")):
                 d_tip = "ifraz_tevhid"
 
+        # Gerçek arşivlenmiş resmi belge önceliği
+        if d_tip == "imar_capi" and (belgeler_dizini / "ornek_imar_durumu.jpg").exists():
+            secilen_foto = belgeler_dizini / "ornek_imar_durumu.jpg"
+        elif d_tip == "tapu_serh" and (belgeler_dizini / "ornek_tapu_serh.jpg").exists():
+            secilen_foto = belgeler_dizini / "ornek_tapu_serh.jpg"
+        elif d_tip == "taks_kaks" and (belgeler_dizini / "ornek_mimari_ruhsat.jpg").exists():
+            secilen_foto = belgeler_dizini / "ornek_mimari_ruhsat.jpg"
+
+    if secilen_foto:
+        try:
+            foto_ham = Image.open(str(secilen_foto)).convert("RGB")
+            gorsel_img = _belge_yerlestir(foto_ham, kullanilabilir_w, hedef_h)
+        except Exception as fe:
+            log.warning("Sözlük detay fotoğrafı açılamadı: %s", fe)
+
+    # Eğer gerçek belge yoksa çizim fonksiyonlarına fallback yap
+    if gorsel_img is None and d_tip:
         if d_tip == "imar_capi":
-            gorsel_img = ciz_diyagram_imar_capi(kullanilabilir_w, 330)
-            if not maddeler:
-                callout_maddeleri = [
-                    {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Parselde zemin oturumunun azami sınırıdır (1.000 m² x 0.20 = 200 m²)."},
-                    {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "Katlar toplamında yapılabilecek toplam inşaat alanıdır (400 m²)."},
-                    {"no": "3", "baslik": "ÇEKME MESAFELERİ:", "aciklama": "Yoldan 5m, komşu sınırdan 3m bırakılacak zorunlu yeşil mesafedir."},
-                    {"no": "4", "baslik": "GABARİ (Hmax):", "aciklama": "Saçak seviyesine kadar izin verilen bina tavan yüksekliğidir (6.50m = 2 Kat)."}
-                ]
+            gorsel_img = ciz_diyagram_imar_capi(kullanilabilir_w, hedef_h)
         elif d_tip == "tapu_serh":
-            gorsel_img = ciz_diyagram_tapu_serh(kullanilabilir_w, 330)
-            if not maddeler:
-                callout_maddeleri = [
-                    {"no": "1", "baslik": "HACİZ ŞERHİ:", "aciklama": "Mülkün icraen satışına yol açabilir; borç kapanmadan tapu devri yapılamaz."},
-                    {"no": "2", "baslik": "AİLE KONUTU:", "aciklama": "Malik tek başına satamaz; eşin noter/resmi muvafakati yasal şarttır."},
-                    {"no": "3", "baslik": "ÖNALIM SÖZLEŞMESİ:", "aciklama": "Satış durumunda hak sahibine aynı bedelle satın alma hakkı tanır."}
-                ]
+            gorsel_img = ciz_diyagram_tapu_serh(kullanilabilir_w, hedef_h)
         elif d_tip == "taks_kaks":
-            gorsel_img = ciz_diyagram_taks_kaks(kullanilabilir_w, 330)
-            if not maddeler:
-                callout_maddeleri = [
-                    {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Arsanın yüzde kaçına temel atabileceğinizi gösterir (Örn: %30 = 300 m²)."},
-                    {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "Parsel üzerine toplamda kaç metrekare kapalı inşaat yapılabileceğini belirler."},
-                    {"no": "3", "baslik": "AYKIRILIK RİSKİ:", "aciklama": "Emsal aşımı kaçak yapı sayılır; yapı kullanım izin belgesine (iskan) engeldir."}
-                ]
+            gorsel_img = ciz_diyagram_taks_kaks(kullanilabilir_w, hedef_h)
         elif d_tip == "ifraz_tevhid":
-            gorsel_img = ciz_diyagram_ifraz_tevhid(kullanilabilir_w, 330)
-            if not maddeler:
-                callout_maddeleri = [
-                    {"no": "1", "baslik": "KÖK PARSEL:", "aciklama": "Bölünmeden önceki tek tapulu ana gayrimenkul alanıdır."},
-                    {"no": "2", "baslik": "YENİ PARSELLER:", "aciklama": "İfrazla oluşan her bir bağımsız parsel ayrı müstakil tapuya kavuşur."},
-                    {"no": "3", "baslik": "YOLA CEPHE:", "aciklama": "İfraz edilen her parselin imar yoluna en az yönetmelikteki cephesi olmalıdır."}
-                ]
+            gorsel_img = ciz_diyagram_ifraz_tevhid(kullanilabilir_w, hedef_h)
+
+    # Varsayılan callout maddeleri (Eğer dışarıdan maddeler verilmediyse)
+    if not maddeler:
+        if d_tip == "imar_capi":
+            callout_maddeleri = [
+                {"no": "1", "baslik": "TAKS (Taban Alanı):", "aciklama": "Tablodaki 0.20 katsayısı, arsa tabanında en fazla %20 oturum hakkı tanır."},
+                {"no": "2", "baslik": "KAKS / EMSAL:", "aciklama": "0.40 katsayısı, binanın katlar toplamındaki azami kapalı inşaat hakkıdır."},
+                {"no": "3", "baslik": "ÇEKME MESAFELERİ:", "aciklama": "Krokideki Ön=5.0m, Yan=3.0m hatları zorunlu yeşil bahçe mesafeleridir."},
+                {"no": "4", "baslik": "RESMİ MÜHÜR & İMZA:", "aciklama": "Belediye İmar Müdürlüğü ıslak mührü bulunmayan taslaklara itibar edilmez."}
+            ]
+        elif d_tip == "tapu_serh":
+            callout_maddeleri = [
+                {"no": "1", "baslik": "ŞERHLER VE REHİNLER:", "aciklama": "Kırmızı çerçeveli alanda taşınmaz üzerindeki tüm yasal kısıtlamalar listelenir."},
+                {"no": "2", "baslik": "İCRA HACZİ KAYDI:", "aciklama": "Örnekteki icra haczinde borç ödenmeden veya fek edilmeden devir büyük risk taşır."},
+                {"no": "3", "baslik": "RESMİ YEVMİYE VE TARİH:", "aciklama": "Şerhin düşüldüğü tarih ve yevmiye numarası mahkemedeki hak sırasını belirler."}
+            ]
+        elif d_tip == "taks_kaks":
+            callout_maddeleri = [
+                {"no": "1", "baslik": "TABAN ALANI HESABI:", "aciklama": "Proje tablosundaki TAKS oranıyla binanın oturduğu zemin izdüşümü onaylanır."},
+                {"no": "2", "baslik": "KATLAR TOPLAMI (KAKS):", "aciklama": "Kesitteki 4 katın toplam inşaat alanı emsal katsayısını aşamaz."},
+                {"no": "3", "baslik": "BELEDİYE ONAY MÜHRÜ:", "aciklama": "Büyükşehir / İlçe İmar Müdürlüğü onay kaşesi olmayan proje ruhsat alamaz."}
+            ]
+        elif d_tip == "ifraz_tevhid":
+            callout_maddeleri = [
+                {"no": "1", "baslik": "KÖK PARSEL:", "aciklama": "Bölünmeden önceki tek tapulu ana gayrimenkul alanıdır."},
+                {"no": "2", "baslik": "YENİ PARSELLER:", "aciklama": "İfrazla oluşan her bir bağımsız parsel ayrı müstakil tapuya kavuşur."},
+                {"no": "3", "baslik": "YOLA CEPHE:", "aciklama": "İfraz edilen her parselin imar yoluna en az yönetmelikteki cephesi olmalıdır."}
+            ]
 
     # Dışarıdan maddeler geldiyse dönüştür
     if maddeler:
