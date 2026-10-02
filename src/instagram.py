@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import logging
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -528,5 +529,97 @@ def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
         log.warning("Instagram insights sorgu hatası (%s): %s", medya_id, e)
 
     return sonuc
+
+
+def yayin_kotasi() -> Dict[str, int]:
+    """24 saatlik post kotası. Instagram sınırı 100."""
+    hesap_id, token = _hesap_bilgileri()
+    if not token or not hesap_id:
+        return {"kullanilan": 0, "azami": 100}
+    try:
+        url = f"{GRAPH_TABAN}/{hesap_id}/content_publishing_limit"
+        r = requests.get(url, params={"fields": "config,quota_usage", "access_token": token}, timeout=12)
+        if r.status_code == 200:
+            d = r.json()
+            kayit = (d.get("data") or [{}])[0]
+            return {
+                "kullanilan": kayit.get("quota_usage", 0),
+                "azami": (kayit.get("config") or {}).get("quota_total", 100),
+            }
+    except Exception as e:
+        log.warning("Yayın kotası sorgulanamadı: %s", e)
+    return {"kullanilan": 0, "azami": 100}
+
+
+def son_yayinlanan_basliklar(adet: int = 25) -> List[str]:
+    """
+    Instagram'da GERÇEKTEN yayınlanmış postların manşetlerini/başlıklarını döndürür.
+    Veritabanı desenkronizasyonlarına karşı canlı mükerrer post engelidir.
+    """
+    hesap_id, token = _hesap_bilgileri()
+    if not token or not hesap_id:
+        return []
+    try:
+        url = f"{GRAPH_TABAN}/{hesap_id}/media"
+        r = requests.get(url, params={"fields": "caption,timestamp", "limit": adet, "access_token": token}, timeout=15)
+        if r.status_code != 200:
+            log.warning("Instagram geçmişi okunamadı (HTTP %s): %s", r.status_code, r.text[:200])
+            return []
+        cevap = r.json()
+    except Exception as e:
+        log.warning("Instagram geçmişi okunamadı (%s); mükerrer denetimi yalnızca veritabanına bakacak", e)
+        return []
+
+    basliklar: List[str] = []
+    for post in cevap.get("data", []):
+        post_basliklari: List[str] = []
+        for satir in (post.get("caption") or "").splitlines():
+            satir = satir.strip()
+            if not satir:
+                continue
+            # "1. Manşet" / "10. Manşet" -> carousel turunun manşetleri
+            eslesme = re.match(r"^\d{1,2}[\.\)]\s+(.{15,})$", satir)
+            if eslesme:
+                post_basliklari.append(eslesme.group(1).strip())
+                continue
+            if post_basliklari:
+                continue
+            sade = satir.lstrip("🔴🚨⚡️ ").strip()
+            if len(sade) > 25 and not sade.startswith("#") and sade.upper() != sade:
+                post_basliklari.append(sade)
+        basliklar += post_basliklari
+    return basliklar
+
+
+def post_baglantisi(post_id: str) -> str:
+    """Yayınlanan postun permalink'i — Telegram'da göstermek için."""
+    hesap_id, token = _hesap_bilgileri()
+    if not token or not post_id:
+        return ""
+    try:
+        url = f"{GRAPH_TABAN}/{post_id}"
+        r = requests.get(url, params={"fields": "permalink", "access_token": token}, timeout=10)
+        if r.status_code == 200:
+            return r.json().get("permalink", "")
+    except Exception as e:
+        log.warning("permalink alınamadı: %s", e)
+    return ""
+
+
+def story_sil(story_id: str) -> bool:
+    """Yayınlanmış Instagram Story'sini siler."""
+    hesap_id, token = _hesap_bilgileri()
+    if not token or not story_id:
+        return False
+    try:
+        url = f"{GRAPH_TABAN}/{story_id}"
+        r = requests.delete(url, params={"access_token": token}, timeout=10)
+        if r.status_code == 200 and r.json().get("success"):
+            log.info("Instagram story silindi: %s", story_id)
+            return True
+    except Exception as e:
+        log.warning("Instagram story silinemedi (%s): %s", story_id, e)
+    return False
+
 
 

@@ -38,6 +38,19 @@ def _baglanti_al() -> Iterator[sqlite3.Connection]:
 baglanti_al = _baglanti_al
 
 
+def baglan(ayarlar: Optional[Dict[str, Any]] = None) -> sqlite3.Connection:
+    """Veritabanı bağlantısı açar (instabot uyumluluk köprüsü)."""
+    tablolari_olustur()
+    DB_YOLU.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_YOLU, timeout=30)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 30000")
+    return conn
+
+
+
 def wal_bosalt() -> None:
     """WAL dosyasındaki değişiklikleri ana veritabanına yazar (git commit öncesi zorunludur)."""
     conn = None
@@ -160,6 +173,8 @@ def tablolari_olustur() -> None:
                 ("youtube_video_id", "TEXT"),
                 ("tiktok_publish_id", "TEXT"),
                 ("facebook_post_id", "TEXT"),
+                ("twitter_tweet_id", "TEXT"),
+                ("linkedin_post_id", "TEXT"),
                 ("video_yolu", "TEXT"),
                 ("sutun", "TEXT"),  # S1–S5, analiz için — bkz. src/sutun.py
                 # Planlı yayının zamanı (ISO). Plan Worker KV'sinde; bu yalnızca hatırlatıcının

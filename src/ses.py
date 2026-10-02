@@ -324,7 +324,8 @@ def anlatimli_video_uret(
     if sonuc is not None:
         sonuc["anlatim"] = bool(kapak_sesi)
 
-    sessiz = video.slaytlardan_reels_uret(slayt_yollari, cikti_yolu=cikti_yolu, slayt_sureleri=sureler, haber=veri)
+    sessiz_gecici = config.yol_al(f"data/output/gecici_anlatim_{os.getpid()}_{int(time.time() * 1000)}.mp4")
+    sessiz = video.slaytlardan_reels_uret(slayt_yollari, cikti_yolu=sessiz_gecici, slayt_sureleri=sureler, haber=veri)
     if not sessiz or not Path(sessiz).exists():
         return sessiz
 
@@ -332,12 +333,16 @@ def anlatimli_video_uret(
     if sonuc is not None:
         sonuc["anlatim"] = bool(anlatim)
 
-    karisik = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20, muzik=muzik)
+    son_hedef = cikti_yolu or config.yol_al(f"data/output/video_{os.getpid()}.mp4")
+    karisik = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20, muzik=muzik, hedef_yol=son_hedef)
     if karisik and Path(karisik) != Path(sessiz) and Path(karisik).exists():
-        # Ara dosyalar: sessiz video ve anlatım izi artık gerekmiyor
+        # Ara dosyalar: geçici sessiz video ve anlatım izi artık gerekmiyor
         for ara in (Path(sessiz), anlatim):
-            if ara:
-                Path(ara).unlink(missing_ok=True)
+            if ara and Path(ara).exists():
+                try:
+                    Path(ara).unlink(missing_ok=True)
+                except Exception:
+                    pass
     return karisik
 
 

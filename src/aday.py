@@ -1,0 +1,451 @@
+"""
+aday.py — "Bu haber şu bağlamda yayınlanabilir mi?" sorusunun TEK cevabı.
+
+NİYE VAR — ÖLÇÜLMÜŞ BİR SORUN:
+
+    Bu projede kusurların çoğu tek bir desende toplanıyordu: AYNI KURAL
+    BİRDEN FAZLA YERDE YAŞIYOR VE BİRİ UNUTULUYOR.
+
+      * 1j — mükerrer engeli tur seçimine kondu, tekil posta konmadı;
+             aynı olay üç kez tura girdi
+      * 1p — aynı engel `onerileri_gonder`e ve `tur_icin_sec`e kondu,
+             `aday_bul`a KONMADI; sabah turunda yayınlanan haber bir
+             saat sonra tekil post olarak çıktı
+      * `TAZELIK_SAAT` sabit koda gömülüydü, config'deki değer ölüydü;
+             tekil post 5 saat boyunca hiç çıkmadı
+
+    Üçü de "kural yanlıştı" değil, "kural doğru ama bir yerde
+    uygulanmamıştı" hatasıydı. Kuralları buraya toplayınca o hata
+    sınıfı yapısal olarak imkânsız hale geliyor: yeni bir akış eklemek
+    istediğinde `uygun_mu()` çağırıyorsun ve bütün kurallar otomatik
+    geliyor.
+
+NASIL KULLANILIR:
+
+    from src import aday
+
+    baglam = aday.Baglam.kur("tekil", ayarlar, con)
+    for haber in havuz:
+        uygun, sebep = aday.uygun_mu(haber, baglam)
+        if not uygun:
+            log.debug("elendi (%s): %s", sebep, haber["baslik_orj"][:50])
+            continue
+
+BAĞLAMLAR:
+    "tur"    — sabah/akşam carousel turu (10 slayt)
+    "tekil"  — gün içi tekil post, metni HAZIR haberlerden
+    "oneri"  — Telegram'a başlık önerisi, metni HENÜZ ÜRETİLMEMİŞ
+
+    Üçü farklı eşik ve farklı durum filtresi kullanıyor ama tazelik,
+    geçmiş tekrarı ve mükerrer denetimi ORTAK. Farkların hepsi
+    `Baglam` içinde veri olarak duruyor; `uygun_mu` içinde
+    `if baglam == "tur"` gibi dallanma YOK.
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+
+from . import dogrula, secim
+
+log = logging.getLogger(__name__)
+
+# Bağlam adları — yazım hatası sessizce yanlış davranışa yol açmasın.
+# Instagram Topluluk Standartları — bu konular hiçbir bağlamda aday olamaz.
+# ⚠️ KARŞILAŞTIRMA `dogrula._sadelestir` ÜZERİNDEN YAPILIYOR (bkz. uygun_mu 0b);
+# buraya kelime eklerken Türkçe yazımını yaz, indirgemeyi kod hallediyor.
+YASAKLI_KONULAR = (
+    "intihar", "canına kıy", "kendini as", "kendini vur", "köprüden atla",
+    "balkondan atla", "hayatına son ver", "çocuk istismar", "tecavüz",
+    "fuhuş", "porno",
+)
+
+TUR = "tur"
+TEKIL = "tekil"
+ONERI = "oneri"
+GECERLI_BAGLAMLAR = (TUR, TEKIL, ONERI)
+
+
+def gece_mi(simdi: datetime | None = None) -> bool:
+    """TR saatiyle gece aralığı (23:00-07:00). UTC+3 sabit, yaz saati yok."""
+    an = (simdi or datetime.now(timezone.utc)) + timedelta(hours=3)
+    return an.hour >= 23 or an.hour < 7
+
+
+@dataclass
+class Baglam:
+    """
+    Bir seçim turunun değişmeyen verileri.
+
+    Her haber için yeniden hesaplanmasın diye bir kez kurulup
+    `uygun_mu`ya geçiriliyor: geçmiş konular veritabanı sorgusu,
+    kategori sayaçları, eşik tablosu.
+    """
+    ad: str
+    esikler: dict                      # kategori -> asgari puan
+    varsayilan_esik: int
+    tazelik_saat: float                # bundan eski haber aday olamaz
+    kategori_azami: int | None         # None = sınır yok
+    kategori_sayaci: dict              # kategori -> bugün yayınlanan adet
+    gecmis_konular: list               # [(kelimeler, özel_isimler)]
+    gecmis_esik: int
+    liste_esigi: int                   # aynı listede tekrar denetimi
+    muafiyet_puani: int                # bu puanın üstü geçmiş denetiminden muaf
+    atlanan_bekleme: float = 12.0       # atlanan haber kaç saat beklesin
+    # ⚠️ PAYLAŞIM MUAFİYETİ (18 Eyl 2026) — bkz. uygun_mu adım 2.
+    paylasim_esigi: int = 8            # 0 = muafiyet kapalı
+    paylasim_taban_onem: int = 4       # bunun altındaki haber muaf olamaz
+    gece: bool = False
+    # Aynı çağrı içinde seçilenler — liste içi mükerrer denetimi için
+    _secilenler: list = field(default_factory=list)
+
+    @classmethod
+    def kur(cls, ad: str, ayarlar: dict, con) -> "Baglam":
+        if ad not in GECERLI_BAGLAMLAR:
+            raise ValueError(f"bilinmeyen bağlam: {ad!r} "
+                             f"(geçerli: {GECERLI_BAGLAMLAR})")
+        g = ayarlar["genel"]
+        s = ayarlar.get("secim", {}) or {}
+        gece = gece_mi()
+
+        if ad == ONERI:
+            # ⚠️ Öneri eşikleri yayın eşiklerinden DÜŞÜK. Toplu başlık
+            # puanlaması tam metin puanlamasından ~1.6 puan düşük
+            # veriyor (ölçüldü); aynı eşik öneri akışını kilitliyordu.
+            # ⚠️ Gece +1 YOK: öneri yayın değil, insana sunma.
+            esikler = g.get("oneri_kategori_esikleri", {}) or {}
+            varsayilan = 6
+            ek = 0
+        elif ad == TEKIL:
+            esikler = g.get("son_dakika_kategori_esikleri", {}) or {}
+            varsayilan = (g.get("gece_puan_esigi", 9) if gece
+                          else g.get("son_dakika_puan_esigi", 8))
+            # Gece yayın eşiği bir puan daha zor: kimsenin onayından
+            # geçmeden yayında kalıyor.
+            ek = 1 if gece else 0
+        else:                                          # TUR
+            esikler = {}
+            varsayilan = s.get("asgari_onem_puani", 0)
+            ek = 0
+
+        if ek:
+            esikler = {k: v + ek for k, v in esikler.items()}
+            varsayilan += ek
+
+        # Tazelik: tur bayatlama sınırını, tekil/öneri kendi penceresini
+        # kullanıyor.
+        if ad == TUR:
+            tazelik = g.get("yayin_yasi_siniri_saat", 48)
+        else:
+            tazelik = g.get("son_dakika_tazelik_saat", 5)
+
+        return cls(
+            ad=ad,
+            esikler=esikler,
+            varsayilan_esik=varsayilan,
+            tazelik_saat=tazelik,
+            kategori_azami=(g.get("son_dakika_kategori_azami", 3)
+                            if ad in (TEKIL, ONERI) else None),
+            kategori_sayaci=_bugunku_kategoriler(con),
+            gecmis_konular=secim.yayinlanmis_konular(con, ayarlar),
+            gecmis_esik=s.get("gecmis_ortak_kelime_esigi",
+                              s.get("konu_ortak_kelime_esigi", 2) + 1),
+            liste_esigi=s.get("konu_ortak_kelime_esigi", 2),
+            muafiyet_puani=s.get("gecmis_muafiyet_puani", 9),
+            atlanan_bekleme=g.get("atlanan_bekleme_saat", 12),
+            # ⚠️ Muafiyet YALNIZCA öneri ve tekil akışında. TUR
+            # bağlamında kapalı (0): akşam özeti "günün önemli
+            # haberleri" demek, oraya paylaşılabilirlik yüzünden
+            # haber sokmak özetin tanımını bozar.
+            paylasim_esigi=(g.get("paylasim_esigi", 8)
+                            if ad in (TEKIL, ONERI) else 0),
+            paylasim_taban_onem=g.get("paylasim_taban_onem", 4),
+            gece=gece,
+        )
+
+    def esik(self, kategori: str | None) -> int:
+        return self.esikler.get(kategori, self.varsayilan_esik)
+
+
+def _bugunku_kategoriler(con) -> dict:
+    """Bugün her kategoriden kaç tekil post yayınlandı?"""
+    return {
+        r[0]: r[1] for r in con.execute(
+            "SELECT kategori, COUNT(*) FROM haberler "
+            "WHERE son_dakika = 1 AND durum = 'yayinlandi' "
+            "AND date(gonderim_zamani) = date('now') GROUP BY kategori"
+        )
+    }
+
+
+def _saat_gecti(zaman_metni: str) -> float | None:
+    """
+    Verilen ISO zamandan bu yana geçen saat. Okunamıyorsa None.
+
+    ⚠️ SQLite'ın `datetime('now')` ÇIKTISI SAAT DİLİMSİZ ("2026-08-21
+    02:27:03"). `datetime.now(timezone.utc)` ise saat dilimli ve ikisini
+    çıkarmak `TypeError: can't subtract offset-naive and offset-aware`
+    veriyor.
+
+    İlk yazımda bu hata `except (TypeError, ValueError): pass` ile
+    yutuluyordu ve kural SESSİZCE hiç çalışmadı — atlanan 8 haber bir
+    sonraki turda geri geldi, log'da tek bir uyarı bile yoktu.
+    Saat dilimsiz değer UTC kabul ediliyor (SQLite zaten UTC yazıyor).
+    """
+    try:
+        an = datetime.fromisoformat(str(zaman_metni))
+    except (TypeError, ValueError):
+        log.warning("zaman okunamadı: %r", zaman_metni)
+        return None
+    if an.tzinfo is None:
+        an = an.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - an).total_seconds() / 3600
+
+
+def _yas_saat(haber) -> float:
+    ham = haber["yayin_tarihi"] if "yayin_tarihi" in haber.keys() else None
+    if not ham:
+        return 999.0
+    try:
+        t = datetime.fromisoformat(ham)
+    except (ValueError, TypeError):
+        return 999.0
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - t).total_seconds() / 3600
+
+
+def _baslik(haber) -> str:
+    anahtarlar = haber.keys()
+    if "ig_baslik" in anahtarlar and haber["ig_baslik"]:
+        return haber["ig_baslik"]
+    return haber["baslik_orj"] or ""
+
+
+def uygun_mu(haber, baglam: Baglam) -> tuple[bool, str]:
+    """
+    Bu haber bu bağlamda seçilebilir mi?
+
+    Döner: `(uygun, sebep)`. Sebep her zaman dolu — elenme nedenini
+    loglamak teşhisin yarısı. "Tekil post 5 saat çıkmadı" olayında
+    havuzun %98'inin tazelik filtresine takıldığı ancak elle ölçerek
+    anlaşılmıştı; artık log doğrudan söylüyor.
+    """
+    h = dict(haber) if hasattr(haber, "keys") else (haber or {})
+    puan = h.get("onem_puani") or 0
+    kategori = h.get("kategori") or ""
+    baslik = _baslik(haber)
+
+    # 0) Gündüz tekil olarak yayınlanan haber akşam turuna girmiyor.
+    if baglam.ad == TUR and h.get("daha_once_yayinlandi"):
+        return False, "gündüz zaten yayınlandı"
+
+    # 0b) Instagram Topluluk Standartları & Güvenlik Filtresi (İntihar / İstismar Engeli)
+    # ⚠️ Instagram NLP/OCR denetimleri intihar ve kendine zarar verme haberlerine
+    # yıldız sansürü (* işareti) olsa bile 18+ kısıtlaması ve keşfet cezası uyguluyor.
+    #
+    # ⚠️ DÜZ `.lower()` KULLANMA — TÜRKÇE `İ` TUZAĞI (18 Eyl 2026).
+    # `'İntihar'.lower()` Python'da `'i̇ntihar'` üretiyor (i + birleşen
+    # nokta) ve `"intihar" in ...` denetimi TUTMUYOR. Yasaklı kelimelerin
+    # beşi (`intihar`, `istismar`, `işkence`, `idam`, `infaz`) `i` ile
+    # başlıyor ve Türkçe başlıkta cümle başında HER ZAMAN `İ` oluyorlar —
+    # yani filtre tam da en sık karşılaşacağı biçimi kaçırıyordu.
+    #
+    # ÖLÇÜLDÜ, kaçan başlıklar:
+    #   "İntihar girişimi son anda önlendi"   -> geçiyordu
+    #   "Çocuk İstismarı davasında karar"     -> geçiyordu
+    #   "İNTİHAR SÜSÜ VERİLMİŞ"               -> geçiyordu
+    #
+    # `dogrula._sadelestir` hem İ/I/ı hem ö/ü/ş/ç indirgemesi yapıyor,
+    # yani yasaklı listeyi de aynı kapıdan geçirmek ZORUNLU: aksi hâlde
+    # "tecavüz" ile "tecavuz" eşleşmez. Bu, projedeki Türkçe karakter
+    # tuzağının ALTINCI tekrarı (_sadelestir Commons soyadı · dogrula İ ·
+    # _buyuk_harf TÜRKIYE · caption._etiket_anahtari keşfet · hook_motoru).
+    ham_metin = dogrula._sadelestir(
+        f"{h.get('baslik_orj', '')} {h.get('ig_baslik', '')} {h.get('ozet_orj', '')}"
+    )
+    for yasakli in YASAKLI_KONULAR:
+        if dogrula._sadelestir(yasakli).strip() in ham_metin:
+            return False, f"yasaklı konu (Instagram topluluk standardı ihlali: {yasakli})"
+
+    # 1) Tazelik — bayat haber hiçbir bağlamda aday olmaz
+    yas = _yas_saat(haber)
+    if yas > baglam.tazelik_saat:
+        return False, f"bayat ({yas:.1f} sa > {baglam.tazelik_saat} sa)"
+
+    # 2) Önem eşiği
+    #
+    # ⚠️ PAYLAŞIM MUAFİYETİ (18 Eyl 2026, kullanıcı isteği). Hesabın
+    # keşfete düşmesi için insanların ARKADAŞINA GÖNDERDİĞİ ve
+    # KAYDETTİĞİ haberler lazım; bunlar "önem" ölçeğinde zayıf kalıp
+    # eleniyordu. "Önemli" ile "paylaşılır" ayrı sorular:
+    #     "Gazze'de can kaybı 73 bine yükseldi"  önem 9 · paylaşım 3
+    #     "KYK başvuruları 5 gün uzatıldı"       önem 6 · paylaşım 9
+    #
+    # ⚠️ TABAN ÖNEM ŞART. Yalnızca paylaşım puanına bakmak havuzu
+    # reklama açardı: ÖLÇÜLDÜ (18 Eyl), Investing beslemesi kendi
+    # abonelik kampanyasını haber gibi yayınlıyor ("InvestingPro'da
+    # %55 indirim için son saatler") ve bu başlık paylaşım
+    # kelimelerinin HEPSİNİ taşıyor. Prompt onlara 1 vermeyi ayrıca
+    # söylüyor, `filtre.baslik_elenmeli` ayrıca eliyor — üç katman.
+    #
+    # ⚠️ ÖLÇÜLDÜ (18 Eyl 2026, Instagram insights — 245 gönderi,
+    # 629 kaydetme, 1306 paylaşım): fayda haberleri gönderilerin
+    # %11'i ama kaydetmenin %44'ü, paylaşımın %52'si. Paylaşım
+    # başına 24.11 vs 2.91 — 8.3 kat. Eşik 8 gerçek başlıklarla
+    # kalibre edildi; ayrıntı config.yaml `paylasim_esigi` yorumunda.
+    # `paylasim_esigi: 0` yaparak kapatılır.
+    esik = baglam.esik(kategori)
+    if puan < esik:
+        paylasim = h.get("paylasim_puani") or 0
+        muaf = (baglam.paylasim_esigi > 0
+                and paylasim >= baglam.paylasim_esigi
+                and puan >= baglam.paylasim_taban_onem)
+        if not muaf:
+            return False, f"puan yetersiz ({puan} < {esik}, kategori={kategori})"
+        log.info("paylaşım muafiyeti: önem %s < %s ama paylaşım %s — %s",
+                 puan, esik, paylasim, baslik[:60])
+
+    # 3) Kategori günlük sınırı — tek kategori günü domine etmesin
+    if baglam.kategori_azami is not None:
+        bugun = baglam.kategori_sayaci.get(kategori, 0)
+        if bugun >= baglam.kategori_azami:
+            return False, f"kategori sınırı dolu ({kategori}: {bugun})"
+
+    # ⚠️ `konu_imzasi` kullanılıyor, `_ozel_isimler` DEĞİL: ikincisi
+    # başlığın ilk kelimesini atlıyor ve haber başlıkları çok sık yer
+    # adıyla başladığı için tekrarlar yakalanamıyor (sözleşme testi
+    # bu kusuru yakaladı).
+    kelimeler, isimler = secim.konu_imzasi(baslik)
+
+    # 3b) Yakın zamanda turdan ATLANDI mı?
+    #
+    # "Atla" düğmesi haberi elemiyor (proje kuralı: onaylanmayan haber
+    # kaybolmaz) ama kullanıcı o haberi ŞİMDİ istemediğini söylemiş
+    # oluyor. Skor cezası dar havuzda yetmiyor — ölçüldü, atlanan 10
+    # haberin 5'i bir sonraki turda geri geldi.
+    atlandi = haber["atlanma_zamani"] if "atlanma_zamani" in haber.keys() else None
+    if atlandi:
+        gecen = _saat_gecti(atlandi)
+        if gecen is not None and gecen < baglam.atlanan_bekleme:
+            return False, "yakın zamanda atlandı"
+
+    # 4) Aynı çağrıda daha önce seçilen bir haberin tekrarı mı?
+    # ⚠️ DÜZ KESİŞİM DEĞİL — Türkçe ekleri tolere eden karşılaştırma.
+    # "ceza"/"cezası", "kulübe"/"kulüplere" düz kesişimde farklı
+    # kelime sayılıyordu ve aynı PFDK kararının iki haberi tek tura
+    # girdi (20 Ağu 2026).
+    for onceki_k, onceki_i in baglam._secilenler:
+        if (len(secim.ortak_kelime(kelimeler, onceki_k)) >= baglam.liste_esigi
+                and secim.ortak_kelime(isimler, onceki_i)):
+            return False, "bu seçimde aynı olay zaten var"
+
+    # 5) Son günlerde YAYINLANMIŞ veya ONAYDA OLAN bir olayın tekrarı mı?
+    #
+    # ⚠️ Muafiyet: 9+ puanlık çok büyük olaylar akşam özetine girebilsin diye
+    # muafiyet uygulanır. Tekil postlar ve gece otomatik yayını ise
+    # katman0_mukerrer_denetimi ile ayrıca korunur.
+    if puan < baglam.muafiyet_puani:
+        for onceki_k, onceki_i in baglam.gecmis_konular:
+            ortak_k = secim.ortak_kelime(kelimeler, onceki_k)
+            ortak_i = secim.ortak_kelime(isimler, onceki_i)
+            if (ortak_i and len(ortak_k) >= 1) or len(ortak_k) >= baglam.gecmis_esik:
+                cakisan = ", ".join(ortak_i or list(ortak_k)[:2])
+                return False, f"bu konu son günlerde yayınlandı ({cakisan})"
+
+    return True, "uygun"
+
+
+def sec(haberler, baglam: Baglam, adet: int | None = None) -> list:
+    """
+    Havuzdan uygun haberleri seçer; seçtiklerini bağlama işler.
+
+    `adet` verilirse o sayıda haber seçilince durur. Elenen her haber
+    DEBUG seviyesinde sebebiyle loglanıyor.
+    """
+    secilen = []
+    sebepler: dict[str, int] = {}
+    for haber in haberler:
+        if adet is not None and len(secilen) >= adet:
+            break
+        uygun, sebep = uygun_mu(haber, baglam)
+        if not uygun:
+            anahtar = sebep.split(" (")[0]
+            sebepler[anahtar] = sebepler.get(anahtar, 0) + 1
+            continue
+        secilen.append(haber)
+        baslik = _baslik(haber)
+        baglam._secilenler.append(secim.konu_imzasi(baslik))
+    if sebepler:
+        log.info("[%s] eleme: %s", baglam.ad,
+                 ", ".join(f"{k}={v}" for k, v in sorted(sebepler.items())))
+    return secilen
+
+
+def alternatifler(con, ayarlar: dict, mevcut, turdaki_idler,
+                  adet: int = 2) -> list:
+    """
+    Turdaki bir haberin YERİNE konabilecek adaylar.
+
+    Kullanıcı onay mesajında bir slaydı beğenmezse ("bu haberi
+    değiştir") buradan gelen alternatifler sunuluyor.
+
+    ⚠️ KURALLAR YENİDEN YAZILMIYOR — `uygun_mu` çağrılıyor. Bu
+    dosyanın var olma sebebi tam da bu: bu projedeki kusurların çoğu
+    "kural yanlıştı" değil, "kural doğru ama BİR YERDE uygulanmamıştı"
+    hatasıydı (CLAUDE.md 1j, 1p, 1z). Yeni bir akış açarken kuralları
+    kopyalamak o hatayı yeniden üretmek olurdu.
+
+    Sıralama: önce AYNI KATEGORİDEN olanlar. Sebep sadece konu
+    yakınlığı değil — turun kategori dengesi zaten `cesitlendir` ile
+    kurulmuş durumda; ekonomi haberini sporla değiştirmek o dengeyi
+    bozar.
+    """
+    havuz = list(con.execute(
+        "SELECT * FROM haberler WHERE durum = 'metin_hazir' "
+        "AND ig_baslik IS NOT NULL AND gorsel_url IS NOT NULL"
+    ))
+    if not havuz:
+        # Görseli hazır aday yoksa metni hazır olanlarla devam: slayt
+        # değiştirme anında üretiliyor, görsel şart değil.
+        havuz = list(con.execute(
+            "SELECT * FROM haberler WHERE durum = 'metin_hazir' "
+            "AND ig_baslik IS NOT NULL"
+        ))
+
+    baglam = Baglam.kur(TUR, ayarlar, con)
+    # Turdaki DİĞER haberler de "aynı listede" sayılmalı, yoksa
+    # değiştirilen haberin yerine turdaki BAŞKA bir haberin benzeri
+    # gelebilir ve tur yine mükerrer olur.
+    # ⚠️ `_secilenler` haber satırı değil, (kelimeler, özel_isimler)
+    # imzası tutuyor — `uygun_mu` onu öyle açıyor.
+    baglam._secilenler = [
+        secim.konu_imzasi(_baslik(h))
+        for h in _turdakiler(con, turdaki_idler) if h["id"] != mevcut["id"]
+    ]
+
+    uygunlar = []
+    for h in havuz:
+        if h["id"] in turdaki_idler:
+            continue
+        tamam, _ = uygun_mu(h, baglam)
+        if tamam:
+            uygunlar.append(h)
+
+    kategori = mevcut["kategori"]
+    uygunlar.sort(key=lambda h: (h["kategori"] != kategori,
+                                 -(h["onem_puani"] or 0),
+                                 _yas_saat(h)))
+    log.info("[degistir] %s haberden %s alternatif bulundu (kategori=%s)",
+             len(havuz), len(uygunlar), kategori)
+    return uygunlar[:adet]
+
+
+def _turdakiler(con, idler) -> list:
+    if not idler:
+        return []
+    isaret = ",".join("?" * len(idler))
+    return list(con.execute(
+        f"SELECT * FROM haberler WHERE id IN ({isaret})", tuple(idler)))

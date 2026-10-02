@@ -317,6 +317,42 @@ export default {
               }
             }
           }
+
+          // Güncel seçili kanallara göre klavyedeki diğer navigasyon butonlarının callback_data'sını senkronize et
+          const guncelKanallar = seciliKanallariCikar(keyboard);
+          const guncelKStr = kanallariKodla(guncelKanallar);
+
+          for (const satir of keyboard) {
+            for (const btn of satir) {
+              const cd = btn.callback_data || "";
+              if (cd.startsWith("kanal:") || cd.startsWith("kanal_toggle:")) continue;
+
+              const szMatch = /^ses_zaman:(muzikli|muziksiz):(\d{1,2})(?::[a-z0-9_,]*)?$/.exec(cd);
+              if (szMatch) {
+                btn.callback_data = guncelKStr
+                  ? `ses_zaman:${szMatch[1]}:${szMatch[2]}:${guncelKStr}`
+                  : `ses_zaman:${szMatch[1]}:${szMatch[2]}`;
+                continue;
+              }
+
+              const slMatch = /^slayt:([1-9]|10):(\d{1,2})(?::[a-z0-9_,]*)?$/.exec(cd);
+              if (slMatch) {
+                btn.callback_data = guncelKStr
+                  ? `slayt:${slMatch[1]}:${slMatch[2]}:${guncelKStr}`
+                  : `slayt:${slMatch[1]}:${slMatch[2]}`;
+                continue;
+              }
+
+              const mMatch = /^(slayt_menu|yayin_menu|ses_menu|foto_menu|metin_menu|geri|yayin_geri|foto_geri|metin_geri):(\d{1,2})(?::[a-z0-9_,]*)?$/.exec(cd);
+              if (mMatch) {
+                btn.callback_data = guncelKStr
+                  ? `${mMatch[1]}:${mMatch[2]}:${guncelKStr}`
+                  : `${mMatch[1]}:${mMatch[2]}`;
+                continue;
+              }
+            }
+          }
+
           await butonlariGuncelle(keyboard);
           const kanalAdi = hedefKanalEtiketleri(hedefKanal);
           await cevapVer(hedefYeniSecili ? `✅ ${kanalAdi} seçildi` : `⬜ ${kanalAdi} kaldırıldı`);
@@ -1528,6 +1564,40 @@ function duraklatmaMenusu() {
       ],
     ],
   };
+}
+
+const KANAL_KODLARI = {
+  ig: "i",
+  reels: "r",
+  story: "s",
+  threads: "t",
+  facebook: "f",
+  youtube: "y",
+  tiktok: "k",
+  twitter: "x",
+  linkedin: "l",
+};
+const KOD_TO_KANAL = {
+  i: "ig",
+  r: "reels",
+  s: "story",
+  t: "threads",
+  f: "facebook",
+  y: "youtube",
+  k: "tiktok",
+  x: "twitter",
+  l: "linkedin",
+};
+
+function kanallariKodla(kanallar) {
+  if (!kanallar) return "";
+  const arr = Array.isArray(kanallar) ? kanallar : (typeof kanallar === "string" ? kanallar.split(",") : []);
+  return arr.map((k) => KANAL_KODLARI[k.trim().toLowerCase()] || k.trim()).join(",");
+}
+
+function kanallariCoz(str) {
+  if (!str) return [];
+  return str.split(",").map((s) => KOD_TO_KANAL[s.trim().toLowerCase()] || s.trim().toLowerCase()).filter(Boolean);
 }
 
 function seciliKanallariCikar(klavye) {

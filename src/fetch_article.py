@@ -320,12 +320,76 @@ def makale_metni_cek(link: str, baslik: Optional[str] = None, zaman_asimi: int =
     return None
 
 
+YASAK_DESENLER = [
+    "avatar", "author", "yazar", "logo", "banner_ad", "pixel",
+    "tracker", "tracking", "spacer", "placeholder", "icon", ".svg", ".gif",
+    "share-button", "default_image", "no-image", "-150x150", "-300x",
+    "-thumb", "small_thumb", "widget", "advert/documents", "ilan.memurlar",
+    "kamuilan", "documents", "tablo", "dilekce", "ahaber2.png", "logo-text",
+    "/site/v2/i/", "channel_logo", "site_logo", "doubleclick", "googleads",
+    "analytics", "facebook.com/tr"
+]
+
+
+def _gecerli_url_mi(u: str) -> bool:
+    if not u or not isinstance(u, str):
+        return False
+    u_low = u.lower()
+    if any(p in u_low for p in YASAK_DESENLER):
+        return False
+    return u.startswith("http://") or u.startswith("https://") or u.startswith("//")
+
+
+def _temiz_url(u: str) -> str:
+    """Thumbnail veya küçük boyut parametreli URL'leri orijinal tam boy HD görsele dönüştürür."""
+    u = u.strip()
+    if u.startswith("//"):
+        u = "https:" + u
+    if "donanimhaber.com" in u and "path=" in u:
+        m = re.search(r"path=(https?://[^\&]+)", u)
+        if m:
+            u = m.group(1)
+        u = re.sub(r"\d+x\d+_", "", u)
+    # Anadolu Ajansı (AA) thumbs_ öneklerini kaldırarak ham 5K/4K görsele ulaş
+    if "aa.com.tr" in u and "thumbs_" in u:
+        u = re.sub(r"thumbs_[a-z0-9_]+_", "", u)
+    # NTV / Milliyet / Hürriyet / Sözcü / Habertürk küçültme parametrelerini kaldır
+    if any(d in u for d in ("ntv.com.tr", "hurriyet.com.tr", "milliyet.com.tr", "sozcu.com.tr", "haberturk.com")) and "?" in u:
+        u = u.split("?")[0]
+    # TRT boyut kalıplarını temizle / 1920x1080'e yükselt
+    if "trt.com.tr" in u or "trthaber" in u:
+        u = re.sub(r"_(?:640x360|800x450|1280x720)", "_1920x1080", u)
+    # WordPress vb. thumbnail uzantılarını orijinaline çevir (örn: resim-300x200.jpg -> resim.jpg)
+    u = re.sub(r"-\d{3,4}x\d{3,4}(\.[a-zA-Z]{3,4})$", r"\1", u)
+    return u
+
+
+def hd_gorsel_url_coz(url_veya_link: str) -> Optional[str]:
+    """Herhangi bir görsel veya makale URL'sinden doğrudan en yüksek çözünürlüklü temiz görseli döner."""
+    if not url_veya_link:
+        return None
+    u = url_veya_link.strip()
+    if any(u.lower().endswith(uz) for uz in (".jpg", ".jpeg", ".png", ".webp")):
+        return _temiz_url(u)
+    return og_gorseli_cek(u)
+
+
+def olay_baglami_cek(baslik: str, zaman_asimi: int = 10) -> Optional[str]:
+    """Haber başlığından kritik arama veya görsel bağlamını çıkarır."""
+    if not baslik:
+        return None
+    ham_kelimeler = re.findall(r"\w+", baslik)
+    anlamlilar = [k for k in ham_kelimeler if len(k) >= 3 and _kucult(k) not in TURKCE_STOPWORDS]
+    return " ".join(anlamlilar[:6]) if anlamlilar else None
+
+
 def og_gorseli_cek(link: str, zaman_asimi: int = 15) -> Optional[str]:
     """
     Haber sayfasından en kaliteli görsel URL'ini döner:
     1. og:image / twitter:image
     2. schema.org JSON-LD 'image' alanı
     3. figure/article içi öne çıkan görsel
+    Thumbnail ve küçültme parametrelerini otomatik temizler, HD orijinaline ulaşır.
     """
     resp = _sayfayi_getir(link, zaman_asimi)
     if resp is None:
@@ -341,8 +405,9 @@ def og_gorseli_cek(link: str, zaman_asimi: int = 15) -> Optional[str]:
         meta = soup.find("meta", property=ozellik) or soup.find("meta", attrs={"name": ozellik})
         if meta and meta.get("content"):
             u = meta["content"].strip()
-            if u.startswith("http"):
-                return urllib.parse.urljoin(link, u)
+            if _gecerli_url_mi(u):
+                tam_u = urllib.parse.urljoin(link, u)
+                return _temiz_url(tam_u)
 
     # 2. JSON-LD Image
     for etiket in soup.find_all("script", attrs={"type": "application/ld+json"}):
@@ -350,22 +415,32 @@ def og_gorseli_cek(link: str, zaman_asimi: int = 15) -> Optional[str]:
             continue
         try:
             veri = json.loads(etiket.string)
-            if isinstance(veri, dict):
-                g = veri.get("image")
-                if isinstance(g, str) and g.startswith("http"):
-                    return g
-                elif isinstance(g, dict) and g.get("url"):
-                    return g["url"]
-                elif isinstance(g, list) and len(g) > 0 and isinstance(g[0], str):
-                    return g[0]
+            adaylar = veri.get("@graph") if isinstance(veri, dict) and "@graph" in veri else ([veri] if isinstance(veri, dict) else veri)
+            for aday in (adaylar or []):
+                if not isinstance(aday, dict):
+                    continue
+                tip = str(aday.get("@type", "")).lower()
+                if tip in ("organization", "newsmediaorganization", "website", "person"):
+                    continue
+                img = aday.get("image")
+                if isinstance(img, str) and _gecerli_url_mi(img):
+                    return _temiz_url(urllib.parse.urljoin(link, img))
+                elif isinstance(img, dict) and img.get("url") and _gecerli_url_mi(img["url"]):
+                    return _temiz_url(urllib.parse.urljoin(link, img["url"]))
+                elif isinstance(img, list) and len(img) > 0:
+                    for eleman in img:
+                        if isinstance(eleman, str) and _gecerli_url_mi(eleman):
+                            return _temiz_url(urllib.parse.urljoin(link, eleman))
         except Exception:
             continue
 
     # 3. Makale içi görsel
-    for secici in ("article img", ".post-content img", ".entry-content img", "figure img"):
+    for secici in ("article img", ".post-content img", ".entry-content img", "figure img", "main figure img"):
         img = soup.select_one(secici)
-        if img and img.get("src") and img["src"].startswith("http"):
-            return img["src"]
+        if img:
+            src = img.get("src") or img.get("data-src") or ""
+            if _gecerli_url_mi(src):
+                return _temiz_url(urllib.parse.urljoin(link, src))
 
     return None
 
@@ -389,17 +464,9 @@ def tum_gorselleri_cek(link: str, zaman_asimi: int = 15) -> List[str]:
     gorulen: set[str] = set()
 
     def _ekle(raw_url: str):
-        if not raw_url:
+        if not raw_url or not _gecerli_url_mi(raw_url):
             return
-        u = urllib.parse.urljoin(link, raw_url.strip())
-        if not u.startswith("http"):
-            return
-        u_temiz = u.split("?")[0].lower()
-        if any(eng in u_temiz for eng in (
-            "doubleclick", "googleads", "analytics", "pixel", "tracking",
-            "facebook.com/tr", ".svg", "/logo", "/icon", "avatar", "spacer"
-        )):
-            return
+        u = _temiz_url(urllib.parse.urljoin(link, raw_url.strip()))
         if u not in gorulen:
             gorulen.add(u)
             gorseller.append(u)

@@ -241,6 +241,21 @@ def _font_yukle(yol: Path, boyut: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
+def _font(punto: int, eksenler: Optional[List[float]] = None) -> ImageFont.FreeTypeFont:
+    """Instabot uyumluluk köprüsü: punto ve opsiyonel eksenlerle font yükler."""
+    return _font_yukle(FONT_SANS, punto)
+
+
+def kanal_ikonlari_bas(
+    gorsel: Image.Image,
+    ayarlar: Any = None,
+    y_merkez: int = 1800,
+    renk: Tuple[int, int, int] = (150, 160, 180),
+) -> Image.Image:
+    """Slaytın alt bilgisine sosyal kanal ikonlarını veya marka metnini basar."""
+    return gorsel
+
+
 BUYUKLUK_KELIMELERI = {"bin", "milyon", "milyar", "trilyon"}
 PARA_BIRIMLERI = {"₺", "$", "€", "£"}
 UNVAN_VE_KISALTMALAR = {

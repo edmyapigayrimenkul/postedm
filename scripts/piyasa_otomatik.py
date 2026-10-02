@@ -1,0 +1,512 @@
+"""
+piyasa_otomatik.py — Hafta içi sabah (TR 10:08) ve akşam (TR 18:20) Borsa Açılış/Kapanış Bülteni.
+
+Yapı:
+  * 1. Slayt: Canlı BIST 100, Dolar, Euro, Gram Altın, Bitcoin, Brent Petrol Isı Haritası (src/piyasa_kart.py)
+  * 2. Slayt: 30 Varlık BİST Hisseleri & Piyasa Tablosu (src/piyasa_tablo.py)
+
+Paylaşım Kanalları (Tam Otomatik — Onay Sorulmaz):
+  * Instagram Carousel (2 Slayt)
+  * Instagram Story (2 Slayt)
+  * Facebook Albüm + Story
+  * Threads (2 Görsel)
+  * X / Twitter (2 Görsel)
+  * ⚠️ VİDEO YOKTUR: YouTube Shorts, TikTok ve Instagram Reels üretilmez/yayınlanmaz.
+"""
+
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import logging
+import os
+import sys
+import threading
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from PIL import Image
+
+import yaml
+
+# Kök klasörü sys.path'e ekle
+KOK = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(KOK))
+
+from src import (  # noqa: E402
+    caption, db, facebook, instagram, make_image,
+    piyasa, piyasa_kart, piyasa_tablo, secim, slaytlar, telegram_bot,
+    threads, twitter, upload_image, video, yonetim,
+)
+from src.generate_text import metinleri_uret        # noqa: E402
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-7s %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("piyasa_otomatik")
+
+
+def _haber_slaytlari_uret(con, ayarlar: dict, adet: int, mod: str | None = None) -> list[dict]:
+    """
+    Piyasa bülteninin sonuna eklenecek "Günün Ekonomi Gündemi" özet kartlarını üretir.
+    Sayfa başına en fazla 3 haber yer alır; 3'ten fazla haber varsa 2. özet sayfası (4. slayt) üretilir.
+
+    ⚠️ METNİ HAZIR OLAN HABER ÖNCE — Gemini kotası günde 40 ücretsiz
+    istek, mevcut kullanım ~33 ve bülten günde 2 kez çalışıyor.
+    `secim.bulten_adaylari` metni hazır olanları başa alıyor; yalnızca
+    kalanlar için üretim yapılıyor.
+
+    ⚠️ KATEGORİ DOĞRULAMASI ÜRETİMDEN SONRA. Besleme "ekonomi" dese de
+    haber gerçekten ekonomi olmayabilir (CLAUDE.md 1i). Gemini
+    `kategori` alanını makalenin tam metnine bakarak dolduruyor; o
+    değer 'ekonomi' değilse haber bültene ALINMIYOR. Bu alan zaten
+    üretiliyor, ek maliyeti yok.
+
+    ⚠️ ÜRETİM PATLARSA BÜLTEN DÜŞMÜYOR — çağıran taraf istisnayı
+    yakalıyor ve iki veri slaytıyla devam ediyor. Haber slaytı bir EK,
+    ön şart değil.
+    """
+    p_ayar = ayarlar.get("piyasa", {}) or {}
+    tazelik = p_ayar.get("haber_tazelik_saat", 12)
+
+    adaylar = secim.bulten_adaylari(con, ayarlar, adet=adet,
+                                    tazelik_saat=tazelik)
+    if not adaylar:
+        log.info("bülten: uygun ekonomi haberi bulunamadı, haber slaytı yok")
+        return []
+
+    metinsizler = [h for h in adaylar if not h["ig_baslik"]]
+    if metinsizler:
+        log.info("bülten: %d haberin metni üretiliyor", len(metinsizler))
+        metinleri_uret(ayarlar=ayarlar, haberler=metinsizler)
+
+    idler = [h["id"] for h in adaylar]
+    isaret = ",".join("?" * len(idler))
+    taze = list(con.execute(
+        f"SELECT * FROM haberler WHERE id IN ({isaret})", idler))
+    sira = {hid: i for i, hid in enumerate(idler)}
+    taze.sort(key=lambda h: sira.get(h["id"], 99))
+
+    onayli = []
+    for h in taze:
+        if not h["ig_baslik"]:
+            log.info("bülten: metni üretilemedi, atlanıyor — %s",
+                     (h["baslik_orj"] or "")[:60])
+            continue
+        # ⚠️ ASIL KATEGORİ KAPISI. Gemini tam metne bakıp karar verdi.
+        if (h["kategori"] or "") != "ekonomi":
+            log.info("bülten: Gemini kategoriyi '%s' dedi, bültene "
+                     "alınmıyor — %s", h["kategori"],
+                     (h["ig_baslik"] or "")[:60])
+            continue
+        onayli.append(dict(h))
+
+    if not onayli:
+        log.info("bülten: kategori doğrulamasından geçen haber kalmadı")
+        return []
+
+    from src import piyasa_ozet
+    ozet_yollari = piyasa_ozet.ekonomi_ozet_sayfalari_uret(onayli, mod=mod)
+    sonuclar = [
+        {"id": f"ozet_{idx}", "yol": yol, "katman": "ozet", "atif": ""}
+        for idx, yol in enumerate(ozet_yollari, start=1)
+    ]
+    log.info("bülten: %d ekonomi özet kartı sayfası üretildi (%d haberden)",
+             len(sonuclar), len(onayli))
+    return sonuclar
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Piyasa Açılış/Kapanış Bülteni Otomatik Yayınlayıcı")
+    parser.add_argument("--mod", choices=["acilis", "kapanis", "oto"], default="oto",
+                        help="Yayın modu: acilis, kapanis veya saate göre oto")
+    parser.add_argument("--kuru", action="store_true", help="Kuru çalışma (API'lere paylaşım yapmaz)")
+    parser.add_argument("--zorla", action="store_true", help="Mükerrer kilidini atla, zorla yayınla")
+    args = parser.parse_args()
+
+    ayarlar_yolu = KOK / "config.yaml"
+    with open(ayarlar_yolu, encoding="utf-8") as f:
+        ayarlar = yaml.safe_load(f)
+
+    con = db.baglan()
+
+    # 1. Bot duraklatılmış mı kontrol et
+    duraklatildi, kalan = yonetim.duraklatildi_mi(con)
+    if duraklatildi:
+        log.info("Bot duraklatılmış (kalan: %s), piyasa bülteni atlanıyor.", kalan)
+        con.close()
+        return 0
+
+    # 2. Mod ve Saat Penceresi Denetimi
+    tr_simdi = datetime.now(timezone.utc) + timedelta(hours=3)
+    hafta_ici = tr_simdi.weekday() < 5
+    tr_saat = tr_simdi.hour
+    tr_dakika = tr_simdi.minute
+    toplam_dakika = tr_saat * 60 + tr_dakika
+    bugun_str = tr_simdi.date().isoformat()
+
+    if not hafta_ici and not args.zorla:
+        log.info("Hafta sonu — Piyasa Bülteni yayınlanmaz.")
+        con.close()
+        return 0
+
+    # Saat Pencereleri (TR Saati):
+    # Açılış: 09:55 - 11:30 (Borsa 10:00 açılışı sonrası)
+    # Kapanış: 18:15 - 20:00 (Borsa 18:00 kapanışı sonrası)
+    dakika_acilis_bas = 9 * 60 + 55    # 09:55
+    dakika_acilis_bit = 11 * 60 + 30   # 11:30
+
+    dakika_kapanis_bas = 18 * 60 + 15  # 18:15
+    dakika_kapanis_bit = 20 * 60 + 0   # 20:00
+
+    if args.mod == "oto":
+        if dakika_acilis_bas <= toplam_dakika <= dakika_acilis_bit:
+            mod = "acilis"
+        elif dakika_kapanis_bas <= toplam_dakika <= dakika_kapanis_bit:
+            mod = "kapanis"
+        elif args.zorla:
+            mod = "acilis" if toplam_dakika < 15 * 60 else "kapanis"
+        else:
+            log.warning(
+                "Piyasa bülteni açılış/kapanış saat penceresi dışında (şu an %02d:%02d TR) — atlanıyor.",
+                tr_saat, tr_dakika
+            )
+            con.close()
+            return 0
+    else:
+        mod = args.mod
+        # Mod açıkça belirtilmişse bile saat penceresi dışındaysa --zorla olmadan yayınlama!
+        if mod == "acilis" and not (dakika_acilis_bas <= toplam_dakika <= dakika_acilis_bit) and not args.zorla:
+            log.warning("Açılış bülteni saat penceresi dışında (şu an %02d:%02d TR, geçerli: 09:55-11:30) — atlandı.", tr_saat, tr_dakika)
+            con.close()
+            return 0
+        if mod == "kapanis" and not (dakika_kapanis_bas <= toplam_dakika <= dakika_kapanis_bit) and not args.zorla:
+            log.warning("Kapanış bülteni saat penceresi dışında (şu an %02d:%02d TR, geçerli: 18:15-20:00) — atlandı.", tr_saat, tr_dakika)
+            con.close()
+            return 0
+
+    # 3. Mükerrer Bülten Kilidi (Günde 1 kez açılış, 1 kez kapanış)
+    anahtar_bulten = f"piyasa_bulteni_{mod}_{bugun_str}"
+    zaten_var = con.execute(
+        "SELECT deger FROM ayarlar WHERE anahtar = ?", (anahtar_bulten,)
+    ).fetchone()
+    if zaten_var and not args.kuru and not args.zorla:
+        log.info("Bugün %s bülteni zaten yayınlanmış (%s), mükerrer yayın engellendi.",
+                 mod.upper(), bugun_str)
+        con.close()
+        return 0
+
+    log.info("--- PİYASA BÜLTENİ OTOMATİK YAYIN (%s) BAŞLATILDI ---", mod.upper())
+
+    # 4. Canlı piyasa verilerini çek — BÜLTEN BAŞINA TEK ÇEKİM
+    #
+    # ⚠️ ESKİDEN ÜÇ AYRI ÇEKİM VARDI (9 Eyl 2026'da birleştirildi):
+    # kart (ısı haritası, 23 sembol) · tablo (30 sembol) · caption metni
+    # (7 gösterge). Üçü de kendi HTTP turunu atıyor, kendi zaman
+    # aralığını seçiyor ve "önceki kapanış"ı kendi sırasıyla okuyordu —
+    # sayfa 1 ile sayfa 2'nin ZIT yüzde basmasının zemini buydu.
+    # Artık tek çekim, tek kural; üç tüketici aynı sözlüğü paylaşıyor.
+    semboller = (
+        {o["sym"].replace("_ONS", "")
+         for liste in piyasa.ISI_HARITASI_SEKTORLERI.values() for o in liste}
+        | {o["sym"]
+           for s_info in piyasa_tablo.SUTUNLAR.values() for o in s_info["ogeler"]}
+        | {m["sembol"] for m in piyasa.SEMBOL_HARITASI.values()}
+    )
+    fiyatlar = piyasa.tum_fiyatlari_cek(semboller)
+    log.info("piyasa verisi: %d/%d sembol çekildi", len(fiyatlar), len(semboller))
+
+    piyasa_verileri = piyasa.piyasa_verileri_getir(fiyatlar)
+
+    # 5. %100 Native 1080x1920 (9:16 Full-bleed) Slaytları Üret
+    #
+    # ⚠️ KARTA BASILAN VERİ BU — `piyasa_verileri` DEĞİL (9 Eyl 2026).
+    # `piyasa_karti_uret_9_16` kendisine verilen sözlükte
+    # "BİST & TÜRKİYE HİSSELERİ" anahtarını arıyor; `piyasa_verileri`de
+    # o anahtar yok, dolayısıyla veri SESSİZCE ATILIYOR ve fonksiyon
+    # ısı haritasını kendi çekiyordu. Sonuç: yayın kapısı karta hiç
+    # girmeyen bir veriyi denetliyordu. Artık ısı haritası burada BİR
+    # KEZ çekiliyor, kapıdan geçiriliyor ve karta o veri veriliyor.
+    # ⚠️ `piyasa_verileri` yine gerekli — caption ve Twitter metnini o
+    # besliyor (aşağıda), yani ikisi ayrı amaca hizmet ediyor.
+    sektor_verileri = piyasa.isi_haritasi_verileri_getir(fiyatlar)
+    eksik_kart = piyasa.isi_haritasi_eksikleri(sektor_verileri)
+    if eksik_kart and not args.zorla:
+        sebep_k = "kart verisi alınamadı: " + ", ".join(eksik_kart[:6])
+        log.warning("Piyasa bülteni atlandı — %s", sebep_k)
+        telegram_bot.mesaj_gonder(
+            f"⚠️ <b>Piyasa bülteni yayınlanmadı</b>\n{sebep_k}.\n\n"
+            "Koda gömülü yedek yüzde basmak yerine atlandı — bir "
+            "sonraki pencerede yeniden denenecek.",
+            html=True,
+        )
+        con.close()
+        return 0
+
+    kart_yolu = piyasa_kart.piyasa_karti_uret_9_16(sektor_verileri, mod=mod)
+    # ⚠️ SAYFA 1 DENETİMİ: canlı veri alınamayan varlık varsa bülten
+    # yayınlanmıyor. `piyasa_verileri_getir` eksik varlığı varsayılanla
+    # dolduruyor (BIST 100 için sabit 14.500 puan) ve kartta gerçek
+    # veriden ayırt edilemiyor — uydurma finansal rakam yayınlamaktansa
+    # bülteni atlamak doğru. Altı çekirdek varlık var; biri bile
+    # eksikse zaten "piyasa özeti" olmaktan çıkıyor.
+    eksik_varlik = piyasa.eksik_varliklar(piyasa_verileri)
+    if eksik_varlik and not args.zorla:
+        sebep_1 = "canlı veri alınamadı: " + ", ".join(eksik_varlik)
+        log.warning("Piyasa bülteni atlandı — %s", sebep_1)
+        telegram_bot.mesaj_gonder(
+            f"⚠️ <b>Piyasa bülteni yayınlanmadı</b>\n{sebep_1}.\n\n"
+            "Uydurma rakam basmak yerine atlandı — bir sonraki "
+            "pencerede yeniden denenecek.",
+            html=True,
+        )
+        con.close()
+        return 0
+
+    # ⚠️ CANLI VERİ YETERSİZSE BÜLTEN YAYINLANMIYOR (6 Eyl 2026).
+    # Kullanıcı "BIST hisse dataları çekilememişti" diye bildirdi;
+    # gerçekte tablo eksik veriyi KODA GÖMÜLÜ yüzdelerle dolduruyor ve
+    # canlı veriymiş gibi yeşil/kırmızı basıyordu. Artık eksik hücre
+    # "veri yok" diyor — ama bir sütun büyük ölçüde boşken bülteni hiç
+    # yayınlamamak doğru: yarım piyasa karnesi, karne olmaktan çıkıyor.
+    canli_fiyatlar = piyasa_tablo._tum_fiyatlari_cek(fiyatlar)
+    yeterli, sebep = piyasa_tablo.veri_yeterli_mi(canli_fiyatlar)
+    if not yeterli and not args.zorla:
+        log.warning("Piyasa bülteni atlandı — %s", sebep)
+        telegram_bot.mesaj_gonder(
+            f"⚠️ <b>Piyasa bülteni yayınlanmadı</b>\n{sebep}.\n\n"
+            "Canlı veri alınamadığı için uydurma rakam basmak yerine "
+            "atlandı — bir sonraki pencerede yeniden denenecek.",
+            html=True,
+        )
+        con.close()
+        return 0
+    tablo_yolu = piyasa_tablo.piyasa_tablosu_uret_9_16(canli_fiyatlar, mod=mod)
+
+    kart_yukleme = upload_image.gorsel_yukle(kart_yolu, ayarlar)
+    tablo_yukleme = upload_image.gorsel_yukle(tablo_yolu, ayarlar)
+    kart_url = kart_yukleme["url"]
+    tablo_url = tablo_yukleme["url"]
+    slayt_urlleri = [kart_url, tablo_url]
+
+    # 5b. EKONOMİ HABERİ SLAYTLARI (18 Eyl 2026, kullanıcı isteği)
+    #
+    # Bülten iki VERİ slaytıydı (ısı haritası + karne). Kullanıcı
+    # ekonomi havuzunun kullanılmasını istedi: "ekonomi turlarımıza
+    # en az 2-3 tane ekonomi haberi eklersek boşa da gitmemiş olur."
+    #
+    # ⚠️ KATEGORİ İKİ KAPIDAN GEÇİYOR. `fetch_news` kategoriyi haberin
+    # içeriğinden değil KAYNAĞIN tanımından alıyor (CLAUDE.md 1i) ve
+    # ölçüldü: `kategori='ekonomi'` etiketli haberler arasında
+    # "Hürmüz Boğazı'nda patlama", "39 ilin emniyet müdürü değişti",
+    # "ABD ordusuna ait F-16 düştü" vardı. Bunları ekonomi bülteninde
+    # basmak bülteni anlamsızlaştırır.
+    #   1) `secim.bulten_adaylari` anahtar kelimeyle ÖN ELEME yapıyor
+    #      (ucuz, %73 geçiriyor, iki yönde de hata yapıyor)
+    #   2) metin üretiminden SONRA Gemini'nin kendi `kategori` alanı
+    #      denetleniyor — o alan makalenin TAM METNİNE bakıyor ve
+    #      zaten üretiliyor, yani EK MALİYETİ YOK
+    #
+    # ⚠️ HABER BULUNAMAZSA BÜLTEN YİNE ÇIKIYOR. Haber slaytı bir EK;
+    # piyasa verisi asıl üründür. Metin üretimi patlarsa, kategori
+    # doğrulaması hepsini elerse ya da havuz boşsa bülten iki
+    # slaytla yayınlanıyor.
+    haber_adedi = (ayarlar.get("piyasa", {}) or {}).get("haber_slayti_adedi", 3)
+    haber_sonuclari = []
+    if haber_adedi > 0 and not args.kuru:
+        try:
+            haber_sonuclari = _haber_slaytlari_uret(
+                con, ayarlar, haber_adedi, mod=mod)
+        except Exception as e:
+            log.warning("bülten haber slaytları üretilemedi (%s) — "
+                        "bülten veri slaytlarıyla devam ediyor", e)
+            haber_sonuclari = []
+
+    for h in haber_sonuclari:
+        try:
+            slayt_urlleri.append(upload_image.gorsel_yukle(h["yol"], ayarlar)["url"])
+        except Exception as e:
+            log.warning("haber slaytı yüklenemedi (#%s): %s", h["id"], e)
+
+    kart_story_url = kart_url
+    tablo_story_url = tablo_url
+
+    # 6. Açıklama metinlerini oluştur
+    ig_caption = caption.piyasa_bulteni_caption(piyasa_verileri, ayarlar, mod=mod)
+    tw_metin = caption.piyasa_twitter_metni(piyasa_verileri, ayarlar, mod=mod)
+
+    if args.kuru:
+        log.info("Kuru çalışma tamamlandı.")
+        log.info("Slaytlar: %s, %s", kart_url, tablo_url)
+        log.info("Instagram Caption:\n%s", ig_caption)
+        log.info("X Metni:\n%s", tw_metin)
+        return 0
+
+    # 7. Kanallara Yayını Başlat
+    # ImgBB CDN yayılımı (propagation) için bekleme:
+    # Meta'nın (Instagram/Facebook) ABD ve Avrupa crawler'larının görseli anında bulabilmesi için
+    time.sleep(6)
+
+    sonuclar = []
+    canli_link_dugmeleri = []
+    _lock = threading.Lock()
+
+    # 4:5 Formatı: Instagram Akış, Threads ve Twitter için 4:5 (1080x1350)
+    # Story ise kesinlikle 9:16 (1080x1920) kalır.
+    slayt_urlleri_4_5 = instagram.gorselleri_4_5_yap(slayt_urlleri, ayarlar)
+    kart_url_4_5 = slayt_urlleri_4_5[0] if slayt_urlleri_4_5 else kart_url
+    tablo_url_4_5 = slayt_urlleri_4_5[1] if len(slayt_urlleri_4_5) > 1 else tablo_url
+
+    post_id = None
+    baglanti = None
+
+    # a) Instagram Carousel & Story
+    def _is_ig():
+        nonlocal post_id, baglanti
+        try:
+            p_id = instagram.carousel_yayinla(slayt_urlleri_4_5, ig_caption, ayarlar)
+            bgl = instagram.post_baglantisi(p_id, ayarlar)
+            with _lock:
+                post_id = p_id
+                baglanti = bgl
+                sonuclar.append("📸 Instagram Gönderisi (4:5) paylaşıldı")
+                if bgl:
+                    canli_link_dugmeleri.append([{"text": "📸 Instagram'da Gör", "url": bgl}])
+        except Exception as e:
+            log.exception("Instagram piyasa bülteni yayın hatası: %s", e)
+            with _lock:
+                sonuclar.append(f"⚠️ Instagram hatası: {type(e).__name__}")
+
+        # Story (9:16)
+        try:
+            for s_url in slayt_urlleri:
+                instagram.story_yayinla(s_url, ayarlar)
+            with _lock:
+                sonuclar.append(f"📱 Instagram Story (9:16 - {len(slayt_urlleri)} slayt) paylaşıldı")
+        except Exception as e:
+            log.warning("Instagram story hatası: %s", e)
+            with _lock:
+                sonuclar.append(f"⚠️ Instagram Story hatası: {type(e).__name__}")
+
+    # b) Facebook Albüm & Story
+    def _is_fb():
+        fb_aktif = bool((ayarlar.get("sosyal", {}) or {}).get("facebooka_da_at"))
+        if not fb_aktif:
+            return
+        try:
+            fb_id = facebook.albüm_yayinla(slayt_urlleri_4_5, ig_caption, ayarlar)
+            fb_url = facebook.post_baglantisi(fb_id)
+            with _lock:
+                sonuclar.append("📘 Facebook albümü paylaşıldı")
+                if fb_url:
+                    canli_link_dugmeleri.append([{"text": "📘 Facebook'ta Gör", "url": fb_url}])
+            try:
+                facebook.story_yayinla(kart_story_url, ayarlar)
+            except Exception:
+                pass
+        except Exception as e:
+            log.warning("Facebook bülten hatası: %s", e)
+            with _lock:
+                sonuclar.append(f"⚠️ Facebook hatası: {type(e).__name__}")
+
+    # c) Threads (4:5)
+    def _is_th():
+        th_aktif = bool((ayarlar.get("sosyal", {}) or {}).get("threadse_de_at"))
+        if not th_aktif:
+            return
+        try:
+            halkalar = [
+                {
+                    "metin": ig_caption[:490],
+                    "gorsel_url": kart_url_4_5,
+                    "tip": "gorsel",
+                },
+                {
+                    "metin": "📌 30 Varlık BİST Hisseleri, ABD Teknoloji ve Kripto Tablosu",
+                    "gorsel_url": tablo_url_4_5,
+                    "tip": "gorsel",
+                }
+            ]
+            th_id, _ = threads.zincir_yayinla(halkalar)
+            th_url = threads.post_baglantisi(th_id)
+            with _lock:
+                sonuclar.append("🧵 Threads postu paylaşıldı (4:5)")
+                if th_url:
+                    canli_link_dugmeleri.append([{"text": "🧵 Threads'te Gör", "url": th_url}])
+        except Exception as e:
+            log.warning("Threads bülten hatası: %s", e)
+            with _lock:
+                sonuclar.append(f"⚠️ Threads hatası: {type(e).__name__}")
+
+    # d) X (Twitter - 4:5)
+    def _is_tw():
+        tw_aktif = bool((ayarlar.get("sosyal", {}) or {}).get("twittera_da_at"))
+        if not tw_aktif:
+            return
+        try:
+            # 2 görseli yükle (twitter.medya_yukle otomatik 4:5 kırpar)
+            tw_medya_idler = []
+            for y in [kart_yolu, tablo_yolu]:
+                m_id = twitter.medya_yukle(y)
+                if m_id:
+                    tw_medya_idler.append(m_id)
+
+            tw_id = twitter.tweet_olustur(tw_metin, medya_idler=tw_medya_idler if tw_medya_idler else None)
+            tw_url = twitter.post_baglantisi(tw_id)
+            with _lock:
+                sonuclar.append("🐦 X (Twitter) gönderisi paylaşıldı (4:5)")
+                if tw_url:
+                    canli_link_dugmeleri.append([{"text": "🐦 X'te Gör", "url": tw_url}])
+        except Exception as e:
+            log.warning("Twitter bülten hatası: %s", e)
+            with _lock:
+                sonuclar.append(f"⚠️ X hatası: {type(e).__name__}")
+
+    # Paralel Dağıtım
+    gorevler = [_is_ig, _is_fb, _is_th, _is_tw]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(gorevler)) as executor:
+        futures = [executor.submit(fn) for fn in gorevler]
+        concurrent.futures.wait(futures)
+
+    # 8. Telegram Grubuna Canlı Bilgi Mesajı İlet
+    import html as html_lib
+    baslik_etiket = "AÇILIŞ" if mod == "acilis" else "KAPANIŞ"
+    rapor_metni = "\n".join(f"• {s}" for s in sonuclar)
+    temiz_caption = html_lib.escape(ig_caption.strip())
+
+    # Eğer ana platform olan Instagram'da yayın başarısız olduysa tek tıkla tekrar deneme butonu ekle
+    buton_satirlari = list(canli_link_dugmeleri)
+    if not post_id:
+        buton_satirlari.insert(0, [{"text": "🚀 Bülteni Şimdi Tekrar Yayınla", "callback_data": "piyasa_yayinla"}])
+
+    telegram_bot.mesaj_gonder(
+        f"📊 <b>GÜNLÜK PİYASA {baslik_etiket} BÜLTENİ OTOMATİK YAYINLANDI</b>\n\n"
+        f"{rapor_metni}\n\n"
+        f"📝 <b>Açıklama Metni (Kopyalamak için dokunun):</b>\n"
+        f"<pre>{temiz_caption}</pre>",
+        html=True,
+        butonlar=buton_satirlari if buton_satirlari else None,
+    )
+
+    if not args.kuru:
+        # Yalnızca Instagram başarıyla yayınlandıysa (veya config'de kapalıysa) bülteni tamamlandı say
+        ig_aktif = bool(ayarlar.get("instagram", {}).get("hesap_kullanici_adi"))
+        if post_id or not ig_aktif:
+            con.execute(
+                "INSERT INTO ayarlar (anahtar, deger) VALUES (?, ?) "
+                "ON CONFLICT(anahtar) DO UPDATE SET deger = excluded.deger",
+                (anahtar_bulten, datetime.now(timezone.utc).isoformat()),
+            )
+            con.commit()
+        else:
+            log.warning("Instagram yayını başarısız olduğu için %s bülteni tamamlandı olarak kilitlenmedi (telafi mümkün).", anahtar_bulten)
+
+    con.close()
+    log.info("Piyasa bülteni otomatik yayını tamamlandı.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
