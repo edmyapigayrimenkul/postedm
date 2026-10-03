@@ -165,11 +165,10 @@ def main() -> None:
         log.info("%d konu adayı eklendi. 'hazirla.py --durum' ile görebilirsin.", n)
         return
 
-    # İlanlar kullanıcının isteği doğrultusunda şimdilik devre dışı bırakıldı
-    # fetch_listings.portfoyu_senkronize_et()
-
     if args.ilan_menu:
-        log.info("İlan menüsü geçici olarak devre dışı.")
+        log.info("Portföy senkronize ediliyor ve ilan menüsü gönderiliyor...")
+        fetch_listings.portfoyu_senkronize_et()
+        telegram_bot.tek_tikla_ilan_menusu_gonder()
         return
 
     # Mevcut haberin formatı değiştirilecekse

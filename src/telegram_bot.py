@@ -284,6 +284,14 @@ def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> Lis
     if not token or not chat_id or not foto_yollari:
         return False
 
+    # Telegram sendMediaGroup minimum 2 medya gerektirir.
+    # Tekil görsel (örneğin tek kare Sözlük slaytı) durumunda sendPhoto kullanılır.
+    if len(foto_yollari) == 1:
+        res = fotograf_gonder(foto_yollari[0], caption=caption)
+        if res and isinstance(res, dict) and "message_id" in res:
+            return [res["message_id"]]
+        return bool(res)
+
     import io
     url = TELEGRAM_API_URL.format(token=token, method="sendMediaGroup")
     foto_yollari = foto_yollari[:10]
@@ -1678,65 +1686,27 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
             if not otorite_verisi.get("spot"):
                 otorite_verisi["spot"] = haber.get("orijinal_ozet")
 
-        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
-            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else "dailybrief"
-            slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}")
-            slayt_yollari = [str(p) for p in slayt_listesi]
-        elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
-            # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla üret
-            dm_raw = str(haber.get("detay_metni") or "").strip()
-            spot_val = haber.get("orijinal_ozet") or (dm_raw if not dm_raw.startswith("{") else "")
-            veri_icin = {
-                "manset": haber.get("manset") or haber.get("orijinal_baslik", ""),
-                "spot": spot_val,
-                "kategori": haber.get("kategori") or "TAPU_VE_HUKUK",
-                "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
-                "gorsel_yolu": haber.get("gorsel_url"),
-                "format_turu": "dailybrief",
-                "detay_maddeleri": haber.get("detay_maddeleri"),
-                "uzman_notu": haber.get("uzman_notu"),
-            }
-            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}")
-            slayt_yollari = [str(p) for p in slayt_listesi]
-        else:
-            # Standart carousel / otorite postu: yüksek kontrastlı mimari fotoğraflı make_image motorunu kullan (4-7 slayt)
-            veri_icin = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else {
-                "kategori_kodu": haber.get("kategori") or "TAPU_VE_HUKUK",
-                "manset_parca_1": haber.get("manset") or haber.get("orijinal_baslik", ""),
-                "manset_vurgu": "",
-                "manset_parca_2": "",
-                "spot": haber.get("detay_metni") or haber.get("orijinal_ozet", ""),
-                "bicim": "B1",
-            }
-            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(veri_icin, cikti_onek=f"gonderi_{haber_id}", olcu="besleme")
-            slayt_yollari = [str(p) for p in slayt_listesi]
-
-    rozet = "HUKUK & YATIRIM REHBERİ"
-    dayanak = haber.get("kaynak", "EDM Yapı & Gayrimenkul")
-    if otorite_verisi and isinstance(otorite_verisi, dict):
-        rozet = otorite_verisi.get("rozet_metni", rozet)
-        dayanak = otorite_verisi.get("yasal_dayanak", dayanak)
-
-    dm_raw = str(haber.get("detay_metni") or "").strip()
-    spot_val = haber.get("orijinal_ozet") or (dm_raw if not dm_raw.startswith("{") else "")
-    veri_icin = {
-        "manset": haber.get("manset") or haber.get("orijinal_baslik", ""),
-        "spot": spot_val,
-        "kategori": haber.get("kategori") or "TAPU_VE_HUKUK",
-        "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
-        "gorsel_yolu": haber.get("gorsel_url"),
-        "format_turu": format_turu or "dailybrief",
-        "detay_maddeleri": haber.get("detay_maddeleri"),
-        "uzman_notu": haber.get("uzman_notu"),
-    }
-    aktif_veri = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else veri_icin
-
-    if not slayt_yollari:
-        from . import yeni_formatlar, make_image
+        dm_raw = str(haber.get("detay_metni") or "").strip()
+        spot_val = haber.get("orijinal_ozet") or (dm_raw if not dm_raw.startswith("{") else "")
+        veri_icin = {
+            "manset": haber.get("manset") or haber.get("orijinal_baslik", ""),
+            "spot": spot_val,
+            "kategori": haber.get("kategori") or "TAPU_VE_HUKUK",
+            "kaynak": haber.get("kaynak", "EDM Yapı & Gayrimenkul"),
+            "gorsel_yolu": haber.get("gorsel_url"),
+            "format_turu": format_turu or "dailybrief",
+            "detay_maddeleri": haber.get("detay_maddeleri"),
+            "uzman_notu": haber.get("uzman_notu"),
+        }
+        aktif_veri = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else veri_icin
 
         if format_turu == "reels":
-            # 9:16 Dikey Reels formatı seçildiğinde native story ölçüsünde üret
-            slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}", olcu="story")
+            # 9:16 Dikey Reels formatı
+            fmt = aktif_veri.get("bicim") or "dailybrief"
+            if fmt in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+                slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=fmt, cikti_onek=f"gonderi_{haber_id}", olcu="story")
+            else:
+                slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="story")
             slayt_yollari = [str(p) for p in slayt_listesi]
         elif format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
             f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else "dailybrief"
@@ -1748,7 +1718,7 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
             slayt_yollari = [str(p) for p in slayt_listesi]
         else:
             # Standart carousel / otorite postu: yüksek kontrastlı mimari fotoğraflı make_image motorunu kullan (4-7 slayt)
-            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(veri_icin, cikti_onek=f"gonderi_{haber_id}", olcu="besleme")
+            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="besleme")
             slayt_yollari = [str(p) for p in slayt_listesi]
 
     # 2.5 Slaytları Public CDN'e yükle (Runner bağımsızlığı ve API'ler için)
@@ -1759,7 +1729,9 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
         log.warning("Görseller CDN'e yüklenemedi: %s", e)
 
     # 2.6 Veritabanına kaydet (Video onaya sunulmaz; kullanıcı 'Yayınla' dediğinde derlenir - Instabot standardı)
-    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief", "reels")) or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")) or (not otorite_verisi)
+    is_reels = (format_turu == "reels") or (haber.get("kategori") == "REELS")
+    is_haber = (format_turu in ("dailybrief", "haber", "haber_dailybrief")) or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")) or (not otorite_verisi and not is_reels)
+
     db.haber_guncelle(
         haber_id,
         slayt_yollari=json.dumps(slayt_yollari),
@@ -1768,31 +1740,50 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
         durum="onay_bekliyor"
     )
 
-    # 3. Medya albümü ve içerik kartı hazırla
-    caption_ozeti = (haber.get("ig_caption") or "")[:350]
+    # 2.7 Önceki tüm mesajları (eski onay kartı ve albüm slaytları) temizle
+    icerik_onceki_mesajlarini_temizle("haber", haber_id)
 
-    # Kapıdan geçen içeriğin kritik olmayan uyarıları onaylayana gösterilir
-    from . import dogrula
-    denetim_basligi = dogrula.uyari_basligi(uyarilar)
-    if uyarilar:
-        log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
+    # 3. Format bazlı başlık ve rozet belirleme (Haberle Birebir Aynı Standart)
+    rozet = "HUKUK & YATIRIM REHBERİ"
+    dayanak = haber.get("kaynak", "EDM Yapı & Gayrimenkul")
+    if otorite_verisi and isinstance(otorite_verisi, dict):
+        rozet = otorite_verisi.get("rozet_metni", rozet)
+        dayanak = otorite_verisi.get("yasal_dayanak", dayanak)
 
-    # Format bazlı başlık belirleme
-    is_reels = (format_turu == "reels")
     if is_reels:
+        rozet = "REELS & VİDEO (9:16)"
+        dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Video Prodüksiyon")
         album_caption = f"🎬 <b>EDM 9:16 REELS SLAYTLARI</b>\n📌 {haber['manset']}"
         kart_baslik = f"🎬 <b>GÜNCEL REELS İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+    elif format_turu == "sozluk":
+        rozet = "GAYRİMENKUL SÖZLÜĞÜ"
+        dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Gayrimenkul Terminolojisi")
+        album_caption = f"📖 <b>EDM GAYRİMENKUL SÖZLÜĞÜ (4:5)</b>\n📌 {haber['manset']}"
+        kart_baslik = f"📖 <b>GAYRİMENKUL SÖZLÜĞÜ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+    elif format_turu == "nedir_dogrusu":
+        rozet = "NEDİR DOĞRUSU?"
+        dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Hukuk & Doğrulama")
+        album_caption = f"⚖️ <b>EDM NEDİR DOĞRUSU? (4:5)</b>\n📌 {haber['manset']}"
+        kart_baslik = f"⚖️ <b>NEDİR DOĞRUSU İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+    elif format_turu == "vaka":
+        rozet = "HUKUKİ VAKA ANALİZİ"
+        dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "Emsal Karar & Yargıtay İçtihadı")
+        album_caption = f"📂 <b>EDM HUKUKİ VAKA ANALİZİ (4:5)</b>\n📌 {haber['manset']}"
+        kart_baslik = f"📂 <b>VAKA ANALİZİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
+    elif format_turu == "net_cevap":
+        rozet = "NET CEVAP REHBERİ"
+        dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Danışmanlık Masası")
+        album_caption = f"❓ <b>EDM NET CEVAP REHBERİ (4:5)</b>\n📌 {haber['manset']}"
+        kart_baslik = f"❓ <b>NET CEVAP REHBERİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif is_haber:
+        rozet = rozet if rozet != "HUKUK & YATIRIM REHBERİ" else "GÜNCEL HABER & GÜNDEM"
         album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     else:
         album_caption = f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}"
         kart_baslik = f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
 
-    # 2.7 Önceki tüm mesajları (eski onay kartı ve albüm slaytları) temizle
-    icerik_onceki_mesajlarini_temizle("haber", haber_id)
-
-    # 3. Slayt görsellerini albüm olarak gönder (Instabot standardı: Onayda yalnızca görseller ve açıklama)
+    # 3.1 Slayt görsellerini albüm (veya tek görsel) olarak gönder
     album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption)
     _, chat_id = _bot_bilgileri()
     cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
@@ -1804,6 +1795,11 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
             log.warning("Albüm mesaj ID kaydedilemedi: %s", e)
 
     # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Görüntülerin hemen altına düşer)
+    from . import dogrula
+    denetim_basligi = dogrula.uyari_basligi(uyarilar)
+    if uyarilar:
+        log.info("Denetim uyarıları (#%d): %s", haber_id, "; ".join(uyarilar))
+
     import html as html_lib
     ham_caption = (haber.get("ig_caption") or haber.get("manset") or "").strip()
     caption_metin = generate_text.caption_zenginlestir(
@@ -2059,10 +2055,9 @@ def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
 
 def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     """
-    Konu bankasından sıradaki konudan 9:16 dikey MP4 Reels videosu üretir,
-    videoyu Telegram grubuna gönderir, kopyalanabilir açıklama metnini iletir
-    ve YouTube Shorts / TikTok otomatik yayın butonlarını sunar.
-    Instabot mimarisinden uyarlanmıştır.
+    Konu bankasından sıradaki konudan 9:16 dikey Reels içeriği üretir,
+    slaytları Telegram grubuna görsel olarak gönderir ve haberle birebir aynı
+    onay kartı ve buton yapısıyla onaya sunar.
     """
     mesaj_gonder("⏳ <b>EDM Reels Videosu (9:16 Dikey)</b> hazırlanıyor, lütfen bekleyin...")
 
@@ -2079,118 +2074,37 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         mesaj_gonder("❌ Gemini metin üretemedi.")
         return False
 
-    from . import make_image, yeni_formatlar
-    fmt = veri.get("format_turu") or bicim
-    if fmt in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
-        slayt_yollari = yeni_formatlar.slaytlari_uret(veri, format_turu=fmt, cikti_onek=f"reels_{konu['kod']}")
-    else:
-        slayt_yollari = make_image.otorite_gonderi_slaytlari_uret(
-            veri, cikti_onek=f"reels_{konu['kod']}", olcu="besleme"
-        )
-    if not slayt_yollari:
-        mesaj_gonder("❌ Reels için slayt görselleri üretilemedi.")
-        return False
-
-    # CDN'e yükle (Runner bağımsızlığı için)
-    slayt_urlleri = []
-    try:
-        slayt_urlleri = upload_image.coklu_gorsel_yukle(slayt_yollari)
-    except Exception as e:
-        log.warning("Reels slaytları CDN'e yüklenemedi: %s", e)
-
-    # 4:5 Besleme Slaytları (Threads ve Akış paylaşımları için)
-    slayt_4x5_yollari = slayt_yollari
-    veri["slayt_4x5_urlleri"] = slayt_urlleri
-    veri["slayt_4x5_yollari"] = [str(p) for p in slayt_4x5_yollari]
-
-    # Video onay öncesinde DERLENMEZ (Instabot standardı).
-    # Slaytlar albüm olarak sunulur; kullanıcı 'Yayınla' dediğinde video derlenir.
-    v_yolu = None
-
-    # Veritabanına kaydet
-    orijinal_url = f"edm://reels/{konu['kod']}/{int(time.time())}"
+    veri["format_turu"] = "reels"
+    konu_kodu_val = konu["kod"] if not konu_kodu else konu_kodu
+    orijinal_url = f"edm://reels/{konu_kodu_val}/{int(time.time())}"
     simdi = datetime.now(timezone.utc).isoformat()
+    manset = generate_text.manset_birlestir(veri) or konu["baslik"]
+
     with db._baglanti_al() as conn:
         cur = conn.execute(
             """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
                                      eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
-                                     ig_caption, threads_metin, durum, slayt_yollari, slayt_urlleri, video_yolu)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?, ?, ?)""",
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'yeni')""",
             (
-                f"EDM Reels // {konu['kod']}",
+                f"EDM Reels // {konu_kodu_val}",
                 konu["baslik"],
                 orijinal_url,
                 konu.get("aci", ""),
                 simdi,
                 konu.get("onem_puani", 8),
                 "REELS",
-                generate_text.manset_birlestir(veri) or konu["baslik"],
+                manset,
                 json.dumps(veri, ensure_ascii=False),
                 veri.get("caption_instagram", ""),
                 veri.get("caption_threads", ""),
-                json.dumps([str(p) for p in slayt_yollari], ensure_ascii=False),
-                json.dumps(slayt_urlleri) if slayt_urlleri else None,
-                None,
             ),
         )
         haber_id = cur.lastrowid
         conn.commit()
 
-    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
-
-    # Reels yolu yayın öncesi denetimden geçer
-    from . import dogrula
-    gecti, uyarilar = yayin_kapisi(haber_id, db.haber_getir(haber_id) or {}, veri)
-    if not gecti:
-        return False
-
-    # Önceki tüm mesajları temizle
-    icerik_onceki_mesajlarini_temizle("reels", haber_id)
-
-    # 1. Slayt albümünü ilet (Instabot standardı: Onayda yalnızca görseller ve açıklama)
-    medya_grubu_gonder(
-        slayt_yollari,
-        caption=f"🎬 <b>EDM REELS SLAYTLARI (9:16 Dikey)</b>\n📌 {konu['baslik']}",
-    )
-
-    # 2. Kopyalanabilir Caption ve Onay Menüsünü Gönder (Videonun altına düşer)
-    import html as html_lib
-    raw_caption = veri.get("caption_instagram") or konu["baslik"]
-    caption_metin = generate_text.caption_zenginlestir(
-        raw_caption,
-        kategori_kodu="REELS",
-        platform="instagram",
-        manset=konu["baslik"],
-    )
-    temiz_caption = html_lib.escape(caption_metin.strip())
-    denetim_basligi = dogrula.uyari_basligi(uyarilar)
-    mesaj_metni = denetim_basligi + (
-        f"🎬 <b>EDM REELS / VİDEO ONAY BEKLİYOR (#{haber_id})</b>\n\n"
-        f"📌 <b>Başlık:</b> {konu['baslik']}\n"
-        f"⚖️ <b>Açı:</b> {konu.get('aci', '')[:100]}...\n"
-        f"🆔 <b>İçerik No:</b> #{haber_id}\n\n"
-        f"<pre><code>{temiz_caption}</code></pre>\n\n"
-        f"💡 <i>Videoyu kaydedebilir veya '✅ Yayınla' -> '▶️ Şimdi' butonuna basarak doğrudan tüm platformlara otomatik yayınlayabilirsiniz.</i>"
-    )
-    reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
-    icerik_onceki_mesajlarini_temizle("reels", haber_id)
-    res = mesaj_gonder(mesaj_metni, reply_markup=ana_menu(adet=len(slayt_yollari) if slayt_yollari else 7, kanallar=reels_kanallari))
-    if res and isinstance(res, dict) and "message_id" in res:
-        _, chat_id = _bot_bilgileri()
-        try:
-            cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
-            db.onay_istegi_kaydet("reels", str(haber_id), res["message_id"], cid)
-        except Exception as e:
-            log.warning("Reels onay isteği kaydedilemedi: %s", e)
-
-    # Instabot tecrübesi (1c): Reels onay mesajı gittiği an veritabanını GitHub'a kaydet
-    try:
-        from . import db_senkron
-        db_senkron.hemen_kaydet(f"db: reels #{haber_id} onaya sunuldu")
-    except Exception as e:
-        log.warning("Hemen kaydetme adımı atlandı: %s", e)
-
-    return True
+    konu_bankasi.kullanildi_isaretle(konu_kodu_val, haber_id=haber_id)
+    return haber_onayina_sun(haber_id)
 
 
 def format_degistir_ve_sun(haber_id: int, hedef_format: str) -> bool:
@@ -2288,6 +2202,13 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
 
     slayt_yollari = [str(k1), str(k2), str(k3)]
 
+    # 2.5 CDN yükleme
+    slayt_urlleri = []
+    try:
+        slayt_urlleri = upload_image.coklu_gorsel_yukle(slayt_yollari)
+    except Exception as e:
+        log.warning("İlan slaytları CDN'e yüklenemedi: %s", e)
+
     raw_caption = (metinler.get("ig_caption") if metinler else "") or (
         f"{ilan.get('baslik')}\n\n"
         f"📍 Konum: {ilan.get('ilce')} / {ilan.get('mahalle')}\n"
@@ -2301,50 +2222,56 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
         manset=ilan.get("baslik"),
     )
 
-    onizleme_metni = (
-        f"🏡 <b>İLAN PAYLAŞIM ÖNİZLEMESİ</b>\n\n"
-        f"<b>Başlık:</b> {ilan.get('baslik')}\n"
-        f"<b>Fiyat:</b> {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n"
-        f"<b>Lokasyon:</b> {ilan.get('ilce')} / {ilan.get('mahalle')}\n\n"
-        f"<b>Açıklama:</b>\n{caption[:350]}..."
-    )
+    # 2.7 Önceki tüm mesajları temizle
+    icerik_onceki_mesajlarini_temizle("ilan", ilan_id)
 
-    medya_grubu_gonder(slayt_yollari, caption=onizleme_metni)
+    # 3. Slayt görsellerini albüm olarak gönder
+    album_caption = f"🏡 <b>EDM PORTFÖY // İLAN CAROUSEL (4:5)</b>\n📌 {ilan.get('baslik')}"
+    album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    _, chat_id = _bot_bilgileri()
+    cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
+    album_mids = album_res if isinstance(album_res, list) else son_medya_grubu_mesaj_idleri()
+    for mid in album_mids:
+        try:
+            db.onay_istegi_kaydet("ilan", str(ilan_id), mid, cid)
+        except Exception as e:
+            log.warning("İlan albüm mesaj ID kaydedilemedi: %s", e)
 
+    # 4. İnteraktif Onay Menüsü + Kopyalanabilir Caption (Haberle Birebir Aynı Standart)
     import html as html_lib
     temiz_caption = html_lib.escape(caption.strip())
-    onay_metni = (
-        f"🏡 <b>İLAN PAYLAŞIM ONAYI</b>\n\n"
-        f"📌 <b>{ilan.get('baslik')}</b>\n"
-        f"💰 <b>Fiyat:</b> {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n"
-        f"📍 <b>Konum:</b> {ilan.get('ilce')} / {ilan.get('mahalle')}\n\n"
-        f"<pre><code>{temiz_caption}</code></pre>\n\n"
-        f"Bu portföy ilanını sosyal medyada yayınlayalım mı?"
-    )
+    rozet = "PORTFÖY İLANI"
+    dayanak = f"{ilan.get('ilce', '')} / {ilan.get('mahalle', '')}".strip(" /") or "EDM Portföy"
+    fiyat_str = fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get("fiyat", 0)))
 
-    butonlar = {
-        "inline_keyboard": [
-            [
-                {"text": "✅ İlanı Yayınla (Tüm Kanallar)", "callback_data": f"onayla:ilan:hepsi:{ilan_id}"},
-            ],
-            [
-                {"text": "📸 Instagram", "callback_data": f"onayla:ilan:ig:{ilan_id}"},
-                {"text": "📘 Facebook", "callback_data": f"onayla:ilan:fb:{ilan_id}"},
-                {"text": "🧵 Threads", "callback_data": f"onayla:ilan:threads:{ilan_id}"},
-            ],
-            [
-                {"text": "🎬 Sadece Video (Reels/Shorts/TikTok)", "callback_data": f"onayla:ilan:video:{ilan_id}"},
-            ],
-            [
-                {"text": "🔄 Yeniden Hazırla", "callback_data": f"yenile:ilan:{ilan_id}"},
-                {"text": "❌ İptal Et", "callback_data": f"reddet:ilan:{ilan_id}"},
-            ],
-        ]
-    }
-    res = mesaj_gonder(onay_metni, reply_markup=butonlar)
+    kart_baslik = f"🏡 <b>PORTFÖY İLANI ONAY BEKLİYOR (#{ilan_id})</b>\n\n"
+    mesaj_metni = (
+        kart_baslik
+        + f"<b>Kategori:</b> {rozet}\n"
+        f"<b>Dayanak:</b> {dayanak} · {fiyat_str}\n"
+        f"<b>Manşet:</b> {ilan.get('baslik')}\n"
+        f"<b>Önem Puanı:</b> 10/10\n"
+        f"<b>İçerik No:</b> #{ilan_id}\n\n"
+    )
+    if temiz_caption:
+        mesaj_metni += f"<pre><code>{temiz_caption}</code></pre>\n\n"
+    mesaj_metni += "<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
+
+    ilan_kanallari = {"ig": True, "reels": False, "story": True, "threads": True, "facebook": True, "youtube": False, "tiktok": False, "linkedin": True}
+    butonlar = ana_menu(adet=len(slayt_yollari), kanallar=ilan_kanallari)
+    res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
     if res and isinstance(res, dict) and "message_id" in res:
-        cid = config.env_al("TELEGRAM_CHAT_ID")
-        db.onay_istegi_kaydet("ilan", str(ilan_id), res["message_id"], int(cid) if cid and cid.lstrip("-").isdigit() else None)
+        try:
+            db.onay_istegi_kaydet("ilan", str(ilan_id), res["message_id"], cid)
+        except Exception as e:
+            log.warning("İlan onay isteği kaydedilemedi: %s", e)
+
+    try:
+        from . import db_senkron
+        db_senkron.hemen_kaydet(f"db: ilan #{ilan_id} onaya sunuldu")
+    except Exception as e:
+        log.warning("Hemen kaydetme adımı atlandı: %s", e)
+
     return True
 
 

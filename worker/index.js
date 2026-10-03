@@ -699,8 +699,10 @@ export default {
             return new Response("OK");
           }
 
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          const isIlan = /PORTFÖY|İLAN/i.test(msgMetin);
           let isReels = secili.includes("reels");
-          let tur = isReels ? "reels" : "haber";
+          let tur = isIlan ? "ilan" : (isReels ? "reels" : "haber");
           let hedef = secili.join(",") + (sesli ? `,ses_${sesModu}` : "");
           let icerikId = "";
 
@@ -811,9 +813,12 @@ export default {
         // F. MANUEL PAYLAŞIM PAKETİ
         if (data === "manuel_paket" || data.startsWith("manuel_paket:")) {
           const mId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          const isIlan = /PORTFÖY|İLAN/i.test(msgMetin);
+          const tur = isIlan ? "ilan" : "haber";
           await cevapVer("Manuel paket hazırlanıyor...");
           await mesajiGuncelle(`📲 <b>Manuel Paylaşım Paketi Hazırlanıyor...</b>\n\nAçıklama metni, etiketler ve yönlendirme paneli birazdan gruba sunulacak.`);
-          await tetikle(env, chatId, "yayinla", { tur: "haber", id: mId, hedef: "manuel_paket", mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { tur: tur, id: mId, hedef: "manuel_paket", mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -839,6 +844,9 @@ export default {
         if (data === "metin_ozetle" || data === "metin_detaylandir" || data === "metin_yenile" || data.startsWith("metin_eylem:") || data.startsWith("yenile:")) {
           const eylem = data.startsWith("metin_eylem:") ? data.split(":")[1] : (data.startsWith("yenile:") ? "yenile" : data);
           const mId = (data.startsWith("yenile:") && data.split(":").length > 2 ? data.split(":")[2] : "") || icerikIdBul();
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          const isIlan = /PORTFÖY|İLAN/i.test(msgMetin);
+          const tur = isIlan ? "ilan" : "haber";
           const etiket = eylemEtiketi(eylem);
           await cevapVer(`${etiket} hazırlanıyor...`);
           await mesajiGuncelle(
@@ -850,7 +858,7 @@ export default {
               ],
             }
           );
-          await tetikle(env, chatId, "yayinla", { hedef: eylem, id: mId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { tur: tur, hedef: eylem, id: mId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -930,6 +938,9 @@ export default {
         // J. ERTELEME
         if (data === "ertele" || data.startsWith("ertele:")) {
           const ertId = icerikIdBul();
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          const isIlan = /PORTFÖY|İLAN/i.test(msgMetin);
+          const tur = isIlan ? "ilan" : "haber";
           await cevapVer("Yayın 1 saat ertelendi");
           await mesajiGuncelle(
             `⏰ <b>Yayın 1 Saat Ertelendi</b>\n\n` +
@@ -941,7 +952,7 @@ export default {
               ],
             }
           );
-          await tetikle(env, chatId, "yayinla", { hedef: "ertele", id: ertId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { tur: tur, hedef: "ertele", id: ertId, mesaj_id: messageId });
           return new Response("OK");
         }
 
@@ -961,6 +972,8 @@ export default {
             }
           }
           if (!refId) refId = icerikIdBul();
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          if (/PORTFÖY|İLAN/i.test(msgMetin)) tur = "ilan";
           await tetikle(env, chatId, "yayinla", { tur, id: refId, hedef: "iptal", mesaj_id: messageId });
           return new Response("OK");
         }
@@ -968,12 +981,15 @@ export default {
         // L. ÇÖPE AT (TASLAK ÇÖPE ATILIR, KULLANICI İSTEĞİYLE KONU KİLİTLENMEZ)
         if (data === "cope_at" || data.startsWith("cope_at:")) {
           const copId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          const isIlan = /PORTFÖY|İLAN/i.test(msgMetin);
+          const tur = isIlan ? "ilan" : "haber";
           await cevapVer("Taslak çöpe atıldı");
           await mesajiGuncelle(
             `🗑️ <b>Taslak Çöpe Atıldı</b>\n\n<i>İçerik silindi, konu havuza iade edildi.</i>`,
             { inline_keyboard: [[{ text: "🎛 Kontrol Paneli", callback_data: "panel" }]] }
           );
-          await tetikle(env, chatId, "yayinla", { hedef: "cope_at", id: copId, mesaj_id: messageId });
+          await tetikle(env, chatId, "yayinla", { tur: tur, hedef: "cope_at", id: copId, mesaj_id: messageId });
           return new Response("OK");
         }
 

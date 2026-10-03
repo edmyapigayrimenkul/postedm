@@ -470,6 +470,15 @@ def main() -> int:
         futures = [executor.submit(fn) for fn in gorevler]
         concurrent.futures.wait(futures)
 
+    # 7.5 Slaytları Telegram Grubuna Görsel Olarak Gönder
+    try:
+        telegram_bot.medya_grubu_gonder(
+            slayt_yollari,
+            caption=f"📊 <b>EDM PİYASA // {baslik_etiket} BÜLTENİ (4:5)</b>\n📌 Borsa İstanbul, Döviz ve Emtia Özeti"
+        )
+    except Exception as te:
+        log.warning("Piyasa slaytları Telegram'a gönderilemedi: %s", te)
+
     # 8. Telegram Grubuna Canlı Bilgi Mesajı İlet
     import html as html_lib
     baslik_etiket = "AÇILIŞ" if mod == "acilis" else "KAPANIŞ"
