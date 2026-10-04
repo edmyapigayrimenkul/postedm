@@ -183,10 +183,11 @@ def main() -> None:
         telegram_bot.hizli_icerik_uret(format_turu=args.format_turu)
         return
 
-    # Varsayılan akış: Günlük bilgilendirici slot rotasyonu
+    # Varsayılan akış: Günlük bilgilendirici slot rotasyonu veya belirtilen slot
     if not args.haber_tara:
-        log.info("Günlük bilgilendirici rotasyon slotu hazırlanıyor...")
-        telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
+        hedef_slot = args.slot or "bilgilendirici"
+        log.info("Slot hazırlanıyor: '%s'...", hedef_slot)
+        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=hedef_slot)
         return
 
     # Yalnızca --haber-tara bayrağı verildiğinde RSS taranır

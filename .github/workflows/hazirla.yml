@@ -151,7 +151,15 @@ jobs:
           HEDEF: ${{ inputs.hedef }}
           ZAMANLAMA: ${{ github.event.schedule }}
         run: |
-          if [ -n "$SLOT" ]; then
+          if [ -n "$FORMAT" ]; then
+            if [ "$FORMAT" = "reels" ]; then
+              python scripts/hazirla.py --reels
+            elif [ "$FORMAT" = "finans" ]; then
+              python scripts/hazirla.py --finans --oto-yayin
+            else
+              python scripts/hazirla.py --format "$FORMAT"
+            fi
+          elif [ -n "$SLOT" ]; then
             python scripts/hazirla.py --slot "$SLOT"
           elif [ "$ZAMANLAMA" = "0 7 * * *" ]; then
             python scripts/hazirla.py --slot bilgilendirici
@@ -161,12 +169,10 @@ jobs:
             python scripts/hazirla.py --slot sozluk
           elif [ "$HEDEF" = "slot_haber" ] || [ "$HEDEF" = "haber" ]; then
             python scripts/hazirla.py --slot haber
-          elif [ "$HEDEF" = "reels" ] || [ "$FORMAT" = "reels" ]; then
+          elif [ "$HEDEF" = "reels" ]; then
             python scripts/hazirla.py --reels
-          elif [ "$HEDEF" = "finans" ] || [ "$FORMAT" = "finans" ]; then
+          elif [ "$HEDEF" = "finans" ]; then
             python scripts/hazirla.py --finans --oto-yayin
-          elif [ -n "$FORMAT" ]; then
-            python scripts/hazirla.py --format "$FORMAT"
           else
             python scripts/hazirla.py --slot bilgilendirici
           fi

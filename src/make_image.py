@@ -1635,9 +1635,9 @@ def _yerlesim() -> Dict[str, int]:
     9:16 dikey story hem de 16:9 yatay üretmesini sağlıyor.
     """
     if YUKSEKLIK >= 1700:
-        # 9:16 Dikey — üstte rozet/logo (y=130), altta eylem butonları güvenli alanı (1760).
+        # 9:16 Dikey — Meta Story/Reels güvenli alanı: üstte profil & X butonu (250px), altta mesaj barı (250px)
         kenar = max(48, round(GENISLIK * 0.072))
-        kronik_ust, ust, icerik_alt_payi, bar_payi = 130, 260, 200, 160
+        kronik_ust, ust, icerik_alt_payi, bar_payi = 260, 390, 260, 240
     elif GENISLIK > YUKSEKLIK:
         # 16:9 Yatay (1920x1080) — ferah genişlik, daha alçak yükseklik
         kenar = max(60, round(GENISLIK * 0.055))
@@ -3312,8 +3312,8 @@ def haber_dailybrief_slayti_ciz(
         # Dikey Story (9:16) ve Besleme (4:5) güvenli alanları
         dikey_story = yukseklik >= 1700
         if dikey_story:
-            ust_y = 130
-            alt_y = yukseklik - 160  # 1760 px
+            ust_y = 260  # Meta 9:16 Story güvenli alanı: Instagram profil avatarı ve X butonunun altında kalır
+            alt_y = yukseklik - 250  # 1670 px (Instagram mesaj/yanıt barı güvenli alanı)
         else:
             ust_y = 62
             alt_y = 1250
@@ -3752,8 +3752,8 @@ def haber_dailybrief_detay_slayti_ciz(
         # Dikey Story (9:16) ve Besleme (4:5) güvenli alanları
         dikey_story = yukseklik >= 1700
         if dikey_story:
-            ust_y = 130
-            alt_y = yukseklik - 160  # 1760 px
+            ust_y = 260  # Meta 9:16 Story güvenli alanı: Instagram profil avatarı ve X butonunun altında kalır
+            alt_y = yukseklik - 250  # 1670 px (Instagram mesaj/yanıt barı güvenli alanı)
         else:
             ust_y = 62
             alt_y = 1250
