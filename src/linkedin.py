@@ -29,79 +29,21 @@ LINKEDIN_V2_BASE = "https://api.linkedin.com/v2"
 LINKEDIN_VERSION = "202602"
 GECICI_HATALAR = {429, 500, 502, 503, 504}
 
-_DOGRULANMIS_AUTHOR: Optional[str] = None
-
-
-def _hesap_bilgileri() -> Tuple[str, str, Optional[str]]:
-    """(access_token, primary_author, fallback_author) döner. Author: person URN veya organization URN."""
+def _hesap_bilgileri() -> Tuple[str, str]:
+    """(access_token, organization_urn) döner. Kesinlikle yalnızca kurumsal şirket sayfası kullanılır."""
     token = (config.env_al("LINKEDIN_ACCESS_TOKEN") or "").strip()
     org = (config.env_al("LINKEDIN_ORGANIZATION_URN") or "").strip()
-    person = (config.env_al("LINKEDIN_PERSON_URN") or "").strip()
 
     if org and not org.startswith("urn:li:"):
         org = f"urn:li:organization:{org}"
-    if person and not person.startswith("urn:li:"):
-        person = f"urn:li:person:{person}"
 
-    primary = org or person
-    fallback = person if (org and person) else None
-    return token, primary, fallback
-
-
-def _aktif_author(token: str) -> str:
-    """
-    Kullanılacak aktif author URN değerini belirler.
-    Organizasyon URN için izin yoksa (w_organization_social eksikse),
-    varsa kişi hesabına (LINKEDIN_PERSON_URN veya userinfo) otomatik geçiş yapar.
-    """
-    global _DOGRULANMIS_AUTHOR
-    if _DOGRULANMIS_AUTHOR:
-        return _DOGRULANMIS_AUTHOR
-
-    bilgiler = _hesap_bilgileri()
-    if not bilgiler or not bilgiler[0]:
-        return ""
-    primary = bilgiler[1] if len(bilgiler) > 1 else ""
-    fallback = bilgiler[2] if len(bilgiler) > 2 else None
-
-    if not primary:
-        return ""
-
-    if primary.startswith("urn:li:organization:"):
-        try:
-            test_url = f"{LINKEDIN_REST_BASE}/images?action=initializeUpload"
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "LinkedIn-Version": LINKEDIN_VERSION,
-                "X-Restli-Protocol-Version": "2.0.0",
-            }
-            r = requests.post(test_url, headers=headers, json={"initializeUploadRequest": {"owner": primary}}, timeout=10)
-            if r.status_code == 400 and "Organization permissions" in r.text:
-                if not fallback:
-                    # Otomatik keşif: /v2/userinfo'dan sub URN al
-                    r_user = requests.get(f"{LINKEDIN_V2_BASE}/userinfo", headers=headers, timeout=10)
-                    if r_user.status_code == 200:
-                        sub = r_user.json().get("sub")
-                        if sub:
-                            fallback = f"urn:li:person:{sub}"
-                if fallback:
-                    log.warning("LinkedIn organizasyon izni eksik, profil (%s) üzerinden paylaşılacak.", fallback)
-                    _DOGRULANMIS_AUTHOR = fallback
-                    return fallback
-        except Exception as e:
-            log.warning("LinkedIn author yetki kontrolü istisnası: %s", e)
-
-    _DOGRULANMIS_AUTHOR = primary
-    return primary
+    return token, org
 
 
 def kullanilabilir_mi() -> bool:
-    """LinkedIn entegrasyonu için gerekli token ve hesap kimliği var mı?"""
-    bilgiler = _hesap_bilgileri()
-    token = bilgiler[0] if len(bilgiler) > 0 else ""
-    primary = bilgiler[1] if len(bilgiler) > 1 else ""
-    return bool(token and primary)
+    """LinkedIn kurumsal entegrasyonu için gerekli token ve şirket URN'i var mı?"""
+    token, org = _hesap_bilgileri()
+    return bool(token and org and org.startswith("urn:li:organization:"))
 
 
 def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -> str:
@@ -175,9 +117,11 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
 
 
 def _gorseli_yukle_ve_kaydet(dosya_veya_url: Path | str, token: str, author: str) -> Optional[str]:
-    """
-    LinkedIn Assets / Images API ile görseli yükler ve image URN döner.
-    """
+    """LinkedIn Assets / Images API ile görseli yükler ve image URN döner."""
+    if not author.startswith("urn:li:organization:"):
+        log.warning("LinkedIn görsel yükleme yalnızca kurumsal şirket sayfası adına yapılabilir.")
+        return None
+
     try:
         # Görsel verisini al
         if str(dosya_veya_url).startswith("http"):
@@ -239,15 +183,13 @@ def paylas(
     LinkedIn üzerinde profesyonel gönderi yayınlar.
     Görsel varsa görselli gönderi, yoksa salt metin paylaşımı yapar.
     """
-    bilgiler = _hesap_bilgileri()
-    token = bilgiler[0] if len(bilgiler) > 0 else ""
-    if not token:
-        log.warning("LinkedIn kimlik bilgileri eksik (LINKEDIN_ACCESS_TOKEN).")
+    token, author = _hesap_bilgileri()
+    if not token or not author:
+        log.warning("LinkedIn kimlik bilgileri eksik (LINKEDIN_ACCESS_TOKEN veya LINKEDIN_ORGANIZATION_URN).")
         return None
 
-    author = _aktif_author(token)
-    if not author:
-        log.warning("LinkedIn kimlik bilgileri eksik (LINKEDIN_ORGANIZATION_URN veya LINKEDIN_PERSON_URN).")
+    if not author.startswith("urn:li:organization:"):
+        log.warning("LinkedIn paylaşımı yalnızca kurumsal sayfa (urn:li:organization:) adına yapılabilir.")
         return None
 
     temiz_metin = filtre.markdown_temizle(metin)

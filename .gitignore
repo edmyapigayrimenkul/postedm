@@ -33,6 +33,8 @@ ENV/
 # Output files & local databases
 data/*.db
 data/*.db-journal
+data/*.db-wal
+data/*.db-shm
 data/*.sqlite
 data/*.jsonl
 data/output/

@@ -1692,9 +1692,8 @@ def slaytlari_uret(
 
     # 2. NEDİR DOĞRUSU
     if format_turu in ("nedir_dogrusu", "dogrusu", "yaygin_yanlis") or ("yanlis_metin" in veri and "dogru_metin" in veri):
-        # Manşet ya da spot "yanlış" diye kullanılamaz: onlar DOĞRU bilgiyi taşır
-        yanlis = _ilk_dolu(veri.get("yanlis_metin"), (kartlar[0].get("aciklama") if kartlar else ""))
-        dogru = _ilk_dolu(veri.get("dogru_metin"), (kartlar[1].get("aciklama") if len(kartlar) > 1 else ""), veri.get("spot"))
+        yanlis = _ilk_dolu(veri.get("yanlis_metin"), veri.get("yanlis"), (kartlar[0].get("aciklama") if kartlar else ""), veri.get("kanca"))
+        dogru = _ilk_dolu(veri.get("dogru_metin"), veri.get("dogru"), veri.get("altin_kural"), (kartlar[1].get("aciklama") if len(kartlar) > 1 else ""), veri.get("spot"), veri.get("manset"))
         if not yanlis or not dogru:
             raise EksikIcerik("Nedir Doğrusu: yanlış inanış ya da doğrusu üretilmedi")
         toplam = 1 + len(adimlar) + 1
@@ -1708,28 +1707,41 @@ def slaytlari_uret(
 
     # 3. NET CEVAP
     if format_turu in ("net_cevap", "soru", "kim_hakli") or ("soru" in veri and "net_cevap" in veri and "aciklama" in veri):
-        soru = _ilk_dolu(veri.get("soru"))
-        cevap = _ilk_dolu(veri.get("net_cevap"),
-                          " ".join(x for x in (veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x))
+        soru = _ilk_dolu(
+            veri.get("soru"),
+            veri.get("soru_metni"),
+            veri.get("manset"),
+            veri.get("baslik"),
+            veri.get("kanca"),
+            (f"{veri.get('konu', '')}?" if veri.get("konu") else None),
+        )
+        cevap = _ilk_dolu(
+            veri.get("net_cevap"),
+            veri.get("cevap"),
+            veri.get("yanit"),
+            veri.get("hukum"),
+            veri.get("spot"),
+            " ".join(x for x in (veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x),
+        )
         if not soru or not cevap:
             raise EksikIcerik("Net Cevap: soru ya da cevap üretilmedi")
         if not soru.endswith("?"):
             soru += "?"
-        tavsiye = _ilk_dolu(veri.get("tavsiye_metin"), veri.get("tavsiye"))
+        tavsiye = _ilk_dolu(veri.get("tavsiye_metin"), veri.get("tavsiye"), veri.get("uzman_notu"))
         if not adimlar and tavsiye:
             adimlar = [{"no": "01", "baslik": "Ne yapmalı", "aciklama": tavsiye}]
         toplam = 1 + len(adimlar) + 1
         p1 = cikti_dizini / f"{cikti_onek}_01_net_cevap.jpg"
         uret_net_cevap_kapak(p1, kategori=kat_ham, soru=soru, net_cevap=cevap,
-                             gerekce=_ilk_dolu(veri.get("aciklama"), veri.get("spot")), sayfa_no=_sayfa(1, toplam))
+                             gerekce=_ilk_dolu(veri.get("aciklama"), veri.get("gerekce"), veri.get("spot")), sayfa_no=_sayfa(1, toplam))
         yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam)
         log.info("Format üretildi (NET CEVAP, %d slayt)", len(yollar))
         return yollar
 
     # 4. ÖRNEK OLAY (vaka)
     if format_turu in ("vaka", "emsal_karar") or ("yargitay_hukmu" in veri and "cikarilacak_ders" in veri):
-        olay = _ilk_dolu(veri.get("olay_detay"), veri.get("spot"))
-        hukum = _ilk_dolu(veri.get("yargitay_hukmu"), (kartlar[0].get("aciklama") if kartlar else ""))
+        olay = _ilk_dolu(veri.get("olay_detay"), veri.get("olay"), veri.get("spot"), veri.get("aciklama"), veri.get("manset"))
+        hukum = _ilk_dolu(veri.get("yargitay_hukmu"), veri.get("hukum"), veri.get("karar"), (kartlar[0].get("aciklama") if kartlar else ""), veri.get("uzman_notu"))
         if not olay or not hukum:
             raise EksikIcerik("Örnek olay: olay ya da kanuna göre sonuç üretilmedi")
         manset = _ilk_dolu(veri.get("manset"), " ".join(

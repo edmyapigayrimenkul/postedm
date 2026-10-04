@@ -40,10 +40,9 @@ class TestLinkedIn(unittest.TestCase):
         self.assertIn("edmyapigayrimenkul.com", metin)
 
     def test_paylas_metin(self):
-        linkedin._DOGRULANMIS_AUTHOR = None
         with patch("src.linkedin._hesap_bilgileri") as mock_hesap, \
              patch("requests.post") as mock_post:
-            mock_hesap.return_value = ("fake_token", "urn:li:person:12345", None)
+            mock_hesap.return_value = ("fake_token", "urn:li:organization:12345")
             mock_resp = MagicMock()
             mock_resp.status_code = 201
             mock_resp.headers = {"x-restli-id": "urn:li:share:987654"}
@@ -52,18 +51,15 @@ class TestLinkedIn(unittest.TestCase):
             post_id = linkedin.paylas("Test LinkedIn Gönderisi")
             self.assertEqual(post_id, "urn:li:share:987654")
 
-    def test_aktif_author_fallback(self):
-        linkedin._DOGRULANMIS_AUTHOR = None
-        with patch("src.linkedin._hesap_bilgileri") as mock_hesap, \
-             patch("requests.post") as mock_post:
-            mock_hesap.return_value = ("fake_token", "urn:li:organization:9999", "urn:li:person:12345")
-            mock_resp = MagicMock()
-            mock_resp.status_code = 400
-            mock_resp.text = '{"message":"Organization permissions must be used"}'
-            mock_post.return_value = mock_resp
+    def test_paylas_sadece_organization(self):
+        # Kişisel URN ile veya URN olmadan paylaşım KESİNLİKLE reddedilmeli
+        with patch("src.linkedin._hesap_bilgileri") as mock_hesap:
+            mock_hesap.return_value = ("fake_token", "urn:li:person:12345")
+            self.assertIsNone(linkedin.paylas("Test"))
 
-            author = linkedin._aktif_author("fake_token")
-            self.assertEqual(author, "urn:li:person:12345")
+        with patch("src.linkedin._hesap_bilgileri") as mock_hesap:
+            mock_hesap.return_value = ("fake_token", "")
+            self.assertIsNone(linkedin.paylas("Test"))
 
 
 if __name__ == "__main__":
