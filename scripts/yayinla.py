@@ -338,7 +338,7 @@ def main() -> None:
                 return
             baslik = ilan.get("baslik", "")
             ilan_adresi = ilan.get("kaynak_url") or "https://edmyapigayrimenkul.com/ilanlar"
-            caption = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0536 343 41 97 · {ilan_adresi}"
+            caption = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0 212 727 2955 · {ilan_adresi}"
             temiz_caption = html_lib.escape(caption.strip())
             butonlar = {
                 "inline_keyboard": [
@@ -625,7 +625,7 @@ def main() -> None:
 
         baslik = ilan.get("baslik")
         ilan_adresi = ilan.get("kaynak_url") or "https://edmyapigayrimenkul.com/ilanlar"
-        caption = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0536 343 41 97 · {ilan_adresi}"
+        caption = f"{baslik}\n\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\n0 212 727 2955 · {ilan_adresi}"
 
         # Slaytları bul veya üret (3'lü Prestij Carousel)
         k1 = KOK / f"data/output/ilan_kapak_{ref_id}.jpg"

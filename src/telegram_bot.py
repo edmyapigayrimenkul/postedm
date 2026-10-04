@@ -2213,7 +2213,7 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
         f"{ilan.get('baslik')}\n\n"
         f"📍 Konum: {ilan.get('ilce')} / {ilan.get('mahalle')}\n"
         f"💰 Fiyat: {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n\n"
-        f"EDM Yapı & Gayrimenkul · 0536 343 41 97\nedmyapigayrimenkul.com"
+        f"EDM Yapı & Gayrimenkul · 0 212 727 2955\nedmyapigayrimenkul.com"
     )
     caption = generate_text.caption_zenginlestir(
         raw_caption,

@@ -78,7 +78,7 @@ def _bilgileri_derle(veri: Dict[str, Any]) -> Dict[str, str]:
         or "BU REHBERİ KAYDEDİN · İHTİYAÇ ANINDA ELİNİZİN ALTINDA OLSUN"
     ))
 
-    tel = str(veri.get("telefon") or config.ayar_al("kurum.telefon", "0536 343 41 97")).strip()
+    tel = str(veri.get("telefon") or config.ayar_al("kurum.telefon", "0 212 727 2955")).strip()
     isim = _temizle_tipografi(str(veri.get("danisman_isim") or "METİN ÖZDOĞAN"))
     unvan = _temizle_tipografi(str(veri.get("danisman_unvan") or "Kurucu Danışman"))
     adres = _temizle_tipografi(str(veri.get("adres") or config.ayar_al("kurum.adres", "Alibey Mah. Albay Yunus Dirik Cad. No: 58/A · Silivri")))
@@ -851,7 +851,7 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     # 5B. DEV TELEFON NUMARASI
     tel_y = by
     f_tel = _font_yukle(FONT_MONO_BOLD, 75)
-    tel_parts = b["tel"].split() if len(b["tel"].split()) == 4 else ["0536", "343", "41", "97"]
+    tel_parts = b["tel"].split() if len(b["tel"].split()) >= 3 else ["0", "212", "727", "2955"]
     parts_w = sum(draw.textbbox((0, 0), p, font=f_tel)[2] for p in tel_parts)
     target_w = mail_end_x - KENAR
     gap = (target_w - parts_w) / (len(tel_parts) - 1) if len(tel_parts) > 1 else 45

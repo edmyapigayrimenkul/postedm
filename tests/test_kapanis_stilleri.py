@@ -23,7 +23,7 @@ class TestKapanisStilleri(unittest.TestCase):
                 "aciklama": "Silivri ve Trakya genelinde mülk yönetimi ve hukuki süreçlerinizde yanınızdayız.",
                 "kaydet_metni": "BU REHBERİ KAYDEDİN · İHTİYAÇ ANINDA ELİNİZİN ALTINDA OLSUN",
             },
-            "telefon": "0536 343 41 97",
+            "telefon": "0 212 727 2955",
             "danisman_isim": "METİN ÖZDOĞAN",
             "danisman_unvan": "Kurucu Danışman",
             "adres": "Alibey Mah. Albay Yunus Dirik Cad. No: 58/A · Silivri",

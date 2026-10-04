@@ -184,7 +184,7 @@ def shorts_yukle(
         if len(temiz_baslik) <= 90:
             temiz_baslik = f"{temiz_baslik} #Shorts"
 
-    imza = "\n\nEDM Yapı & Gayrimenkul · Güvenilir Emlak & Yatırım Danışmanlığı\n0536 343 41 97 · edmyapigayrimenkul.com\n\n#Shorts #Emlak #Gayrimenkul #Silivri #Yatırım"
+    imza = "\n\nEDM Yapı & Gayrimenkul · Güvenilir Emlak & Yatırım Danışmanlığı\n0 212 727 2955 · edmyapigayrimenkul.com\n\n#Shorts #Emlak #Gayrimenkul #Silivri #Yatırım"
     if not aciklama:
         aciklama = f"{temiz_baslik}{imza}"
     else:

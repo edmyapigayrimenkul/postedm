@@ -39,7 +39,7 @@ ICERIK = {
     "aciklama": "Silivri ve Trakya genelinde mülk yönetimi ve hukuki süreçlerinizde yanınızdayız.",
     "isim": "METİN ÖZDOĞAN",
     "unvan": "Kurucu Danışman",
-    "telefon": "0536 343 41 97",
+    "telefon": "0 212 727 2955",
     "adres": "Alibey Mah. Albay Yunus Dirik Cad. No: 58/A · Silivri",
     "eposta": "info@edmyapigayrimenkul.com",
     "hesap": "@edmyapigayrimenkul",

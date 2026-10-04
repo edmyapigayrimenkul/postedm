@@ -1485,7 +1485,7 @@ def ilan_kapanis_slayti_ciz(ilan: Dict[str, Any], cikti_yolu: Optional[Path] = N
     draw.text((kenar_bosluk + 45, kutu_y + 85), danisman_adi, font=font_danisman_ad, fill=RENK_MUREKKEP)
 
     font_tel = _font_yukle(FONT_MONO_BOLD, 40)
-    draw.text((kenar_bosluk + 45, kutu_y + 170), "0536 343 41 97", font=font_tel, fill=RENK_MUREKKEP)
+    draw.text((kenar_bosluk + 45, kutu_y + 170), "0 212 727 2955", font=font_tel, fill=RENK_MUREKKEP)
 
     draw.line([(kenar_bosluk + 45, kutu_y + 245), (GENISLIK - kenar_bosluk - 45, kutu_y + 245)], fill=RENK_CIZGI, width=1)
 
@@ -2814,7 +2814,7 @@ def otorite_slayt_4_kapanis(veri: Dict[str, Any], cikti_yolu: Optional[Path] = N
     card_img.paste(p_icon, (p_cx - 18, p_cy - 18), p_icon)
 
     # Numara ve Açıklama
-    card_draw.text((128, 96), "0536 343 41 97", font=_font_yukle(FONT_MONO_BOLD, 52), fill=RENK_BEYAZ)
+    card_draw.text((128, 96), "0 212 727 2955", font=_font_yukle(FONT_MONO_BOLD, 52), fill=RENK_BEYAZ)
     card_draw.text((128, 156), "Ön görüşme ve ücretsiz değerleme analizi için doğrudan arayabilirsiniz.", font=_font_yukle(FONT_SANS_MEDIUM, 23), fill=RENK_KURSUN)
 
     # Ayrım Çizgisi 1
