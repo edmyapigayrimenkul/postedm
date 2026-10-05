@@ -28,7 +28,7 @@ class TestCaptionVeHashtag(unittest.TestCase):
         self.assertNotIn("?", zengin)
         self.assertIn("Hisseli tapusu olan birine gönderin.", zengin)
         self.assertIn("edmyapigayrimenkul.com", zengin)
-        self.assertIn("0 212 727 2955", zengin)
+        self.assertIn("0212 727 29 55", zengin)
 
         import re
         etiketler = re.findall(r"#[A-Za-z0-9ÇĞİÖŞÜçğıöşü_]+", zengin)

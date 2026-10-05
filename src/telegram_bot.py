@@ -1700,25 +1700,21 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
         }
         aktif_veri = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else veri_icin
 
-        if format_turu == "reels":
-            # 9:16 Dikey Reels formatı
-            fmt = aktif_veri.get("bicim") or "dailybrief"
-            if fmt in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
-                slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=fmt, cikti_onek=f"gonderi_{haber_id}", olcu="story")
+        # Kullanıcı kuralı: Telegram onayı ve önizlemeleri için BÜTÜN içerikler her zaman 9:16 dikey (story) formatında üretilir
+        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief", "reels") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
+            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else (aktif_veri.get("bicim") or "dailybrief")
+            if f_tur in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+                slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}", olcu="story")
             else:
                 slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="story")
             slayt_yollari = [str(p) for p in slayt_listesi]
-        elif format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
-            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else "dailybrief"
-            slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}")
-            slayt_yollari = [str(p) for p in slayt_listesi]
         elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
-            # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla üret
-            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}")
+            # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla 9:16 üret
+            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}", olcu="story")
             slayt_yollari = [str(p) for p in slayt_listesi]
         else:
-            # Standart carousel / otorite postu: yüksek kontrastlı mimari fotoğraflı make_image motorunu kullan (4-7 slayt)
-            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="besleme")
+            # Standart carousel / otorite postu: Telegram onayına her zaman 9:16 dikey üret
+            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="story")
             slayt_yollari = [str(p) for p in slayt_listesi]
 
     # 2.5 Slaytları Public CDN'e yükle (Runner bağımsızlığı ve API'ler için)
@@ -2213,7 +2209,7 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
         f"{ilan.get('baslik')}\n\n"
         f"📍 Konum: {ilan.get('ilce')} / {ilan.get('mahalle')}\n"
         f"💰 Fiyat: {fetch_listings.ilan_fiyat_bicimlendir(float(ilan.get('fiyat', 0)))}\n\n"
-        f"EDM Yapı & Gayrimenkul · 0 212 727 2955\nedmyapigayrimenkul.com"
+        f"EDM Yapı & Gayrimenkul · 0212 727 29 55\nedmyapigayrimenkul.com"
     )
     caption = generate_text.caption_zenginlestir(
         raw_caption,

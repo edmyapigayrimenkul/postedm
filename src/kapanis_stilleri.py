@@ -23,6 +23,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFilter
 import qrcode
+from qrcode.image.styledpil import StyledPilImage
+from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
+from qrcode.image.styles.colormasks import SolidFillColorMask
 
 from src import config
 from src.make_image import (
@@ -75,10 +78,10 @@ def _bilgileri_derle(veri: Dict[str, Any]) -> Dict[str, str]:
     kaydet = _temizle_tipografi(str(
         cta.get("kaydet_metni")
         or veri.get("kaydet_metni")
-        or "BU REHBERİ KAYDEDİN · İHTİYAÇ ANINDA ELİNİZİN ALTINDA OLSUN"
+        or "GAYRİMENKUL ARŞİVİNİZE EKLEYİN · KARAR ANINDA GÜVENİLİR REHBER"
     ))
 
-    tel = str(veri.get("telefon") or config.ayar_al("kurum.telefon", "0 212 727 2955")).strip()
+    tel = str(veri.get("telefon") or config.ayar_al("kurum.telefon", "0212 727 29 55")).strip()
     isim = _temizle_tipografi(str(veri.get("danisman_isim") or "METİN ÖZDOĞAN"))
     unvan = _temizle_tipografi(str(veri.get("danisman_unvan") or "Kurucu Danışman"))
     adres = _temizle_tipografi(str(veri.get("adres") or config.ayar_al("kurum.adres", "Alibey Mah. Albay Yunus Dirik Cad. No: 58/A · Silivri")))
@@ -99,12 +102,41 @@ def _bilgileri_derle(veri: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _qr_uret(link: str, boyut: int, zemin: str = "#ffffff", muhur: str = "#121316") -> Image.Image:
-    """Verilen link için optimize edilmiş QR kod üretir."""
-    q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=4, border=1)
-    q.add_data(link[:500] if link else VARSAYILAN_QR)
-    q.make(fit=True)
-    g = q.make_image(fill_color=muhur, back_color=zemin).convert("RGB")
-    return g.resize((boyut, boyut), Image.Resampling.LANCZOS)
+    """Verilen link için optimize edilmiş modern QR kod üretir."""
+    try:
+        drawer = RoundedModuleDrawer(radius_ratio=0.6)
+        q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=8, border=1)
+        q.add_data(link[:500] if link else VARSAYILAN_QR)
+        q.make(fit=True)
+        g = q.make_image(
+            image_factory=StyledPilImage,
+            module_drawer=drawer,
+            color_mask=SolidFillColorMask(front_color=(18, 19, 22), back_color=(255, 255, 255))
+        ).convert("RGBA")
+        g = g.resize((boyut, boyut), Image.Resampling.LANCZOS)
+        logo_yolu = Path(__file__).resolve().parent.parent / "assets/logos/amblem-kalin.png"
+        if not logo_yolu.exists():
+            logo_yolu = Path(__file__).resolve().parent.parent / "assets/logos/amblem.png"
+        if logo_yolu.exists():
+            emblem = Image.open(logo_yolu).convert("RGBA")
+            l_sz = int(boyut * 0.28)
+            sq_sz = l_sz + 8
+            sq_mask = Image.new("RGBA", (sq_sz, sq_sz), (0, 0, 0, 0))
+            d_sq = ImageDraw.Draw(sq_mask)
+            d_sq.ellipse([(0, 0), (sq_sz - 1, sq_sz - 1)], fill=(255, 255, 255, 255))
+            pos_s = ((boyut - sq_sz) // 2, (boyut - sq_sz) // 2)
+            g.paste(sq_mask, pos_s, sq_mask)
+            emb_res = emblem.resize((l_sz, l_sz), Image.Resampling.LANCZOS)
+            pos_l = ((boyut - l_sz) // 2, (boyut - l_sz) // 2)
+            g.paste(emb_res, pos_l, emb_res)
+        return g.convert("RGB")
+    except Exception as e:
+        log.warning("Modern QR üretilemedi, standart motora dönülüyor: %s", e)
+        q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=4, border=1)
+        q.add_data(link[:500] if link else VARSAYILAN_QR)
+        q.make(fit=True)
+        g = q.make_image(fill_color=muhur, back_color=zemin).convert("RGB")
+        return g.resize((boyut, boyut), Image.Resampling.LANCZOS)
 
 
 def _cikti_belirle(cikti_yolu: Optional[Path], stil_adi: str) -> Path:
@@ -752,6 +784,10 @@ def ciz_10_resmi_muhur(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu:
 # 11. EDİTORYAL (KLASİK KUTUSUZ SAF TİPOGRAFİ)
 # =============================================================================
 def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: Optional[Path] = None) -> Path:
+    global GEN, YUK
+    import src.make_image as mi
+    GEN = mi.GENISLIK
+    YUK = mi.YUKSEKLIK
     b = _bilgileri_derle(veri)
     canvas = Image.new("RGB", (GEN, YUK), RENK_KAGIT)
     canvas = _filigran_uygula(canvas, acik_zemin=True)
@@ -806,16 +842,16 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     except Exception as e:
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     tx = KENAR + 26 + ik_sz + 20
-    draw.text((tx, y_cta + 22), "BU REHBERİ KAYDEDİN", font=_font_yukle(FONT_SANS_BOLD, 30 if YUK >= 1700 else 28), fill=RENK_KOYU)
-    draw.text((tx, y_cta + 66), "Lazım olduğu gün elinizin altında olsun.", font=_font_yukle(FONT_SANS_MEDIUM, 24), fill=RENK_GRI_METIN)
+    draw.text((tx, y_cta + 22), "REHBERİ ARŞİVİNİZE EKLEYİN", font=_font_yukle(FONT_SANS_BOLD, 30 if YUK >= 1700 else 28), fill=RENK_KOYU)
+    draw.text((tx, y_cta + 66), "Tapu ve mülk kararlarınızda güvenilir referans olarak saklayın.", font=_font_yukle(FONT_SANS_MEDIUM, 23 if YUK >= 1700 else 22), fill=RENK_GRI_METIN)
 
     gap = 16
     pill_w = (toplam_w - gap) // 2
     pill_h = 68 if YUK >= 1700 else 62
     py = y_cta + card_h + (18 if YUK >= 1700 else 14)
-    f_rp = _font_yukle(FONT_SANS_BOLD, 24)
+    f_rp = _font_yukle(FONT_SANS_BOLD, 22)
     ik_sz_r = 26
-    for i, (ic_name, text) in enumerate((("share", "Bir tanıdığınıza gönderin"), ("follow", "Takip edin"))):
+    for i, (ic_name, text) in enumerate((("share", "Yatırım Çevrenizle Paylaşın"), ("follow", "Piyasa Analizlerini Takip Edin"))):
         rx = KENAR + i * (pill_w + gap)
         draw.rounded_rectangle([(rx, py), (rx + pill_w, py + pill_h)], radius=12, fill=(255, 255, 255), outline=RENK_CIZGI, width=1)
         try:
@@ -823,7 +859,7 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
             canvas.paste(ik, (rx + 18, py + (pill_h - ik_sz_r) // 2), ik)
         except Exception as e:
             log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
-        draw.text((rx + 18 + ik_sz_r + 14, py + (pill_h - 30) // 2), text, font=f_rp, fill=RENK_KOYU)
+        draw.text((rx + 18 + ik_sz_r + 14, py + (pill_h - 28) // 2), text, font=f_rp, fill=RENK_KOYU)
 
     # 5. ALTA DAYALI İLETİŞİM BLOĞU (9:16'da dikey optik dengeleme)
     cta_bitis = py + pill_h
@@ -850,17 +886,16 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
 
     # 5B. DEV TELEFON NUMARASI
     tel_y = by
-    f_tel = _font_yukle(FONT_MONO_BOLD, 75)
-    tel_parts = b["tel"].split() if len(b["tel"].split()) >= 3 else ["0", "212", "727", "2955"]
-    parts_w = sum(draw.textbbox((0, 0), p, font=f_tel)[2] for p in tel_parts)
-    target_w = mail_end_x - KENAR
-    gap = (target_w - parts_w) / (len(tel_parts) - 1) if len(tel_parts) > 1 else 45
-
-    curr_x = KENAR
-    for p in tel_parts:
-        draw.text((curr_x, tel_y), p, font=f_tel, fill=RENK_KOYU)
-        curr_x += draw.textbbox((0, 0), p, font=f_tel)[2] + gap
-    by += 96
+    f_tel = _font_yukle(FONT_SANS_BOLD, 68)
+    tel_rakamlar = "".join(c for c in b["tel"] if c.isdigit())
+    if len(tel_rakamlar) == 11 and tel_rakamlar.startswith("0"):
+        tel_temiz = f"{tel_rakamlar[:4]} {tel_rakamlar[4:7]} {tel_rakamlar[7:9]} {tel_rakamlar[9:]}"
+    elif len(tel_rakamlar) == 10:
+        tel_temiz = f"0{tel_rakamlar[:3]} {tel_rakamlar[3:6]} {tel_rakamlar[6:8]} {tel_rakamlar[8:]}"
+    else:
+        tel_temiz = b["tel"]
+    draw.text((KENAR, tel_y), tel_temiz, font=f_tel, fill=RENK_KOYU)
+    by += 92
 
     # 5C. OFİS ADRESİ
     # 24px, gerekirse iki satır (eskiden 21px ve [:1] ile adres kesiliyordu)
@@ -887,17 +922,52 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
     draw.text((mail_x + ik_sz_c + 10, by), b["eposta"], font=_font_yukle(FONT_MONO, 20), fill=RENK_SILIK)
 
-    # 6. SAĞ TARAF: BÜYÜTÜLMÜŞ KOYU BORDO QR KOD (200px, #7A0D0D, TAŞMAYAN SIKI BEYAZ ZEMİN)
-    qr_sz = 200
-    qr_x = GEN - KENAR - qr_sz
-    qr_y = tel_y + 2
-    q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=5, border=1)
-    q.add_data(b["qr_link"][:500] if b["qr_link"] else VARSAYILAN_QR)
-    q.make(fit=True)
-    qr_img = q.make_image(fill_color="#7A0D0D", back_color="#ffffff").convert("RGBA")
-    qr_img = qr_img.resize((qr_sz, qr_sz), Image.Resampling.LANCZOS)
+    # 6. SAĞ TARAF: MİMARİ KADRAJ (VIEWFINDER) QR KOD
+    vf_sz = 180
+    vx = GEN - KENAR - vf_sz - 10
+    vy = tel_y + 2
 
-    # Merkez amblem (Taşmayan sıkı beyaz zemin ve ekstra kalın logo)
+    # Beyaz zemin altlık (taranabilirlik kontrastı)
+    draw.rounded_rectangle([(vx, vy), (vx + vf_sz, vy + vf_sz)], radius=10, fill=(255, 255, 255))
+
+    # 4 Köşe L kadrajı (Viewfinder brackets in EDM Kırmızı)
+    c_len = 18
+    c_col = RENK_KIRMIZI
+    w_line = 3
+    # TL
+    draw.line([(vx - 4, vy - 4), (vx - 4 + c_len, vy - 4)], fill=c_col, width=w_line)
+    draw.line([(vx - 4, vy - 4), (vx - 4, vy - 4 + c_len)], fill=c_col, width=w_line)
+    # TR
+    draw.line([(vx + vf_sz + 4, vy - 4), (vx + vf_sz + 4 - c_len, vy - 4)], fill=c_col, width=w_line)
+    draw.line([(vx + vf_sz + 4, vy - 4), (vx + vf_sz + 4, vy - 4 + c_len)], fill=c_col, width=w_line)
+    # BL
+    draw.line([(vx - 4, vy + vf_sz + 4), (vx - 4 + c_len, vy + vf_sz + 4)], fill=c_col, width=w_line)
+    draw.line([(vx - 4, vy + vf_sz + 4), (vx - 4, vy + vf_sz + 4 - c_len)], fill=c_col, width=w_line)
+    # BR
+    draw.line([(vx + vf_sz + 4, vy + vf_sz + 4), (vx + vf_sz + 4 - c_len, vy + vf_sz + 4)], fill=c_col, width=w_line)
+    draw.line([(vx + vf_sz + 4, vy + vf_sz + 4), (vx + vf_sz + 4, vy + vf_sz + 4 - c_len)], fill=c_col, width=w_line)
+
+    # Modern Antrasit Rounded QR Kod
+    qr_sz = 164
+    try:
+        q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=8, border=1)
+        q.add_data(b["qr_link"][:500] if b["qr_link"] else VARSAYILAN_QR)
+        q.make(fit=True)
+        qr_img = q.make_image(
+            image_factory=StyledPilImage,
+            module_drawer=RoundedModuleDrawer(radius_ratio=0.6),
+            color_mask=SolidFillColorMask(front_color=(24, 26, 32), back_color=(255, 255, 255))
+        ).convert("RGBA")
+        qr_img = qr_img.resize((qr_sz, qr_sz), Image.Resampling.LANCZOS)
+    except Exception as e:
+        log.warning("Modern QR üretilemedi, standart motora dönülüyor: %s", e)
+        q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=5, border=1)
+        q.add_data(b["qr_link"][:500] if b["qr_link"] else VARSAYILAN_QR)
+        q.make(fit=True)
+        qr_img = q.make_image(fill_color="#181A20", back_color="#ffffff").convert("RGBA")
+        qr_img = qr_img.resize((qr_sz, qr_sz), Image.Resampling.LANCZOS)
+
+    # Merkez amblem (Dairesel maske ile logonun net yerleşimi)
     logo_yolu = Path(__file__).resolve().parent.parent / "assets/logos/amblem-kalin.png"
     if not logo_yolu.exists():
         logo_yolu = Path(__file__).resolve().parent.parent / "assets/logos/amblem.png"
@@ -905,27 +975,27 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     if logo_yolu.exists():
         try:
             emblem = Image.open(logo_yolu).convert("RGBA")
-            logo_sz = 60
-            sq_sz = 66
+            l_sz = int(qr_sz * 0.28)
+            sq_sz = l_sz + 8
             sq_mask = Image.new("RGBA", (sq_sz, sq_sz), (0, 0, 0, 0))
             d_sq = ImageDraw.Draw(sq_mask)
-            d_sq.rounded_rectangle([(0, 0), (sq_sz - 1, sq_sz - 1)], radius=12, fill=(255, 255, 255, 255))
+            d_sq.ellipse([(0, 0), (sq_sz - 1, sq_sz - 1)], fill=(255, 255, 255, 255))
             pos_s = ((qr_sz - sq_sz) // 2, (qr_sz - sq_sz) // 2)
             qr_img.paste(sq_mask, pos_s, sq_mask)
 
-            emblem = emblem.resize((logo_sz, logo_sz), Image.Resampling.LANCZOS)
-            pos_l = ((qr_sz - logo_sz) // 2, (qr_sz - logo_sz) // 2)
+            emblem = emblem.resize((l_sz, l_sz), Image.Resampling.LANCZOS)
+            pos_l = ((qr_sz - l_sz) // 2, (qr_sz - l_sz) // 2)
             qr_img.paste(emblem, pos_l, emblem)
         except Exception as e:
-            # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
-            log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
+            log.warning("Kapanış slaytı: QR amblem öğesi çizilemedi: %s", e)
 
-    canvas.paste(qr_img.convert("RGB"), (qr_x, qr_y))
+    canvas.paste(qr_img.convert("RGB"), (vx + 8, vy + 8))
 
-    f_lbl = _font_yukle(FONT_MONO_BOLD, 15)
+    # Alt Etiket
+    f_lbl = _font_yukle(FONT_MONO_BOLD, 13)
     lbl_txt = "OFİS KONUMU // TARA"
     lbl_w = draw.textbbox((0, 0), lbl_txt, font=f_lbl)[2]
-    draw.text((qr_x + (qr_sz - lbl_w) // 2, qr_y + qr_sz + 8), lbl_txt, font=f_lbl, fill=RENK_SILIK)
+    draw.text((vx + (vf_sz - lbl_w) // 2, vy + vf_sz + 14), lbl_txt, font=f_lbl, fill=RENK_KOYU)
 
     # 7. Yasal Not & Alt Bar (Sol alttaki mükerrer EDM yazısı kaldırıldı)
     # Sorumluluk notu okunur boyutta: 16px'te telefonda seçilmiyordu

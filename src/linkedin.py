@@ -107,7 +107,7 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
         "yatırımlarınızda güncel mevzuat ve yerinde ekspertiz için EDM Yapı & Gayrimenkul "
         "olarak yanınızdayız."
     )
-    parcalar.append("📞 0 212 727 2955 · edmyapigayrimenkul.com")
+    parcalar.append("📞 0212 727 29 55 · edmyapigayrimenkul.com")
 
     # 6. Profesyonel Hashtag'ler
     parcalar.append("\n#GayrimenkulYatırımı #Arsa #İmarMevzuatı #Silivri #Trakya #EDMYapıGayrimenkul #MilliEmlak")

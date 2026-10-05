@@ -77,18 +77,16 @@ BUTCE: Dict[str, int] = {
     "manset_satir": 18,      # Fraunces 78px, satır başına
     "spot": 180,             # kapak spot metni (azami 187 karakter sığıyor)
     "kart_baslik": 42,       # slayt 2 kart başlığı
-    "kart_aciklama": 210,    # slayt 2 kart gövdesi (4 satır)
+    "kart_aciklama": 240,    # slayt 2 kart gövdesi (doyurucu 4-5 satır analiz)
     "adim_baslik": 44,       # slayt 3 adım başlığı
-    "adim_aciklama": 155,    # slayt 3 adım gövdesi (3 satır)
+    "adim_aciklama": 195,    # slayt 3 adım gövdesi (doyurucu 3 satır somut rehberlik, test sınırı 198)
     "rozet": 44,             # üst rozet şeridi
     "yasal_dayanak": 42,     # kapak üstündeki mevzuat şeridi (sağdaki etiketle paylaşır)
     "threads": 480,          # platform sınırı 500
-    # Yeni formatlar (2026-09-25, scripts/gorsel_denetim.py ile ölçüldü). Bu alanların
-    # hiç bütçesi yoktu: #243'te 349 karakterlik tanım sözlük kartına sığmadı.
-    # Değerler çizicinin RAHAT puntoda taşıdığı kapasite (yanında o puntolar).
+    # Yeni formatlar (2026-09-25, scripts/gorsel_denetim.py ile ölçüldü).
     "terim": 26,             # sözlük terimi, 2 satır ≥96px
     "tanim": 260,            # sözlük tanımı, 3 maddeyle birlikte 38px
-    "puf_madde": 95,         # sözlük "önemi" maddesi (en fazla 3), 30px
+    "puf_madde": 115,        # sözlük "önemi" maddesi (en fazla 3), 30px
     "yanlis": 140,           # Nedir Doğrusu üst bölüm, 50px
     "dogru": 230,            # Nedir Doğrusu alt bölüm, 40px
     "altin_kural": 110,      # Nedir Doğrusu kural kutusu
@@ -249,7 +247,9 @@ ASLA yapay karşıtlık veya dolgu madde uydurma.
 
 Slayt 3 çözüm adımları: 2 ile 5 arasında somut, uygulanabilir adımdır (`maddeler`).
 Her adım okuyanın yarın tapuda, belediyede veya noter kanalıyla yapabileceği bir işlem olmalı;
-"dikkatli olun" gibi soyut nasihat değil.
+"dikkatli olun" gibi soyut nasihat değil. Sayfaların dolu ve doyurucu olması için adımın nasıl
+atılacağını, hangi belgenin talep edileceğini ve nelere dikkat edileceğini 2-3 zengin cümleyle
+(160-220 karakter) derinlemesine açıkla. Asla tek cümlelik veya yüzeysel bırakma.
 
 JSON:
 {
@@ -269,7 +269,7 @@ JSON:
         "etiket": "≤%(rozet)d karakter (örn: RİSKİN SEBEBİ // YASAL ÇERÇEVE)",
         "renk": "kirmizi | yesil | gri",
         "baslik": "≤%(kart_baslik)d karakter",
-        "aciklama": "≤%(kart_aciklama)d karakter. Somut mekanizma ve tam cümle"
+        "aciklama": "≤%(kart_aciklama)d karakter. Somut mekanizma, riskin nedeni ve sahadaki pratik sonucu, doyurucu 2-3 cümle"
       }
     ],
     "kart_1": {
@@ -408,7 +408,7 @@ KURALLAR:
 2. SPOT: Haberin arka planını, en kritik verisini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot (140-200 karakter).
 3. KANCA (HOOK): Kapak görseli üstü için DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy (örn. "47 İLDE 383 PARSEL // RESMİ SATIŞTA" veya "MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR").
    KRİTİK KURAL: 'kanca' ve 'manset' KESİNLİKLE BİRBİRİNİ TEKRAR ETMEMELİDİR! Aynı kelimeleri hem kancaya hem manşete yazma. Kanca projenin/haberin rakamını, büyüklüğünü veya finansal/ihale boyutunu öne çıkaran farklı bir açı sunmalıdır.
-4. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler).
+4. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler). Her maddeyi 180-260 karakter uzunluğunda, konuyu hem resmi verilerle hem de sahadaki pratik karşılığıyla derinlemesine açıklayan doyurucu 2-3 cümleyle yaz. Asla tek cümlelik veya yüzeysel bırakma.
 5. UZMAN NOTU: EDM Değerlendirmesi — takipçiye/yatırımcıya tek cümlelik somut strateji tavsiyesi.
 
 JSON:
@@ -424,22 +424,22 @@ JSON:
   "detay_maddeleri": [
     {
       "etiket": "01 // RESMİ GELİŞME VE İHALE/PROJE ŞARTLARI",
-      "metin": "Ne oldu? İhale/proje nerede, kaç TL, hangi ada/parsel, metrekare veya başvuru tarihi ne? (120-170 karakter)",
+      "metin": "Ne oldu? İhale/proje nerede, kaç TL, hangi ada/parsel, metrekare veya başvuru tarihi ne? Şartlar neler? (180-260 karakter, doyurucu 2-3 cümle)",
       "renk": "kirmizi"
     },
     {
       "etiket": "02 // BÖLGESEL PİYASAYA VE FİYATLARA ETKİSİ",
-      "metin": "Silivri, Çatalca, Trakya ve gayrimenkul piyasasına etkisi ne? Fiyat dengesini, emsal değerleri nasıl etkiler? (120-170 karakter)",
+      "metin": "Silivri, Çatalca, Trakya ve gayrimenkul piyasasına etkisi ne? Fiyat dengesini, emsal değerleri nasıl etkiler? (180-260 karakter, doyurucu 2-3 cümle)",
       "renk": "kirec"
     },
     {
       "etiket": "03 // KİMLER KATILABİLİR & SÜREÇ NASIL İŞLİYOR",
-      "metin": "Başvuru süreci, teminat, KDV muafiyeti veya taksit avantajları neler? (120-170 karakter)",
+      "metin": "Başvuru süreci, teminat, KDV muafiyeti veya taksit avantajları neler? (180-260 karakter, doyurucu 2-3 cümle)",
       "renk": "kirec"
     },
     {
       "etiket": "04 // DİKKAT EDİLECEK RİSKLER VE HUKUKİ HAKLAR",
-      "metin": "Mülk alırken veya sürece girerken tapu, kadastro veya fiili zemin durumunda nelere dikkat edilmeli? (120-170 karakter)",
+      "metin": "Mülk alırken veya sürece girerken tapu, kadastro veya fiili zemin durumunda nelere dikkat edilmeli? (180-260 karakter, doyurucu 2-3 cümle)",
       "renk": "kirec"
     }
   ],

@@ -953,8 +953,8 @@ def uret_nedir_dogrusu(
     # saf beyazdı — akış kırmızıya boğuluyordu; marka oranı %5 kırmızı.
     r1, g1, b1 = RENK_MUREKKEP
     r2, g2, b2 = 244, 244, 243
-    y_start = 480
-    y_end = 640
+    y_start = int(h * 0.355)
+    y_end = int(h * 0.474)
     arr[:y_start, :] = [r1, g1, b1]
     for y in range(y_start, y_end):
         t = (y - y_start) / (y_end - y_start)
@@ -1471,6 +1471,7 @@ def uret_net_cevap_kapak(
     net_cevap: str,
     gerekce: str,
     sayfa_no: str = "01 / 01",
+    olcu: str = "besleme",
 ) -> Path:
     """Net Cevap kapağı: soru küçük, CEVAP sayfanın en büyük yazısı.
 
@@ -1484,7 +1485,7 @@ def uret_net_cevap_kapak(
     soru = (soru or "").strip()
     gerekce = (gerekce or "").strip()
 
-    with make_image.tuval("besleme"):
+    with make_image.tuval(olcu):
         canvas, draw, p = make_image._slayt_cercevesi(
             "kagit", f"NET CEVAP // {kategori_temizle(kategori)}",
             "EDM YAPI & GAYRİMENKUL // NET CEVAP", sayfa_no,
@@ -1594,6 +1595,7 @@ def _devam_slaytlari(
     cikti_onek: str,
     bas_sira: int,
     toplam: int,
+    olcu: str = "besleme",
 ) -> List[Path]:
     """Format kapağından sonraki slaytlar: her adım ayrı sayfa + kapanış.
 
@@ -1605,7 +1607,7 @@ def _devam_slaytlari(
     normal = make_image.veriyi_normalize_et(veri)
     rozet = _ilk_dolu((veri.get("slayt_3_cozum") or {}).get("baslik_vurgu") if isinstance(veri.get("slayt_3_cozum"), dict) else "",
                       veri.get("rozet_metni"), "ATILACAK ADIMLAR")
-    with make_image.tuval("besleme"):
+    with make_image.tuval(olcu):
         for i, m in enumerate(adimlar):
             sira = bas_sira + i
             yol = cikti_dizini / f"{cikti_onek}_{sira:02d}_adim.jpg"
@@ -1647,133 +1649,136 @@ def slaytlari_uret(
     kartlar = _kartlar(veri)
     adimlar = _adimlar(veri)
 
-    # 1. SÖZLÜK — tek veya iki kare (kullanıcı kuralı: örnek, detay veya görsel varsa 2 slayt)
-    if format_turu in ("sozluk", "sozluk_uret") or ("terim" in veri and ("tanim_metni" in veri or "tanim" in veri)):
-        terim = _ilk_dolu(veri.get("terim"), veri.get("manset_vurgu"))
-        tanim = _ilk_dolu(veri.get("tanim_metni"), veri.get("tanim"), veri.get("spot"))
-        if not terim or not tanim:
-            raise EksikIcerik("Sözlük: terim ya da tanım üretilmedi")
-        # Liste yerine düz metin gelirse karakter karakter bölünmesin
-        maddeler = _madde_listesi(veri.get("puf_maddeleri") or veri.get("maddeler"))
-        if not maddeler:
-            maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
+    global GENISLIK, YUKSEKLIK
+    with make_image.tuval(olcu):
+        GENISLIK = make_image.GENISLIK
+        YUKSEKLIK = make_image.YUKSEKLIK
 
-        # Kullanıcı direktifi: Sözlük varsayılan olarak kesinlikle TEK karedir ("gerekmiyosa 2. sayfa olmasın direkt vazgeçtim").
-        # Yalnızca açıkça iki_sayfa=True veya detay_sayfasi=True istenirse 2. slayt üretilir.
-        iki_sayfa = bool(veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
+        # 1. SÖZLÜK — tek veya iki kare (kullanıcı kuralı: örnek, detay veya görsel varsa 2 slayt)
+        if format_turu in ("sozluk", "sozluk_uret") or ("terim" in veri and ("tanim_metni" in veri or "tanim" in veri)):
+            terim = _ilk_dolu(veri.get("terim"), veri.get("manset_vurgu"))
+            tanim = _ilk_dolu(veri.get("tanim_metni"), veri.get("tanim"), veri.get("spot"))
+            if not terim or not tanim:
+                raise EksikIcerik("Sözlük: terim ya da tanım üretilmedi")
+            # Liste yerine düz metin gelirse karakter karakter bölünmesin
+            maddeler = _madde_listesi(veri.get("puf_maddeleri") or veri.get("maddeler"))
+            if not maddeler:
+                maddeler = [f"{a['baslik']}: {a['aciklama']}".strip(": ") for a in adimlar[:3]]
 
-        if iki_sayfa:
-            toplam = 2
-            p1 = cikti_dizini / f"{cikti_onek}_01_sozluk.jpg"
-            p2 = cikti_dizini / f"{cikti_onek}_02_sozluk_detay.jpg"
-            uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam))
-            ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA VE DETAYLAR")
-            uygulama_notu = _ilk_dolu(veri.get("uygulama_notu"), veri.get("dikkat_notu"), (maddeler[0] if maddeler else ""))
-            ornek_detay = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
-                                    veri.get("ornek_olay"), veri.get("detay"), tanim)
-            anlatim_maddeleri = veri.get("anlatim_maddeleri") or veri.get("ornek_maddeleri") or veri.get("detay_maddeleri")
-            uret_sozluk_detay(
-                p2,
-                terim=terim,
-                kategori=kategori,
-                ornek_baslik=ornek_baslik,
-                ornek_detay=ornek_detay,
-                uygulama_notu=uygulama_notu,
-                maddeler=anlatim_maddeleri,
-                sayfa_no=_sayfa(2, toplam),
+            # Kullanıcı direktifi: Sözlük varsayılan olarak kesinlikle TEK karedir ("gerekmiyosa 2. sayfa olmasın direkt vazgeçtim").
+            # Yalnızca açıkça iki_sayfa=True veya detay_sayfasi=True istenirse 2. slayt üretilir.
+            iki_sayfa = bool(veri.get("iki_sayfa") or veri.get("detay_sayfasi"))
+
+            if iki_sayfa:
+                toplam = 2
+                p1 = cikti_dizini / f"{cikti_onek}_01_sozluk.jpg"
+                p2 = cikti_dizini / f"{cikti_onek}_02_sozluk_detay.jpg"
+                uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam))
+                ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA VE DETAYLAR")
+                uygulama_notu = _ilk_dolu(veri.get("uygulama_notu"), veri.get("dikkat_notu"), (maddeler[0] if maddeler else ""))
+                ornek_detay = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
+                                        veri.get("ornek_olay"), veri.get("detay"), tanim)
+                anlatim_maddeleri = veri.get("anlatim_maddeleri") or veri.get("ornek_maddeleri") or veri.get("detay_maddeleri")
+                uret_sozluk_detay(
+                    p2,
+                    terim=terim,
+                    kategori=kategori,
+                    ornek_baslik=ornek_baslik,
+                    ornek_detay=ornek_detay,
+                    uygulama_notu=uygulama_notu,
+                    maddeler=anlatim_maddeleri,
+                    sayfa_no=_sayfa(2, toplam),
+                )
+                log.info("Format üretildi (SÖZLÜK, 2 slayt - metin odaklı): %s, %s", p1, p2)
+                return [p1, p2]
+
+            p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
+            uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler)
+            log.info("Format üretildi (SÖZLÜK, 1 slayt): %s", p1)
+            return [p1]
+
+        # 2. NEDİR DOĞRUSU
+        if format_turu in ("nedir_dogrusu", "dogrusu", "yaygin_yanlis") or ("yanlis_metin" in veri and "dogru_metin" in veri):
+            yanlis = _ilk_dolu(veri.get("yanlis_metin"), veri.get("yanlis"), (kartlar[0].get("aciklama") if kartlar else ""), veri.get("kanca"))
+            dogru = _ilk_dolu(veri.get("dogru_metin"), veri.get("dogru"), veri.get("altin_kural"), (kartlar[1].get("aciklama") if len(kartlar) > 1 else ""), veri.get("spot"), veri.get("manset"))
+            if not yanlis or not dogru:
+                raise EksikIcerik("Nedir Doğrusu: yanlış inanış ya da doğrusu üretilmedi")
+            toplam = 1 + len(adimlar) + 1
+            p1 = cikti_dizini / f"{cikti_onek}_01_nedir_dogrusu.jpg"
+            konu = kategori_temizle(veri.get("konu") or veri.get("rozet_metni") or kat_ham)
+            uret_nedir_dogrusu(p1, konu=konu, yanlis_metin=yanlis, dogru_metin=dogru,
+                               altin_kural=_ilk_dolu(veri.get("altin_kural")), sayfa_no=_sayfa(1, toplam))
+            yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam, olcu=olcu)
+            log.info("Format üretildi (NEDİR DOĞRUSU, %d slayt)", len(yollar))
+            return yollar
+
+        # 3. NET CEVAP
+        if format_turu in ("net_cevap", "soru", "kim_hakli") or ("soru" in veri and "net_cevap" in veri and "aciklama" in veri):
+            soru = _ilk_dolu(
+                veri.get("soru"),
+                veri.get("soru_metni"),
+                veri.get("manset"),
+                veri.get("baslik"),
+                veri.get("kanca"),
+                (f"{veri.get('konu', '')}?" if veri.get("konu") else None),
             )
-            log.info("Format üretildi (SÖZLÜK, 2 slayt - metin odaklı): %s, %s", p1, p2)
-            return [p1, p2]
+            cevap = _ilk_dolu(
+                veri.get("net_cevap"),
+                veri.get("cevap"),
+                veri.get("yanit"),
+                veri.get("hukum"),
+                veri.get("spot"),
+                " ".join(x for x in (veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x),
+            )
+            if not soru or not cevap:
+                raise EksikIcerik("Net Cevap: soru ya da cevap üretilmedi")
+            if not soru.endswith("?"):
+                soru += "?"
+            tavsiye = _ilk_dolu(veri.get("tavsiye_metin"), veri.get("tavsiye"), veri.get("uzman_notu"))
+            if not adimlar and tavsiye:
+                adimlar = [{"no": "01", "baslik": "Ne yapmalı", "aciklama": tavsiye}]
+            toplam = 1 + len(adimlar) + 1
+            p1 = cikti_dizini / f"{cikti_onek}_01_net_cevap.jpg"
+            uret_net_cevap_kapak(p1, kategori=kat_ham, soru=soru, net_cevap=cevap,
+                                 gerekce=_ilk_dolu(veri.get("aciklama"), veri.get("gerekce"), veri.get("spot")), sayfa_no=_sayfa(1, toplam), olcu=olcu)
+            yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam, olcu=olcu)
+            log.info("Format üretildi (NET CEVAP, %d slayt)", len(yollar))
+            return yollar
 
-        p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
-        uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler)
-        log.info("Format üretildi (SÖZLÜK, 1 slayt): %s", p1)
-        return [p1]
+        # 4. ÖRNEK OLAY (vaka)
+        if format_turu in ("vaka", "emsal_karar") or ("yargitay_hukmu" in veri and "cikarilacak_ders" in veri):
+            olay = _ilk_dolu(veri.get("olay_detay"), veri.get("olay"), veri.get("spot"), veri.get("aciklama"), veri.get("manset"))
+            hukum = _ilk_dolu(veri.get("yargitay_hukmu"), veri.get("hukum"), veri.get("karar"), (kartlar[0].get("aciklama") if kartlar else ""), veri.get("uzman_notu"))
+            if not olay or not hukum:
+                raise EksikIcerik("Örnek olay: olay ya da kanuna göre sonuç üretilmedi")
+            manset = _ilk_dolu(veri.get("manset"), " ".join(
+                x for x in (veri.get("manset_parca_1"), veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x))
+            # Dayanak yalnızca içerikte ya da brief'te varsa; "Yargıtay Emsal İçtihadı" yedeği uydurmaydı
+            kaynak = _ilk_dolu(veri.get("yargitay_kaynak"), veri.get("yasal_dayanak"), brief.get("mevzuat"))
+            vaka_kodu = kategori_temizle(veri.get("vaka_kodu") or veri.get("konu_kodu") or kat_ham)
+            toplam = 2 + len(adimlar) + 1
+            p1 = cikti_dizini / f"{cikti_onek}_01_vaka.jpg"
+            p2 = cikti_dizini / f"{cikti_onek}_02_vaka.jpg"
+            uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset or olay[:75],
+                             olay_detay=olay, sayfa_no=_sayfa(1, toplam))
+            uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum,
+                             cikarilacak_ders=_ilk_dolu(veri.get("cikarilacak_ders")), sayfa_no=_sayfa(2, toplam))
+            yollar = [p1, p2] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 3, toplam, olcu=olcu)
+            log.info("Format üretildi (ÖRNEK OLAY, %d slayt)", len(yollar))
+            return yollar
 
-    # 2. NEDİR DOĞRUSU
-    if format_turu in ("nedir_dogrusu", "dogrusu", "yaygin_yanlis") or ("yanlis_metin" in veri and "dogru_metin" in veri):
-        yanlis = _ilk_dolu(veri.get("yanlis_metin"), veri.get("yanlis"), (kartlar[0].get("aciklama") if kartlar else ""), veri.get("kanca"))
-        dogru = _ilk_dolu(veri.get("dogru_metin"), veri.get("dogru"), veri.get("altin_kural"), (kartlar[1].get("aciklama") if len(kartlar) > 1 else ""), veri.get("spot"), veri.get("manset"))
-        if not yanlis or not dogru:
-            raise EksikIcerik("Nedir Doğrusu: yanlış inanış ya da doğrusu üretilmedi")
-        toplam = 1 + len(adimlar) + 1
-        p1 = cikti_dizini / f"{cikti_onek}_01_nedir_dogrusu.jpg"
-        konu = kategori_temizle(veri.get("konu") or veri.get("rozet_metni") or kat_ham)
-        uret_nedir_dogrusu(p1, konu=konu, yanlis_metin=yanlis, dogru_metin=dogru,
-                           altin_kural=_ilk_dolu(veri.get("altin_kural")), sayfa_no=_sayfa(1, toplam))
-        yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam)
-        log.info("Format üretildi (NEDİR DOĞRUSU, %d slayt)", len(yollar))
-        return yollar
+        # 5. DAILYBRIEF HABER FORMATI
+        if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") in ("haber", "B5"):
+            foto_yolu = veri.get("foto_yolu") or veri.get("gorsel_yolu")
+            slaytlar = make_image.haber_dailybrief_slaytlari_uret(
+                haber=veri,
+                cikti_dizini=cikti_dizini,
+                cikti_onek=cikti_onek,
+                olcu=olcu,
+                foto_yolu=foto_yolu,
+            )
+            log.info("Format üretildi (HABER, %d slayt)", len(slaytlar))
+            return slaytlar
 
-    # 3. NET CEVAP
-    if format_turu in ("net_cevap", "soru", "kim_hakli") or ("soru" in veri and "net_cevap" in veri and "aciklama" in veri):
-        soru = _ilk_dolu(
-            veri.get("soru"),
-            veri.get("soru_metni"),
-            veri.get("manset"),
-            veri.get("baslik"),
-            veri.get("kanca"),
-            (f"{veri.get('konu', '')}?" if veri.get("konu") else None),
-        )
-        cevap = _ilk_dolu(
-            veri.get("net_cevap"),
-            veri.get("cevap"),
-            veri.get("yanit"),
-            veri.get("hukum"),
-            veri.get("spot"),
-            " ".join(x for x in (veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x),
-        )
-        if not soru or not cevap:
-            raise EksikIcerik("Net Cevap: soru ya da cevap üretilmedi")
-        if not soru.endswith("?"):
-            soru += "?"
-        tavsiye = _ilk_dolu(veri.get("tavsiye_metin"), veri.get("tavsiye"), veri.get("uzman_notu"))
-        if not adimlar and tavsiye:
-            adimlar = [{"no": "01", "baslik": "Ne yapmalı", "aciklama": tavsiye}]
-        toplam = 1 + len(adimlar) + 1
-        p1 = cikti_dizini / f"{cikti_onek}_01_net_cevap.jpg"
-        uret_net_cevap_kapak(p1, kategori=kat_ham, soru=soru, net_cevap=cevap,
-                             gerekce=_ilk_dolu(veri.get("aciklama"), veri.get("gerekce"), veri.get("spot")), sayfa_no=_sayfa(1, toplam))
-        yollar = [p1] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 2, toplam)
-        log.info("Format üretildi (NET CEVAP, %d slayt)", len(yollar))
-        return yollar
-
-    # 4. ÖRNEK OLAY (vaka)
-    if format_turu in ("vaka", "emsal_karar") or ("yargitay_hukmu" in veri and "cikarilacak_ders" in veri):
-        olay = _ilk_dolu(veri.get("olay_detay"), veri.get("olay"), veri.get("spot"), veri.get("aciklama"), veri.get("manset"))
-        hukum = _ilk_dolu(veri.get("yargitay_hukmu"), veri.get("hukum"), veri.get("karar"), (kartlar[0].get("aciklama") if kartlar else ""), veri.get("uzman_notu"))
-        if not olay or not hukum:
-            raise EksikIcerik("Örnek olay: olay ya da kanuna göre sonuç üretilmedi")
-        manset = _ilk_dolu(veri.get("manset"), " ".join(
-            x for x in (veri.get("manset_parca_1"), veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x))
-        # Dayanak yalnızca içerikte ya da brief'te varsa; "Yargıtay Emsal İçtihadı" yedeği uydurmaydı
-        kaynak = _ilk_dolu(veri.get("yargitay_kaynak"), veri.get("yasal_dayanak"), brief.get("mevzuat"))
-        vaka_kodu = kategori_temizle(veri.get("vaka_kodu") or veri.get("konu_kodu") or kat_ham)
-        toplam = 2 + len(adimlar) + 1
-        p1 = cikti_dizini / f"{cikti_onek}_01_vaka.jpg"
-        p2 = cikti_dizini / f"{cikti_onek}_02_vaka.jpg"
-        uret_vaka_slayt1(p1, vaka_kodu=vaka_kodu, yargitay_kaynak=kaynak, manset=manset or olay[:75],
-                         olay_detay=olay, sayfa_no=_sayfa(1, toplam))
-        uret_vaka_slayt2(p2, vaka_kodu=vaka_kodu, yargitay_hukmu=hukum,
-                         cikarilacak_ders=_ilk_dolu(veri.get("cikarilacak_ders")), sayfa_no=_sayfa(2, toplam))
-        yollar = [p1, p2] + _devam_slaytlari(veri, adimlar, cikti_dizini, cikti_onek, 3, toplam)
-        log.info("Format üretildi (ÖRNEK OLAY, %d slayt)", len(yollar))
-        return yollar
-
-    # 5. DAILYBRIEF HABER FORMATI
-    if format_turu in ("dailybrief", "haber", "haber_dailybrief") or veri.get("bicim") in ("haber", "B5"):
-        foto_yolu = veri.get("foto_yolu") or veri.get("gorsel_yolu")
-        slaytlar = make_image.haber_dailybrief_slaytlari_uret(
-            haber=veri,
-            cikti_dizini=cikti_dizini,
-            cikti_onek=cikti_onek,
-            olcu=olcu,
-            foto_yolu=foto_yolu,
-        )
-        log.info("Format üretildi (HABER, %d slayt)", len(slaytlar))
-        return slaytlar
-
-    # Tanınmayan biçim: standart çok slaytlı carousel. Eskiden B1/B2/B3 veri
-    # tek karelik formatlara "uyarlanıyor", eksik alanlar sabit cümlelerle
-    # dolduruluyordu (bkz. EksikIcerik).
-    return make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=cikti_onek, olcu=olcu)
+        # Tanınmayan biçim: standart çok slaytlı carousel.
+        return make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=cikti_onek, olcu=olcu)

@@ -292,7 +292,7 @@ def metinleri_slaytlara_dagit(
     kapanis_metin = (
         f"🤝 {cta}\n\n"
         "Siz bu konuda ne düşünüyorsunuz? Yorumlarda buluşalım.\n\n"
-        "EDM Yapı & Gayrimenkul · 0 212 727 2955 · Silivri\n"
+        "EDM Yapı & Gayrimenkul · 0212 727 29 55 · Silivri\n"
         "#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Yatırım"
     ).strip()
     parcalar.append(kapanis_metin)
