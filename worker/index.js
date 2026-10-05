@@ -1617,15 +1617,15 @@ function kanallariCoz(str) {
 }
 
 function seciliKanallariCikar(klavye) {
-  if (!klavye || !klavye.length) return ["ig", "story", "threads", "facebook", "youtube", "tiktok"];
+  if (!klavye || !klavye.length) return ["ig", "story", "threads", "facebook", "youtube", "tiktok", "linkedin"];
   const kanalButonlari = klavye.flat().filter(b => String(b.callback_data || "").startsWith("kanal:"));
-  if (kanalButonlari.length === 0) return ["ig", "story", "threads", "facebook", "youtube", "tiktok"];
+  if (kanalButonlari.length === 0) return ["ig", "story", "threads", "facebook", "youtube", "tiktok", "linkedin"];
   return kanalButonlari
     .filter(b => String(b.text || "").startsWith("✅"))
     .map(b => b.callback_data.replace(/^kanal:/, ""));
 }
 
-function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook", "youtube", "tiktok"]) {
+function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook", "youtube", "tiktok", "linkedin"]) {
   const varMi = (k) => Array.isArray(secili) ? secili.includes(k) : Boolean(secili && secili[k]);
   return [
     [
@@ -1638,11 +1638,12 @@ function kanalButonlariSatirlari(secili = ["ig", "story", "threads", "facebook",
       { text: `${varMi('facebook') ? '✅' : '⬜'} FB`, callback_data: "kanal:facebook" },
       { text: `${varMi('youtube') ? '✅' : '⬜'} YT`, callback_data: "kanal:youtube" },
       { text: `${varMi('tiktok') ? '✅' : '⬜'} TT`, callback_data: "kanal:tiktok" },
+      { text: `${varMi('linkedin') ? '✅' : '⬜'} LI`, callback_data: "kanal:linkedin" },
     ],
   ];
 }
 
-function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook", "youtube", "tiktok"]) {
+function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook", "youtube", "tiktok", "linkedin"]) {
   return {
     inline_keyboard: [
       ...kanalButonlariSatirlari(seciliKanallar),
@@ -2017,10 +2018,12 @@ function hedefKanalEtiketleri(hedef) {
     shorts: "▶️ YouTube Shorts",
     tiktok: "🎵 TikTok",
     tt: "🎵 TikTok",
+    linkedin: "💼 LinkedIn",
+    li: "💼 LinkedIn",
   };
   const parcalar = String(hedef || "hepsi").toLowerCase().split(",").filter((p) => !p.trim().startsWith("ses_"));
   if (parcalar.includes("hepsi") || parcalar.length === 0) {
-    return "Tüm Kanallar (Instagram, Threads, Facebook, YouTube, TikTok)";
+    return "Tüm Kanallar (Instagram, Threads, Facebook, YouTube, TikTok, LinkedIn)";
   }
   return parcalar.map((p) => harita[p.trim()] || p.trim().toUpperCase()).join(", ");
 }

@@ -780,6 +780,25 @@ def ciz_10_resmi_muhur(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu:
     return yol
 
 
+def _sosyal_ikon_al(ad: str, boy: int = 24, renk: Tuple[int, int, int] = RENK_KIRMIZI) -> Optional[Image.Image]:
+    """Assets/icons altındaki logoları renk maskesi ile yükler veya vektör olarak çizer."""
+    yol = Path(__file__).resolve().parent.parent / "assets/icons" / f"{ad}.png"
+    if yol.exists():
+        try:
+            im = Image.open(yol).convert("RGBA")
+            oran = min(boy / im.width, boy / im.height)
+            yeni = (max(1, int(im.width * oran)), max(1, int(im.height * oran)))
+            mask = im.resize(yeni, Image.Resampling.LANCZOS).split()[-1]
+            tint = Image.new("RGBA", yeni, (*renk, 255))
+            out = Image.new("RGBA", (boy, boy), (0, 0, 0, 0))
+            pos = ((boy - yeni[0]) // 2, (boy - yeni[1]) // 2)
+            out.paste(tint, pos, mask)
+            return out
+        except Exception:
+            pass
+    return None
+
+
 # =============================================================================
 # 11. EDİTORYAL (KLASİK KUTUSUZ SAF TİPOGRAFİ)
 # =============================================================================
@@ -863,30 +882,26 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
 
     # 5. ALTA DAYALI İLETİŞİM BLOĞU (9:16'da dikey optik dengeleme)
     cta_bitis = py + pill_h
-    blok_h = 360
+    blok_h = 390
     if YUK >= 1700:
         kalan = (yer["alt"] - 60 - blok_h) - cta_bitis
         by = cta_bitis + max(40, kalan // 2)
     else:
-        by = yer["alt"] - 380
+        by = yer["alt"] - 400
 
-    # 5A. METİN ÖZDOĞAN (42px Bold) & Kurucu Danışman
-    draw.text((KENAR, by), b["isim"], font=_font_yukle(FONT_SANS_BOLD, 42), fill=RENK_KOYU); by += 50
+    # 5A. METİN ÖZDOĞAN (Büyütüldü: Story'de 54px / Besleme'de 46px) & Kurucu Danışman
+    f_isim = _font_yukle(FONT_SANS_BOLD, 54 if YUK >= 1700 else 46)
+    draw.text((KENAR, by), b["isim"], font=f_isim, fill=RENK_KOYU)
+    by += (60 if YUK >= 1700 else 50)
     unvan = b["unvan"].replace("EDM Yapı & Gayrimenkul", "").replace("EDM Yapı", "").strip().rstrip("·").strip()
     if not unvan:
         unvan = "Kurucu Danışman"
-    draw.text((KENAR, by), unvan, font=_font_yukle(FONT_SANS_MEDIUM, 24), fill=RENK_GRI_METIN); by += 48
-
-    # Önce web & e-posta genişliğini hesapla
-    ik_sz_c = 24
-    web_gen = draw.textbbox((0, 0), b["site"], font=_font_yukle(FONT_MONO_BOLD, 21))[2]
-    mail_x = KENAR + ik_sz_c + 10 + web_gen + 34
-    mail_gen = draw.textbbox((0, 0), b["eposta"], font=_font_yukle(FONT_MONO, 20))[2]
-    mail_end_x = mail_x + ik_sz_c + 10 + mail_gen
+    draw.text((KENAR, by), unvan, font=_font_yukle(FONT_SANS_MEDIUM, 24 if YUK >= 1700 else 21), fill=RENK_GRI_METIN)
+    by += (44 if YUK >= 1700 else 38)
 
     # 5B. DEV TELEFON NUMARASI
     tel_y = by
-    f_tel = _font_yukle(FONT_SANS_BOLD, 68)
+    f_tel = _font_yukle(FONT_SANS_BOLD, 68 if YUK >= 1700 else 58)
     tel_rakamlar = "".join(c for c in b["tel"] if c.isdigit())
     if len(tel_rakamlar) == 11 and tel_rakamlar.startswith("0"):
         tel_temiz = f"{tel_rakamlar[:4]} {tel_rakamlar[4:7]} {tel_rakamlar[7:9]} {tel_rakamlar[9:]}"
@@ -895,43 +910,55 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     else:
         tel_temiz = b["tel"]
     draw.text((KENAR, tel_y), tel_temiz, font=f_tel, fill=RENK_KOYU)
-    by += 92
+    by += (88 if YUK >= 1700 else 74)
 
     # 5C. OFİS ADRESİ
-    # 24px, gerekirse iki satır (eskiden 21px ve [:1] ile adres kesiliyordu)
-    f_adres = _font_yukle(FONT_SANS_MEDIUM, 24)
-    for sat in _metin_sar(b["adres"], f_adres, max_w - 230, draw)[:2]:
+    f_adres = _font_yukle(FONT_SANS_MEDIUM, 23 if YUK >= 1700 else 20)
+    for sat in _metin_sar(b["adres"], f_adres, max_w - 240, draw)[:2]:
         draw.text((KENAR, by), sat, font=f_adres, fill=RENK_GRI_METIN)
-        by += 32
-    by += 12
+        by += (30 if YUK >= 1700 else 26)
+    by += 10
 
     # 5D. WEB SİTESİ & E-POSTA (KIRMIZI ŞIK VEKTÖR İKONLARLA)
+    ik_sz_c = 22 if YUK >= 1700 else 20
+    web_gen = draw.textbbox((0, 0), b["site"], font=_font_yukle(FONT_MONO_BOLD, 20 if YUK >= 1700 else 18))[2]
+    mail_x = KENAR + ik_sz_c + 10 + web_gen + 28
+
     try:
         web_ik = _vektor_ikon_uret("web", ik_sz_c, RENK_KIRMIZI)
-        canvas.paste(web_ik, (KENAR, by + 2), web_ik)
+        canvas.paste(web_ik, (KENAR, by + 1), web_ik)
     except Exception as e:
-        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
-    draw.text((KENAR + ik_sz_c + 10, by), b["site"], font=_font_yukle(FONT_MONO_BOLD, 21), fill=RENK_KOYU)
+    draw.text((KENAR + ik_sz_c + 10, by), b["site"], font=_font_yukle(FONT_MONO_BOLD, 20 if YUK >= 1700 else 18), fill=RENK_KOYU)
 
     try:
         mail_ik = _vektor_ikon_uret("mail", ik_sz_c, RENK_KIRMIZI)
-        canvas.paste(mail_ik, (mail_x, by + 2), mail_ik)
+        canvas.paste(mail_ik, (mail_x, by + 1), mail_ik)
     except Exception as e:
-        # Sessiz kalırsa slayt ikonsuz/logosuz çıkar ve kimse fark etmez
         log.warning("Kapanış slaytı: marka öğesi çizilemedi: %s", e)
-    draw.text((mail_x + ik_sz_c + 10, by), b["eposta"], font=_font_yukle(FONT_MONO, 20), fill=RENK_SILIK)
+    draw.text((mail_x + ik_sz_c + 10, by), b["eposta"], font=_font_yukle(FONT_MONO, 19 if YUK >= 1700 else 17), fill=RENK_SILIK)
+    by += (34 if YUK >= 1700 else 28)
+
+    # 5E. SOSYAL MEDYA İKONLARI VE HESAP ADI (DailyBrief tarzı)
+    ik_sm_sz = 22 if YUK >= 1700 else 20
+    sm_x = KENAR
+    for sm_name in ("instagram", "threads", "youtube", "facebook", "linkedin", "tiktok", "x"):
+        sm_ik = _sosyal_ikon_al(sm_name, ik_sm_sz, RENK_KIRMIZI)
+        if sm_ik:
+            canvas.paste(sm_ik, (sm_x, by), sm_ik)
+            sm_x += ik_sm_sz + 10
+    draw.text((sm_x + 6, by + 1), b["hesap"], font=_font_yukle(FONT_MONO_BOLD, 19 if YUK >= 1700 else 17), fill=RENK_KOYU)
 
     # 6. SAĞ TARAF: MİMARİ KADRAJ (VIEWFINDER) QR KOD
-    vf_sz = 180
-    vx = GEN - KENAR - vf_sz - 10
-    vy = tel_y + 2
+    vf_sz = 176 if YUK >= 1700 else 164
+    vx = GEN - KENAR - vf_sz - 6
+    vy = tel_y
 
     # Beyaz zemin altlık (taranabilirlik kontrastı)
     draw.rounded_rectangle([(vx, vy), (vx + vf_sz, vy + vf_sz)], radius=10, fill=(255, 255, 255))
 
     # 4 Köşe L kadrajı (Viewfinder brackets in EDM Kırmızı)
-    c_len = 18
+    c_len = 16
     c_col = RENK_KIRMIZI
     w_line = 3
     # TL
@@ -947,63 +974,24 @@ def ciz_11_editoryal(veri: Dict[str, Any], sayfa: str = "04 / 04", cikti_yolu: O
     draw.line([(vx + vf_sz + 4, vy + vf_sz + 4), (vx + vf_sz + 4 - c_len, vy + vf_sz + 4)], fill=c_col, width=w_line)
     draw.line([(vx + vf_sz + 4, vy + vf_sz + 4), (vx + vf_sz + 4, vy + vf_sz + 4 - c_len)], fill=c_col, width=w_line)
 
-    # Modern Antrasit Rounded QR Kod
-    qr_sz = 164
-    try:
-        q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=8, border=1)
-        q.add_data(b["qr_link"][:500] if b["qr_link"] else VARSAYILAN_QR)
-        q.make(fit=True)
-        qr_img = q.make_image(
-            image_factory=StyledPilImage,
-            module_drawer=RoundedModuleDrawer(radius_ratio=0.6),
-            color_mask=SolidFillColorMask(front_color=(24, 26, 32), back_color=(255, 255, 255))
-        ).convert("RGBA")
-        qr_img = qr_img.resize((qr_sz, qr_sz), Image.Resampling.LANCZOS)
-    except Exception as e:
-        log.warning("Modern QR üretilemedi, standart motora dönülüyor: %s", e)
-        q = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=5, border=1)
-        q.add_data(b["qr_link"][:500] if b["qr_link"] else VARSAYILAN_QR)
-        q.make(fit=True)
-        qr_img = q.make_image(fill_color="#181A20", back_color="#ffffff").convert("RGBA")
-        qr_img = qr_img.resize((qr_sz, qr_sz), Image.Resampling.LANCZOS)
-
-    # Merkez amblem (Dairesel maske ile logonun net yerleşimi)
-    logo_yolu = Path(__file__).resolve().parent.parent / "assets/logos/amblem-kalin.png"
-    if not logo_yolu.exists():
-        logo_yolu = Path(__file__).resolve().parent.parent / "assets/logos/amblem.png"
-
-    if logo_yolu.exists():
-        try:
-            emblem = Image.open(logo_yolu).convert("RGBA")
-            l_sz = int(qr_sz * 0.28)
-            sq_sz = l_sz + 8
-            sq_mask = Image.new("RGBA", (sq_sz, sq_sz), (0, 0, 0, 0))
-            d_sq = ImageDraw.Draw(sq_mask)
-            d_sq.ellipse([(0, 0), (sq_sz - 1, sq_sz - 1)], fill=(255, 255, 255, 255))
-            pos_s = ((qr_sz - sq_sz) // 2, (qr_sz - sq_sz) // 2)
-            qr_img.paste(sq_mask, pos_s, sq_mask)
-
-            emblem = emblem.resize((l_sz, l_sz), Image.Resampling.LANCZOS)
-            pos_l = ((qr_sz - l_sz) // 2, (qr_sz - l_sz) // 2)
-            qr_img.paste(emblem, pos_l, emblem)
-        except Exception as e:
-            log.warning("Kapanış slaytı: QR amblem öğesi çizilemedi: %s", e)
-
-    canvas.paste(qr_img.convert("RGB"), (vx + 8, vy + 8))
+    # QR Kod üretimi
+    qr_sz = vf_sz - 16
+    qr_img = _qr_uret(b["qr_link"], qr_sz)
+    canvas.paste(qr_img, (vx + 8, vy + 8))
 
     # Alt Etiket
-    f_lbl = _font_yukle(FONT_MONO_BOLD, 13)
+    f_lbl = _font_yukle(FONT_MONO_BOLD, 12)
     lbl_txt = "OFİS KONUMU // TARA"
     lbl_w = draw.textbbox((0, 0), lbl_txt, font=f_lbl)[2]
-    draw.text((vx + (vf_sz - lbl_w) // 2, vy + vf_sz + 14), lbl_txt, font=f_lbl, fill=RENK_KOYU)
+    draw.text((vx + (vf_sz - lbl_w) // 2, vy + vf_sz + 12), lbl_txt, font=f_lbl, fill=RENK_KOYU)
 
     # 7. Yasal Not & Alt Bar (Sol alttaki mükerrer EDM yazısı kaldırıldı)
     # Sorumluluk notu okunur boyutta: 16px'te telefonda seçilmiyordu
-    f_not = _font_yukle(FONT_SANS_MEDIUM, 22)
-    draw.text((KENAR, yer["alt"] - 30), "Genel bilgilendirmedir; bağlayıcı hukuki görüş için avukatınıza danışın.", font=f_not, fill=RENK_GRI_METIN)
+    f_not = _font_yukle(FONT_SANS_MEDIUM, 22 if YUK >= 1700 else 19)
+    draw.text((KENAR, yer["alt"] - (30 if YUK >= 1700 else 24)), "Genel bilgilendirmedir; bağlayıcı hukuki görüş için avukatınıza danışın.", font=f_not, fill=RENK_GRI_METIN)
     if sayfa and str(sayfa).strip():
-        sf = _font_yukle(FONT_MONO_BOLD, 19)
-        draw.text((GEN - KENAR - draw.textbbox((0, 0), sayfa, font=sf)[2], yer["alt_bar"] + 26), sayfa, font=sf, fill=RENK_KIRMIZI)
+        sf = _font_yukle(FONT_MONO_BOLD, 19 if YUK >= 1700 else 17)
+        draw.text((GEN - KENAR - draw.textbbox((0, 0), sayfa, font=sf)[2], yer["alt_bar"] + (26 if YUK >= 1700 else 18)), sayfa, font=sf, fill=RENK_KIRMIZI)
 
     yol = _cikti_belirle(cikti_yolu, "11_editoryal")
     canvas.save(yol, "JPEG", quality=95)
@@ -1069,6 +1057,6 @@ def kapanis_ciz(stil: Optional[str], veri: Dict[str, Any], sayfa: str = "04 / 04
     import src.make_image as mi
     GEN = mi.GENISLIK
     YUK = mi.YUKSEKLIK
-    secilen_stil = (stil or "kartvizit").lower().strip()
-    cizici = STIL_HARITASI.get(secilen_stil, ciz_01_luks_kartvizit)
+    secilen_stil = (stil or config.ayar_al("tasarim.kapanis_stili", "editoryal")).lower().strip()
+    cizici = STIL_HARITASI.get(secilen_stil, ciz_11_editoryal)
     return cizici(veri, sayfa, cikti_yolu)

@@ -67,7 +67,7 @@ jobs:
           elif [ "$EYLEM" = "ayar_degistir" ]; then
             python -c "import os; from src import ayar; ayar.ayar_kaydet(os.environ.get('ANAHTAR', ''), os.environ.get('DEGER', ''))"
           elif [ "$EYLEM" = "incele" ]; then
-            python -c "import os; from src import telegram_bot; m, b = telegram_bot.icerik_incele_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
+            python -c "import os; from src import telegram_bot; telegram_bot.icerik_incele_gonder(int(os.environ.get('ICERIK_ID', '0')))"
           elif [ "$EYLEM" = "sonpostlar" ]; then
             python -c "from src import telegram_bot; m, b = telegram_bot.son_postlar_raporu(); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           elif [ "$EYLEM" = "havuz" ]; then

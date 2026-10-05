@@ -221,9 +221,9 @@ class Degerlendirme:
 def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlendirme:
     """Haberi puanlar ve hangi içerik sütununa ait olduğunu belirler.
 
-    Puan 0-20 ölçeğinde. Karşılaştırma noktası: konu bankasından iyi hazırlanmış
-    bir brief yaklaşık 12 değerindedir (ICERIK-SISTEMI.md §4). Haber ancak bunu
-    geçerse takvimin önüne geçmeyi hak eder.
+    Puan 0-10 ölçeğinde (en fazla 10). Karşılaştırma noktası: konu bankasından
+    iyi hazırlanmış bir brief yaklaşık 8 değerindedir. Haber 7 ve üzeri puan alırsa
+    öneri veya içerik değerlendirmesine hak kazanır.
     """
     d = Degerlendirme()
     metin = f"{baslik} {ozet}".strip()
@@ -335,5 +335,6 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         d.bilesenler["paylasilabilirlik"] = min(3, len(fayda_tutan))
         d.isaretler.append(f"yüksek paylaşım potansiyeli: {', '.join(fayda_tutan[:2])}")
 
-    d.puan = max(0, sum(d.bilesenler.values()))
+    raw_puan = sum(d.bilesenler.values())
+    d.puan = min(10, max(0, raw_puan))
     return d

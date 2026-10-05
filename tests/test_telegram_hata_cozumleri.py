@@ -192,6 +192,53 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         self.assertIn("Shorts", tani["ne_yapilir"])
         self.assertEqual(tani["eylem"], "yeniden_yayinla")
 
+    def test_haber_puanlama_azami_10_siniri(self):
+        """Haber puanının en fazla 10 olacağı ve 10'u aşamayacağı doğrulanır."""
+        from src import haber_puanlama
+        # Çok sayıda yüksek puanlı kriter içeren haber
+        baslik = "Resmi Gazete'de Yayımlandı: Silivri'de İmar ve Tapu Harcı Düzenlemesi Yürürlüğe Girdi"
+        ozet = "Yargıtay emsal kararı ve BDDK genelgesi ile kira artış oranı yüzde 25 olarak belirlendi. Başvuru süresi 30 gün."
+        d = haber_puanlama.degerlendir(baslik, ozet, yas_saat=2.0)
+        self.assertTrue(d.gecti)
+        self.assertLessEqual(d.puan, 10, f"Haber puanı 10'u aşmamalıdır, gelen: {d.puan}")
+        self.assertGreaterEqual(d.puan, 7)
+
+    def test_icerik_onceki_mesajlarini_temizle_albumu_korur(self):
+        """Hatırlatma durumunda tur='haber' temizlendiğinde 'haber_album' mesajlarının korunduğu doğrulanır."""
+        h_id = db.haber_kaydet(
+            kaynak="Test", orijinal_baslik="Test Başlık", orijinal_url="https://example.com/test",
+            orijinal_ozet="Özet", makale_metni="Metin", yayin_tarihi="2026-10-06T00:00:00",
+            kategori="S1", onem_puani=8
+        )
+        # 1 adet albüm mesajı ve 1 adet onay kartı mesajı ekle
+        db.onay_istegi_kaydet("haber_album", str(h_id), 8881, 1001)
+        db.onay_istegi_kaydet("haber", str(h_id), 8882, 1001)
+
+        with patch("src.telegram_bot.mesaji_sil", return_value=True) as mock_sil:
+            silinen = telegram_bot.icerik_onceki_mesajlarini_temizle("haber", h_id)
+
+        # Yalnızca kart silinmeli, albüm silinmemeli
+        self.assertEqual(silinen, 1)
+        mock_sil.assert_called_once_with(8882)
+
+        # haber_album kaydı hala bekliyor durumunda kalmalı
+        kalan_album = db.onay_mesajlarini_getir("haber_album", str(h_id))
+        self.assertIn(8881, kalan_album)
+
+    def test_icerik_incele_gonder_gorselli(self):
+        """icerik_incele_gonder haberin görseli varsa fotograf_gonder ile göndermelidir."""
+        h_id = db.haber_kaydet(
+            kaynak="Test", orijinal_baslik="Görselli Haber", orijinal_url="https://example.com/gorsel",
+            orijinal_ozet="Görsel özeti", makale_metni="Görsel metni", yayin_tarihi="2026-10-06T00:00:00",
+            kategori="S2", onem_puani=9
+        )
+        db.haber_guncelle(h_id, gorsel_url="https://cdn.example.com/foto.jpg")
+        with patch("src.telegram_bot.fotograf_gonder", return_value={"message_id": 999}) as mock_foto:
+            res = telegram_bot.icerik_incele_gonder(h_id)
+        self.assertTrue(res)
+        mock_foto.assert_called_once()
+        self.assertEqual(mock_foto.call_args[0][0], "https://cdn.example.com/foto.jpg")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -528,6 +528,8 @@ KANAL_ETIKETLERI = {
     "shorts": "YouTube Shorts",
     "tiktok": "TikTok (@edmyapigayrimenkul)",
     "tt": "TikTok (@edmyapigayrimenkul)",
+    "linkedin": "LinkedIn (@edmyapigayrimenkul)",
+    "li": "LinkedIn (@edmyapigayrimenkul)",
 }
 
 
@@ -713,7 +715,14 @@ def yayindan_kaldir(
     if yt_id:
         satirlar.append(f"▶️ YouTube Shorts: YouTube Studio üzerinden kaldırabilirsiniz (ID: {yt_id})")
 
-    # 5. Veritabanını güncelle: havuza DÖNMEMESİ için durum='kaldirildi'
+    # 5. LinkedIn
+    li_id = icerik_obj.get("linkedin_post_id")
+    if li_id:
+        satirlar.append(f"💼 LinkedIn: Şirket sayfasından kaldırabilirsiniz (ID: {li_id})")
+    else:
+        satirlar.append("· LinkedIn: Kayıtlı gönderi ID yok")
+
+    # 6. Veritabanını güncelle: havuza DÖNMEMESİ için durum='kaldirildi'
     if haber:
         db.haber_guncelle(
             int(ref_str),
@@ -813,7 +822,10 @@ def varsayilan_kanallar() -> Dict[str, bool]:
             return json.loads(kayitli)
         except Exception:
             pass
-    return {"ig": True, "threads": True, "fb": False}
+    return {
+        "ig": True, "reels": False, "story": True, "threads": True,
+        "facebook": True, "youtube": True, "tiktok": True, "linkedin": True,
+    }
 
 
 def kanal_ayarla(kanal: str, aktif: bool) -> Dict[str, bool]:
@@ -865,7 +877,7 @@ def kanal_butonlari(kanallar: Optional[Dict[str, bool]] = None) -> List[List[Dic
 def secili_kanallari_cikar(klavye: Optional[List[List[Dict[str, Any]]]]) -> List[str]:
     """Inline keyboard'dan seçili kanalları (✅ ile başlayan) listeler."""
     if not klavye:
-        return ["ig", "story", "threads", "facebook", "youtube", "tiktok"]
+        return ["ig", "story", "threads", "facebook", "youtube", "tiktok", "linkedin"]
     secili = []
     bulundu = False
     for satir in klavye:
@@ -877,7 +889,7 @@ def secili_kanallari_cikar(klavye: Optional[List[List[Dict[str, Any]]]]) -> List
                     kanal_adi = cb.replace("kanal_toggle:", "").replace("kanal:", "")
                     secili.append(kanal_adi)
     if not bulundu:
-        return ["ig", "story", "threads", "facebook", "youtube", "tiktok"]
+        return ["ig", "story", "threads", "facebook", "youtube", "tiktok", "linkedin"]
     return secili
 
 
@@ -1314,6 +1326,44 @@ def icerik_incele_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
     return metin, butonlar
 
 
+def icerik_incele_gonder(ref_id: int) -> bool:
+    """İçerik #ref_id kartını görseliyle (fotoğraf varsa fotoğraflı kart, yoksa metin) Telegram'a gönderir."""
+    haber = db.haber_getir(int(ref_id))
+    if not haber:
+        return bool(mesaj_gonder(f"⚠️ <b>#{ref_id} numaralı içerik veritabanında bulunamadı.</b>"))
+
+    metin, butonlar = icerik_incele_karti(ref_id)
+
+    # 1. Görsel adayını belirle (slayt varsa slayt 1, yoksa haberin gorsel_url'i)
+    gorsel_adayi = None
+    if haber.get("slayt_urlleri"):
+        try:
+            urls = json.loads(haber["slayt_urlleri"])
+            if urls and isinstance(urls, list):
+                gorsel_adayi = urls[0]
+        except Exception:
+            pass
+    elif haber.get("slayt_yollari"):
+        try:
+            yollar = json.loads(haber["slayt_yollari"])
+            if yollar and isinstance(yollar, list):
+                gorsel_adayi = yollar[0]
+        except Exception:
+            pass
+
+    if not gorsel_adayi and haber.get("gorsel_url"):
+        gorsel_adayi = haber["gorsel_url"]
+
+    # 2. Fotoğraflı kart olarak göndermeyi dene
+    if gorsel_adayi:
+        res = fotograf_gonder(gorsel_adayi, caption=metin[:1024], reply_markup=butonlar)
+        if res:
+            return True
+
+    # 3. Fotoğraf yoksa veya gönderilemediyse metinle gönder
+    return bool(mesaj_gonder(metin, reply_markup=butonlar))
+
+
 def havuz_mesaji() -> str:
     """Konu havuzunun GERÇEK durumu. Worker'daki eski /havuz yanıtı sabit ve
     yanlış etiketli sayılar basıyordu ("S2 İmar & Parsel 25+ konu")."""
@@ -1392,12 +1442,14 @@ def yayin_kontrol_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
     fb_id = haber.get("facebook_post_id")
     yt_id = haber.get("youtube_video_id")
     tt_id = haber.get("tiktok_publish_id")
+    li_id = haber.get("linkedin_post_id")
 
     ig_durum = "✅ Yayında" if ig_id else "⚪ Yayınlanmadı / Bilgi Yok"
     th_durum = "✅ Yayında" if th_id else "⚪ Yayınlanmadı / Bilgi Yok"
     fb_durum = "✅ Yayında" if fb_id else "⚪ Yayınlanmadı / Bilgi Yok"
     yt_durum = "✅ Yayında" if yt_id else "⚪ Yayınlanmadı / Bilgi Yok"
     tt_durum = "✅ Yayında / Taslak" if tt_id else "⚪ Yayınlanmadı / Bilgi Yok"
+    li_durum = "✅ Yayında" if li_id else "⚪ Yayınlanmadı / Bilgi Yok"
 
     metin = (
         f"📡 <b>YAYIN DOĞRULAMA & KONTROL: #{ref_id}</b>\n\n"
@@ -1408,7 +1460,8 @@ def yayin_kontrol_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
         f"• 🧵 Threads: {th_durum}\n"
         f"• 📘 Facebook: {fb_durum}\n"
         f"• 🎵 TikTok: {tt_durum}\n"
-        f"• ▶️ YouTube Shorts: {yt_durum}\n\n"
+        f"• ▶️ YouTube Shorts: {yt_durum}\n"
+        f"• 💼 LinkedIn: {li_durum}\n\n"
         f"💡 <i>Eksik kalan veya tekrar yayınlamak istediğiniz kanallar için aşağıdaki butonları kullanabilirsiniz:</i>"
     )
 
@@ -1425,6 +1478,8 @@ def yayin_kontrol_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
         tekil_siralar.append({"text": "🔄 YouTube", "callback_data": f"retry_kanal:youtube:{ref_id}"})
     if not tt_id:
         tekil_siralar.append({"text": "🔄 TikTok", "callback_data": f"retry_kanal:tiktok:{ref_id}"})
+    if not li_id:
+        tekil_siralar.append({"text": "🔄 LinkedIn", "callback_data": f"retry_kanal:linkedin:{ref_id}"})
 
     for i in range(0, len(tekil_siralar), 3):
         retry_butonlari.append(tekil_siralar[i:i + 3])
@@ -1700,21 +1755,33 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
         }
         aktif_veri = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else veri_icin
 
-        # Kullanıcı kuralı: Telegram onayı ve önizlemeleri için BÜTÜN içerikler her zaman 9:16 dikey (story) formatında üretilir
-        if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief", "reels") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
-            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else (aktif_veri.get("bicim") or "dailybrief")
-            if f_tur in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
-                slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}", olcu="story")
+        # Instagram ve Sosyal Medya Standartı:
+        # Feed Carousel gönderileri kırpılma/taşma yaşamaması için NATIVE 4:5 ("besleme", 1080x1350) üretilir.
+        # Yalnızca dikey video/Reels veya Hikaye içerikleri 9:16 ("story", 1080x1920) üretilir.
+        is_reels = (format_turu == "reels") or (haber.get("kategori") == "REELS")
+        olcu = "story" if is_reels else "besleme"
+
+        if format_turu == "reels":
+            fmt = aktif_veri.get("bicim") or "dailybrief"
+            if fmt in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+                slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=fmt, cikti_onek=f"gonderi_{haber_id}", olcu="story")
             else:
                 slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="story")
             slayt_yollari = [str(p) for p in slayt_listesi]
+        elif format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") or (otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5")):
+            f_tur = format_turu if format_turu in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief") else (aktif_veri.get("bicim") or "dailybrief")
+            if f_tur in ("dailybrief", "haber", "sozluk", "nedir_dogrusu", "net_cevap", "vaka"):
+                slayt_listesi = yeni_formatlar.slaytlari_uret(aktif_veri, format_turu=f_tur, cikti_onek=f"gonderi_{haber_id}", olcu=olcu)
+            else:
+                slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu=olcu)
+            slayt_yollari = [str(p) for p in slayt_listesi]
         elif not otorite_verisi and (haber.get("orijinal_baslik") or haber.get("manset")):
-            # Doğrudan haber/gündem akışından gelen kayıt: DailyBrief şablonuyla 9:16 üret
-            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}", olcu="story")
+            # Doğrudan haber/gündem akışından gelen kayıt
+            slayt_listesi = yeni_formatlar.slaytlari_uret(veri_icin, format_turu="dailybrief", cikti_onek=f"gonderi_{haber_id}", olcu=olcu)
             slayt_yollari = [str(p) for p in slayt_listesi]
         else:
-            # Standart carousel / otorite postu: Telegram onayına her zaman 9:16 dikey üret
-            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu="story")
+            # Standart carousel / otorite postu: native 4:5 besleme
+            slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(aktif_veri, cikti_onek=f"gonderi_{haber_id}", olcu=olcu)
             slayt_yollari = [str(p) for p in slayt_listesi]
 
     # 2.5 Slaytları Public CDN'e yükle (Runner bağımsızlığı ve API'ler için)
@@ -1737,6 +1804,7 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
     )
 
     # 2.7 Önceki tüm mesajları (eski onay kartı ve albüm slaytları) temizle
+    icerik_onceki_mesajlarini_temizle("haber_album", haber_id)
     icerik_onceki_mesajlarini_temizle("haber", haber_id)
 
     # 3. Format bazlı başlık ve rozet belirleme (Haberle Birebir Aynı Standart)
@@ -1786,7 +1854,7 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
     album_mids = album_res if isinstance(album_res, list) else son_medya_grubu_mesaj_idleri()
     for mid in album_mids:
         try:
-            db.onay_istegi_kaydet("haber", str(haber_id), mid, cid)
+            db.onay_istegi_kaydet("haber_album", str(haber_id), mid, cid)
         except Exception as e:
             log.warning("Albüm mesaj ID kaydedilemedi: %s", e)
 
@@ -1806,13 +1874,14 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
     )
     temiz_caption = html_lib.escape(caption_metin) if caption_metin else ""
 
+    puan_degeri = min(10, int(haber.get("onem_puani", 8))) if str(haber.get("onem_puani", "")).isdigit() else 8
     mesaj_metni = (
         denetim_basligi
         + kart_baslik
         + f"<b>Kategori:</b> {rozet}\n"
         f"<b>Dayanak:</b> {dayanak}\n"
         f"<b>Manşet:</b> {haber['manset']}\n"
-        f"<b>Önem Puanı:</b> {haber.get('onem_puani', 8)}/10\n"
+        f"<b>Önem Puanı:</b> {puan_degeri}/10\n"
         f"<b>İçerik No:</b> #{haber_id}\n\n"
     )
     if temiz_caption:
@@ -2219,6 +2288,7 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     )
 
     # 2.7 Önceki tüm mesajları temizle
+    icerik_onceki_mesajlarini_temizle("ilan_album", ilan_id)
     icerik_onceki_mesajlarini_temizle("ilan", ilan_id)
 
     # 3. Slayt görsellerini albüm olarak gönder
@@ -2229,7 +2299,7 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     album_mids = album_res if isinstance(album_res, list) else son_medya_grubu_mesaj_idleri()
     for mid in album_mids:
         try:
-            db.onay_istegi_kaydet("ilan", str(ilan_id), mid, cid)
+            db.onay_istegi_kaydet("ilan_album", str(ilan_id), mid, cid)
         except Exception as e:
             log.warning("İlan albüm mesaj ID kaydedilemedi: %s", e)
 

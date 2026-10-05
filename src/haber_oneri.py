@@ -170,6 +170,20 @@ def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
     gonderilen = 0
     adaylar = adaylari_sec(min(TUR_BASI_AZAMI, kalan))
     if adaylar:
+        ilk_gorsel = adaylar[0].get("gorsel_url") if adaylar else None
+        if ilk_gorsel and (str(ilk_gorsel).startswith("http") or Path(str(ilk_gorsel)).exists()):
+            try:
+                baslik_kisa = html.escape(adaylar[0].get("orijinal_baslik") or "")
+                puan_val = min(10, int(adaylar[0].get("onem_puani") or 8))
+                foto_caption = (
+                    f"📰 <b>GÜNÜN 1 NUMARALI HABER ADAYI [{puan_val}/10]</b>\n"
+                    f"<b>{baslik_kisa}</b>\n\n"
+                    f"<i>Günün öne çıkan 5 haber adayı ve seçim menüsü aşağıdadır 👇</i>"
+                )
+                telegram_bot.fotograf_gonder(ilk_gorsel, caption=foto_caption)
+            except Exception as e:
+                log.warning("Öneri kapak fotoğrafı gönderilemedi: %s", e)
+
         metin, klavye = oneri_listesi_mesaji(adaylar)
         if telegram_bot.mesaj_gonder(metin, reply_markup=klavye):
             for h in adaylar:
@@ -196,8 +210,9 @@ def haber_detay_karti(h: Dict[str, Any]) -> Tuple[str, Optional[Dict[str, Any]]]
     if len(govde) > 900:
         govde = govde[:900].rsplit(" ", 1)[0] + "…"
     sutun_adi = sutun.SUTUN_ADLARI.get(sutun.sutun_bul(h.get("kategori")) or "", "")
+    puan_fmt = min(10, int(h.get("onem_puani", 8))) if str(h.get("onem_puani", "")).isdigit() else 8
     kunye = " · ".join(x for x in (html.escape(h.get("kaynak") or ""), html.escape(sutun_adi),
-                                   f"puan {h.get('onem_puani')}") if x)
+                                   f"puan {puan_fmt}/10") if x)
     metin = (
         f"🔍 <b>Haber #{h['id']}</b>\n<b>{html.escape(h.get('orijinal_baslik') or '')}</b>\n\n"
         f"🗓 {tarih_metni(h.get('yayin_tarihi'))}\n🏷 {kunye}\n"
