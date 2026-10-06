@@ -272,8 +272,8 @@ def ciz_minimal_vurgu(
     nokta = 15
     kicker_x = x + nokta + 12
 
-    # Tavan punto (Daha iri, vurucu ve okunaklı editoryal kanca)
-    tavan_punto = 58 if gorsel.height >= 1700 else 52
+    # Tavan punto (Daha iri, vurucu ve okunaklı editoryal kanca — instabot paritesi 92 punto)
+    tavan_punto = 92
     f_title = _sigdiran_font([t1, t2], tavan_punto, minimal_alan, asgari=26, tip="sans_bold")
     if not (_sigar_mi(t1, f_title, minimal_alan) and _sigar_mi(t2, f_title, minimal_alan)):
         log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s / %s", t1, t2)
@@ -282,8 +282,8 @@ def ciz_minimal_vurgu(
         kicker = ""
 
     ust = 46 if kicker else 0
-    satir_y = int(f_title.size * 1.18)
-    govde_h = ust + (satir_y if t2 else 0) + int(f_title.size * 1.2)
+    satir_y = int(f_title.size * 1.12)
+    govde_h = ust + (satir_y if t2 else 0) + int(f_title.size * 1.25)
 
     # Difüzyon Gölgesi
     shadow = Image.new("RGBA", (minimal_alan + 80, govde_h + 80), (0, 0, 0, 0))
@@ -528,7 +528,7 @@ def _bant_yogunlugu(edges: Image.Image, x0: int, y0: int, x1: int, y1: int) -> f
     return ImageStat.Stat(edges.crop((x0, y0, x1, y1))).mean[0]
 
 
-def uygun_alan_tespit_et(gorsel: Image.Image, baslik_ust: int, hook_h: int = 180, ust_sinir: int = 420) -> Tuple[str, int]:
+def uygun_alan_tespit_et(gorsel: Image.Image, baslik_ust: int, hook_h: int = 220, ust_sinir: int = 380) -> Tuple[str, int]:
     """Fotoğrafın kanca çizilmeye en sakin, ferah alanını tespit eder (instabot paritesi)."""
     from PIL import ImageFilter
     en_alt = baslik_ust - hook_h - AYRIM_PAYI
@@ -576,16 +576,23 @@ def hook_uygula(
 
     fmt = hook_veri.get("format", "minimal_vurgu")
     override_renk = haber.get("hook_renk_override")
-    hook_h = 160 if fmt == "stat_punch" else 140
+    hook_h = 240 if fmt == "stat_punch" else (220 if hook_veri.get("t2") else 150)
+    min_tavan = max(ust_y + 80, 240)
     logo_alt = max(ust_y + 130, 380)
+    en_alt = manset_ust_y - hook_h - AYRIM_PAYI
+
+    if en_alt < min_tavan:
+        log.warning("Kanca için dikey alan yetersiz (en_alt=%d < min_tavan=%d), kancasız çiziliyor", en_alt, min_tavan)
+        return canvas
 
     # 1. Fotoğrafın en sakin alanını tespit et
-    konum, y = uygun_alan_tespit_et(canvas, manset_ust_y, hook_h=hook_h, ust_sinir=logo_alt)
+    hedef_ust = min(logo_alt, en_alt)
+    konum, y = uygun_alan_tespit_et(canvas, manset_ust_y, hook_h=hook_h, ust_sinir=hedef_ust)
     if y is None:
-        y = max(logo_alt, manset_ust_y - hook_h - AYRIM_PAYI)
+        y = max(min_tavan, en_alt)
 
-    # Üst ve alt sınır garantisi
-    y = max(logo_alt, min(y, manset_ust_y - hook_h - AYRIM_PAYI))
+    # Üst ve alt sınır garantisi: Başlığa AYRIM_PAYI'ndan daha fazla yaklaşamaz
+    y = max(min_tavan, min(y, en_alt))
     x_pos = KENAR_BOSLUK
 
     # Dinamik renk belirleme
@@ -630,7 +637,7 @@ def hook_uygula(
     if kutu:
         tasma = kutu[3] - (manset_ust_y - AYRIM_PAYI)
         if tasma > 0:
-            y = max(logo_alt, y - int(tasma))
+            y = max(min_tavan, y - int(tasma))
             sonuc = _ciz(canvas, y)
 
     log.info("Hook başarıyla çizildi: fmt=%s, y=%d (ayrım payı %d)", fmt, y, AYRIM_PAYI)

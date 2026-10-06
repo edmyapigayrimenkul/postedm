@@ -314,6 +314,35 @@ class TestDailyBriefTasarim(unittest.TestCase):
             olcu="besleme",
             sayfa_no="01 / 02",
         )
+        self.assertTrue(cikti.exists())
+        with Image.open(res) as im:
+            self.assertEqual(im.size, (1080, 1350))
+
+    def test_hook_motoru_instabot_paritesi_punto_ve_nefes_payi(self):
+        """Minimal vurgu kanca tavan puntosu 92 olmalı, kısa kancalar 52'nin üzerine çıkmalı ve AYRIM_PAYI (130px) korunmalı."""
+        from src import hook_motoru
+        canvas = Image.new("RGB", (1080, 1350), color=(20, 25, 30))
+
+        # 1. Font ölçekleme testi: Kısa kanca 52'de çakılı kalmamalı, 80+ puntoya kadar büyümeli
+        t1 = "JAPON FİNANS GRUBU"
+        t2 = "RAPOR YAYINLANDI"
+        minimal_alan = 1080 - 74 - 74
+        f = hook_motoru._sigdiran_font([t1, t2], 92, minimal_alan, asgari=26, tip="sans_bold")
+        self.assertGreater(f.size, 52, f"Kanca font boyutu 52'den büyük olmalı (ölçülen: {f.size})")
+        self.assertGreaterEqual(f.size, 80, f"Kısa kanca en az 80 puntoya ulaşmalı (ölçülen: {f.size})")
+
+        # 2. AYRIM_PAYI (130px) denetimi
+        manset_ust_y = 900
+        haber = {
+            "manset": "Konut Kredisi Faizlerinde Tarihi Düşüş",
+            "spot": "Bankalar faiz oranlarını aşağıya çekti.",
+            "kanca": "Japon Finans Grubu Rapor Yayınladı",
+        }
+        sonuc = hook_motoru.hook_uygula(canvas, haber, manset_ust_y=manset_ust_y)
+        kutu = hook_motoru._metin_kutusu(canvas, sonuc)
+        self.assertIsNotNone(kutu, "Hook metni başarıyla çizilmiş olmalı")
+        # Kancanın alt sınırı manset_ust_y - AYRIM_PAYI (130) sınırını geçmemeli
+        self.assertLessEqual(kutu[3], manset_ust_y - hook_motoru.AYRIM_PAYI)
     def test_haber_dailybrief_foto_atif_entegrasyonu(self):
         """Web fotoğrafları için foto_atif künyesi alt bara eklenmeli ve taşma yapmadan çizilmeli."""
         h = {
