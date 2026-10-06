@@ -4008,16 +4008,6 @@ def _sayfalari_dengeli_bol(
     return en_iyi_bolum if en_iyi_bolum is not None else [maddeler[:n//2], maddeler[n//2:]]
 
 
-def _haber_slayt_ust_etiketi(bolum: List[Dict[str, Any]], slayt_no: int, toplam_slayt: int) -> str:
-    """Detay slaytının üst etiketi.
-
-    Eskiden metindeki kelimelerden açı tahmin ediliyordu: "PİYASA" geçen her
-    sayfaya "// BÖLGESEL PİYASAYA ETKİSİ VE ANALİZ" basılıyordu (#509: sayfa swap
-    oranlarını anlatıyordu, bölge hiç geçmiyordu). İçeriği maddelerin kendi
-    etiketleri söylüyor; üst etiket içerikte olmayan bir iddia taşımaz.
-    """
-    return "// HABERİN AYRINTILARI"
-
 
 @_gorsel_girdisi
 def haber_dailybrief_slaytlari_uret(
@@ -4028,103 +4018,22 @@ def haber_dailybrief_slaytlari_uret(
     foto_yolu: Optional[Path | str] = None,
 ) -> List[Path]:
     """
-    EDM Gündem // Haber Bülteni Çok Slaytlı Carousel Üreticisi:
-    - Kapak: Gazetecilik usulü doğal manşet + 2-3 cümlelik editoryal spot + kurumsal kimlik.
-    - Detay Slaytları: Haberin kapsamına göre dinamik 2-3-4 slayt (ferah, 34-40px punto, sol mimari çentik).
-    - Kapanış: EDM Uzman Değerlendirmesi & Yatırımcı Stratejisi kutusu.
+    Haber carousel'i (kapak + detay sayfaları). Çizim `haber_tasarim.py` içindedir:
+    Instabot tasarımı, EDM logo ve renkleriyle; tek 1080x1920 ana kare, akış için ortadan
+    1080x1350 kırpılır. `olcu`: "besleme" (4:5) ya da "story" (9:16).
     """
     if cikti_dizini is None:
         cikti_dizini = config.yol_al("data/output/gonderiler")
     cikti_dizini = Path(cikti_dizini)
     cikti_dizini.mkdir(parents=True, exist_ok=True)
 
-    if isinstance(haber, dict):
-        dm = haber.get("detay_metni")
-        if dm and isinstance(dm, str) and dm.strip().startswith("{"):
-            try:
-                parsed = json.loads(dm)
-                if isinstance(parsed, dict):
-                    for k, v in parsed.items():
-                        if k not in haber or haber[k] is None:
-                            haber[k] = v
-            except Exception:
-                pass
+    # 2026-10-07 kararı: haber tasarımı Instabot'la AYNI; yalnız logo ve renkler EDM'in.
+    # Çizim `haber_tasarim.py` içinde (Instabot kodunun birebir taşınmışı). Aşağıdaki
+    # eski çizici yalnızca `haber_dailybrief_slayti_ciz` kullanan yollar (günlük bülten,
+    # testler) için duruyor; haber carousel'i artık buradan geçmez.
+    from . import haber_tasarim
+    return haber_tasarim.slaytlari_uret(haber, cikti_dizini, cikti_onek, olcu=olcu, foto_yolu=foto_yolu)
 
-    if not haber.get("manset"):
-        m1 = haber.get("manset_parca_1", "")
-        mv = haber.get("manset_vurgu", "")
-        m2 = haber.get("manset_parca_2", "")
-        haber["manset"] = f"{m1} {mv} {m2}".strip() or haber.get("orijinal_baslik", "")
-    if not str(haber.get("manset") or "").strip():
-        haber["manset"] = str(haber.get("orijinal_baslik") or haber.get("baslik") or "").strip()
-    if not str(haber.get("manset") or "").strip():
-        raise EksikIcerik("Haber: manşet yok")
-
-    if not haber.get("spot"):
-        haber["spot"] = haber.get("orijinal_ozet") or haber.get("ozet") or ""
-
-    fp = foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url")
-    maddeler = haber_detay_maddelerini_ayikla(haber)
-    uzman_var = bool((haber.get("uzman_notu") or haber.get("cikarilacak_ders") or haber.get("stratejist_notu") or "").strip()
-                     or (isinstance(haber.get("slayt_4_cta"), dict) and str(haber["slayt_4_cta"].get("aciklama") or "").strip()))
-
-    p1 = cikti_dizini / f"{cikti_onek}_dailybrief_s1.jpg"
-    if not maddeler and not uzman_var:
-        haber_dailybrief_slayti_ciz(haber=haber, foto_yolu=fp, cikti_yolu=p1, olcu=olcu, sayfa_no="01 / 01")
-        return [p1]
-
-    istenen = haber.get("slayt_sayisi")
-    if istenen in (2, 3, 4):
-        denenecek = [int(istenen) - 1]
-    else:
-        n_maddeler = len(maddeler)
-        toplam_metin_len = sum(len(str(m.get("metin", ""))) for m in maddeler)
-        if n_maddeler >= 5:
-            denenecek = [3, 2, 4]
-        elif n_maddeler >= 4:
-            denenecek = [2, 3, 1]
-        elif n_maddeler == 3:
-            # Uzun/zengin maddeler (toplam > 240 karakter) 2 detay slaytına yayılır; kısa maddeler tek detay slaytında kalır
-            if toplam_metin_len > 240:
-                denenecek = [2, 3, 1]
-            else:
-                denenecek = [1, 2]
-        elif n_maddeler == 2:
-            # İki madde önce tek sayfada denenir (≥34px sığarsa). İkiye bölününce
-            # her sayfada tek kısa paragraf kalıyor, sayfanın ~%70'i boş geçiyordu.
-            denenecek = [1, 2]
-        else:
-            denenecek = [1]
-
-    for detay_sayisi in denenecek:
-        # Az slayt tercihi yalnızca metin rahat okunurken (≥34px); son deneme 28px'e iner
-        asgari = 28 if detay_sayisi == denenecek[-1] else 34
-        if detay_sayisi > 1 and len(maddeler) < detay_sayisi:
-            continue
-        bolumler = [maddeler] if detay_sayisi == 1 else _sayfalari_dengeli_bol(maddeler, sayfa_sayisi=detay_sayisi, has_uzman_notu_son_sayfa=uzman_var)
-        toplam = 1 + detay_sayisi
-        yollar = []
-        try:
-            for i, bolum in enumerate(bolumler, start=2):
-                son_mu = i == toplam
-                yol = cikti_dizini / f"{cikti_onek}_dailybrief_s{i}.jpg"
-                sayfa = f"{i:02d} / {toplam:02d}" + ("" if son_mu else "  ›  KAYDIRIN")
-                etiket = _haber_slayt_ust_etiketi(bolum, i, toplam)
-                haber_dailybrief_detay_slayti_ciz(
-                    haber=haber, foto_yolu=fp, cikti_yolu=yol, olcu=olcu, sayfa_no=sayfa, maddeler=bolum,
-                    ust_etiket=etiket,
-                    goster_uzman_notu=son_mu,
-                    asgari_punto=asgari,
-                )
-                yollar.append(yol)
-        except TasmaHatasi:
-            for y in yollar:
-                Path(y).unlink(missing_ok=True)
-            continue
-        haber_dailybrief_slayti_ciz(haber=haber, foto_yolu=fp, cikti_yolu=p1, olcu=olcu, sayfa_no=f"01 / {toplam:02d}")
-        log.info("DailyBrief %d slayt üretildi", toplam)
-        return [p1] + yollar
-    raise TasmaHatasi(f"Haber {len(maddeler)} madde; üç detay slaytına da sığmadı")
 
 
 

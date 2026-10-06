@@ -268,6 +268,44 @@ durur, yalnızca zemin ve içerik değişir — carousel'e ritim veren şey budu
 
 ---
 
+## 5.5.1 Haber tasarımı: Instabot ile aynı (2026-10-07)
+
+Kullanıcı kararı: **haber içeriğinde her şey Instabot'la aynıdır; yalnızca logo ve
+renkler EDM'indir.** Bu yüzden haber carousel'i `src/haber_tasarim.py` içinde çizilir ve
+bu dosyadaki çizim kodu Instabot'un `src/make_image.py` dosyasından AST ile **birebir**
+çıkarılmıştır (yorumlarıyla). Elle yeniden yazılmadı; Instabot'ta bir düzeltme yapılınca
+buraya da taşınır (iki dosya karşılaştırılarak).
+
+| | Instabot | postedm haber |
+|---|---|---|
+| Çizim kodu | `make_image.py` | `haber_tasarim.py` (aynı kod) |
+| Ana kare | 1080×1920, içerik 4:5 kutuda | aynı |
+| Akış karesi | ortadan 1080×1350 kırpma | aynı (`beslemeye_kirp`) |
+| Fotoğraf | yatay: ~1150 px'e iner, göl yansıması, yumuşak perde | aynı |
+| Yazı tipi | Inter Variable | aynı dosya (md5 aynı); Türkçe kapsamı ölçüldü, eksik yok |
+| Başlık / özet | iri kalın başlık, `**` vurgu, özet, kaynak satırı | aynı |
+| Detay sayfaları | 46 punto giriş, vurgu rakamı, alıntı, dengeli sayfalama | aynı |
+| Logo | yuvarlak DailyBrief, sol üst | EDM yatay logo, sol üst |
+| Renkler | amber vurgu, turkuaz, zümrüt, kategori şeridi | kırmızı vurgu, kireç, kurşun, tek mürekkep zemin |
+| Alt bilgi alan adı | dailybrief.co | edmyapigayrimenkul.com |
+
+**EDM yamaları** (Instabot'ta olmayan, aşırı girdide çökme/taşma sabotaj testinde bulundu):
+sığmayan tek kelime ve URL satıra bölünür, kaynak adı kanal ikonlarına taşmaz, özetin
+"…" soneki kenara taşmaz, satır sonlu başlık çökertmez. Hepsi `# EDM YAMASI` yorumlu.
+
+**Kanca (hook):** kırmızı METİN fotoğraf üstünde okunmuyor (Instabot'ta ölçüldü:
+kontrast 2,02, eşik 3,00; sebep göz parlaklığını yeşil kanaldan okuması). Instabot amber'e
+geçti; EDM markasında amber yok. Çözüm: kırmızı metin olmaktan çıkıp **dolgu** oldu.
+`hook_motoru.KANCA_STILI`: `plaka` (varsayılan: ikinci satır kırmızı plakada beyaz),
+`cubuk` (beyaz iki satır + kırmızı çubuk + sınırlı koyu bant), `amber` (Instabot birebir,
+yalnız karşılaştırma). Kanca da Instabot'la aynı Inter 900.
+
+**Henüz Instabot'la aynı OLMAYAN tek şey içerik şeması:** model hâlâ B5 alanlarını
+(`manset`, `spot`, `kanca`, `detay_maddeleri`, `uzman_notu`) üretiyor; çizici bunları
+Instabot girdilerine çeviriyor (`girdiyi_hazirla`). Instabot alanları (`ig_baslik`,
+`slayt_ozet`, `detay_yazisi`, `vurgu_sayi`, `alinti`, `neden_onemli`, `sana_etkisi`…)
+çizicide zaten desteklenir; sıradaki iş modelin o şemayla üretmesi.
+
 ## 5.6 Stres ve sabotaj testi
 
 > **2026-09-25:** Asıl denetim artık `scripts/gorsel_denetim.py` (CI adımı, 164 vaka).

@@ -45,9 +45,27 @@ TUVAL_GENISLIK = 1080
 KENAR_BOSLUK = 74
 SAG_PAY = 74
 
+# --- KANCA STİLİ (2026-10-07, kullanıcı: "hook kırmızısı dikkat çekici değil, okunmuyor") ---
+# Sebep fizik: göz parlaklığı yeşil kanaldan okuyor (WCAG: R .21 / G .72 / B .07). Doymuş
+# kırmızı koyu/orta tonlu fotoğrafta "parlak" değil KOYU kalır. Instabot'ta aynı şikâyet
+# ölçüldü: kırmızı #EF4444 kontrast 2,02 (büyük metin eşiği 3,00), amber #F59E0B 3,54.
+# Instabot amber'e geçti; EDM markasında amber/turkuaz/yeşil yok (MEMORY.md §8.7), bu yüzden
+# kırmızı METİN olmaktan çıkıp DOLGU oldu (marka kuralı: kırmızı dolguda serbest, küçük
+# metin olarak değil):
+#   plaka  İkinci satır kırmızı plakada BEYAZ yazı. Kontrast ~4,4 (#F0000D) ve plaka
+#          fotoğraftan bağımsız; B1/B2 kapaklarındaki "BİLE / DOĞRU FİYAT" kutusuyla aynı dil.
+#   cubuk  İki satır beyaz, solda kırmızı dikey çubuk, arkada sınırlı koyu bant.
+#   amber  Instabot'un birebir kancası (marka dışı; yalnız karşılaştırma için).
+KANCA_STILI = "plaka"
+PLAKA_KIRMIZI = (240, 0, 13)   # Kırmızı #F0000D (dolgu)
+AMBER = (245, 158, 11)         # yalnız "amber" stili
+
 
 def _font(punto: int, tip: str = "sans_bold") -> ImageFont.FreeTypeFont:
-    """Font yükleyici yardımcısı."""
+    """Font yükleyici yardımcısı. Kanca Instabot'la aynı Inter Variable 900 (Türkçe kapsamı tam)."""
+    if tip == "sans_bold":
+        from . import haber_tasarim
+        return haber_tasarim._font(punto, [32.0 if punto >= 28 else 20.0, 900.0])
     if tip == "fraunces":
         font_yolu = make_image.FONT_FRAUNCES
     elif tip == "sans_bold":
@@ -176,6 +194,10 @@ def ciz_stat_punch(
     Arka planda GaussianBlur(14) difüzyon gölgesiyle sıfır taşma garantili çizilir.
     """
     out = gorsel.copy()
+    stil = KANCA_STILI
+    # Rakam kırmızı METİN olarak fotoğrafta okunmuyordu: plaka/çubuk stillerinde beyaz,
+    # kırmızı yalnız dolgu (plaka) ya da çubuk olarak girer.
+    rakam_renk = AMBER if stil == "amber" else WHITE
     f_unit = _font(36, "sans_bold")
     f_lbl = _font(18, "mono_bold")
     satirlar = [s for s in [t1, t2] if s]
@@ -233,9 +255,13 @@ def ciz_stat_punch(
 
     # 2. Metin ve Çizgi Çizimi
     draw = ImageDraw.Draw(out)
-    draw.text((x, y), num_txt, font=f_num, fill=renk)
+    if stil == "plaka":
+        draw.rectangle([x - 18, y + bb_num[1] - 8, x + sol_blok + 18, y + bb_num[3] + 14], fill=PLAKA_KIRMIZI)
+    elif stil == "cubuk":
+        draw.rectangle([x - 26, y + bb_num[1], x - 16, y + bb_num[3] + 6], fill=PLAKA_KIRMIZI)
+    draw.text((x, y), num_txt, font=f_num, fill=rakam_renk)
     if unit_txt:
-        draw.text((x + w_num + 12, y + 18), unit_txt, font=f_unit, fill=renk)
+        draw.text((x + w_num + 12, y + 18), unit_txt, font=f_unit, fill=rakam_renk)
     if lbl_txt:
         draw.text((x + 2, y + 102), lbl_txt, font=f_lbl, fill=KURSUN)
 
@@ -245,10 +271,36 @@ def ciz_stat_punch(
 
     # Sağ blok satırları
     for i, s in enumerate(satirlar):
-        satir_rengi = renk if i == 0 else WHITE
+        satir_rengi = AMBER if (stil == "amber" and i == 0) else WHITE
         draw.text((sag_x, y + 8 + i * satir_adim), s, font=f_t, fill=satir_rengi)
 
     return out
+
+
+def _okuma_bandi(canvas: Image.Image, ust: int, alt: int, alfa: int = 150, yumusak: int = 90) -> Image.Image:
+    """Yalnız [ust, alt] aralığında, iki yanı yumuşakça sönen koyu bant.
+
+    İlk sürüm perdeyi tuvalin SONUNA kadar uzatıyordu; Instabot çiziminde kanca başlıktan
+    SONRA çizildiği için başlık ve özet de kararıp gri kalıyordu (#452, 2026-10-07).
+    """
+    g, h = canvas.size
+    ust, alt = max(0, ust), min(h, alt)
+    serit = []
+    for yy in range(h):
+        if yy <= ust - yumusak or yy >= alt + yumusak:
+            serit.append(0)
+        elif yy < ust:
+            u = (yy - (ust - yumusak)) / yumusak
+            serit.append(int(alfa * u * u * (3 - 2 * u)))
+        elif yy > alt:
+            u = 1 - (yy - alt) / yumusak
+            serit.append(int(alfa * u * u * (3 - 2 * u)))
+        else:
+            serit.append(alfa)
+    maske = Image.new("L", (1, h))
+    maske.putdata(serit)
+    koyu = Image.new("RGB", (g, h), (18, 19, 22))   # Mürekkep #121316
+    return Image.composite(koyu, canvas.convert("RGB"), maske.resize((g, h)))
 
 
 def ciz_minimal_vurgu(
@@ -259,12 +311,13 @@ def ciz_minimal_vurgu(
     t1: str,
     t2: str,
     renk: Tuple[int, int, int] = VURGU,
+    stil: Optional[str] = None,
 ) -> Image.Image:
     """
-    Kutulardan arınmış saf editoryal minimal kicker + dev vurgu başlığı.
+    Kutusuz editoryal kicker + dev vurgu başlığı; ikinci satırın okunurluğu `KANCA_STILI`ne bağlı.
     """
+    stil = stil or KANCA_STILI
     out = gorsel.copy()
-    # 22px kırmızı etiket parlak gökyüzünde okunmuyordu; 26px açık renk + kırmızı nokta.
     # "●" karakteri IBM Plex Sans'ta yok, kutu (□) basılıyordu: nokta ayrıca çiziliyor.
     f_kicker = _font(28, "sans_bold")
     minimal_alan = max(200, (TUVAL_GENISLIK - SAG_PAY) - x)
@@ -272,9 +325,9 @@ def ciz_minimal_vurgu(
     nokta = 15
     kicker_x = x + nokta + 12
 
-    # Tavan punto (Daha iri, vurucu ve okunaklı editoryal kanca — instabot paritesi 92 punto)
+    # Tavan punto (Instabot paritesi 92 punto)
     tavan_punto = 92
-    f_title = _sigdiran_font([t1, t2], tavan_punto, minimal_alan, asgari=26, tip="sans_bold")
+    f_title = _sigdiran_font([t1, t2], tavan_punto, minimal_alan - (24 if stil == "plaka" else 0), asgari=26, tip="sans_bold")
     if not (_sigar_mi(t1, f_title, minimal_alan) and _sigar_mi(t2, f_title, minimal_alan)):
         log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s / %s", t1, t2)
         return gorsel
@@ -285,26 +338,43 @@ def ciz_minimal_vurgu(
     satir_y = int(f_title.size * 1.12)
     govde_h = ust + (satir_y if t2 else 0) + int(f_title.size * 1.25)
 
+    if stil == "cubuk":
+        out = _okuma_bandi(out, y - 30, y + govde_h + 30)
+
     # Difüzyon Gölgesi
     shadow = Image.new("RGBA", (minimal_alan + 80, govde_h + 80), (0, 0, 0, 0))
     sdraw = ImageDraw.Draw(shadow)
     if kicker:
         sdraw.text((35 + kicker_x - x, 25), kicker, font=f_kicker, fill=(0, 0, 0, 230))
     sdraw.text((35, 25 + ust), t1, font=f_title, fill=(0, 0, 0, 240))
-    if t2:
+    if t2 and stil != "plaka":
         sdraw.text((35, 25 + ust + satir_y), t2, font=f_title, fill=(0, 0, 0, 240))
     shadow = shadow.filter(ImageFilter.GaussianBlur(14))
     out.paste(shadow, (x - 35, y - 25), shadow)
 
-    # Metin Çizimi
     draw = ImageDraw.Draw(out)
+    nokta_renk = AMBER if stil == "amber" else PLAKA_KIRMIZI
     if kicker:
         orta = y + (f_kicker.getbbox("ÇĞ")[1] + f_kicker.getbbox("ÇĞ")[3]) // 2
-        draw.ellipse([x, orta - nokta // 2, x + nokta, orta + nokta // 2], fill=renk)
+        draw.ellipse([x, orta - nokta // 2, x + nokta, orta + nokta // 2], fill=nokta_renk)
         draw.text((kicker_x, y), kicker, font=f_kicker, fill=WHITE)
     draw.text((x, y + ust), t1, font=f_title, fill=WHITE)
+
     if t2:
-        draw.text((x, y + ust + satir_y), t2, font=f_title, fill=renk)
+        t2_y = y + ust + satir_y
+        if stil == "plaka":
+            bb = f_title.getbbox(t2)
+            pad_x, pad_ust, pad_alt = 20, 6, 14
+            plaka = [x - pad_x, t2_y + bb[1] - pad_ust, x + (bb[2] - bb[0]) + pad_x + bb[0], t2_y + bb[3] + pad_alt]
+            draw.rectangle(plaka, fill=PLAKA_KIRMIZI)
+            draw.text((x, t2_y), t2, font=f_title, fill=WHITE)
+        elif stil == "amber":
+            draw.text((x, t2_y), t2, font=f_title, fill=AMBER)
+        else:  # cubuk
+            draw.text((x, t2_y), t2, font=f_title, fill=WHITE)
+    if stil == "cubuk":
+        bar_ust = y + (0 if not kicker else ust)
+        draw.rectangle([x - 26, bar_ust + 6, x - 16, y + govde_h - int(f_title.size * 0.2)], fill=PLAKA_KIRMIZI)
 
     return out
 
@@ -564,26 +634,6 @@ def _metin_kutusu(oncesi: Image.Image, sonrasi: Image.Image) -> Optional[Tuple[i
         return None
 
 
-def _okuma_perdesi(canvas: Image.Image, bas: int, tam: int, alfa: int = 165) -> Image.Image:
-    """`bas`tan `tam`a yumuşakça koyulaşan, oradan tuval sonuna kadar süren mürekkep perdesi."""
-    g, h = canvas.size
-    bas, tam = max(0, bas), max(bas + 1, tam)
-    serit = []
-    for yy in range(h):
-        if yy <= bas:
-            serit.append(0)
-        elif yy >= tam:
-            serit.append(alfa)
-        else:
-            u = (yy - bas) / (tam - bas)
-            serit.append(int(alfa * u * u * (3 - 2 * u)))
-    maske = Image.new("L", (1, h))
-    maske.putdata(serit)
-    maske = maske.resize((g, h))
-    koyu = Image.new("RGB", (g, h), (18, 19, 22))  # Mürekkep #121316
-    return Image.composite(koyu, canvas.convert("RGB"), maske)
-
-
 def hook_uygula(
     canvas: Image.Image,
     haber: Dict[str, Any],
@@ -620,12 +670,6 @@ def hook_uygula(
     y = max(min_tavan, min(y, en_alt))
     x_pos = KENAR_BOSLUK
 
-    if konum == "foto":
-        # Harf gölgesi sakin fotoğrafta yetiyor, yazılı/kalabalık fotoğrafta
-        # yetmiyor: #509'da kanca TCMB tabelasının harflerinin üstüne bindi ve
-        # okunmadı. Perde kancanın biraz üstünde başlar, manşet perdesine bağlanır;
-        # fotoğrafın üst kısmı canlı kalır.
-        canvas = _okuma_perdesi(canvas, y - 90, y + 40)
 
     # Dinamik renk belirleme
     renk = hook_rengi_belirle(

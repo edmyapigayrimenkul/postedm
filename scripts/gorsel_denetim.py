@@ -322,7 +322,9 @@ ONEMLI_ALANLAR = {
     "B1": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_2_detay.kartlar|slayt_2_detay.kart_1,slayt_2_detay.kart_2", "slayt_3_cozum.maddeler"],
     "B3": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_2_detay.kartlar|slayt_2_detay.kart_1,slayt_2_detay.kart_2", "slayt_3_cozum.maddeler"],
     "B2": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_3_cozum.sol_kolon_veriler", "slayt_3_cozum.sag_kolon_veriler", "slayt_3_cozum.stratejist_notu"],
-    "haber": ["manset", "spot", "detay_maddeleri", "uzman_notu"],
+    # Haber tasarımı Instabot'la aynı (2026-10-07): madde etiketleri ("01 // …") çizilmez,
+    # yalnız madde metinleri paragraf olur.
+    "haber": ["manset", "spot", "detay_maddeleri.metin", "uzman_notu"],
 }
 
 
@@ -341,6 +343,9 @@ def _alan_metinleri(veri: Dict[str, Any], alanlar: List[str]) -> Dict[str, str]:
     def al(yol: str) -> Any:
         d: Any = veri
         for p in yol.split("."):
+            if isinstance(d, list):      # "liste.alan": listedeki her öğenin alanı
+                d = [x[p] for x in d if isinstance(x, dict) and p in x]
+                continue
             if not isinstance(d, dict) or p not in d:
                 return None
             d = d[p]
