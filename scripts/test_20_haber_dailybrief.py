@@ -10,8 +10,8 @@ Doğrulananlar:
    2-3 cümlelik açıklayıcı editoryal spot (IBM Plex Sans, tam metin, taşmasız).
 2. Detay sayfaları: Standart 1 slayta sıkışma yok; haberin zenginliğine göre
    dinamik 2-4 slayta ferah yerleşim (34-40px punto, mimari dikey çentik).
-3. Dinamik editoryal üst etiketler (// RESMİ GELİŞME VE İHALE DETAYLARI,
-   // BÖLGESEL PİYASAYA ETKİSİ VE ANALİZ, // BAŞVURU ŞARTLARI VE DİKKAT EDİLECEKLER).
+3. Üst etiket sabit "// HABERİN AYRINTILARI" (2026-10-07: kelimeden tahmin edilen
+   "BÖLGESEL PİYASAYA ETKİSİ" etiketi içerikte olmayan bir açıyı iddia ediyordu).
 4. EDM Değerlendirmesi uzman analiz kartı.
 5. 20 haberin tamamının sıfır hata (0 TasmaHatasi) ile başarıyla üretilmesi.
 """

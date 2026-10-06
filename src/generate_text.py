@@ -94,6 +94,7 @@ BUTCE: Dict[str, int] = {
     "net_gerekce": 160,      # Net Cevap gerekçesi, ~33px
     "tavsiye": 120,
     "vaka_manset": 60,       # Örnek olay başlığı
+    "haber_manset": 75,      # Haber kapağı: Fraunces 68px, 3 satıra kadar (46px'e iner)
     "olay": 240,             # Örnek olay, 34px
     "hukum": 220,            # Kanuna göre sonuç, 54px
     "ders": 120,
@@ -400,54 +401,107 @@ JSON:
 kart_1 sık yapılan yanlışı, kart_2 doğru yasal çerçeveyi anlatır.
 slayt_3_cozum maddeleri atılması gereken somut adımları listeler.""" % BUTCE
 
-_SEMA_B5 = """BİÇİM: B5 — EDM GÜNDEM // HABER BÜLTENİ VE ANALİZİ
-Kapak + Haberin derinlikli detay ve piyasa analizi sayfaları.
+# Haber (B5) kendi kural metniyle çalışır, ORTAK_KURALLAR'la değil.
+#
+# 2026-10-07 denetimi: ORTAK_KURALLAR konu bankası içindir (üç parçalı manşet,
+# korku fiilli kanca, "kaydedin" kapanışı) ve haber şemasıyla çelişiyordu. Asıl
+# kusur şemadaydı: her habere aynı dört açıyı dayatıyordu — "Silivri, Çatalca,
+# Trakya piyasasına etkisi", "KDV muafiyeti veya taksit avantajları". Kaynakta
+# olmayan açı istenince model doldurdu: yayınlanan 4 haberin 4'ünde ikinci madde
+# uydurma bir Silivri cümlesiydi ("Silivri ve Trakya genelindeki arsa ve konut
+# piyasasında yatırım iştahını dolaylı olarak destekliyor"). #509'da kaynakta
+# %31,5 → %29,7, %7,3 reel faiz, 22 Ekim PPK ve 120 baz puan vardı; yayına çıkan
+# metinde tek rakam yoktu. #452'de "5 yıl şartı kaldırıldı" yazıldı, karar bunu
+# söylemiyordu. Kurallar Instabot'un ölçülmüş haber promptundan uyarlandı.
+HABER_KURALLARI = """Sen "EDM Yapı & Gayrimenkul"ün haber editörüsün. Silivri merkezli bir emlak
+ofisi için gayrimenkul, imar, tapu, kira ve konut finansmanı haberlerini sosyal
+medyaya hazırlıyorsun. Hukuk bürosu değiliz; "hukuki danışmanlık" dili kurma.
 
-KURALLAR:
-1. MANŞET: Gazetecilik usulü doğal, tek parça manşet. Parçalama yapma; tek ve akıcı bir haber başlığı yaz. Haberin en can alıcı olgusunu (rakam, ilçe, kurum, değişim) içermelidir (örn. "Milli Emlak Çatalca'da 49 Bin TL'den Arazi Satışına Başladı").
-2. SPOT: Haberin arka planını, en kritik verisini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot (140-200 karakter).
-3. KANCA (HOOK): Kapak görseli üstü için DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy (örn. "47 İLDE 383 PARSEL // RESMİ SATIŞTA" veya "MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR").
-   KRİTİK KURAL: 'kanca' ve 'manset' KESİNLİKLE BİRBİRİNİ TEKRAR ETMEMELİDİR! Aynı kelimeleri hem kancaya hem manşete yazma. Kanca projenin/haberin rakamını, büyüklüğünü veya finansal/ihale boyutunu öne çıkaran farklı bir açı sunmalıdır.
-4. DETAY MADDELERİ: Haberin zenginliğine göre 3 ile 5 arasında somut ve derinlemesine detay maddesi yaz. Her madde haberin farklı bir yönünü ele alsın (Resmi duyuru & şartlar, Fiyat & metrekare analizi, Silivri/Trakya ve bölgesel piyasa etkisi, Dikkat edilecek riskler). Her maddeyi 180-260 karakter uzunluğunda, konuyu hem resmi verilerle hem de sahadaki pratik karşılığıyla derinlemesine açıklayan doyurucu 2-3 cümleyle yaz. Asla tek cümlelik veya yüzeysel bırakma.
-5. UZMAN NOTU: EDM Değerlendirmesi — takipçiye/yatırımcıya tek cümlelik somut strateji tavsiyesi.
+EN ÖNEMLİ KURAL — YALNIZCA KAYNAK, SIFIR UYDURMA:
+1. KONU ÇAPASI: Haberin konusu KAYNAK BAŞLIĞIndaki konudur. Metinde başka
+   gündem maddeleri geçse bile manşeti, spotu ve maddeleri o konuya bağla.
+2. Yalnızca KAYNAK HABERİN TAM METNİnde yazan bilgiyi kullan. Metinde geçmeyen
+   sayı, isim, kurum, tarih, sonuç, tepki ya da piyasa yorumu YAZMA. Eksik
+   yazmak uydurmaktan iyidir; kaynak kısaysa içerik de kısa olur.
+3. YEREL BAĞ UYDURMA: Kaynak Silivri, Çatalca, Büyükçekmece, Trakya, Tekirdağ,
+   Edirne ya da Kırklareli'den söz etmiyorsa bu adları HİÇBİR alana yazma.
+   "Bölgedeki yatırımcılar yakından takip ediyor", "bölge piyasasını dolaylı
+   destekliyor" gibi doğrulanamaz cümleler yasak.
+4. KARARIN KAPSAMINI GENİŞLETME: Mahkeme kararını, raporu ya da beklentiyi
+   kural değişikliği gibi sunma. Kaynak "dava açılabileceğine hükmetti" diyorsa
+   "şart kaldırıldı" yazma; "bekliyor/değerlendirdi" diyorsa "oldu" yazma.
+   Gerçekleşmiş olanı da "olası" diye küçültme.
+5. Suçlama ya da soruşturma varsa "iddia edildi", "soruşturma başlatıldı" dilini koru.
+
+SAYILAR — KAYNAKTAKİ GİBİ, YUVARLAMADAN:
+- Kaynakta "yüzde [X]" yazıyorsa %[X] yaz; "2 milyar 841 milyon" yazıyorsa aynen.
+- Yüzdeyi her zaman % işaretiyle sayıya bitişik yaz (%[X]). Binlik ayırıcı nokta (1.410).
+- Haberin en çarpıcı rakamı manşette ya da kancada mutlaka görünsün. Rakamsız
+  manşet ancak kaynakta hiç rakam yoksa kabul edilir.
+
+DİL:
+- Ünlem, emoji, "ŞOK", "KAÇIRMAYIN", "DİKKAT", "BOMBA" yok. Sakin otorite.
+- Yasak pasif kalıplar: "…'e ilişkin açıklama", "…hakkında konuştu",
+  "…değerlendirdi" (manşette), "…dikkat çekti", "…gündeme getirdi".
+- Yasak boş tavsiye: "mutlaka kontrol edin", "ihmal etmeyin", "dikkatli olun",
+  "titizlikle", "yakından takip edin", "uzmana danışın".
+- Cümleler kısa: ortalama 12 kelimeyi geçmesin.
+"""
+
+_SEMA_B5 = """BİÇİM: B5 — EDM GÜNDEM // HABER
+Kapak (kanca + manşet + spot) + 1-2 ayrıntı sayfası.
+
+ALANLAR:
+- manset: CÜMLE DÜZENİNDE (yalnızca ilk harf ve özel adlar büyük), sonunda nokta yok,
+  en fazla 75 karakter. Olayın SONUCUNU ve en çarpıcı rakamını ilk kelimelerde ver.
+    İYİ : "[Gösterge] %%[ORAN]'e indi, [KURUM] [TARİH]'de [KARAR] bekliyor"
+    KÖTÜ: "[Kurum]'dan [Konu] Beklentisi"   (rakam yok, sonuç yok, Başlık Düzeni)
+- spot: 2 cümle, en fazla %(spot)d karakter. Manşette OLMAYAN ikinci en önemli
+  bilgiyi verir (kim, ne zaman, hangi şartla). Manşeti tekrarlama.
+- kanca: Kapak fotoğrafının üstüne basılan 2-5 kelimelik ETİKET, iki parça
+  arasında "//". Manşette ve spotta GEÇMEYEN somut bir ayrıntı taşır: rakam,
+  tarih, kurum ya da ad. Başlığın kısaltması DEĞİLDİR.
+    İYİ : "[GÖSTERGE] // %%[ORAN]'E ÇIKTI"     KÖTÜ: "[KURUM ADI] // RAPOR YAYINLANDI"
+  "yayınlandı", "açıklandı", "gündemde", "yeni dönem", "riski" ile biten içi boş
+  etiket yazma. Somut ayrıntı yoksa "" bırak — kanca çizilmez, slayt bir şey kaybetmez.
+- detay_maddeleri: Kaynağın zenginliğine göre 2-4 madde. Her madde kaynaktaki
+  FARKLI bir bilgi grubunu anlatır ve en az bir somut veri (rakam, tarih, kurum,
+  şart) içerir. 120-230 karakter, 2 kısa cümle.
+    etiket: maddenin içeriğini söyleyen 2-4 kelimelik ad öbeği, BÜYÜK HARF,
+            numarasız (örn. "ENFLASYON VERİSİ", "SIRADAKİ ADIM", "KARARIN GEREKÇESİ").
+            "BÖLGESEL ETKİ", "PİYASAYA ETKİSİ" gibi kaynakta karşılığı olmayan etiket yazma.
+    renk: ilk madde "kirmizi", diğerleri "kirec".
+  Kaynak iki madde taşıyorsa iki madde yaz; dolgu madde ekleme.
+- uzman_notu: "EDM notu" — okuyucunun bu haber karşısında YAPABİLECEĞİ tek somut
+  şey, en fazla 130 karakter. Kaynakta dayanağı olmayan fiyat tahmini, piyasa
+  yorumu, rakam ya da yerel iddia içeremez. Haberden doğrudan çıkan bir eylem
+  yoksa "" bırak.
+    İYİ : "Başvurudan önce e-Devlet'te üzerinize kayıtlı konut olup olmadığına bakın."
+    KÖTÜ: "Gelişmeleri takip edebilirsiniz ancak kural değişikliği olmadığını unutmayın."
+          (eylem yok, bilgi yok — boş bırakılmalıydı)
+- caption_instagram: 500-900 karakter, 3 kısa paragraf: (1) en somut gelişme
+  ve rakamı, (2) ayrıntılar ve takvim, (3) kimi nasıl ilgilendirdiği — yalnızca
+  kaynakta yazanla. Son cümle kaydet/takip çağrısı; soru sorma. Sonda konuya özel
+  2-3 etiket (#Gayrimenkul #Emlak gibi genel etiket yazma).
+- caption_threads: en fazla %(threads)d karakter: en somut gelişme + tek rakam + çağrı + 2 etiket.
 
 JSON:
 {
   "bicim": "B5",
   "format_turu": "dailybrief",
-  "kategori_kodu": "SEKTOREL_HABER_VE_ANALIZ",
-  "rozet_metni": "EDM GÜNDEM // ARSA VE İMAR",
-  "yasal_dayanak": "İlgili mevzuat veya resmi kurum adı",
-  "kanca": "4-7 kelimelik vurucu kanca (Manşetteki kelimeleri ASLA tekrar etmeyen farklı bir sayısal/ihale açısı. Örn: 47 İLDE 383 PARSEL // RESMİ SATIŞTA)",
-  "manset": "Tek parça, akıcı ve vurucu haber manşeti (50-80 karakter)",
-  "spot": "Haberin sonucunu ve verilerini anlatan 2-3 cümlelik editoryal spot (140-180 karakter)",
+  "kategori_kodu": "TAPU_VE_HUKUK | EV_SAHIBI_VE_KIRACI | YATIRIM_VE_PIYASA | ARSA_IMAR_VE_TINY_HOUSE | SEKTOREL_HABER_VE_ANALIZ",
+  "kanca": "",
+  "manset": "",
+  "spot": "",
   "detay_maddeleri": [
-    {
-      "etiket": "01 // RESMİ GELİŞME VE İHALE/PROJE ŞARTLARI",
-      "metin": "Ne oldu? İhale/proje nerede, kaç TL, hangi ada/parsel, metrekare veya başvuru tarihi ne? Şartlar neler? (180-260 karakter, doyurucu 2-3 cümle)",
-      "renk": "kirmizi"
-    },
-    {
-      "etiket": "02 // BÖLGESEL PİYASAYA VE FİYATLARA ETKİSİ",
-      "metin": "Silivri, Çatalca, Trakya ve gayrimenkul piyasasına etkisi ne? Fiyat dengesini, emsal değerleri nasıl etkiler? (180-260 karakter, doyurucu 2-3 cümle)",
-      "renk": "kirec"
-    },
-    {
-      "etiket": "03 // KİMLER KATILABİLİR & SÜREÇ NASIL İŞLİYOR",
-      "metin": "Başvuru süreci, teminat, KDV muafiyeti veya taksit avantajları neler? (180-260 karakter, doyurucu 2-3 cümle)",
-      "renk": "kirec"
-    },
-    {
-      "etiket": "04 // DİKKAT EDİLECEK RİSKLER VE HUKUKİ HAKLAR",
-      "metin": "Mülk alırken veya sürece girerken tapu, kadastro veya fiili zemin durumunda nelere dikkat edilmeli? (180-260 karakter, doyurucu 2-3 cümle)",
-      "renk": "kirec"
-    }
+    {"etiket": "", "metin": "", "renk": "kirmizi"},
+    {"etiket": "", "metin": "", "renk": "kirec"}
   ],
-  "uzman_notu": "EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi (80-130 karakter)",
-  "onem_puani": 8,
-  "caption_instagram": "Zengin ve derinlemesine editoryal Instagram metni (700-1100 karakter). 3 ana bölümden oluşsun:\\n1. Paragraf (Resmi Gelişme): Vurucu bir ilk cümle (hook) ile başla. İhalenin/projenin nerede olduğu, şartları, metrekare, teminat ve resmi kurum bilgilerini net verilerle aktar.\\n2. Paragraf (Piyasa ve Bölge Analizi): Bu gelişmenin Silivri, Trakya ve genel gayrimenkul piyasasına etkisini, emsal değerleri ve yatırımcı için fırsat/fiyat dengesini açıkla.\\n3. Paragraf (EDM Değerlendirmesi & Riskler): Tapu, hisse durumu, kadastro veya başvuru sürecinde hak kaybı yaşamamak için dikkat edilmesi gereken somut tavsiyeleri belirt.\\nSonunda: 'Bölgedeki gelişmeleri ve fırsatları kaçırmamak için kaydedin, ilgilenen dostlarınızla paylaşın.' çağrısı ve konuya özel 3-4 hashtag ekle.",
-  "caption_facebook": "Instagram metninin Facebook için optimize edilmiş tam detaylı hali.",
-  "caption_threads": "≤%(threads)d karakter. Vurucu kanca + haberin en kritik 2 verisi ve bölgesel analiz + kaydet/takip çağrısı + 2-3 konu etiketi."
+  "uzman_notu": "",
+  "onem_puani": 7,
+  "caption_instagram": "",
+  "caption_facebook": "Instagram metniyle aynı bilgiler, biraz daha açıklayıcı.",
+  "caption_threads": ""
 }""" % BUTCE
 
 
@@ -699,7 +753,10 @@ def butce_ihlalleri(veri: Dict[str, Any]) -> List[str]:
     """Bütçeyi aşan alanları "yol: kaç/kaç karakter" biçiminde döner.
     Boş liste = görselde hiçbir metin kırpılmayacak."""
     ihlaller: List[str] = []
+    haber = isinstance(veri, dict) and (veri.get("bicim") == "B5" or veri.get("format_turu") == "dailybrief")
     for yol, anahtar in DENETLENECEK:
+        if haber and yol == "manset":
+            anahtar = "haber_manset"
         deger = _yoldan_al(veri, yol)
         if deger and len(deger) > BUTCE[anahtar]:
             ihlaller.append(f"{yol}: {len(deger)}/{BUTCE[anahtar]} karakter")
@@ -984,7 +1041,8 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
     cümle ortasında biten kart sorunu geri gelir.
     """
     sema = SEMALAR.get(bicim, _SEMA_B1)
-    sistem = f"{ORTAK_KURALLAR}\n\n{sema}\n\nÇıktıyı YALNIZCA geçerli JSON olarak ver."
+    kurallar = HABER_KURALLARI if bicim == "B5" else ORTAK_KURALLAR
+    sistem = f"{kurallar}\n\n{sema}\n\nÇıktıyı YALNIZCA geçerli JSON olarak ver."
 
     ham = _gemini_cagri(girdi, sistem, sicaklik)
     ayrisik = _json_coz(ham) if ham else None
@@ -1027,7 +1085,7 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
 
 
 def _kritik_duzelt(veri: Dict[str, Any], girdi: str, bicim: str,
-                   tamamla: Any) -> Dict[str, Any]:
+                   tamamla: Any, haber_kaynagi: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Kritik denetim bulgusu varsa modele bulguları gösterip BİR kez daha yazdırır.
 
     Son söz yayın kapısında (telegram_bot.haber_onayina_sun): bu tur yalnızca
@@ -1036,7 +1094,13 @@ def _kritik_duzelt(veri: Dict[str, Any], girdi: str, bicim: str,
     gösterilince düzeltiyor.
     """
     from . import dogrula
-    kritikler = [u for u in dogrula.denetle(veri, veri.get("_brief")) if u.startswith("⛔")]
+
+    def olcut(v: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        # Haberde ölçüt kaynak metindir; yayın kapısı da öyle denetliyor. Bu tur
+        # yalnız brief'e bakarsa kapıda duracak içeriği düzeltme şansı kaçar.
+        return dogrula._birlesik_brief(v, haber_kaynagi) if haber_kaynagi else v.get("_brief")
+
+    kritikler = [u for u in dogrula.denetle(veri, olcut(veri)) if u.startswith("⛔")]
     if not kritikler:
         return veri
     log.warning("Kritik denetim bulgusu, düzeltme turu: %s", "; ".join(kritikler))
@@ -1045,14 +1109,15 @@ def _kritik_duzelt(veri: Dict[str, Any], girdi: str, bicim: str,
         + "\n\nÖNCEKİ DENEMEN YAYIN DENETİMİNDEN KALDI:\n"
         + "\n".join(f"- {u}" for u in kritikler)
         + "\n\nBu içeriği aynı şemayla BAŞTAN yaz. Brief'teki güncel madde metninde "
-        "geçmeyen süre, oran, çoğunluk, madde numarası ya da karar numarası YAZMA. "
+        "(haberde: kaynak haber metninde) geçmeyen sayı, süre, oran, çoğunluk, yer adı, "
+        "madde numarası ya da karar numarası YAZMA. "
         "Emin olmadığın bilgiyi çıkar; yerine koşulu anlat."
     )
     yeni = _uret(onarim, bicim, sicaklik=0.4)
     if not yeni:
         return veri
     tamamla(yeni)
-    kalan = [u for u in dogrula.denetle(yeni, yeni.get("_brief")) if u.startswith("⛔")]
+    kalan = [u for u in dogrula.denetle(yeni, olcut(yeni)) if u.startswith("⛔")]
     if kalan:
         log.warning("Düzeltme turundan sonra hâlâ kritik bulgu var: %s", "; ".join(kalan))
     return yeni
@@ -1116,21 +1181,11 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
             "MUTLAKA doldur. Bu format çok slaytlıdır: 'slayt_3_cozum.maddeler' içine 2-4 somut adım yaz."
         ) % BUTCE
     elif format_turu in ("dailybrief", "haber", "haber_dailybrief"):
+        # Şema ve kurallar sistem metninde (HABER_KURALLARI + _SEMA_B5). Burada
+        # eskiden dört sabit açı dayatılıyordu; bkz. HABER_KURALLARI üstündeki not.
         girdi += (
-            "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'EDM GÜNDEM // HABER BÜLTENİ' formatında üret. "
-            "JSON nesnesinde 'format_turu': 'dailybrief', 'bicim': 'B5', "
-            "'kanca': (Kapak fotoğrafı üstüne basılacak DailyBrief tarzında 4-7 kelimelik VURUCU 2 parçalı kanca metni. İki parça arasına '//' koy: örn. '47 İLDE 383 PARSEL // RESMİ SATIŞTA' veya 'MİLLİ EMLAK DUYURDU // 49 BİN TL'DEN BAŞLIYOR'. KRİTİK: 'kanca' ve 'manset' KESİNLİKLE birbirini tekrar etmemelidir! Aynı kelimeleri hem kancaya hem manşete yazma; kanca projenin maliyet/ihale bedeli, arsa büyüklüğü veya resmi süreci gibi manşetten farklı bir sayısal/somut açı içermelidir), "
-            "'manset': (Gazetecilik usulü doğal, tek parça ve vurucu haber başlığı. Parçalama yapma, tek akıcı cümle yaz. Somut olgu, kurum, ilçe veya rakam içersin: örn. 'Milli Emlak Çatalca\\'da 49 Bin TL\\'ye Arazi Satışına Başladı' - en fazla 75 karakter), "
-            "'spot': (Haberin arka planını, en kritik verilerini ve sonucunu anlatan 2-3 cümlelik açıklayıcı editoryal spot, 140-200 karakter), "
-            "'detay_maddeleri': [ "
-            "  {'etiket': '01 // RESMİ GELİŞME VE İHALE/PROJE ŞARTLARI', 'metin': 'Ne oldu? İhale/proje nerede, kaç TL, hangi ilçe/parsel, metrekare veya başvuru tarihi ne? (120-170 karakter)', 'renk': 'kirmizi'}, "
-            "  {'etiket': '02 // BÖLGESEL PİYASAYA VE FİYATLARA ETKİSİ', 'metin': 'Silivri, Çatalca, Trakya ve gayrimenkul piyasasına etkisi ne? Fiyat dengesini ve emsal değerleri nasıl etkiler? (120-170 karakter)', 'renk': 'kirec'}, "
-            "  {'etiket': '03 // BAŞVURU ŞARTLARI VE ÖDEME AVANTAJLARI', 'metin': 'Kimler katılabilir? Peşinat, vade seçenekleri, KDV muafiyeti veya tapu harcı avantajları neler? (120-170 karakter)', 'renk': 'kirec'}, "
-            "  {'etiket': '04 // DİKKAT EDİLECEK RİSKLER VE HUKUKİ HAKLAR', 'metin': 'Sürece girerken tapu, imar durumu, sit/koruma alanı veya fiili zemin durumunda nelere dikkat edilmeli? (120-170 karakter)', 'renk': 'kirec'} "
-            "], "
-            "'uzman_notu': (EDM Uzman Değerlendirmesi: Takipçiye / yatırımcıya tek cümlelik somut strateji tavsiyesi, 80-130 karakter), "
-            "'caption_instagram': (Zengin ve derinlemesine editoryal Instagram açıklaması - 700-1000 karakter: 1. Paragraf: Hook ile başla, resmi kurum, yer, fiyat ve şartları net verilerle aktar; 2. Paragraf: Silivri, Trakya ve bölge piyasasına etkisini, emsal değerleri ve fırsatları analiz et; 3. Paragraf: EDM uzman notu ve tapu/imar/hisse risklerini belirt; Kapanış: 'Bölgedeki gelişmeleri ve fırsatları kaçırmamak için kaydedin, ilgilenen dostlarınızla paylaşın.' çağrısı ve konuya özel 3 hashtag) "
-            "alanlarını MUTLAKA doldur. Bu format kapak + derinlemesine detay ve piyasa analiz sayfalarından oluşan zengin ve çok slaytlı bir bültendir."
+            "\n\nBu bir HABER. Yalnızca KAYNAK HABERİN TAM METNİndeki bilgiyle B5 şemasını doldur. "
+            "Kaynakta olmayan açı için madde açma; kanca ve uzman_notu için somut dayanak yoksa boş bırak."
         )
 
     def tamamla(v: Dict[str, Any]) -> None:
@@ -1148,10 +1203,14 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         # Güncel madde metni DB'ye yazılmaz (git'e gidiyor, şişer); dogrula.py
         # denetim anında "mevzuat" atfından önbellekli olarak çeker.
 
+    haber_kaynagi = None
+    if konu.get("_makale"):
+        haber_kaynagi = {"orijinal_baslik": konu.get("baslik"), "makale_metni": konu["_makale"],
+                         "kaynak": konu.get("kaynak") or "haber"}
     veri = _uret(girdi, bicim)
     if veri:
         tamamla(veri)
-        veri = _kritik_duzelt(veri, girdi, bicim, tamamla)
+        veri = _kritik_duzelt(veri, girdi, bicim, tamamla, haber_kaynagi)
     return veri
 
 
@@ -1169,12 +1228,14 @@ def otorite_icerigi_uret(
     if isinstance(konu_veya_haber, dict):
         kaynak = konu_veya_haber.get("kaynak", "EDM")
         baslik = konu_veya_haber.get("orijinal_baslik") or konu_veya_haber.get("baslik", "")
+        from . import fetch_article
         ozet = (
-            konu_veya_haber.get("makale_metni")
+            fetch_article.kuyrugu_kes(konu_veya_haber.get("makale_metni"))
             or konu_veya_haber.get("orijinal_ozet")
             or konu_veya_haber.get("ozet", "")
         )
-        girdi = f"KAYNAK: {kaynak}\nHAM BAŞLIK: {baslik}\nHAM İÇERİK: {ozet}\n"
+        girdi = (f"KAYNAK: {kaynak}\nKAYNAK BAŞLIĞI: {baslik}\n"
+                 f"KAYNAK HABERİN TAM METNİ:\n{ozet}\n")
         if len((ozet or "").strip()) < 200:
             girdi += (
                 "\n⚠️ DİKKAT: Kaynakta bu haber hakkında çok az bilgi var. "
@@ -1190,10 +1251,15 @@ def otorite_icerigi_uret(
         girdi += f"HEDEF KATEGORİ: {kategori_kodu}\n"
     if ek_talimat:
         girdi += f"\nEK EDİTORYAL TALİMAT: {ek_talimat}\n"
-    girdi += (
-        "\nDOĞRULANMIŞ MEVZUAT: yok. Kanun maddesi numarası YAZMA.\n"
-        "Bu içeriği yukarıdaki biçim şemasına göre işle."
-    )
+    if bicim == "B5":
+        # Haberde ölçüt kaynak metindir; kaynakta geçen kanun atfı yazılabilir.
+        girdi += ("\nMEVZUAT: Kanun ya da madde atfını YALNIZCA kaynak metinde geçiyorsa, aynen yaz.\n"
+                  "Bu içeriği yukarıdaki biçim şemasına göre işle.")
+    else:
+        girdi += (
+            "\nDOĞRULANMIŞ MEVZUAT: yok. Kanun maddesi numarası YAZMA.\n"
+            "Bu içeriği yukarıdaki biçim şemasına göre işle."
+        )
 
     veri = _uret(girdi, bicim)
     if not veri:

@@ -187,6 +187,9 @@ _BOS_TAVSIYELER = [
     "uzmana danışın", "uzmanına danışın", "avukatınıza başvurun",
     "dikkatli olun", "araştırma yapın", "ihmal etmeyin",
     "tedbirli olun", "önem taşır", "göz ardı etmeyin", "yetkililere danışın",
+    # #509 (2026-10-06): "yatırımcılar makroekonomik verileri yakından takip ediyor",
+    # "değerleri titizlikle kontrol edilmeye devam edilmelidir"
+    "yakından takip", "titizlikle",
 ]
 
 # Yakın bölge adları — brief'te yerel bağ yokken metinde geçiyorsa uydurma olabilir
@@ -289,6 +292,150 @@ def _tum_metin(veri: Dict[str, Any], captionlar: bool = False) -> str:
 
     topla(veri)
     return " ".join(parcalar)
+
+
+# ---------------------------------------------------------------------------
+# HABER: kaynak metin ölçüttür (instabot `haberi_dogrula` paritesi)
+# ---------------------------------------------------------------------------
+#
+# 2026-10-07 denetimi: haber yolunda rakam denetimi yalnızca % ve TL'ye bakıyordu
+# ve `haberden_brief` her zaman `veri_kaynagi` doldurduğu için kaynakta olmayan
+# rakam bile ⚠️ kalıyordu. Uydurma Silivri bağı da ⚠️ idi; yayınlanan 4 haberin
+# 4'ünde vardı ve onaylayan göz alıştığı için geçiyordu. Haberde kaynak metin
+# elimizde: orada olmayan sayı ve yerel bağ kanıtlanmış uydurmadır.
+
+_HABER_ALANLARI = ("manset", "spot", "kanca", "uzman_notu")
+
+
+def _caption_govdesi(metin: str) -> str:
+    """Sistemin eklediği iletişim satırı ve etiketler denetime girmez."""
+    satirlar = [s for s in str(metin or "").splitlines()
+                if "edmyapigayrimenkul" not in s.lower()]
+    return re.sub(r"#\S+", " ", "\n".join(satirlar))
+
+
+def haber_parcalari(veri: Dict[str, Any], captionlar: bool = False,
+                    etiketler: bool = True) -> List[str]:
+    """Haber içeriğinde modelin yazdığı metin, alan alan: kapak, maddeler, not,
+    caption gövdesi (satır satır).
+
+    `_tum_metin` her dize alanı topluyor (görsel adresi, kategori kodu…); sayı
+    denetiminde adresteki rakamlar uydurma sanılırdı. Alanlar ayrı tutulur ki
+    her biri cümle başı sayılsın — birleşik metinde maddenin ilk kelimesi
+    önceki etiketin devamı gibi görünüp özel isim sanılıyordu.
+    """
+    parcalar = [str(veri.get(k) or "") for k in _HABER_ALANLARI]
+    for m in veri.get("detay_maddeleri") or []:
+        if isinstance(m, dict):
+            if etiketler:
+                # Eski kayıtlarda etiketler "01 // …" diye numaralı
+                parcalar.append(re.sub(r"^\s*\d{1,2}\s*//\s*", "", str(m.get("etiket") or "")))
+            parcalar.append(str(m.get("metin") or ""))
+    if captionlar:
+        for k in ("caption_instagram", "caption_facebook", "caption_threads"):
+            parcalar.extend(_caption_govdesi(veri.get(k) or "").splitlines())
+    return [p for p in parcalar if p.strip()]
+
+
+def haber_metni(veri: Dict[str, Any], captionlar: bool = False) -> str:
+    return " ".join(haber_parcalari(veri, captionlar))
+
+
+# Model "SPK" yerine "Sermaye Piyasası Kurulu" yazabilir; kurum adı içindeki cins
+# isimler ve milliyet sıfatları uydurma kişi/kurum değildir. Liste bilerek dar
+# (instabot ölçümü: geniş liste 5 elemenin 3'ünde yanlış alarm verdi).
+_ISIM_DURAKLARI = {
+    "kurulu", "kurumu", "kurum", "bakanligi", "bakanlik", "baskanligi",
+    "baskani", "mudurlugu", "mudurluk", "genel", "meclis", "meclisi",
+    "piyasasi", "piyasalari", "kanunu", "kanun", "yonetmeligi", "komisyonu",
+    "birligi", "odasi", "dernegi", "vakfi", "universitesi", "belediyesi",
+    "valiligi", "mahkemesi", "dairesi", "merkezi", "idaresi", "ajansi",
+    "borsasi", "bankasi", "sirketi", "holding", "grubu", "hukuk", "ceza",
+    "turk", "alman", "ingiliz", "fransiz", "amerikan", "japon", "cinli", "rus",
+    "edm", "yapi", "gayrimenkul", "kaynak", "temsili", "uzman", "degerlendirmesi", "notu",
+    "bakani", "baskan", "sozcusu", "yardimcisi", "vekili", "muduru",
+    "ocak", "subat", "mart", "nisan", "mayis", "haziran", "temmuz", "agustos",
+    "eylul", "ekim", "kasim", "aralik",
+    "pazartesi", "sali", "carsamba", "persembe", "cuma", "cumartesi", "pazar",
+}
+
+
+def _ozel_isimler(metin: str) -> List[str]:
+    """Cümle ortasında büyük harfle başlayan kelimeler (cümle başı atlanır)."""
+    bulunan: List[str] = []
+    kelimeler = metin.split()
+    for i, kelime in enumerate(kelimeler):
+        temiz = kelime.strip(".,;:!?'\"()[]«»“”")
+        if len(temiz) < 4 or not temiz[0].isupper() or temiz.isupper():
+            continue
+        if i == 0 or kelimeler[i - 1].endswith((".", ":", "?", "!", "//")):
+            continue
+        sade = _sadelestir(temiz.split("'")[0].split("’")[0]).strip()
+        if not sade or sade in _ISIM_DURAKLARI:
+            continue
+        bulunan.append(temiz)
+    return bulunan
+
+
+# Kancada bilgi taşımayan bitişler (instabot prompt kuralı 4). Dar tutuldu.
+_ICI_BOS_KANCA = re.compile(
+    r"\b(yay[ıi]nland[ıi]|a[çc][ıi]kland[ıi]|g[üu]ndemde|yeni d[öo]nem|riski|tepkisi|endi[şs]esi)\s*$",
+    re.IGNORECASE)
+
+
+def kanca_ici_bos_mu(kanca: Optional[str]) -> bool:
+    """Rakam, tarih ya da ad taşımayan ve boş bir fiille biten kanca."""
+    k = str(kanca or "").strip()
+    if not k or re.search(r"\d", k):
+        return False
+    return any(_ICI_BOS_KANCA.search(p.strip()) for p in k.split("//") if p.strip())
+
+
+def haber_kaynak_denetimi(veri: Dict[str, Any], brief: Dict[str, Any]) -> List[str]:
+    """Haber içeriğini KAYNAK METNE karşı denetler."""
+    uyarilar: List[str] = []
+    kaynak = str(brief.get("makale_metni") or "")
+    if not kaynak.strip():
+        return uyarilar
+    uretilen = haber_metni(veri, captionlar=True)
+
+    kaynak_sayi = sayi_esdegerleri(kaynak)
+    eksik = sorted({s for s in _sayilar(uretilen) if s not in kaynak_sayi},
+                   key=lambda s: (len(s), s))
+    if eksik:
+        uyarilar.append(
+            f"⛔ SAYI KAYNAKTA YOK: {', '.join(eksik[:4])} içerikte geçiyor ama haberin "
+            f"kendi metninde yok. Yuvarlama ya da uydurma olabilir."
+        )
+
+    kaynak_kucuk = _kucult(kaynak)
+    uretilen_kucuk = _kucult(uretilen)
+    yerel = [a for a in _YEREL_ADLAR if a in uretilen_kucuk and a not in kaynak_kucuk]
+    if yerel:
+        uyarilar.append(
+            f"⛔ YEREL BAĞ KAYNAKTA YOK: içerikte \"{yerel[0]}\" geçiyor ama haber "
+            f"bölgeden hiç söz etmiyor."
+        )
+
+    # Manşet ve etiketler başlık düzeninde olabilir; özel isim denetimine girmez.
+    # Yerel adlar yukarıda ⛔ olarak zaten raporlandı.
+    kaynak_sade = _sadelestir(kaynak)
+    yerel_sade = {_sadelestir(a).strip() for a in _YEREL_ADLAR}
+    govde = haber_parcalari({k: v for k, v in veri.items() if k != "manset"},
+                            captionlar=True, etiketler=False)
+    isimler = sorted({i for parca in govde for i in _ozel_isimler(parca)
+                      if _kok(i) and _kok(i) not in kaynak_sade
+                      and _sadelestir(i.split("'")[0]).strip() not in yerel_sade})
+    if isimler:
+        uyarilar.append(
+            f"⚠️ AD KAYNAKTA YOK: {', '.join(isimler[:6])} — kaynakta geçmiyor, elle teyit edin."
+        )
+
+    if kanca_ici_bos_mu(veri.get("kanca")):
+        uyarilar.append(
+            f"⚠️ İÇİ BOŞ KANCA: \"{veri.get('kanca')}\" — somut bir ayrıntı taşımıyor."
+        )
+    return uyarilar
 
 
 def _maddeleri_bul(metin: str) -> List[str]:
@@ -404,8 +551,10 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     # Brief'te veri kaynağı (TÜİK, TCMB…) varsa rakam dışarıdan doğrulanamaz,
     # onaylayan kişiye uyarı olarak kalır.
     from . import mevzuat as _mevzuat_o
-    oranlar = _mevzuat_o.oran_ifadeleri(hukuki)
-    tutarlar = re.findall(r"\b\d[\d.,]*\s*(?:milyon|milyar|bin)?\s*(?:TL|lira|₺)", hukuki, re.IGNORECASE)
+    haber_olcutu = bool((brief or {}).get("kaynak_metin_olcut"))
+    oranlar = set() if haber_olcutu else _mevzuat_o.oran_ifadeleri(hukuki)
+    tutarlar = [] if haber_olcutu else re.findall(
+        r"\b\d[\d.,]*\s*(?:milyon|milyar|bin)?\s*(?:TL|lira|₺)", hukuki, re.IGNORECASE)
     if oranlar or tutarlar:
         veri_kaynagi = (brief or {}).get("veri_kaynagi")
         kaynak_sayilar = _mevzuat_o.oran_ifadeleri(kanun_metni) | sayi_esdegerleri(kanun_metni) if kanun_metni else set()
@@ -423,8 +572,11 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
             )
 
     # --- 3. ZORLAMA YEREL BAĞ ---
+    if haber_olcutu:
+        # Rakam ve yerel bağ haberde kaynak metne karşı ⛔ olarak denetlenir
+        uyarilar.extend(haber_kaynak_denetimi(veri, brief or {}))
     gecen_yerel = [a for a in _YEREL_ADLAR if a in kucuk]
-    if gecen_yerel and brief is not None and not brief.get("yerel"):
+    if gecen_yerel and brief is not None and not brief.get("yerel") and not haber_olcutu:
         uyarilar.append(
             f"⚠️ YEREL BAĞ UYDURULMUŞ OLABİLİR: metinde \"{gecen_yerel[0]}\" geçiyor "
             f"ama brief'te yerel bağ tanımlı değil."
@@ -486,6 +638,7 @@ def haberden_brief(haber: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         "veri_kaynagi": haber.get("kaynak") or "haber kaynağı",
         "yerel": any(a in kucuk for a in _YEREL_ADLAR),
         "makale_metni": kaynak,
+        "kaynak_metin_olcut": True,
     }
 
 
@@ -546,6 +699,7 @@ def _birlesik_brief(veri: Dict[str, Any], haber: Optional[Dict[str, Any]]) -> Op
     birlesik["makale_metni"] = haber_brief["makale_metni"]
     birlesik["veri_kaynagi"] = brief.get("veri_kaynagi") or haber_brief["veri_kaynagi"]
     birlesik["yerel"] = brief.get("yerel") or haber_brief["yerel"]
+    birlesik["kaynak_metin_olcut"] = True
     return birlesik
 
 

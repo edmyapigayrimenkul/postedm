@@ -342,6 +342,11 @@ def hook_olustur(haber: Dict[str, Any], fallback: bool = False) -> Optional[Dict
 
     # 1. Açıkça belirtilmiş 'kanca' alanı varsa
     kanca_raw = haber.get("kanca") or haber.get("hook") or ""
+    if kanca_raw and dogrula.kanca_ici_bos_mu(kanca_raw):
+        # #509: "JAPON FİNANS GRUBU // RAPOR YAYINLANDI" fotoğrafın üstüne basıldı,
+        # okuyana hiçbir şey katmadı. Boş kanca çizilmez; aşağıdaki somut adaylar denenir.
+        log.info("İçi boş kanca çizilmedi: %s", kanca_raw)
+        kanca_raw = ""
     if kanca_raw:
         kanca_temiz = str(kanca_raw).strip()
         if "//" in kanca_temiz:
@@ -559,6 +564,26 @@ def _metin_kutusu(oncesi: Image.Image, sonrasi: Image.Image) -> Optional[Tuple[i
         return None
 
 
+def _okuma_perdesi(canvas: Image.Image, bas: int, tam: int, alfa: int = 165) -> Image.Image:
+    """`bas`tan `tam`a yumuşakça koyulaşan, oradan tuval sonuna kadar süren mürekkep perdesi."""
+    g, h = canvas.size
+    bas, tam = max(0, bas), max(bas + 1, tam)
+    serit = []
+    for yy in range(h):
+        if yy <= bas:
+            serit.append(0)
+        elif yy >= tam:
+            serit.append(alfa)
+        else:
+            u = (yy - bas) / (tam - bas)
+            serit.append(int(alfa * u * u * (3 - 2 * u)))
+    maske = Image.new("L", (1, h))
+    maske.putdata(serit)
+    maske = maske.resize((g, h))
+    koyu = Image.new("RGB", (g, h), (18, 19, 22))  # Mürekkep #121316
+    return Image.composite(koyu, canvas.convert("RGB"), maske)
+
+
 def hook_uygula(
     canvas: Image.Image,
     haber: Dict[str, Any],
@@ -594,6 +619,13 @@ def hook_uygula(
     # Üst ve alt sınır garantisi: Başlığa AYRIM_PAYI'ndan daha fazla yaklaşamaz
     y = max(min_tavan, min(y, en_alt))
     x_pos = KENAR_BOSLUK
+
+    if konum == "foto":
+        # Harf gölgesi sakin fotoğrafta yetiyor, yazılı/kalabalık fotoğrafta
+        # yetmiyor: #509'da kanca TCMB tabelasının harflerinin üstüne bindi ve
+        # okunmadı. Perde kancanın biraz üstünde başlar, manşet perdesine bağlanır;
+        # fotoğrafın üst kısmı canlı kalır.
+        canvas = _okuma_perdesi(canvas, y - 90, y + 40)
 
     # Dinamik renk belirleme
     renk = hook_rengi_belirle(

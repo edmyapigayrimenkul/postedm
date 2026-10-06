@@ -24,6 +24,8 @@ Denetimler (her slayt):
   GLİF YOK      karakter o fontta yok, kutu (□) olarak basılır     → hata
                 (IBM Plex Sans'a geçince hook etiketindeki "●" kutuya döndü;
                 taşma denetimi bunu görmez çünkü kutu da yer kaplar)
+  4:5 KUTU DIŞI 9:16 çizimde metin y=285..1635 dışında              → hata
+                (kullanıcı kuralı: tüm içerik 4:5 merkez kutusunda kalır)
   YÜZEN İŞARET  harfe bağlanmamış birleştirici işaret (U+0307 …)     → hata
                 (yön işareti silinince noktası bir boşluğun üstünde kaldı)
 Denetimler (her içerik):
@@ -63,6 +65,14 @@ CIKTI = KOK / "data/output/denetim"
 TUVALLER = {(1080, 1350), (1080, 1920)}
 KENAR_ASGARI = 36
 PUNTO_ASGARI = 24
+
+# 9:16 KURALI (kullanıcı kuralı, Instabot STORY_GUVENLI_PAY): 9:16 çizimde TÜM
+# metin 4:5 merkez kutusunun (y=285..1635) içinde kalır; kutunun dışı yalnızca
+# fotoğraf ve zemindir. Böylece aynı kare akışta/ızgarada 4:5'e kırpılınca hiçbir
+# şey kesilmez, tam ekranda (Story, Reels, Shorts, TikTok) üst ve alt arayüze çarpmaz.
+# 2026-10-07: kural docstring'de yazıyordu ama kodda uygulanmıyordu (260 / H-250).
+KUTU_UST = (1920 - 1350) // 2          # 285
+KUTU_ALT = KUTU_UST + 1350             # 1635
 
 # ---------------------------------------------------------------------------
 # Çizim kaydı
@@ -193,6 +203,8 @@ def slayt_denetle(slayt: Dict[str, Any]) -> List[str]:
         yuzen = [c for c in unicodedata.normalize("NFC", m["metin"]) if unicodedata.category(c) == "Mn"]
         if yuzen:
             sorunlar.append(f"YÜZEN İŞARET: \"{kisa}\" [{', '.join(f'U+{ord(c):04X}' for c in yuzen)}]")
+        if (W, H) == (1080, 1920) and (b[1] < KUTU_UST or b[3] > KUTU_ALT):
+            sorunlar.append(f"4:5 KUTU DIŞI: \"{kisa}\" y={int(b[1])}..{int(b[3])} (izinli {KUTU_UST}..{KUTU_ALT})")
         eksik = eksik_glifler(m["metin"], m["font"])
         if eksik:
             kodlar = ", ".join(f"U+{ord(c):04X}" for c in eksik)
@@ -468,7 +480,9 @@ def _ciz(format_turu: str, veri: Dict[str, Any], dizin: Path, onek: str, olcu: s
 
 
 FORMATLAR = {
-    "sozluk": ["besleme"], "nedir_dogrusu": ["besleme"], "net_cevap": ["besleme"], "vaka": ["besleme"],
+    # Dört format da 9:16'da Reels/Story olarak yayına gidiyor; yalnız 4:5 sınanıyordu
+    "sozluk": ["besleme", "story"], "nedir_dogrusu": ["besleme", "story"],
+    "net_cevap": ["besleme", "story"], "vaka": ["besleme", "story"],
     "B1": ["besleme", "story"], "B2": ["besleme", "story"], "B3": ["besleme", "story"], "haber": ["besleme", "story"],
 }
 

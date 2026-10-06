@@ -128,8 +128,16 @@ KATEGORI_HARITASI = {
     "S1": "TAPU & HUKUK",
     "S2": "KİRACI & EV SAHİBİ",
     "S3": "ARSA & İMAR",
-    "S4": "KİRA & ENFLASYON",
+    "S4": "RAKAM & BÖLGE",          # ICERIK-SISTEMI.md §3
+    "S5": "FİNANS & KREDİ",         # konu_bankasi.yaml: bankacılık, finans
     "TAPU_VE_HUKUK": "TAPU & HUKUK",
+    # Prompt'ların istediği kodlar (generate_text şemaları). 2026-10-07'ye kadar
+    # dördü haritada yoktu ve rozete "_" atılarak Türkçe karaktersiz basılıyordu:
+    # "SEKTOREL HABER VE ANALIZ", "EV SAHIBI VE KIRACI" (kayıtlı içeriğin yarısı).
+    "EV_SAHIBI_VE_KIRACI": "KİRACI & EV SAHİBİ",
+    "YATIRIM_VE_PIYASA": "YATIRIM & PİYASA",
+    "ARSA_IMAR_VE_TINY_HOUSE": "ARSA & İMAR",
+    "SEKTOREL_HABER_VE_ANALIZ": "SEKTÖR GÜNDEMİ",
     "KIRACI_VE_EV_SAHIBI": "KİRACI & EV SAHİBİ",
     "ARSA_VE_IMAR": "ARSA & İMAR",
     "FINANS_VE_BANKACILIK": "FİNANS & BANKACILIK",
@@ -155,6 +163,14 @@ KATEGORI_HARITASI = {
 }
 
 
+def rozet_okunur_mu(metin: Any) -> bool:
+    """Model rozet metnini bazen kelime ortasında harf büyüklüğü bozuk yazıyor
+    (#259: "NE YAPMalisiniz"). Büyütmek düzeltmez — "ı" yerine "i" yazılmış,
+    sonuç "YAPMALİSİNİZ" olur. Böyle metin rozete basılmaz, yedeğe düşülür."""
+    m = str(metin or "").strip()
+    return bool(m) and not re.search(r"[A-ZÇĞİÖŞÜ]{2,}[a-zçğıöşü]", m)
+
+
 def kategori_temizle(kat: Optional[str]) -> str:
     if not kat:
         return "GAYRİMENKUL & HUKUK"
@@ -162,9 +178,14 @@ def kategori_temizle(kat: Optional[str]) -> str:
     k_up = k.upper()
     if k_up in KATEGORI_HARITASI:
         return KATEGORI_HARITASI[k_up]
-    for code in ("S1", "S2", "S3", "S4"):
+    for code in ("S1", "S2", "S3", "S4", "S5"):
         if k_up == code or k_up.startswith(f"{code}-") or k_up.startswith(f"{code}_") or k_up.startswith(f"{code} "):
             return KATEGORI_HARITASI[code]
+    # Boşluksuz kod ("KREDI-01", "Trakya-TicariKira-01", "YENI_KOD") rozete iç
+    # kimlik olarak sızıyordu (#341 kapağında "S5-004"). Tanınmayan kod basılmaz.
+    if " " not in k and ("_" in k or re.search(r"\d", k)):
+        log.warning("Tanınmayan kategori kodu rozete basılmadı: %s", k)
+        return "GAYRİMENKUL REHBERİ"
     temiz = k.replace("_", " ").strip()
     return temiz if temiz else "GAYRİMENKUL & HUKUK"
 
@@ -1605,7 +1626,8 @@ def _devam_slaytlari(
     """
     yollar: List[Path] = []
     normal = make_image.veriyi_normalize_et(veri)
-    rozet = _ilk_dolu((veri.get("slayt_3_cozum") or {}).get("baslik_vurgu") if isinstance(veri.get("slayt_3_cozum"), dict) else "",
+    vurgu = (veri.get("slayt_3_cozum") or {}).get("baslik_vurgu") if isinstance(veri.get("slayt_3_cozum"), dict) else ""
+    rozet = _ilk_dolu(vurgu if rozet_okunur_mu(vurgu) else "",
                       veri.get("rozet_metni"), "ATILACAK ADIMLAR")
     with make_image.tuval(olcu):
         for i, m in enumerate(adimlar):

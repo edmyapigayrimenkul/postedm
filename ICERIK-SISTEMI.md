@@ -232,11 +232,20 @@ de besler.
 | Ölçü | Piksel | Nerede | Üst kronik | İçerik alanı |
 |---|---|---|---|---|
 | `besleme` | 1080×1350 (4:5) | Instagram/Facebook carousel | y=62 | 212 → 1215 |
-| `story` | 1080×1920 (9:16) | Reels, Shorts, TikTok, Story | y=180 | 380 → 1580 |
+| `story` | 1080×1920 (9:16) | Reels, Shorts, TikTok, Story | y=300 | 400 → 1550 |
 
-Story'de güvenli alan dar: üstte profil başlığı, altta yanıt çubuğu ve eylem
-butonları kareyi kapatıyor. Rozet ve logo da aşağı iner — 4:5'teki y=62'de
-kalsalardı platform arayüzünün altında görünmez olurlardı.
+**9:16 kuralı (kullanıcı kuralı, Instabot'taki `STORY_GUVENLI_PAY` ile aynı):**
+9:16 karede TÜM içerik (rozet, logo, başlık, metin, kaynak satırı) 4:5 merkez
+kutusunun içinde kalır: y=285..1635. Kutunun dışı yalnızca fotoğraf ve düz
+zemindir. İki sonucu var: kare akışta ya da profil ızgarasında 4:5'e kırpılınca
+hiçbir şey kesilmez; tam ekranda (Story, Reels, Shorts, TikTok) üst profil
+başlığına ve alt yazı/eylem bandına çarpmaz. Kural `scripts/gorsel_denetim.py`
+içinde `4:5 KUTU DIŞI` olarak hata seviyesinde denetlenir.
+
+Geçmiş: kural `haber_dailybrief_slayti_ciz` docstring'inde yazılıydı ama kod
+260 / H-250 kullanıyordu; üstte rozet y=268'de, altta kaynak satırı y=1730'da
+çiziliyordu (2026-10-07 ölçümü: 109 story vakasında 963 ihlal). B2 tablo slaytı
+ayrıca 4:5 koordinatlarını (y=60, H-105) sabit yazmıştı.
 
 ```python
 otorite_gonderi_slaytlari_uret(veri, cikti_onek="gonderi", olcu="story")

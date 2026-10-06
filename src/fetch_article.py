@@ -238,7 +238,11 @@ _KUYRUK_KESIN = re.compile(
     r"(sayfada yer alan bilgiler tavsiye niteli[gğ]i ta[sş][ıi]may[ıi]p"
     r"|yat[ıi]r[ıi]m dan[ıi][sş]manl[ıi][gğ][ıi] kapsam[ıi]nda de[gğ]ildir"
     r"|\bt[uü]m yorumlar\b|\byorum yaz\b|\bokur yorumlar[ıi]\b"
-    r"|izinsiz ve kaynak g[oö]sterilmeden)",
+    r"|izinsiz ve kaynak g[oö]sterilmeden"
+    # Ekonomim gövdesinin sonuna çerez bildirimi yapışıyordu (#509) ve modele
+    # haber metni diye gidiyordu.
+    r"|bu site[^.]{0,80}[çc]erez"
+    r"|[çc]erez\s*\(?cookie\)?\s*kullan)",
     re.IGNORECASE,
 )
 

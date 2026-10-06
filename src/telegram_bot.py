@@ -1948,6 +1948,12 @@ def haberden_icerik_hazirla(haber: Dict[str, Any], brief: Dict[str, Any]) -> boo
 
     if not brief.get("_dayanak"):
         brief["_dayanak"] = haber.get("orijinal_ozet") or haber.get("orijinal_baslik") or ""
+    # Model haberin tam metniyle çalışır (bkz. konu_bankasi.brief_metni). Eski
+    # kayıtlarda gövdenin sonunda çerez/KVKK şablonu var; kuyruk burada da kesilir.
+    from . import fetch_article
+    makale = fetch_article.kuyrugu_kes(haber.get("makale_metni"))
+    if len(makale) >= fetch_article.ASGARI_UZUNLUK:
+        brief["_makale"] = makale[:fetch_article.AZAMI_UZUNLUK]
     if haber.get("orijinal_baslik") and not brief.get("baslik"):
         brief["baslik"] = haber["orijinal_baslik"]
     if haber.get("kaynak"):

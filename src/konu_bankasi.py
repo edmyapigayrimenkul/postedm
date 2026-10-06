@@ -423,7 +423,16 @@ def brief_metni(konu: Dict[str, Any]) -> str:
         f"AÇI (içeriğin merkezi budur): {konu['aci']}",
         f"KANCA KALIBI: {konu['kanca_kalip']}",
     ]
-    if konu.get("_dayanak"):
+    if konu.get("_makale"):
+        # Haberden üretimde modele yalnızca triyajın tek alıntısı ya da RSS özeti
+        # gidiyordu (~200 karakter); şema ise 700+ karakter istiyordu ve boşluk
+        # uydurmayla doluyordu. #509'un 1.758 karakterlik metnindeki altı rakamın
+        # hiçbiri içeriğe girmedi. Tam metin varsa ölçüt odur.
+        satirlar.append(
+            "KAYNAK HABERİN TAM METNİ (yalnızca buradaki bilgileri kullan; burada "
+            f"olmayan sayı, ad, tarih ve yorum yazma):\n{konu['_makale']}"
+        )
+    elif konu.get("_dayanak"):
         satirlar.append(f"KAYNAK HABER / DAYANAK METNİ (buradaki somut yer, kurum, rakam ve şartları esas al):\n{konu['_dayanak']}")
     elif konu.get("orijinal_ozet"):
         satirlar.append(f"KAYNAK HABER / DAYANAK METNİ (buradaki somut yer, kurum, rakam ve şartları esas al):\n{konu['orijinal_ozet']}")
@@ -438,6 +447,12 @@ def brief_metni(konu: Dict[str, Any]) -> str:
                 "Eğitim bilginle çelişirse BU METİN geçerlidir. Bu metinde geçmeyen "
                 "süre, oran veya çoğunluk yazma:\n" + guncel["metin"]
             )
+    elif konu.get("_makale"):
+        # Haberde ölçüt kaynak metnin kendisidir: kaynakta "6098 sayılı Türk Borçlar
+        # Kanunu" geçiyorsa yazılabilir (dogrula.haberden_brief de böyle denetler).
+        satirlar.append(
+            "MEVZUAT: Kanun ya da madde atfını YALNIZCA kaynak metinde geçiyorsa, aynen yaz."
+        )
     else:
         satirlar.append(
             "DOĞRULANMIŞ MEVZUAT: yok. Kanun maddesi numarası YAZMA, 'ilgili mevzuat' de."
@@ -457,6 +472,10 @@ def brief_metni(konu: Dict[str, Any]) -> str:
                 "Karşılaştırmayı niteliksel yap (\"düzenli nakit akışı sağlar\", "
                 "\"gideri yok\", \"likiditesi düşüktür\" gibi). Uydurulmuş bir oran "
                 "markanın güvenilirliğini doğrudan zedeler."
+            )
+        elif konu.get("_makale"):
+            satirlar.append(
+                "VERİ KAYNAĞI: kaynak haber metni. Rakamları oradan, yuvarlamadan al."
             )
         else:
             satirlar.append(

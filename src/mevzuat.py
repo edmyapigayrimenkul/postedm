@@ -308,6 +308,11 @@ def sure_ifadeleri(metin: str) -> set:
     sonuc = set()
     for rakam, soz, birim in _SURE.findall(kucuk):
         n = _sayiya(rakam or soz)
+        # "2018 yılında" bir takvim yılıdır, süre değil. Haber denetiminde kaynak
+        # "2018'de" derken içerik "2018 yılında" yazınca ⛔ SÜRE KAYNAKTA YOK
+        # veriyordu (#452 yeniden üretimi, 2026-10-07).
+        if n is not None and birim == "yıl" and 1900 <= n <= 2100:
+            continue
         if n is not None:
             sonuc.add((str(n), re.sub(r"\s+", " ", birim)))
     return sonuc

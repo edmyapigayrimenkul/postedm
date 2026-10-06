@@ -1635,9 +1635,13 @@ def _yerlesim() -> Dict[str, int]:
     9:16 dikey story hem de 16:9 yatay üretmesini sağlıyor.
     """
     if YUKSEKLIK >= 1700:
-        # 9:16 Dikey — Meta Story/Reels güvenli alanı: üstte profil & X butonu (250px), altta mesaj barı (250px)
+        # 9:16 Dikey — KULLANICI KURALI (Instabot STORY_GUVENLI_PAY): tüm içerik 4:5
+        # merkez kutusunda (y=285..1635) kalır; kutunun dışı yalnızca fotoğraf/zemin.
+        # Böylece kare akışta 4:5'e kırpılınca hiçbir şey kesilmez, tam ekranda
+        # (Story, Reels, Shorts, TikTok) üst/alt arayüze çarpmaz. Eski değerler
+        # (260 / alt bar 1680, metin 1730'a iniyordu) kutunun dışındaydı.
         kenar = max(48, round(GENISLIK * 0.072))
-        kronik_ust, ust, icerik_alt_payi, bar_payi = 260, 390, 260, 240
+        kronik_ust, ust, icerik_alt_payi, bar_payi = 300, 400, 370, 350
     elif GENISLIK > YUKSEKLIK:
         # 16:9 Yatay (1920x1080) — ferah genişlik, daha alçak yükseklik
         kenar = max(60, round(GENISLIK * 0.055))
@@ -2099,7 +2103,10 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
 
     p1_str = tr_ilk_buyuk(_temizle_tipografi(str(manset_p1)).strip()) if manset_p1 else ""
     vurgu_str = _temizle_tipografi(str(manset_vurgu)).strip().replace("i", "İ").replace("ı", "I").upper() if manset_vurgu else ""
-    p2_str = tr_ilk_buyuk(_temizle_tipografi(str(manset_p2)).strip()) if manset_p2 else ""
+    # Üç parça TEK cümledir; üçüncü parça küçük harfle başlar ("…1 METREKARE BİLE
+    # olsa pafta esastır"). Büyütülünce kapak üç ayrı başlık gibi okunuyordu
+    # (#425 "Olsa pafta esastır", #358 "İle hızla satılır").
+    p2_str = _temizle_tipografi(str(manset_p2)).strip() if manset_p2 else ""
 
     if not (p1_str or vurgu_str or p2_str) and manset_ham:
         ham_satirlar = [s.strip() for s in str(manset_ham).split("\n") if s.strip()]
@@ -2488,11 +2495,16 @@ def _finansal_tablo_ciz(veri: Dict[str, Any], cozum_veri: Dict[str, Any], cikti_
 
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_MUREKKEP)
     draw = ImageDraw.Draw(canvas)
-    _rozet_ciz(draw, kenar_bosluk, 60, _rozet_kirp(veri.get("rozet_metni") or "KARŞILAŞTIRMA", 44), bg_color=RENK_KIRMIZI)
-    _logo_yerlestir(canvas, beyaz=True, y=55, lw=285)
+    # Konumlar 4:5 için yazılmıştı (rozet 60, başlık 135, alt çizgi H-105) ve 9:16'da
+    # kareyi en üste/alta yapıştırıyordu (y=68 ve 1863). Ortak yerleşimden kaydırılır;
+    # 4:5'te kayma 0, çıktı birebir aynı. 9:16'da içerik 4:5 merkez kutusunda kalır.
+    yer = _yerlesim()
+    kayma = yer["kronik_ust"] - 62
+    _rozet_ciz(draw, kenar_bosluk, 60 + kayma, _rozet_kirp(veri.get("rozet_metni") or "KARŞILAŞTIRMA", 44), bg_color=RENK_KIRMIZI)
+    _logo_yerlestir(canvas, beyaz=True, y=55 + kayma, lw=285)
 
     # Başlık: iki satır, sığan en büyük punto
-    y = 135
+    y = 135 + kayma
     for metin, renk in ((_metin(cozum_veri.get("baslik_ust")), RENK_BEYAZ),
                         (_metin(cozum_veri.get("baslik_vurgu")), RENK_KIRMIZI_CANLI)):
         if not metin:
@@ -2516,7 +2528,7 @@ def _finansal_tablo_ciz(veri: Dict[str, Any], cozum_veri: Dict[str, Any], cikti_
             y += 34
     tablo_y = y + 20
 
-    alt_y = YUKSEKLIK - 105
+    alt_y = yer["alt_bar"] - 5
     not_font = _font_yukle(FONT_SANS_MEDIUM, 26)
     not_satirlar = _metin_sar(not_metin, not_font, kullanilabilir_w - 60, draw) if not_metin else []
     not_h = (65 + len(not_satirlar) * 38 + 22) if not_satirlar else 0
@@ -3312,8 +3324,10 @@ def haber_dailybrief_slayti_ciz(
         # Dikey Story (9:16) ve Besleme (4:5) güvenli alanları
         dikey_story = yukseklik >= 1700
         if dikey_story:
-            ust_y = 260  # Meta 9:16 Story güvenli alanı: Instagram profil avatarı ve X butonunun altında kalır
-            alt_y = yukseklik - 250  # 1670 px (Instagram mesaj/yanıt barı güvenli alanı)
+            # 4:5 merkez kutusu (y=285..1635): rozet/logo 300'den, alt çizgi 1570'te
+            # (altındaki kaynak satırı 1635'i aşmaz). Kutunun dışında yalnızca fotoğraf.
+            ust_y = 300
+            alt_y = yukseklik - 350
         else:
             ust_y = 62
             alt_y = 1250
@@ -3447,7 +3461,7 @@ def haber_dailybrief_slayti_ciz(
         draw = ImageDraw.Draw(canvas)
 
         from .yeni_formatlar import kategori_temizle
-        kategori_adi = kategori_temizle(haber.get("kategori") or haber.get("kategori_kodu")).upper()
+        kategori_adi = tr_buyuk(kategori_temizle(haber.get("kategori") or haber.get("kategori_kodu")))
         rozet_txt = f"EDM GÜNDEM // {kategori_adi}"
         azami_rozet_w = logo_x - kenar - 30
         _rozet_ciz(
@@ -3752,8 +3766,10 @@ def haber_dailybrief_detay_slayti_ciz(
         # Dikey Story (9:16) ve Besleme (4:5) güvenli alanları
         dikey_story = yukseklik >= 1700
         if dikey_story:
-            ust_y = 260  # Meta 9:16 Story güvenli alanı: Instagram profil avatarı ve X butonunun altında kalır
-            alt_y = yukseklik - 250  # 1670 px (Instagram mesaj/yanıt barı güvenli alanı)
+            # 4:5 merkez kutusu (y=285..1635): rozet/logo 300'den, alt çizgi 1570'te
+            # (altındaki kaynak satırı 1635'i aşmaz). Kutunun dışında yalnızca fotoğraf.
+            ust_y = 300
+            alt_y = yukseklik - 350
         else:
             ust_y = 62
             alt_y = 1250
@@ -3993,27 +4009,13 @@ def _sayfalari_dengeli_bol(
 
 
 def _haber_slayt_ust_etiketi(bolum: List[Dict[str, Any]], slayt_no: int, toplam_slayt: int) -> str:
-    """Detay slaytı için içerikle uyumlu, editoryal üst etiket üretir."""
-    metinler = " ".join(
-        (str(m.get("etiket", "")) + " " + str(m.get("metin", ""))) for m in bolum
-    ).upper()
+    """Detay slaytının üst etiketi.
 
-    if any(k in metinler for k in ("BÖLGESEL", "PİYASA", "FİYAT", "TRAKYA", "SİLİVRİ", "ÇATALCA", "EMSAL", "ETKİ")):
-        return "// BÖLGESEL PİYASAYA ETKİSİ VE ANALİZ"
-    if any(k in metinler for k in ("RİSK", "HUKUK", "ŞART", "BAŞVURU", "TEMİNAT", "DİKKAT", "HAKLAR", "İTİRAZ")):
-        return "// BAŞVURU ŞARTLARI VE DİKKAT EDİLECEKLER"
-    if any(k in metinler for k in ("RESMİ", "İHALE", "DUYURU", "GELİŞME", "PROJE", "PARSEL", "METREKARE")):
-        return "// RESMİ GELİŞME VE İHALE DETAYLARI"
-
-    # Varsayılan editoryal hiyerarşi
-    if slayt_no == 2:
-        return "// HABERİN AYRINTILARI"
-    elif slayt_no == 3 and slayt_no == toplam_slayt:
-        return "// PİYASA ANALİZİ VE DEĞERLENDİRME"
-    elif slayt_no == 3:
-        return "// PİYASAYA VE BÖLGEYE ETKİSİ"
-    elif slayt_no == 4:
-        return "// DİKKAT EDİLECEK RİSKLER VE SÜREÇ"
+    Eskiden metindeki kelimelerden açı tahmin ediliyordu: "PİYASA" geçen her
+    sayfaya "// BÖLGESEL PİYASAYA ETKİSİ VE ANALİZ" basılıyordu (#509: sayfa swap
+    oranlarını anlatıyordu, bölge hiç geçmiyordu). İçeriği maddelerin kendi
+    etiketleri söylüyor; üst etiket içerikte olmayan bir iddia taşımaz.
+    """
     return "// HABERİN AYRINTILARI"
 
 
@@ -4088,10 +4090,9 @@ def haber_dailybrief_slaytlari_uret(
             else:
                 denenecek = [1, 2]
         elif n_maddeler == 2:
-            if toplam_metin_len > 240 and uzman_var:
-                denenecek = [2, 1]
-            else:
-                denenecek = [1, 2]
+            # İki madde önce tek sayfada denenir (≥34px sığarsa). İkiye bölününce
+            # her sayfada tek kısa paragraf kalıyor, sayfanın ~%70'i boş geçiyordu.
+            denenecek = [1, 2]
         else:
             denenecek = [1]
 
