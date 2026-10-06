@@ -2119,7 +2119,7 @@ function kaldirmaOnayMenusu(tur, refId) {
 function durumMetni() {
   return (
     "📊 <b>EDM YAYIN TAKVİMİ</b>\n\n" +
-    "• <b>10:00</b> — Bilgilendirici (rotasyon: Nedir Doğrusu · Vaka · Net Cevap · B1)\n" +
+    "• <b>10:00</b> — Bilgilendirici (rotasyon: Nedir Doğrusu · Net Cevap · Sözlük · B1)\n" +
     "• <b>13:30</b> — Emlak Sözlüğü\n" +
     "• <b>18:30</b> — Haber & Gündem (uygun haber yoksa bilgilendirici)\n\n" +
     "Her içerik önce bu gruba onaya gelir.\n\n" +

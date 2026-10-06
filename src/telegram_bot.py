@@ -164,13 +164,33 @@ def fotograf_gonder(
     if reply_markup:
         data["reply_markup"] = json.dumps(reply_markup)
 
-    p = Path(str(foto_yolu_veya_url))
-    try:
-        if p.exists() and p.is_file():
+    url_str = str(foto_yolu_veya_url)
+    p = Path(url_str)
+    foto_bytes: Optional[bytes] = None
+    if p.exists() and p.is_file():
+        try:
             with open(p, "rb") as f:
-                r = requests.post(url, data=data, files={"photo": f}, timeout=35)
+                foto_bytes = f.read()
+        except Exception as e:
+            log.warning("Yerel görsel dosyası okunamadı: %s", e)
+    elif url_str.startswith(("http://", "https://")):
+        try:
+            r_down = requests.get(
+                url_str,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+                timeout=15,
+            )
+            if r_down.status_code == 200 and r_down.content:
+                foto_bytes = r_down.content
+        except Exception as e:
+            log.warning("Görsel URL indirilemedi (%s), Telegram'a doğrudan URL denenecek: %s", url_str[:60], e)
+
+    try:
+        if foto_bytes:
+            files = {"photo": ("image.jpg", foto_bytes, "image/jpeg")}
+            r = requests.post(url, data=data, files=files, timeout=35)
         else:
-            data["photo"] = str(foto_yolu_veya_url)
+            data["photo"] = url_str
             r = requests.post(url, data=data, timeout=35)
 
         if r.status_code == 200:
@@ -181,9 +201,9 @@ def fotograf_gonder(
         if "can't parse entities" in (resp_json.get("description") or "").lower():
             data.pop("parse_mode", None)
             data["caption"] = re.sub(r"<[^>]+>", "", caption[:1024])
-            if p.exists() and p.is_file():
-                with open(p, "rb") as f:
-                    r2 = requests.post(url, data=data, files={"photo": f}, timeout=35)
+            if foto_bytes:
+                files = {"photo": ("image.jpg", foto_bytes, "image/jpeg")}
+                r2 = requests.post(url, data=data, files=files, timeout=35)
             else:
                 r2 = requests.post(url, data=data, timeout=35)
             if r2.status_code == 200:

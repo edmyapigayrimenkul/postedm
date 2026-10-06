@@ -30,7 +30,7 @@ TAKVIM: Dict[int, Dict[str, Any]] = {
     1: {"sutun": "S4", "bicim": "B3"},           # Salı: Net Cevap Rehberi
     2: {"sutun": "S1", "bicim": "B1"},           # Çarşamba: Nedir Doğrusu?
     3: {"sutun": "S3", "bicim": "B1"},           # Perşembe: Sözlük / Mevzuat
-    4: {"sutun": ("S2", "S4"), "bicim": "B2"},   # Cuma: Vaka Analizi (Carousel)
+    4: {"sutun": ("S2", "S4"), "bicim": "B1"},   # Cuma: Risk Dosyası (Carousel)
     5: {"sutun": "S1", "bicim": "B3"},           # Cumartesi: Nedir Doğrusu? / Yatırım
     6: {"sutun": "S4", "bicim": "B3"},           # Pazar: Net Cevap Rehberi
 }
@@ -40,20 +40,18 @@ GUN_FORMATLARI: Dict[int, str] = {
     1: "net_cevap",
     2: "nedir_dogrusu",
     3: "sozluk",
-    4: "vaka",
+    4: "b1",
     5: "nedir_dogrusu",
     6: "net_cevap",
 }
 
-# Günde TEK içerik (2026-09-24 kararı; önceden günde 3 slot vardı). Format
-# altı günlük bir döngüde döner. B1 iki kez: denetimde her kanalda en yüksek
-# erişim çok slaytlı B1'deydi. Sözlük tek kare kaldığı için döngüde bir kez.
+# Günde TEK içerik. Format döngüde döner (vaka analizi otomatik döngüden
+# çıkarıldı; yalnızca kullanıcı /vaka veya menüden elle tetiklediğinde üretilir).
 BILGILENDIRICI_FORMATLAR: List[str] = [
     "b1",
     "nedir_dogrusu",
     "net_cevap",
     "b1",
-    "vaka",
     "sozluk",
 ]
 
@@ -80,7 +78,7 @@ def _siradaki_sira() -> int:
 
 
 def siradaki_bilgilendirici_format() -> str:
-    """Döngüdeki sıradaki format: b1 → nedir_dogrusu → net_cevap → b1 → vaka → sozluk → b1 …"""
+    """Döngüdeki sıradaki format: b1 → nedir_dogrusu → net_cevap → b1 → sozluk → b1 …"""
     return BILGILENDIRICI_FORMATLAR[_siradaki_sira()]
 
 

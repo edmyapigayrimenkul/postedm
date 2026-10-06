@@ -170,15 +170,26 @@ def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
     gonderilen = 0
     adaylar = adaylari_sec(min(TUR_BASI_AZAMI, kalan))
     if adaylar:
-        ilk_gorsel = adaylar[0].get("gorsel_url") if adaylar else None
+        secilen_aday = None
+        ilk_gorsel = None
+        for a in adaylar:
+            g = a.get("gorsel_url")
+            if g and (str(g).startswith("http") or Path(str(g)).exists()):
+                ilk_gorsel = g
+                secilen_aday = a
+                break
+        if not secilen_aday and adaylar:
+            secilen_aday = adaylar[0]
+            ilk_gorsel = secilen_aday.get("gorsel_url")
+
         if ilk_gorsel and (str(ilk_gorsel).startswith("http") or Path(str(ilk_gorsel)).exists()):
             try:
-                baslik_kisa = html.escape(adaylar[0].get("orijinal_baslik") or "")
-                puan_val = min(10, int(adaylar[0].get("onem_puani") or 8))
+                baslik_kisa = html.escape(secilen_aday.get("orijinal_baslik") or "")
+                puan_val = min(10, int(secilen_aday.get("onem_puani") or 8))
                 foto_caption = (
                     f"📰 <b>GÜNÜN 1 NUMARALI HABER ADAYI [{puan_val}/10]</b>\n"
                     f"<b>{baslik_kisa}</b>\n\n"
-                    f"<i>Günün öne çıkan 5 haber adayı ve seçim menüsü aşağıdadır 👇</i>"
+                    f"<i>Günün öne çıkan {len(adaylar)} haber adayı ve seçim menüsü aşağıdadır 👇</i>"
                 )
                 telegram_bot.fotograf_gonder(ilk_gorsel, caption=foto_caption)
             except Exception as e:

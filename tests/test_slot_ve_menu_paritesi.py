@@ -37,8 +37,8 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_bilgilendirici_format_rotasyonu(self):
-        """Günün tek içeriği altı günlük döngüde döner; B1 iki kez, sözlük bir kez."""
-        beklenen = ["b1", "nedir_dogrusu", "net_cevap", "b1", "vaka", "sozluk", "b1"]
+        """Günün tek içeriği beş formatlı döngüde döner (vaka elle tetiklenir); B1 iki kez, sözlük bir kez."""
+        beklenen = ["b1", "nedir_dogrusu", "net_cevap", "b1", "sozluk", "b1"]
         gorulen = []
         for _ in beklenen:
             f = konu_bankasi.siradaki_bilgilendirici_format()

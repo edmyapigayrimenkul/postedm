@@ -240,5 +240,35 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         self.assertEqual(mock_foto.call_args[0][0], "https://cdn.example.com/foto.jpg")
 
 
+    def test_vaka_rotasyondan_cikarildi_otomatik_calismaz(self):
+        """Hukuki vaka analizinin otomatik döngüde veya takvimde yer almadığı doğrulanır."""
+        from src import konu_bankasi
+        self.assertNotIn("vaka", konu_bankasi.BILGILENDIRICI_FORMATLAR)
+        for gun_idx, fmt in konu_bankasi.GUN_FORMATLARI.items():
+            self.assertNotEqual(fmt, "vaka", f"Gün {gun_idx} vaka formatı olmamalıdır.")
+        for gun_idx, cfg in konu_bankasi.TAKVIM.items():
+            self.assertNotEqual(cfg.get("bicim"), "B2", f"Gün {gun_idx} otomatik vaka B2 olmamalıdır.")
+
+    def test_fotograf_gonder_url_indirip_yukler(self):
+        """fotograf_gonder HTTP URL aldığında baytları indirip dosya olarak yüklemelidir."""
+        mock_resp_img = MagicMock()
+        mock_resp_img.status_code = 200
+        mock_resp_img.content = b"fake-jpg-content"
+
+        mock_resp_tg = MagicMock()
+        mock_resp_tg.status_code = 200
+        mock_resp_tg.json.return_value = {"ok": True, "result": {"message_id": 777}}
+
+        with patch("src.telegram_bot._bot_bilgileri", return_value=("fake_tok", "fake_chat")), \
+             patch("requests.get", return_value=mock_resp_img) as mock_get, \
+             patch("requests.post", return_value=mock_resp_tg) as mock_post:
+            res = telegram_bot.fotograf_gonder("https://cdn.example.com/haber.jpg", caption="Haber")
+            self.assertIsNotNone(res)
+            mock_get.assert_called_once()
+            # Post files parametresi taşımalıdır (Telegram'a bayt yüklemesi)
+            self.assertIn("files", mock_post.call_args[1])
+            self.assertIn("photo", mock_post.call_args[1]["files"])
+
+
 if __name__ == "__main__":
     unittest.main()
