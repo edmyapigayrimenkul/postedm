@@ -20,8 +20,9 @@ sessizce hiçbir şey yakalamadı, her şey "temiz" göründü. Bu modüldeki
 tüm karşılaştırmalar `_kucult()` üzerinden geçer.
 
 NE YAKALAMIYOR (bilinçli sınır): anlam kayması. "geçerlidir" ile
-"geçersizdir" aynı maddeyi ve aynı kelimeleri taşır. Bunu yakalayan tek
-şey insan onayıdır.
+"geçersizdir" aynı maddeyi ve aynı kelimeleri taşır. Düzenli ifade bunu göremez;
+`capraz_denetim.py` ikinci bir modele kaynakla içeriği karşılaştırtır (yalnız ⚠️,
+kapıda `icerigi_denetle` içinde), son söz yine insan onayıdır.
 """
 
 from __future__ import annotations
@@ -819,9 +820,28 @@ def _birlesik_brief(veri: Dict[str, Any], haber: Optional[Dict[str, Any]]) -> Op
     return birlesik
 
 
-def icerigi_denetle(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None) -> List[str]:
-    """Tüm yolların ortak girişi: brief içerikte yoksa haberin kaynak metninden kurulur."""
-    return kaynak_denetle(haber) + denetle(veri, _birlesik_brief(veri, haber))
+def icerigi_denetle(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None,
+                    anlam: bool = True) -> List[str]:
+    """Tüm yolların ortak girişi: brief içerikte yoksa haberin kaynak metninden kurulur.
+
+    `anlam=True`: ⛔ bulgu yoksa ikinci bir model içeriği kaynakla karşılaştırır (anlam kayması,
+    yalnız ⚠️). ⛔ varken sorulmaz: içerik zaten durduruluyor. Yayın anındaki kapı (`anlam=False`)
+    uyarıları kullanmadığı için modeli boşuna çağırmaz."""
+    brief = _birlesik_brief(veri, haber)
+    uyarilar = kaynak_denetle(haber) + denetle(veri, brief)
+    if anlam and not kritik_var(uyarilar):
+        uyarilar += _anlam_denetimi(veri, brief)
+    return uyarilar
+
+
+def _anlam_denetimi(veri: Dict[str, Any], brief: Optional[Dict[str, Any]]) -> List[str]:
+    """Kaynak (haber metni ya da madde metni) varsa anlam kayması hakemi; her hatada [] (fail-open)."""
+    try:
+        from . import capraz_denetim
+        return capraz_denetim.denetle(veri, _kanun_metni(brief))
+    except Exception as e:  # noqa: BLE001 — hakem yüzünden kapı kırılmaz
+        log.warning("Anlam denetimi atlandı: %s", e)
+        return []
 
 
 def yayin_engeli_metni(haber_id: Any, uyarilar: List[str]) -> str:

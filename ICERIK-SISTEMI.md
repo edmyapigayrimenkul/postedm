@@ -320,6 +320,30 @@ kaynakta olmayan sayı ve yerel bağı ⛔ sayar.
 Sayfaya sığmayan detay kırpılmaz, üretim durur (`TasmaHatasi`): Instabot sınırı aşan
 blokları sessizce düşürüyordu. Bütçe: detay en fazla 230 kelime (`AZAMI_DETAY_KELIME`).
 
+### Anlam kayması hakemi (2026-10-07)
+
+Düzenli ifade sayı, süre, çoğunluk ve madde numarasını yakalar; "açılabilir"→"açıldı",
+"dilerse"→"zorunlu", iki ayrı kuralın tek cümlede birleşmesi (S3-024: otuz günlük ilan
+süresi ile on yıllık hak düşürücü süre) gibi anlam değişikliklerini yakalayamaz.
+`src/capraz_denetim.py` ikinci bir modele (`gemini-3.5-flash`, üretici zincirin başından
+farklı) içeriği kaynakla (haber metni ya da maddenin güncel metni) karşılaştırtır. Kapıda
+`dogrula.icerigi_denetle` içinde, ⛔ yoksa çalışır; yayın anındaki kapıda (`anlam_denetimi=False`)
+çalışmaz çünkü orada uyarılar kullanılmıyor.
+
+- **Yalnız ⚠️.** Hakem de modeldir; doğru içeriği kapatması yakaladığı hatadan pahalı. Onaylayan
+  uyarıyı Telegram önizlemesinin başında görür; finans otomatik yayınında herhangi bir uyarı
+  yayını durdurup onaya düşürür.
+- **Kanıt şartı.** Her bulgu içerikten ve (desteksiz hariç) kaynaktan birebir alıntı taşımak
+  zorunda; alıntı metinde bulunamazsa bulgu atılır. Düşük ciddiyetli (sözcük düzeyinde pedantik)
+  bulgu ve aynı cümle için ikinci bulgu atılır; en çok 3 uyarı.
+- **Gürültü süzgeçleri** gerçek model denemesinden: sistemin eklediği "…için kaydedin"
+  kapanış satırı içerik sayılmaz; `sana_etkisi`/`neden_onemli` gibi yazarın yorumu olan
+  alanlarda "kaynakta yok" denmez, yalnız çelişki aranır.
+- **Fail-open.** Kota, ağ, zaman aşımı ya da bozuk yanıtta denetim sessizce atlanır. Zincirde lite
+  model yok: ölçümde ana modelin yakaladığı iki gerçek kaymayı kaçırdı; zayıf hakem "temiz" diyerek
+  yanlış güven verir.
+- Test modunda ağ yok; testler sahte `cagri` ile mantığı sınar.
+
 ## 5.6 Stres ve sabotaj testi
 
 > **2026-09-25:** Asıl denetim artık `scripts/gorsel_denetim.py` (CI adımı, 164 vaka).

@@ -230,6 +230,7 @@ def main() -> None:
                 gecti, _ = telegram_bot.yayin_kapisi(
                     int(ref_id), mevcut, telegram_bot._denetim_verisi(mevcut, detay),
                     durum_yaz=not durum_kurali.yayinda_mi(mevcut),
+                    anlam_denetimi=False,  # yayın anında uyarılar kullanılmaz; model çağrısı boşa gider
                 )
                 if not gecti:
                     db.wal_bosalt()

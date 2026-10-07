@@ -1642,16 +1642,17 @@ def _denetim_verisi(haber: Dict[str, Any], otorite_verisi: Any) -> Dict[str, Any
 
 
 def yayin_kapisi(haber_id: int, haber: Dict[str, Any], veri: Dict[str, Any],
-                 durum_yaz: bool = True) -> Tuple[bool, List[str]]:
+                 durum_yaz: bool = True, anlam_denetimi: bool = True) -> Tuple[bool, List[str]]:
     """Kritik bulgu varsa içeriği durdurur. Döner: (geçti_mi, uyarılar).
 
     Kapı KAPALI başarısız olur: denetim çalışamazsa içerik de sunulmaz.
     Yalan bilgiye müsamaha yok (2026-09-24). `durum_yaz=False`: içerik bazı
     kanallarda zaten yayındaysa durumu ezilmez, yalnızca yeni kanala gitmez.
+    `anlam_denetimi=False`: yayın anında yalnız ⛔ bakılır, ikinci modele (anlam kayması) sorulmaz.
     """
     from . import dogrula
     try:
-        uyarilar = dogrula.icerigi_denetle(veri, haber)
+        uyarilar = dogrula.icerigi_denetle(veri, haber, anlam=anlam_denetimi)
     except Exception as e:
         log.exception("Denetim çalıştırılamadı (#%s)", haber_id)
         uyarilar = [f"⛔ DENETİM ÇALIŞMADI: {type(e).__name__} — denetlenmemiş içerik sunulmaz."]
