@@ -15,6 +15,8 @@ from typing import Any, Dict, Iterable
 
 import requests
 
+from . import haber_alanlari
+
 OIDC_HEDEF_KITLE = "edm-postedm-site"
 _OIDC_JETONU: str | None = None
 
@@ -84,9 +86,9 @@ def haber_site_girdisi(haber: Dict[str, Any]) -> Dict[str, Any]:
         spot = govde[:500].rsplit(" ", 1)[0]
 
     # Uzman değerlendirmesi ve kaynak atfı ile gövdeyi zenginleştir
-    uzman_notu = str(detay.get("uzman_notu") or "").strip()
-    if uzman_notu and uzman_notu not in govde:
-        govde = f"{govde}\n\n### ⚖️ EDM Uzman Değerlendirmesi\n{uzman_notu}"
+    etki = haber_alanlari.sana_etkisi(detay)
+    if etki and etki not in govde:
+        govde = f"{govde}\n\n### Sana etkisi\n{etki}"
 
     kaynak_adi = str(haber.get("kaynak") or "Resmi Kaynak")
     if kaynak_url and "Kaynak:" not in govde:

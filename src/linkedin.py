@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from PIL import Image
 
-from . import config, filtre
+from . import config, filtre, haber_alanlari
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +65,8 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
     kanca = veri.get("kanca") or veri.get("hook") or ""
     spot = veri.get("spot") or veri.get("ozet") or ""
     detay_maddeleri = veri.get("detay_maddeleri") or []
-    uzman_notu = veri.get("uzman_notu") or ""
+    uzman_notu = haber_alanlari.sana_etkisi(veri)
+    paragraflar = haber_alanlari.detay_paragraflari(veri, kalin=False) if veri.get("detay_yazisi") else []
 
     parcalar = []
 
@@ -80,8 +81,15 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
     if spot:
         parcalar.append(f"{spot.strip()}\n")
 
-    # 3. Resmi Veriler & Detay Maddeleri (Maddeli döküm)
-    if detay_maddeleri:
+    # 3a. Detay (Instabot şeması): paragraflar
+    if paragraflar:
+        parcalar.extend(f"{p}\n" for p in paragraflar)
+        soz, sahibi = haber_alanlari.alinti(veri)
+        if soz:
+            parcalar.append(f"“{soz}”" + (f" — {sahibi}" if sahibi else "") + "\n")
+
+    # 3b. Resmi Veriler & Detay Maddeleri (eski şema: maddeli döküm)
+    if detay_maddeleri and not paragraflar:
         parcalar.append("📊 ÖNE ÇIKAN VERİLER VE ANALİZ:")
         for idx, dm in enumerate(detay_maddeleri, 1):
             if isinstance(dm, dict):
@@ -99,7 +107,10 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
 
     # 4. EDM Uzman Notu
     if uzman_notu:
-        parcalar.append(f"⚖️ UZMAN DEĞERLENDİRMESİ:\n{uzman_notu.strip()}\n")
+        if veri.get("uzman_notu") and not veri.get("sana_etkisi"):
+            parcalar.append(f"⚖️ UZMAN DEĞERLENDİRMESİ:\n{uzman_notu.strip()}\n")   # eski şema
+        else:
+            parcalar.append(f"{uzman_notu.strip()}\n")
 
     # 5. İletişim & CTA
     parcalar.append(

@@ -264,7 +264,9 @@ _ONLAR = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50, "altmış"
 # Kanun metinleri birleşik yazımı da kullanıyor ("oniki aylık", "onbeş gün").
 _SAYI_SOZ = r"(?:(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan)(?:\s*(?:bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz))?|bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz)"
 # Yazıyla sayıda birimle arasında boşluk zorunlu: aksi hâlde "noter onaylı" → "on ay".
-_SURE = re.compile(rf"(?:\b(\d+)\s*|\b({_SAYI_SOZ})\s+)(iş\s+günü|gün|hafta|ay|yıl)", re.I)
+# Ondalık sayının kuyruğu süre değildir: "%1,8 aylık enflasyon" içindeki "8 ay" iki hafta
+# önce ⛔ SÜRE KAYNAKTA YOK verdirdi (vurgu rakamı + etiket birleşince). (?<![\d.,]) bunu eler.
+_SURE = re.compile(rf"(?:(?<![\d.,])\b(\d+)\s*|\b({_SAYI_SOZ})\s+)(iş\s+günü|gün|hafta|ay|yıl)", re.I)
 CUNLUK_IFADELERI = ("üçte iki", "salt çoğunluk", "oybirliği", "dörtte üç", "beşte dört")
 
 

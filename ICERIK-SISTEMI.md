@@ -300,11 +300,25 @@ geçti; EDM markasında amber yok. Çözüm: kırmızı metin olmaktan çıkıp 
 `cubuk` (beyaz iki satır + kırmızı çubuk + sınırlı koyu bant), `amber` (Instabot birebir,
 yalnız karşılaştırma). Kanca da Instabot'la aynı Inter 900.
 
-**Henüz Instabot'la aynı OLMAYAN tek şey içerik şeması:** model hâlâ B5 alanlarını
-(`manset`, `spot`, `kanca`, `detay_maddeleri`, `uzman_notu`) üretiyor; çizici bunları
-Instabot girdilerine çeviriyor (`girdiyi_hazirla`). Instabot alanları (`ig_baslik`,
-`slayt_ozet`, `detay_yazisi`, `vurgu_sayi`, `alinti`, `neden_onemli`, `sana_etkisi`…)
-çizicide zaten desteklenir; sıradaki iş modelin o şemayla üretmesi.
+**İçerik şeması da Instabot'la aynı (2026-10-07):** model artık `manset` (başlık),
+`spot` (tek cümle özet), `detay_yazisi` (120-200 kelime, 4-5 paragraf, `**kalın**`
+vurgulu), `kanca`, `vurgu_sayi` + `vurgu_etiket`, `alinti` + `alinti_sahibi`,
+`neden_onemli`, `sana_etkisi`, `sirada_ne_var`, `ulke_kodu` + `ulke_adi` üretir.
+`manset` ve `spot` anahtarları bilerek korundu (veritabanı, Telegram, LinkedIn, site ve
+seslendirme bunları okuyor). Eski B5 kayıtları (`detay_maddeleri`, `uzman_notu`) onay
+bekleyen kuyrukta ve geçmişte duruyor; tek okuma noktası `src/haber_alanlari.py` iki şemayı
+da okur, tüketici şemayı bilmez.
+
+Üretim sonrası `dogrula.haber_alanlarini_sadelestir` (Instabot standardı: sessizce eler,
+bütün içeriği durdurmaz): kaynakta doğrulanamayan alıntı, kaynakta olmayan ya da
+başlıkta/özette/kancada zaten geçen vurgu rakamı, boş övgü, içi boş kanca, başlık sonu
+noktası atılır. Kaynak ince ise (<400 karakter) detay ilk iki paragrafla sınırlanır ve
+çıkarım ağırlıklı alanlar (neden önemli, sana etkisi) atılır: model boşluğu genel
+cümlelerle dolduruyordu (#171). Kapı (`dogrula.denetle`) yedek olarak durur ve haberde
+kaynakta olmayan sayı ve yerel bağı ⛔ sayar.
+
+Sayfaya sığmayan detay kırpılmaz, üretim durur (`TasmaHatasi`): Instabot sınırı aşan
+blokları sessizce düşürüyordu. Bütçe: detay en fazla 230 kelime (`AZAMI_DETAY_KELIME`).
 
 ## 5.6 Stres ve sabotaj testi
 

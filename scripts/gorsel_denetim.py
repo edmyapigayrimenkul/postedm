@@ -301,6 +301,24 @@ def fikstur(format_turu: str) -> Dict[str, Any]:
                                   "sag_kolon_veriler": [["Gelir:", "Doğrudan yok"], ["Gider:", "Çok düşük"], ["Nakde dönüş:", "Alıcı bulmak zaman alır"], ["Yönetim:", "Neredeyse yok"], ["Risk:", "İmar değişikliği"]],
                                   "stratejist_notu": "Nakit akışı gerekiyorsa konut; bekleyebiliyorsanız imarlı arsa."}}
     if format_turu == "haber":
+        # Instabot şeması (2026-10-07): üretimdeki alanların tamamı dolu, en kalabalık hâliyle
+        return {"format_turu": "dailybrief", "manset": "Selimpaşa'da plan değişikliği askıya çıktı",
+                "spot": "Değişiklik **otuz gün** askıda kalacak; itirazlar belediyeye yazılı yapılabilir.",
+                "kanca": "30 GÜN ASKIDA", "kategori": "ARSA_VE_IMAR", "kaynak": "Silivri Belediyesi",
+                "gorsel_yolu": str(KOK / "assets/backgrounds" / sorted(os.listdir(KOK / "assets/backgrounds"))[0]),
+                "detay_yazisi": ("Silivri Belediyesi, Selimpaşa'da plan notlarındaki emsal değerini güncelledi. "
+                                 "Değişiklik **30 gün** boyunca askıda kalacak.\n\n"
+                                 "Askı süresi içinde itirazlar belediyeye yazılı olarak yapılabilir. İtiraz dilekçesinde "
+                                 "ada ve parsel numarası belirtilmesi gerekiyor.\n\n"
+                                 "Değişiklik yürürlüğe girdiğinde parsellerin emsal değeri yeni plan notlarına göre hesaplanacak."),
+                "vurgu_sayi": "30 gün", "vurgu_etiket": "askı süresi",
+                "alinti": "İtirazlar askı süresi içinde belediyeye yazılı yapılabilir",
+                "alinti_sahibi": "Silivri Belediyesi",
+                "neden_onemli": "Askı süresi dolduktan sonra yapılan itiraz kabul edilmiyor.",
+                "sana_etkisi": "Selimpaşa'da parseli olanlar emsal değerlerini plan notlarından kontrol edebilir.",
+                "sirada_ne_var": "Askı süresi sona erince plan belediye meclisine gidecek.",
+                "ulke_kodu": "tr", "ulke_adi": "Türkiye"}
+    if format_turu == "haber_eski":
         return {"format_turu": "dailybrief", "manset": "Selimpaşa'da plan değişikliği askıya çıktı",
                 "spot": "Değişiklik otuz gün askıda kalacak; itirazlar belediyeye yazılı yapılabilir.",
                 "kategori": "ARSA_VE_IMAR", "kaynak": "Silivri Belediyesi",
@@ -324,7 +342,7 @@ ONEMLI_ALANLAR = {
     "B2": ["manset_parca_1", "manset_vurgu", "manset_parca_2", "spot", "slayt_3_cozum.sol_kolon_veriler", "slayt_3_cozum.sag_kolon_veriler", "slayt_3_cozum.stratejist_notu"],
     # Haber tasarımı Instabot'la aynı (2026-10-07): madde etiketleri ("01 // …") çizilmez,
     # yalnız madde metinleri paragraf olur.
-    "haber": ["manset", "spot", "detay_maddeleri.metin", "uzman_notu"],
+    "haber": ["manset", "spot", "detay_yazisi", "vurgu_etiket", "neden_onemli", "sana_etkisi", "sirada_ne_var"],
 }
 
 
@@ -443,6 +461,22 @@ def vakalar(format_turu: str) -> List[Tuple[str, Dict[str, Any], str]]:
     if "detay_maddeleri" in cok:
         cok["detay_maddeleri"] = [{"etiket": f"MADDE {i}", "metin": UZUN_CUMLE[:160], "renk": "kirec"} for i in range(1, 7)]
     v.append(("cok_madde", cok, "ciz"))
+
+    if format_turu == "haber":
+        # Detay sınırda: 8 paragraf dört sayfaya sığmalı ve hiçbiri düşmemeli
+        sinirda = copy.deepcopy(temel)
+        sinirda["detay_yazisi"] = "\n\n".join([" ".join(UZUN_CUMLE.split()[:26])] * 8)
+        v.append(("detay_sinirda", sinirda, "ciz"))
+        # Detay taşıyor: sayfa sınırını aşan metin kırpılmaz, üretim DURUR (Instabot sessizce düşürüyordu)
+        tasan = copy.deepcopy(temel)
+        tasan["detay_yazisi"] = "\n\n".join([UZUN_CUMLE + " " + UZUN_CUMLE] * 12)
+        v.append(("detay_tasiyor", tasan, "dur"))
+        # Dolu şema, kalın işareti bozuk: eşleşmeyen ** satırı bozmamalı
+        bozuk = copy.deepcopy(temel)
+        bozuk["detay_yazisi"] = "Başlangıç **kapanmayan vurgu ve devam eden cümle.\n\nİkinci **paragraf** tamam."
+        v.append(("bozuk_kalin", bozuk, "ciz"))
+        # Eski şemalı kayıtlar (onay bekleyenler) çizilmeye devam eder
+        v.append(("eski_sema", fikstur("haber_eski"), "ciz"))
 
     if format_turu == "sozluk":
         # Üretimden (#243): üç kelimelik terim + 349 karakter tanım + üç uzun madde

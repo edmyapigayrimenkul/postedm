@@ -3607,6 +3607,11 @@ def haber_detay_maddelerini_ayikla(haber: Dict[str, Any]) -> List[Dict[str, Any]
             except Exception:
                 pass
 
+    # Instabot şeması: paragraflar madde olarak döner (kanca yedeği bunları tarar)
+    if isinstance(haber, dict) and isinstance(haber.get("detay_yazisi"), str) and haber["detay_yazisi"].strip():
+        from . import haber_alanlari
+        return [{"etiket": "", "metin": p, "renk": "kirec"} for p in haber_alanlari.detay_paragraflari(haber, kalin=False)]
+
     maddeler = haber.get("detay_maddeleri") or haber.get("maddeler") or []
     if not maddeler:
         # 1. Öncelik: Haberin gerçek analizi (Ne Oldu + Bölgesel/Sektörel Etki)

@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from . import config, db, filtre
+from . import config, db, filtre, haber_alanlari
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +100,9 @@ BUTCE: Dict[str, int] = {
     "ders": 120,
 }
 AZAMI_PUF_MADDE = 3
+# Haber (Instabot şeması): detay 120-200 kelime istenir; üstü 4 detay sayfasını aşar
+AZAMI_DETAY_KELIME = 230
+AZAMI_OZET_KELIME = 24
 
 
 ORTAK_KURALLAR = """Sen "EDM Yapı & Gayrimenkul"ün içerik editörüsün. Silivri merkezli, Trakya'da
@@ -408,99 +411,145 @@ slayt_3_cozum maddeleri atılması gereken somut adımları listeler.""" % BUTCE
 # kusur şemadaydı: her habere aynı dört açıyı dayatıyordu — "Silivri, Çatalca,
 # Trakya piyasasına etkisi", "KDV muafiyeti veya taksit avantajları". Kaynakta
 # olmayan açı istenince model doldurdu: yayınlanan 4 haberin 4'ünde ikinci madde
-# uydurma bir Silivri cümlesiydi ("Silivri ve Trakya genelindeki arsa ve konut
-# piyasasında yatırım iştahını dolaylı olarak destekliyor"). #509'da kaynakta
-# %31,5 → %29,7, %7,3 reel faiz, 22 Ekim PPK ve 120 baz puan vardı; yayına çıkan
-# metinde tek rakam yoktu. #452'de "5 yıl şartı kaldırıldı" yazıldı, karar bunu
-# söylemiyordu. Kurallar Instabot'un ölçülmüş haber promptundan uyarlandı.
+# uydurma bir Silivri cümlesiydi. #509'da kaynakta altı rakam vardı, yayına çıkan
+# metinde hiçbiri yoktu; #452'de "5 yıl şartı kaldırıldı" yazıldı, karar bunu
+# söylemiyordu.
+#
+# Aynı gün kullanıcı kararıyla haber içeriği Instabot'la AYNI şemaya geçti (alanlar ve
+# kuralların çoğu Instabot'un ölçülmüş promptundan: instabot/src/generate_text.py).
+# Instabot ölçümlerinin gerekçeleri burada kısaltıldı; ayrıntı orada.
+# Örnekte rakam YOK: prompttaki örnek rakamı model kopyalıyor (MEMORY.md §8.3, #142).
 HABER_KURALLARI = """Sen "EDM Yapı & Gayrimenkul"ün haber editörüsün. Silivri merkezli bir emlak
 ofisi için gayrimenkul, imar, tapu, kira ve konut finansmanı haberlerini sosyal
 medyaya hazırlıyorsun. Hukuk bürosu değiliz; "hukuki danışmanlık" dili kurma.
+Haberi taranabilir, bilgilendirici ve sıkıcı olmayan bir yayına dönüştür.
 
 EN ÖNEMLİ KURAL — YALNIZCA KAYNAK, SIFIR UYDURMA:
-1. KONU ÇAPASI: Haberin konusu KAYNAK BAŞLIĞIndaki konudur. Metinde başka
-   gündem maddeleri geçse bile manşeti, spotu ve maddeleri o konuya bağla.
-2. Yalnızca KAYNAK HABERİN TAM METNİnde yazan bilgiyi kullan. Metinde geçmeyen
-   sayı, isim, kurum, tarih, sonuç, tepki ya da piyasa yorumu YAZMA. Eksik
-   yazmak uydurmaktan iyidir; kaynak kısaysa içerik de kısa olur.
-3. YEREL BAĞ UYDURMA: Kaynak Silivri, Çatalca, Büyükçekmece, Trakya, Tekirdağ,
-   Edirne ya da Kırklareli'den söz etmiyorsa bu adları HİÇBİR alana yazma.
-   "Bölgedeki yatırımcılar yakından takip ediyor", "bölge piyasasını dolaylı
-   destekliyor" gibi doğrulanamaz cümleler yasak.
-4. KARARIN KAPSAMINI GENİŞLETME: Mahkeme kararını, raporu ya da beklentiyi
-   kural değişikliği gibi sunma. Kaynak "dava açılabileceğine hükmetti" diyorsa
-   "şart kaldırıldı" yazma; "bekliyor/değerlendirdi" diyorsa "oldu" yazma.
-   Gerçekleşmiş olanı da "olası" diye küçültme.
-5. Suçlama ya da soruşturma varsa "iddia edildi", "soruşturma başlatıldı" dilini koru.
+1. KONU ÇAPASI: Haberin konusu KAYNAK BAŞLIĞINDAKİ konudur. Metinde başka gündem
+   maddeleri geçse bile başlığı, özeti ve detayı o konuya bağla; başka konunun
+   rakamını manşet yapma.
+2. Yalnızca KAYNAK HABERİN TAM METNİNDE yazan bilgiyi kullan. Metinde geçmeyen sayı,
+   isim, kurum, tarih, sonuç, tepki ya da piyasa yorumu YAZMA. Emin değilsen o cümleyi
+   hiç kurma. Eksik yazmak uydurmaktan iyidir; kaynak kısaysa içerik de kısa olur,
+   dolgu cümle yazma.
+3. YEREL BAĞ UYDURMA: Kaynak Silivri, Çatalca, Büyükçekmece, Trakya, Tekirdağ, Edirne ya
+   da Kırklareli'nden söz etmiyorsa bu adları HİÇBİR alana yazma. "Bölgedeki yatırımcılar
+   yakından takip ediyor", "bölge piyasasını dolaylı destekliyor" gibi doğrulanamaz
+   cümleler yasak.
+4. KARARIN KAPSAMINI GENİŞLETME: Mahkeme kararını, raporu ya da beklentiyi kural
+   değişikliği gibi sunma. Kaynak "dava açılabileceğine hükmetti" diyorsa "şart
+   kaldırıldı" yazma; "bekliyor/değerlendirdi" diyorsa "oldu" yazma. Gerçekleşmiş olanı
+   da "olası" diye küçültme.
+5. Suçlama, soruşturma ya da dava içeren haberlerde "iddia edildi", "öne sürüldü",
+   "hakkında soruşturma başlatıldı" dilini koru; kesin hüküm olmadan kimseyi suçlu ilan
+   etme.
 
 SAYILAR — KAYNAKTAKİ GİBİ, YUVARLAMADAN:
-- Kaynakta "yüzde [X]" yazıyorsa %[X] yaz; "2 milyar 841 milyon" yazıyorsa aynen.
-- Yüzdeyi her zaman % işaretiyle sayıya bitişik yaz (%[X]). Binlik ayırıcı nokta (1.410).
-- Haberin en çarpıcı rakamı manşette ya da kancada mutlaka görünsün. Rakamsız
-  manşet ancak kaynakta hiç rakam yoksa kabul edilir.
+- Kaynakta "yüzde [X]" yazıyorsa %[X] yaz; "[X] milyar [Y] milyon" yazıyorsa aynen yaz,
+  "[X,Z] milyar" diye yuvarlama. Tarih, oran, hedef ve süre için de aynı kural.
+- 4 basamaklı sayıyı "bin [N]" diye değil binlik noktayla yaz ([N].[NNN]); yalnızca milyon
+  ve milyar için kelime kullan ([N] milyon ₺). Yüzdeyi her zaman % simgesiyle ve sayıya
+  bitişik yaz. Türk Lirası için TL yerine ₺ simgesini tercih et.
+- Haberin en çarpıcı rakamı başlıkta, kancada ya da vurgu rakamında görünsün. Rakamsız
+  başlık ancak kaynakta hiç rakam yoksa kabul edilir.
+
+KALIN VURGU (**kelime**): yalnızca `detay_yazisi` ve `spot` içinde, en kritik 1-2 veriyi
+ya da kurum adını sarmak için (örn. **TCMB**, **%[X]**). Yıldızları eksiksiz aç ve kapat.
+Başlık, caption ve diğer alanlarda ASLA ** kullanma.
 
 DİL:
-- Ünlem, emoji, "ŞOK", "KAÇIRMAYIN", "DİKKAT", "BOMBA" yok. Sakin otorite.
-- Yasak pasif kalıplar: "…'e ilişkin açıklama", "…hakkında konuştu",
-  "…değerlendirdi" (manşette), "…dikkat çekti", "…gündeme getirdi".
+- Ünlem, emoji, "ŞOK", "KAÇIRMAYIN", "DİKKAT", "BOMBA", "İNANILMAZ" yok. Sakin otorite.
+- Yasak pasif kalıplar (başlıkta ve kancada): "…'e ilişkin açıklama", "…hakkında konuştu",
+  "…değerlendirdi", "…anlattı", "…mesaj verdi", "…dikkat çekti", "…gündeme getirdi".
+  Konuşmayı değil, söyleneni ya da kararı yaz.
 - Yasak boş tavsiye: "mutlaka kontrol edin", "ihmal etmeyin", "dikkatli olun",
   "titizlikle", "yakından takip edin", "uzmana danışın".
-- Cümleler kısa: ortalama 12 kelimeyi geçmesin.
+- Cümleler kısa ve somut. Hukuk ve tapu terimini halk dilindeki karşılığıyla açıkla.
+- DUYGU ATFETME YASAK: bir topluluğun ne hissettiğini yazma ("büyük gurur", "endişe
+  yarattı"). DOĞRULANAMAZ ÜSTÜNLÜK YASAK: "tarihin en önemlilerinden", "altın harflerle".
+  Ölçüt: cümlede doğrulanabilir bir şey olmalı (sayı, tarih, sonuç, isim). Cümleyi silince
+  hiçbir bilgi kaybolmuyorsa o cümleyi hiç yazma, alanı boş ("") bırak.
 """
 
-_SEMA_B5 = """BİÇİM: B5 — EDM GÜNDEM // HABER
-Kapak (kanca + manşet + spot) + 1-2 ayrıntı sayfası.
+_SEMA_B5 = """BİÇİM: B5 — EDM GÜNDEM // HABER (Instabot haber şemasıyla aynı)
+Kapak + 1-3 detay sayfası. Her alan kaynaktaki gerçek bir bilgiden gelir; kaynak yoksa alan "" olur.
 
 ALANLAR:
-- manset: CÜMLE DÜZENİNDE (yalnızca ilk harf ve özel adlar büyük), sonunda nokta yok,
-  en fazla 75 karakter. Olayın SONUCUNU ve en çarpıcı rakamını ilk kelimelerde ver.
-    İYİ : "[Gösterge] %%[ORAN]'e indi, [KURUM] [TARİH]'de [KARAR] bekliyor"
+- manset: Başlık. CÜMLE DÜZENİNDE (yalnızca ilk harf ve özel adlar büyük), sonunda nokta
+  yok, en fazla 75 karakter. Olayın SONUCUNU ve en çarpıcı rakamı ilk kelimelerde ver,
+  aktif fiille. Okuyan ilk yarım saniyede NE OLDUĞUNU öğrenmiş olmalı; ama gerçeği
+  manipüle etme.
     KÖTÜ: "[Kurum]'dan [Konu] Beklentisi"   (rakam yok, sonuç yok, Başlık Düzeni)
-- spot: 2 cümle, en fazla %(spot)d karakter. Manşette OLMAYAN ikinci en önemli
-  bilgiyi verir (kim, ne zaman, hangi şartla). Manşeti tekrarlama.
-- kanca: Kapak fotoğrafının üstüne basılan 2-5 kelimelik ETİKET, iki parça
-  arasında "//". Manşette ve spotta GEÇMEYEN somut bir ayrıntı taşır: rakam,
-  tarih, kurum ya da ad. Başlığın kısaltması DEĞİLDİR.
-    İYİ : "[GÖSTERGE] // %%[ORAN]'E ÇIKTI"     KÖTÜ: "[KURUM ADI] // RAPOR YAYINLANDI"
-  "yayınlandı", "açıklandı", "gündemde", "yeni dönem", "riski" ile biten içi boş
-  etiket yazma. Somut ayrıntı yoksa "" bırak — kanca çizilmez, slayt bir şey kaybetmez.
-- detay_maddeleri: Kaynağın zenginliğine göre 2-4 madde. Her madde kaynaktaki
-  FARKLI bir bilgi grubunu anlatır ve en az bir somut veri (rakam, tarih, kurum,
-  şart) içerir. 120-230 karakter, 2 kısa cümle.
-    etiket: maddenin içeriğini söyleyen 2-4 kelimelik ad öbeği, BÜYÜK HARF,
-            numarasız (örn. "ENFLASYON VERİSİ", "SIRADAKİ ADIM", "KARARIN GEREKÇESİ").
-            "BÖLGESEL ETKİ", "PİYASAYA ETKİSİ" gibi kaynakta karşılığı olmayan etiket yazma.
-    renk: ilk madde "kirmizi", diğerleri "kirec".
-  Kaynak iki madde taşıyorsa iki madde yaz; dolgu madde ekleme.
-- uzman_notu: "EDM notu" — okuyucunun bu haber karşısında YAPABİLECEĞİ tek somut
-  şey, en fazla 130 karakter. Kaynakta dayanağı olmayan fiyat tahmini, piyasa
-  yorumu, rakam ya da yerel iddia içeremez. Haberden doğrudan çıkan bir eylem
-  yoksa "" bırak.
-    İYİ : "Başvurudan önce e-Devlet'te üzerinize kayıtlı konut olup olmadığına bakın."
-    KÖTÜ: "Gelişmeleri takip edebilirsiniz ancak kural değişikliği olmadığını unutmayın."
-          (eylem yok, bilgi yok — boş bırakılmalıydı)
-- caption_instagram: 500-900 karakter, 3 kısa paragraf: (1) en somut gelişme
-  ve rakamı, (2) ayrıntılar ve takvim, (3) kimi nasıl ilgilendirdiği — yalnızca
-  kaynakta yazanla. Son cümle kaydet/takip çağrısı; soru sorma. Sonda konuya özel
-  2-3 etiket (#Gayrimenkul #Emlak gibi genel etiket yazma).
-- caption_threads: en fazla %(threads)d karakter: en somut gelişme + tek rakam + çağrı + 2 etiket.
+- spot: TEK cümle, en fazla 18 kelime (en fazla %(spot)d karakter). Başlıkta OLMAYAN ikinci
+  en somut bilgiyi ver (oran, tarih, kim söyledi, hangi şartla). Başlığı tekrarlama.
+  Kritik 1-2 veriyi **kalın** yazabilirsin.
+- detay_yazisi: 120-200 kelime, 4-5 PARAGRAF, her paragraf 28-40 kelime, paragraflar
+  arasında BOŞ SATIR. 1. paragraf (spot): olayın ne, nerede, nasıl olduğu ve ana sonuç.
+  2-5. paragraf: gelişme, rakamlar, taraflar, arka plan, etki; her paragraf YENİ bir bilgi
+  getirir, öncekini tekrarlamaz. Doğrudan söylemleri çift tırnak içine al. Kilit verileri
+  **kalın** yaz. Kaynakta o kadar bilgi YOKSA KISA BIRAK: dolgu cümleyle uzatmaktansa 2-3
+  paragraf yeter.
+- kanca: Kapak fotoğrafının üstüne basılan en fazla 5 kelimelik BÜYÜK HARFLİ ETİKET
+  ("//" kullanma, cümle değil etiket). Kanca BAŞLIĞIN ÖZETİ DEĞİLDİR: başlığı okuyanın
+  HENÜZ BİLMEDİĞİ bir ayrıntıyı (rakam, tarih, kurum, şart) KAYNAK GÖVDESİNDEN çıkarır.
+  Kanca, başlık ve spot ÜÇ FARKLI şey söylemeli. Türkçe yaz, açıklanmamış kısaltma ve
+  jargon kullanma. "yayınlandı", "açıklandı", "gündemde", "yeni dönem", "riski",
+  "tepkisi", "endişesi" ile biten, somut hiçbir şey taşımayan kanca YAZMA. Başlıkta VE
+  spotta geçmeyen çarpıcı bir ayrıntı yoksa "" bırak: boş bırakmak doldurmaya çalışmaktan
+  iyidir, kanca çizilmez ve kapak bir şey kaybetmez.
+- vurgu_sayi / vurgu_etiket: Başlıkta GEÇMEYEN ikinci en çarpıcı sayı ve etiketi. Sayfanın
+  en üstüne dev punto basılır. Yoksa ikisi de "". Çıplak YIL ya da TARİH çarpıcı sayı
+  değildir; çıplak tek haneli sayı da değildir. Ölçü, miktar, süre, oran ya da para yaz
+  ("[SAYI] [BİRİM]"). Etiket AD ÖBEĞİ olmalı ve "bu sayı neyin ölçüsü?" sorusunu tek
+  başına cevaplamalı; rakama yapışınca anlamlı olan cümle parçası ("… yaşındaki", "…
+  maçlık seri sona erdi") etiket değildir. Sayı HABERİN KENDİ verisi olmalı, ilgisiz bir
+  arka plan istatistiği değil.
+- alinti / alinti_sahibi: Haberde geçen doğrudan söz (en fazla 18 kelime, tırnaksız) ve
+  sahibi. Kaynakta KELİMESİ KELİMESİNE geçmeli; geçmiyorsa "" bırak (uydurma alıntı
+  yayına girmez).
+- neden_onemli: 1-2 cümle. Haberin somut etkisi (kimi, neyi, ne kadar). Soyut laf yok.
+- sana_etkisi: 1-2 cümle, en fazla 25 kelime. Haberin okuyucunun cebine, kirasına,
+  kredisine, tapusuna ya da başvurusuna doğrudan yansıması; okuyucunun YAPABİLECEĞİ somut
+  şey varsa onu yaz. Kaynakta dayanağı yoksa fiyat tahmini, piyasa yorumu, rakam ya da
+  yerel iddia içeremez. Haberden çıkan somut bir yansıma yoksa "" bırak.
+- sirada_ne_var: TEK cümle. Haberde AÇIKÇA geçen sonraki resmi adım, duruşma, başvuru ya
+  da yürürlük tarihi. Bilgi yoksa "".
+- ulke_kodu / ulke_adi: Haberin GEÇTİĞİ ülke (haberi yayınlayan kaynağın ülkesi değil).
+  ISO 3166-1 alpha-2, küçük harf ("tr", "us") ve Türkçe ad ("Türkiye", "ABD"). Ülkesi
+  olmayan haberde ikisi de "".
+- kategori_kodu: haberin konusuna göre.
+- onem_puani: 1-10. Türkiye'deki gayrimenkul, kira, kredi ve tapu okuyucusunun bu haberi
+  bilmek isteme derecesi (etki, aciliyet, konuşulurluk). Açıklama haberi ile olay
+  haberini ayır: bir yetkilinin bilinen bir konuda görüş bildirmesi 3-5; karar, düzenleme,
+  somut imkan ya da son başvuru tarihi olan fırsat 7-9.
+- caption_instagram: 3-5 cümle, ferah ve bilgilendirici düz metin; haberin somut verileri,
+  arka planı ve nedeni. ** kullanma, kaynak adı yazma, soru sorma. Kapanış çağrısını,
+  hashtag'leri ve iletişim satırını SİSTEM ekler; yazma.
+- caption_facebook: Instagram metniyle aynı bilgiler, bir iki cümle daha açıklayıcı.
+- caption_threads: en fazla %(threads)d karakter: en somut gelişme + tek rakam. Çağrı ve
+  etiket yazma.
 
 JSON:
 {
   "bicim": "B5",
   "format_turu": "dailybrief",
   "kategori_kodu": "TAPU_VE_HUKUK | EV_SAHIBI_VE_KIRACI | YATIRIM_VE_PIYASA | ARSA_IMAR_VE_TINY_HOUSE | SEKTOREL_HABER_VE_ANALIZ",
-  "kanca": "",
   "manset": "",
   "spot": "",
-  "detay_maddeleri": [
-    {"etiket": "", "metin": "", "renk": "kirmizi"},
-    {"etiket": "", "metin": "", "renk": "kirec"}
-  ],
-  "uzman_notu": "",
+  "detay_yazisi": "",
+  "kanca": "",
+  "vurgu_sayi": "",
+  "vurgu_etiket": "",
+  "alinti": "",
+  "alinti_sahibi": "",
+  "neden_onemli": "",
+  "sana_etkisi": "",
+  "sirada_ne_var": "",
+  "ulke_kodu": "",
+  "ulke_adi": "",
   "onem_puani": 7,
   "caption_instagram": "",
-  "caption_facebook": "Instagram metniyle aynı bilgiler, biraz daha açıklayıcı.",
+  "caption_facebook": "",
   "caption_threads": ""
 }""" % BUTCE
 
@@ -754,6 +803,14 @@ def butce_ihlalleri(veri: Dict[str, Any]) -> List[str]:
     Boş liste = görselde hiçbir metin kırpılmayacak."""
     ihlaller: List[str] = []
     haber = isinstance(veri, dict) and (veri.get("bicim") == "B5" or veri.get("format_turu") == "dailybrief")
+    if haber:
+        # Instabot sayfaları ~75 kelimeye göre tasarlı: detay 4 sayfayı aşarsa metin kaybolurdu
+        n = haber_alanlari.kelime_sayisi(veri.get("detay_yazisi"))
+        if n > AZAMI_DETAY_KELIME:
+            ihlaller.append(f"detay_yazisi: {n}/{AZAMI_DETAY_KELIME} kelime")
+        o = haber_alanlari.kelime_sayisi(veri.get("spot"))
+        if o > AZAMI_OZET_KELIME:
+            ihlaller.append(f"spot: {o}/{AZAMI_OZET_KELIME} kelime")
     for yol, anahtar in DENETLENECEK:
         if haber and yol == "manset":
             anahtar = "haber_manset"
@@ -792,14 +849,27 @@ def _yoldan_al_liste(veri: Dict[str, Any], yol: str) -> List[Dict[str, Any]]:
     return mevcut if isinstance(mevcut, list) else []
 
 
-def _temizle(veri: Dict[str, Any]) -> Dict[str, Any]:
-    """Sözlükte özyinelemeli gezip markdown ve ünlemleri temizler."""
+def _kalin_koru(metin: str) -> str:
+    """Instabot'taki gibi `**kalın**` vurgusu KORUNAN alanlar (haber detayı, özeti):
+    tipografi ve ünlem temizlenir, HTML atılır, `**` kalır (çizici kalın basar)."""
+    from . import filtre as _f
+    metin = re.sub(r"<[^>]+>", "", _f.tipografi_temizle(metin))
+    # Eşleşmeyen tek ** satırı bozar: çift sayıda değilse hepsi atılır
+    if metin.count("**") % 2:
+        metin = metin.replace("**", "")
+    return _unlemleri_kaldir(metin.strip())
+
+
+def _temizle(veri: Dict[str, Any], kalin: tuple = ()) -> Dict[str, Any]:
+    """Sözlükte özyinelemeli gezip markdown ve ünlemleri temizler.
+    `kalin`: üst düzey anahtarlar; bunlarda `**kalın**` işareti korunur."""
     if isinstance(veri, dict):
-        return {k: _temizle(v) for k, v in veri.items()}
+        return {k: (_kalin_koru(v) if (k in kalin and isinstance(v, str)) else _temizle(v)) for k, v in veri.items()}
     if isinstance(veri, list):
         return [_temizle(v) for v in veri]
     if isinstance(veri, str):
         return _unlemleri_kaldir(filtre.markdown_temizle(veri))
+    return veri
 def manset_birlestir(veri: Dict[str, Any]) -> str:
     """Üç parçalı manşeti tek metne çevirir (veritabanı ve Telegram önizlemesi için)."""
     if not isinstance(veri, dict):
@@ -1054,7 +1124,8 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
         ayrisik = _json_coz(ham) if ham else None
     if ayrisik is None:
         return None
-    veri = _temizle(ayrisik)
+    kalin = haber_alanlari.KALIN_ALANLAR if bicim == "B5" else ()
+    veri = _temizle(ayrisik, kalin)
     _captionlari_zenginlestir(veri)
 
     ihlaller = butce_ihlalleri(veri)
@@ -1075,7 +1146,7 @@ def _uret(girdi: str, bicim: str, sicaklik: float = 0.7) -> Optional[Dict[str, A
     if ayrisik2 is None:
         log.warning("Onarım turu başarısız, taşan metinle devam ediliyor")
         return veri
-    veri2 = _temizle(ayrisik2)
+    veri2 = _temizle(ayrisik2, kalin)
     _captionlari_zenginlestir(veri2)
 
     kalan = butce_ihlalleri(veri2)
@@ -1185,14 +1256,28 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         # eskiden dört sabit açı dayatılıyordu; bkz. HABER_KURALLARI üstündeki not.
         girdi += (
             "\n\nBu bir HABER. Yalnızca KAYNAK HABERİN TAM METNİndeki bilgiyle B5 şemasını doldur. "
-            "Kaynakta olmayan açı için madde açma; kanca ve uzman_notu için somut dayanak yoksa boş bırak."
+            "Kaynakta olmayan açı için paragraf açma; kanca, vurgu, alıntı ve sana_etkisi için somut "
+            "dayanak yoksa boş bırak."
         )
+        kaynak_uzun = len(str(konu.get("_makale") or konu.get("_dayanak") or konu.get("orijinal_ozet") or "").strip())
+        if kaynak_uzun < 400:
+            # Instabot `AZ_BILGI_UYARISI`: ince kaynakta model boşluğu genel cümlelerle dolduruyor (#171)
+            girdi += (
+                "\n\n⚠️ KAYNAK ÇOK KISA (yalnızca birkaç cümle). detay_yazisi EN FAZLA 2 kısa paragraf "
+                "olsun ve yalnızca bu cümlelerdeki bilgiyi tekrar etsin; neden_onemli, sana_etkisi, "
+                "vurgu_sayi, alinti alanlarını \"\" bırak. Genel geçer cümleyle doldurma: kısa ve net "
+                "olsun, uydurmaktansa eksik yazmak iyidir."
+            )
 
     def tamamla(v: Dict[str, Any]) -> None:
         v.setdefault("bicim", bicim)
         if format_turu:
             v["format_turu"] = format_turu
         v["konu_kodu"] = konu["kod"]
+        if bicim == "B5":
+            # Kaynakta dayanağı olmayan alıntı, vurgu rakamı, boş övgü ve boş kanca atılır
+            from . import dogrula
+            dogrula.haber_alanlarini_sadelestir(v, konu.get("_makale") or konu.get("_dayanak") or "")
         # Brief'i sakla: dogrula.py metindeki mevzuat ve yerel bağ iddialarını
         # bununla karşılaştırıyor.
         v["_brief"] = {
@@ -1265,6 +1350,9 @@ def otorite_icerigi_uret(
     if not veri:
         return None
     veri.setdefault("bicim", bicim)
+    if bicim == "B5" and isinstance(konu_veya_haber, dict):
+        from . import dogrula
+        dogrula.haber_alanlarini_sadelestir(veri, ozet)
 
     if isinstance(konu_veya_haber, dict) and konu_veya_haber.get("id"):
         db.haber_guncelle(

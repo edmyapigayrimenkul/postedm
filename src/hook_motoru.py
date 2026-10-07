@@ -314,10 +314,14 @@ def ciz_minimal_vurgu(
     stil: Optional[str] = None,
 ) -> Image.Image:
     """
-    Kutusuz editoryal kicker + dev vurgu başlığı; ikinci satırın okunurluğu `KANCA_STILI`ne bağlı.
+    Kutusuz editoryal kicker + dev vurgu başlığı; son satırın okunurluğu `KANCA_STILI`ne bağlı.
+    Bir ya da iki satır: tek satırlı kancada plaka/amber o tek satıra uygulanır.
     """
     stil = stil or KANCA_STILI
     out = gorsel.copy()
+    satirlar = [s for s in (t1, t2) if s]
+    if not satirlar:
+        return gorsel
     # "●" karakteri IBM Plex Sans'ta yok, kutu (□) basılıyordu: nokta ayrıca çiziliyor.
     f_kicker = _font(28, "sans_bold")
     minimal_alan = max(200, (TUVAL_GENISLIK - SAG_PAY) - x)
@@ -327,28 +331,30 @@ def ciz_minimal_vurgu(
 
     # Tavan punto (Instabot paritesi 92 punto)
     tavan_punto = 92
-    f_title = _sigdiran_font([t1, t2], tavan_punto, minimal_alan - (24 if stil == "plaka" else 0), asgari=26, tip="sans_bold")
-    if not (_sigar_mi(t1, f_title, minimal_alan) and _sigar_mi(t2, f_title, minimal_alan)):
-        log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s / %s", t1, t2)
+    f_title = _sigdiran_font(satirlar, tavan_punto, minimal_alan - (24 if stil == "plaka" else 0), asgari=26, tip="sans_bold")
+    if not all(_sigar_mi(s, f_title, minimal_alan) for s in satirlar):
+        log.warning("Kanca asgari puntoda sığmadı, kapak kancasız çizildi: %s", satirlar)
         return gorsel
     if not _sigar_mi(kicker, f_kicker, minimal_alan - (kicker_x - x)):
         kicker = ""
 
     ust = 46 if kicker else 0
     satir_y = int(f_title.size * 1.12)
-    govde_h = ust + (satir_y if t2 else 0) + int(f_title.size * 1.25)
+    govde_h = ust + (len(satirlar) - 1) * satir_y + int(f_title.size * 1.25)
+    vurgu_idx = len(satirlar) - 1          # plaka/amber son satıra uygulanır
 
     if stil == "cubuk":
         out = _okuma_bandi(out, y - 30, y + govde_h + 30)
 
-    # Difüzyon Gölgesi
+    # Difüzyon Gölgesi (plakalı satırın gölgesi yok: plaka zaten zemin)
     shadow = Image.new("RGBA", (minimal_alan + 80, govde_h + 80), (0, 0, 0, 0))
     sdraw = ImageDraw.Draw(shadow)
     if kicker:
         sdraw.text((35 + kicker_x - x, 25), kicker, font=f_kicker, fill=(0, 0, 0, 230))
-    sdraw.text((35, 25 + ust), t1, font=f_title, fill=(0, 0, 0, 240))
-    if t2 and stil != "plaka":
-        sdraw.text((35, 25 + ust + satir_y), t2, font=f_title, fill=(0, 0, 0, 240))
+    for i, s in enumerate(satirlar):
+        if stil == "plaka" and i == vurgu_idx:
+            continue
+        sdraw.text((35, 25 + ust + i * satir_y), s, font=f_title, fill=(0, 0, 0, 240))
     shadow = shadow.filter(ImageFilter.GaussianBlur(14))
     out.paste(shadow, (x - 35, y - 25), shadow)
 
@@ -358,20 +364,18 @@ def ciz_minimal_vurgu(
         orta = y + (f_kicker.getbbox("ÇĞ")[1] + f_kicker.getbbox("ÇĞ")[3]) // 2
         draw.ellipse([x, orta - nokta // 2, x + nokta, orta + nokta // 2], fill=nokta_renk)
         draw.text((kicker_x, y), kicker, font=f_kicker, fill=WHITE)
-    draw.text((x, y + ust), t1, font=f_title, fill=WHITE)
-
-    if t2:
-        t2_y = y + ust + satir_y
-        if stil == "plaka":
-            bb = f_title.getbbox(t2)
+    for i, s in enumerate(satirlar):
+        sy = y + ust + i * satir_y
+        if i == vurgu_idx and stil == "plaka":
+            bb = f_title.getbbox(s)
             pad_x, pad_ust, pad_alt = 20, 6, 14
-            plaka = [x - pad_x, t2_y + bb[1] - pad_ust, x + (bb[2] - bb[0]) + pad_x + bb[0], t2_y + bb[3] + pad_alt]
-            draw.rectangle(plaka, fill=PLAKA_KIRMIZI)
-            draw.text((x, t2_y), t2, font=f_title, fill=WHITE)
-        elif stil == "amber":
-            draw.text((x, t2_y), t2, font=f_title, fill=AMBER)
-        else:  # cubuk
-            draw.text((x, t2_y), t2, font=f_title, fill=WHITE)
+            draw.rectangle([x - pad_x, sy + bb[1] - pad_ust, x + (bb[2] - bb[0]) + pad_x + bb[0], sy + bb[3] + pad_alt],
+                           fill=PLAKA_KIRMIZI)
+            draw.text((x, sy), s, font=f_title, fill=WHITE)
+        elif i == vurgu_idx and stil == "amber":
+            draw.text((x, sy), s, font=f_title, fill=AMBER)
+        else:
+            draw.text((x, sy), s, font=f_title, fill=WHITE)
     if stil == "cubuk":
         bar_ust = y + (0 if not kicker else ust)
         draw.rectangle([x - 26, bar_ust + 6, x - 16, y + govde_h - int(f_title.size * 0.2)], fill=PLAKA_KIRMIZI)
@@ -423,7 +427,12 @@ def hook_olustur(haber: Dict[str, Any], fallback: bool = False) -> Optional[Dict
             parts = [p.strip() for p in kanca_temiz.split("//", 1)]
             t1, t2 = tr_upper(parts[0]), tr_upper(parts[1])
         else:
-            t1, t2 = _dengeli_bol(tr_upper(kanca_temiz).split())
+            kelimeler = tr_upper(kanca_temiz).split()
+            if len(kelimeler) <= 3 and len(kanca_temiz) <= 20:
+                # Kısa kanca tek satırdır; ikiye bölünüp plaka yalnız son kelimeye düşmesin
+                t1, t2 = "", " ".join(kelimeler)
+            else:
+                t1, t2 = _dengeli_bol(kelimeler)
         if (t1 or t2) and _basliktan_farkli_mi(t1, t2, baslik):
             return {
                 "format": "minimal_vurgu",

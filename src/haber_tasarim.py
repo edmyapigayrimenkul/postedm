@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-from . import config, fetch_flag
+from . import config, fetch_flag, haber_alanlari
 
 log = logging.getLogger(__name__)
 
@@ -705,7 +705,7 @@ def _bayragi_bas(
     yukseklik = ust_pay + b_yuk + (ara + yazi_yuk if metin else 0) + alt_pay
 
     uc_payi = 38                      # sol uçtaki V çentik için ayrılan yer
-    ic_sol, ic_sag = 22, 28
+    ic_sol, ic_sag = 22, 40   # EDM YAMASI: 28 idi, yazı sağ kenara 28 px yakındı (kural >= 36)
     genislik = uc_payi + ic_sol + icerik_gen + ic_sag
 
     x1 = gorsel.width                 # sağ kenara yapışık
@@ -1548,7 +1548,21 @@ def detay_sayfalara_bol(
             ikisi = bloklar[0]["yukseklik"] + PARAGRAF_ARASI + bloklar[1]["yukseklik"]
 
     # Sayfalara estetik ve dengeli dağıt (yetim blok korumalı)
-    return _sayfalari_dengeli_bol(bloklar, kullanilabilir, AZAMI_DETAY_SAYFA, PARAGRAF_ARASI)
+    sayfalar = _sayfalari_dengeli_bol(bloklar, kullanilabilir, AZAMI_DETAY_SAYFA, PARAGRAF_ARASI)
+    # EDM YAMASI: Instabot sayfa sınırını aşan blokları SESSİZCE düşürüyor. Bizde sığmayan
+    # metin kırpılmaz; üretim durur, metin kısaltılır (bkz. generate_text.AZAMI_DETAY_KELIME).
+    yerlesen = sum(len(s) for s in sayfalar)
+    from .make_image import TasmaHatasi
+    if yerlesen != len(bloklar):
+        raise TasmaHatasi(
+            f"Haber detayı {AZAMI_DETAY_SAYFA} sayfaya sığmadı ({len(bloklar)} bloktan {yerlesen} yerleşti)")
+    # Tek blok sayfadan uzunsa (cümle sınırı bulunamayan dev paragraf) Instabot yine de çiziyor ve
+    # metin 4:5 kutunun altına, alt bilginin üstüne taşıyor. Bizde taşan metin basılmaz.
+    for s in sayfalar:
+        h = sum(b.get("yukseklik", 0) for b in s) + PARAGRAF_ARASI * max(0, len(s) - 1)
+        if h > kullanilabilir:
+            raise TasmaHatasi(f"Haber detay sayfası taşıyor ({h}/{kullanilabilir} px); paragraf kısaltılmalı")
+    return sayfalar
 
 
 def detay_slayti(
@@ -1658,8 +1672,12 @@ def detay_slayti(
                 ciz.text((kenar + 26, y), satir, font=f, fill=PARLAK)
                 y += satir_y
             if b["sahibi"]:
-                ciz.text((kenar + 26, y + 8), f"— {b['sahibi']}",
-                         font=_font(28, EKSEN_KUCUK), fill=SOLUK)
+                # EDM YAMASI: uzun/bölünemeyen sahip adı kenardan taşıyordu
+                sahip_f = _font(28, EKSEN_KUCUK)
+                sahip = f"— {b['sahibi']}"
+                while len(sahip) > 6 and ciz.textlength(sahip, font=sahip_f) > genislik - 2 * kenar - 26:
+                    sahip = sahip[:-2].rstrip(" ,;") + "…"
+                ciz.text((kenar + 26, y + 8), sahip, font=sahip_f, fill=SOLUK)
             y += 54
 
         elif tip in ("neden_onemli", "sirada_ne_var", "sana_etkisi"):
@@ -1858,27 +1876,22 @@ def girdiyi_hazirla(haber: Dict[str, Any]) -> Dict[str, Any]:
     baslik = _bos_degil(haber.get("ig_baslik"), haber.get("manset"), haber.get("baslik"),
                         haber.get("orijinal_baslik")).replace("**", "")
     ozet = _bos_degil(haber.get("slayt_ozet"), haber.get("spot"), haber.get("ozet"))
-    detay = _bos_degil(haber.get("detay_yazisi"), paragraf=True)
-    if not detay:
-        parcalar = []
-        for m in haber.get("detay_maddeleri") or []:
-            if isinstance(m, dict) and _bos_degil(m.get("metin")):
-                parcalar.append(_bos_degil(m.get("metin")))
-        detay = "\n\n".join(parcalar)
-    sayi = _bos_degil(haber.get("vurgu_sayi"))
-    alinti = _bos_degil(haber.get("alinti"))
+    # İki şema da (Instabot alanları ve eski B5) `haber_alanlari` üzerinden okunur
+    detay = "\n\n".join(haber_alanlari.detay_paragraflari(haber))
+    sayi, sayi_etiket = haber_alanlari.vurgu(haber)
+    alinti, alinti_sahibi = haber_alanlari.alinti(haber)
     return {
         "baslik": baslik,
         "ozet": ozet,
         "detay": detay,
         "kaynak": " · ".join(x for x in (_bos_degil(haber.get("kaynak_adi"), haber.get("kaynak")),
                                           _bos_degil(haber.get("foto_atif"))) if x),
-        "vurgu": (sayi, _bos_degil(haber.get("vurgu_etiket"))) if sayi else None,
-        "alinti": (alinti, _bos_degil(haber.get("alinti_sahibi"))) if alinti else None,
+        "vurgu": (sayi, sayi_etiket) if sayi else None,
+        "alinti": (alinti, alinti_sahibi) if alinti else None,
         "neden_onemli": _bos_degil(haber.get("neden_onemli")) or None,
         "sirada_ne_var": _bos_degil(haber.get("sirada_ne_var")) or None,
         # Eski B5'te "EDM uzman notu" vardı; Instabot'un karşılığı "sana etkisi"
-        "sana_etkisi": _bos_degil(haber.get("sana_etkisi"), haber.get("uzman_notu")) or None,
+        "sana_etkisi": haber_alanlari.sana_etkisi(haber) or None,
         "ulke_kodu": _bos_degil(haber.get("ulke_kodu")),
         "ulke_adi": _bos_degil(haber.get("ulke_adi")),
         "kategori": _bos_degil(haber.get("kategori")) or "sektor",

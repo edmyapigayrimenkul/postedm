@@ -153,7 +153,7 @@ def _foto_ac_veya_indir(kaynak: Path | str, deneme_adedi: int = 3) -> Optional[I
 OKUMA_HIZI_KELIME_SN = 5.0            # telefonda hızlı okuma
 DETAY_ASGARI_SN, DETAY_AZAMI_SN = 3.2, 5.5
 GECIS_SN = 0.5
-_SLAYT_METNI = ("detay_maddeleri", "uzman_notu", "cikarilacak_ders", "stratejist_notu", "olay_detay",
+_SLAYT_METNI = ("detay_maddeleri", "uzman_notu", "detay_yazisi", "neden_onemli", "sana_etkisi", "sirada_ne_var", "alinti", "cikarilacak_ders", "stratejist_notu", "olay_detay",
                 "yargitay_hukmu", "puf_maddeleri", "maddeler", "adimlar", "altin_kural", "tavsiye", "tavsiye_metin")
 _SAYILMAYAN = ("renk", "no", "tip", "ikon", "etiket_rengi")
 

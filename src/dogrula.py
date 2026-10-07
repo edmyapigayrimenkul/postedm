@@ -31,7 +31,7 @@ import re
 import unicodedata
 from typing import Any, Dict, List, Optional, Set
 
-from . import filtre
+from . import filtre, haber_alanlari
 
 log = logging.getLogger(__name__)
 
@@ -304,7 +304,8 @@ def _tum_metin(veri: Dict[str, Any], captionlar: bool = False) -> str:
 # 4'ünde vardı ve onaylayan göz alıştığı için geçiyordu. Haberde kaynak metin
 # elimizde: orada olmayan sayı ve yerel bağ kanıtlanmış uydurmadır.
 
-_HABER_ALANLARI = ("manset", "spot", "kanca", "uzman_notu")
+_HABER_ALANLARI = ("manset", "spot", "kanca", "vurgu_sayi", "vurgu_etiket", "alinti",
+                   "neden_onemli", "sana_etkisi", "sirada_ne_var", "uzman_notu")
 
 
 def _caption_govdesi(metin: str) -> str:
@@ -324,8 +325,11 @@ def haber_parcalari(veri: Dict[str, Any], captionlar: bool = False,
     her biri cümle başı sayılsın — birleşik metinde maddenin ilk kelimesi
     önceki etiketin devamı gibi görünüp özel isim sanılıyordu.
     """
-    parcalar = [str(veri.get(k) or "") for k in _HABER_ALANLARI]
-    for m in veri.get("detay_maddeleri") or []:
+    parcalar = [haber_alanlari.kalin_sil(veri.get(k)) for k in _HABER_ALANLARI]
+    if isinstance(veri.get("detay_yazisi"), str) and veri["detay_yazisi"].strip():
+        # Instabot şeması: paragraflar (`**` işaretleri metne girmez)
+        parcalar.extend(haber_alanlari.detay_paragraflari(veri, kalin=False))
+    for m in veri.get("detay_maddeleri") or []:     # eski B5 kayıtları
         if isinstance(m, dict):
             if etiketler:
                 # Eski kayıtlarda etiketler "01 // …" diye numaralı
@@ -383,12 +387,121 @@ _ICI_BOS_KANCA = re.compile(
     re.IGNORECASE)
 
 
+# "GEREKLİ BELGE VE KRİTERLER" gibi, hiçbir somut şey söylemeyen genel kelimeler (#470)
+_GENEL_KANCA_KELIMELERI = {
+    "gerekli", "belge", "belgeler", "kriter", "kriterler", "şart", "şartlar", "bilgi", "bilgiler", "detay",
+    "detaylar", "gelişme", "gelişmeler", "süreç", "yeni", "önemli", "dikkat", "ve", "ile", "için", "başvuru",
+    "karar", "kurallar", "kural", "değişiklik", "dönem", "haber", "son", "durum", "açıklama", "açıklandı",
+}
+
+
 def kanca_ici_bos_mu(kanca: Optional[str]) -> bool:
-    """Rakam, tarih ya da ad taşımayan ve boş bir fiille biten kanca."""
+    """Rakam, tarih ya da ad taşımayan kanca: boş bir fiille bitiyor ya da yalnız genel kelimelerden oluşuyor."""
     k = str(kanca or "").strip()
     if not k or re.search(r"\d", k):
         return False
-    return any(_ICI_BOS_KANCA.search(p.strip()) for p in k.split("//") if p.strip())
+    if any(_ICI_BOS_KANCA.search(p.strip()) for p in k.split("//") if p.strip()):
+        return True
+    kelimeler = [_kucult(w).strip(".,;:") for w in k.replace("//", " ").split()]   # Türkçe İ tuzağı: .lower() değil
+    kelimeler = [w for w in kelimeler if w]
+    return bool(kelimeler) and all(w in _GENEL_KANCA_KELIMELERI for w in kelimeler)
+
+
+# Kaynakta suçlama/soruşturma olduğunu gösteren ifadeler (Instabot `SUCLAMA_ISARETI`).
+_SUCLAMA_ISARETI = ("iddia", "öne sürül", "şüpheli", "gözaltına", "soruşturma",
+                    "savcılık", "hakkında dava", "suçlam", "tutuklama talebi")
+# Üretilen metinde ihtiyat korunduğunu gösteren ifadeler (Instabot `IHTIYAT_ISARETI`).
+_IHTIYAT_ISARETI = ("iddia", "öne sürül", "şüpheli", "soruşturma", "gözaltı",
+                    "savcılık", "hakkında dava", "suçlam", "tutukland", "yargılan",
+                    "belirtil", "bildiril", "açıklad", "duyur")
+
+
+def suclama_dili_denetle(veri: Dict[str, Any], kaynak: str) -> List[str]:
+    """Kaynakta suçlama/soruşturma varsa üretilen metinde ihtiyat dili korunmuş mu?
+
+    Sayı ve isim denetimi bunu yakalamaz: kaynak "hakkında soruşturma başlatıldı" derken
+    metin "suç örgütü elebaşı" diyebilir, bütün sayı ve isimler tutar ama dil
+    kesinleşmiştir (iftira riski). Instabot ölçümü: atıflı başlıkta ("Kurum: …") yanlış
+    alarm verdiği için atıflı başlık muaf. Uyarıdır, yayını kilitlemez.
+    """
+    kaynak_sade = _sadelestir(kaynak or "")
+    if not kaynak_sade or not any(_sadelestir(k) in kaynak_sade for k in _SUCLAMA_ISARETI):
+        return []
+    baslik = haber_alanlari.kalin_sil(veri.get("manset"))
+    if re.match(r"^[^:]{2,40}:", baslik):
+        return []
+    uretilen = _sadelestir(" ".join([baslik, haber_alanlari.kalin_sil(veri.get("spot")),
+                                     " ".join(haber_alanlari.detay_paragraflari(veri, kalin=False)),
+                                     haber_alanlari.kalin_sil(veri.get("caption_instagram"))]))
+    if any(_sadelestir(k) in uretilen for k in _IHTIYAT_ISARETI):
+        return []
+    return ["⚠️ SUÇLAMA KESİN DİLLE: kaynakta soruşturma/iddia var, metinde ihtiyat dili (iddia, soruşturma, "
+            "şüpheli…) yok — kimse mahkeme kararı olmadan suçlu ilan edilmez."]
+
+
+def haber_alanlarini_sadelestir(veri: Dict[str, Any], kaynak: str) -> Dict[str, Any]:
+    """Üretim sonrası: kaynakta dayanağı olmayan ÇİZİLEN öğeleri sessizce eler (Instabot standardı).
+
+    Uydurma alıntı kapıda ⛔ olurdu; ama bir alıntı yüzünden bütün içeriği durdurmak yerine
+    alıntı atılır ve slayt onsuz basılır (Instabot: `alintiyi_denetle`). Aynısı zayıf ya da
+    kaynaksız vurgu rakamı, boş övgü ve içi boş kanca için geçerli. Kapı yedek olarak durur.
+    """
+    if not isinstance(veri, dict):
+        return veri
+    kaynak = kaynak or ""
+
+    # İnce kaynak (bilinen ama 400 karakterden kısa): model boşluğu genel cümlelerle dolduruyor
+    # (#171: "…önem taşıyor", "…süreçleri takip edilecek"). Detay ilk iki paragrafla sınırlanır;
+    # çıkarım ağırlıklı alanlar (neden önemli, sana etkisi) atılır.
+    if kaynak.strip() and len(kaynak.strip()) < 400:
+        paragraflar = haber_alanlari.detay_paragraflari(veri)
+        if len(paragraflar) > 2:
+            veri["detay_yazisi"] = "\n\n".join(paragraflar[:2])
+        veri["neden_onemli"] = veri["sana_etkisi"] = ""
+
+    # Başlığın sonunda nokta yok (prompt kuralı; model sık atlıyor, #470)
+    if isinstance(veri.get("manset"), str):
+        veri["manset"] = veri["manset"].strip().rstrip(".").strip()
+
+    soz, _sahibi = haber_alanlari.alinti(veri)
+    if soz and (len(soz.split()) > 24 or not alintiyi_denetle(soz, kaynak)):
+        log.info("kaynakta doğrulanamayan alıntı atıldı: %s", soz[:60])
+        veri["alinti"] = veri["alinti_sahibi"] = ""
+
+    sayi, etiket = haber_alanlari.vurgu(veri)
+    if etiket and len(etiket) > 44:
+        # Etiket ad öbeğidir, cümle değil; tek satırda 30 puntoda durur
+        etiket = etiket[:44].rsplit(" ", 1)[0].rstrip(" ,;:-")
+        veri["vurgu_etiket"] = etiket
+    if sayi:
+        neden = vurgu_zayif_mi(sayi, etiket)
+        if not neden and len(sayi) > 18:
+            neden = "sayı çok uzun (dev punto tek satıra sığmaz)"
+        kaynak_sayilar = sayi_esdegerleri(kaynak)
+        # Başlıkta, özette ya da kancada zaten geçen sayı "ikinci çarpıcı sayı" değildir
+        baslikta = _sayilar(" ".join(haber_alanlari.kalin_sil(veri.get(k)) for k in ("manset", "spot", "kanca")))
+        sayi_set = _sayilar(sayi)
+        if not neden and kaynak and not sayi_set <= kaynak_sayilar:
+            neden = "sayı kaynakta yok"
+        if not neden and sayi_set and sayi_set <= baslikta:
+            neden = "sayı başlıkta/özette/kancada zaten geçiyor"
+        if neden:
+            log.info("vurgu rakamı atıldı (%s): %s / %s", neden, sayi, etiket)
+            veri["vurgu_sayi"] = veri["vurgu_etiket"] = ""
+
+    for alan in ("neden_onemli", "sana_etkisi"):
+        if veri.get(alan):
+            veri[alan] = ovguyu_ele(str(veri[alan]))
+
+    if kanca_ici_bos_mu(veri.get("kanca")):
+        log.info("içi boş kanca atıldı: %s", veri.get("kanca"))
+        veri["kanca"] = ""
+
+    kod = str(veri.get("ulke_kodu") or "").strip().lower()
+    veri["ulke_kodu"] = kod if re.fullmatch(r"[a-z]{2,12}", kod) else ""
+    if not veri["ulke_kodu"]:
+        veri["ulke_adi"] = ""
+    return veri
 
 
 def haber_kaynak_denetimi(veri: Dict[str, Any], brief: Dict[str, Any]) -> List[str]:
@@ -430,6 +543,8 @@ def haber_kaynak_denetimi(veri: Dict[str, Any], brief: Dict[str, Any]) -> List[s
         uyarilar.append(
             f"⚠️ AD KAYNAKTA YOK: {', '.join(isimler[:6])} — kaynakta geçmiyor, elle teyit edin."
         )
+
+    uyarilar.extend(suclama_dili_denetle(veri, kaynak))
 
     if kanca_ici_bos_mu(veri.get("kanca")):
         uyarilar.append(
