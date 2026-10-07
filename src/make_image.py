@@ -1920,6 +1920,46 @@ def slayt_ikili_fikir(
     return cikti_yolu
 
 
+# Kısa adım kümesi: tüm adımların gövdesi ve başlığı bu sınırların altındaysa slayt iri dizilir.
+# Ölçüm (2026-10-07): bir cümlelik adımlar sayfanın yalnız %34'ünü dolduruyordu.
+ADIM_IRI_GOVDE = 110     # karakter
+ADIM_IRI_BASLIK = 34
+
+
+def adim_iri_mi(maddeler: List[Dict[str, Any]]) -> bool:
+    """Kümenin TÜM adımları kısaysa True. Ölçek küme düzeyinde seçilir: tek tek seçilirse ardışık
+    slaytlarda numara ve başlık boyutu zıplar (bir adım iri, sonraki küçük) ve akış bozulur."""
+    adimlar = [m for m in (maddeler or []) if isinstance(m, dict)]
+    return bool(adimlar) and all(
+        len(str(m.get("aciklama") or "").strip()) <= ADIM_IRI_GOVDE
+        and len(str(m.get("baslik") or "").strip()) <= ADIM_IRI_BASLIK
+        for m in adimlar
+    )
+
+
+def _adim_olcusu(draw: ImageDraw.ImageDraw, baslik: str, govde: str, iri: bool, ek_alan: int = 0):
+    """Bir adımın metin bloğu: (ölçü, numara yüksekliği, toplam blok yüksekliği).
+    `slayt_adim` ve `adim_blok_yuksekligi` aynı ölçüyü kullanır; ikisi ayrışırsa hizalama kayar."""
+    yer = _yerlesim()
+    genislik = GENISLIK - (2 * yer["kenar"])
+    n_yuk = 190 if iri else 150
+    baslik_punto = 70 if YUKSEKLIK >= 1700 else 64
+    govde_punto = 42 if YUKSEKLIK >= 1700 else 40
+    if iri:
+        baslik_punto, govde_punto = baslik_punto + 14, govde_punto + 10
+    olcu = _fikir_blogu_olc(draw, "", baslik, govde, genislik, baslik_punto=baslik_punto, govde_punto=govde_punto)
+    olcu = _blogu_sigdir(olcu, yer["alt"] - yer["ust"] - n_yuk - 26 - ek_alan)
+    return olcu, n_yuk, n_yuk + 26 + olcu["h"] + ek_alan
+
+
+def adim_blok_yuksekligi(maddeler: List[Dict[str, Any]], iri: bool) -> int:
+    """Kümedeki en uzun adım bloğunun yüksekliği. Slaytlar bu yüksekliğe göre hizalanır: gövdesi tek
+    satır tutan adımın numarası, iki satır tutanınkinden aşağıda durmasın (kaydırırken zıplıyordu)."""
+    draw = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+    return max((_adim_olcusu(draw, str(m.get("baslik") or ""), str(m.get("aciklama") or ""), iri)[2]
+                for m in maddeler if isinstance(m, dict)), default=0)
+
+
 def slayt_adim(
     zemin_adi: str,
     rozet: str,
@@ -1931,9 +1971,14 @@ def slayt_adim(
     sayfa: str,
     cikti_yolu: Path,
     onemli_not: Optional[str] = None,
+    iri: bool = False,
+    hiza_yuksekligi: int = 0,
 ) -> Path:
     """Tek adım, tam sayfa. Dinamik ilerleme çubuğu (progress track), devasa numara
-    ve isteğe bağlı sade önemli not kutusu ile tasarlanmıştır."""
+    ve isteğe bağlı sade önemli not kutusu ile tasarlanmıştır.
+
+    `iri`: kısa adım kümesi için büyütülmüş dizgi (`adim_iri_mi`); sığmazsa `_blogu_sigdir` küçültür.
+    `hiza_yuksekligi`: kümenin en uzun bloğu (`adim_blok_yuksekligi`); verilirse numara hep aynı yükseklikte durur."""
     canvas, draw, p = _slayt_cercevesi(zemin_adi, rozet, alt_metin, sayfa)
 
     yer = _yerlesim()
@@ -1961,28 +2006,22 @@ def slayt_adim(
         draw.rounded_rectangle([(sx, bar_y), (sx + seg_w, bar_y + 6)], radius=3, fill=c)
 
     # 2. Devasa Numara ve İçerik
-    n_font = _font_yukle(FONT_FRAUNCES, 150)
-    no_gosterim = f"0{mevcut_no}"[-2:]
-
     not_metni = _temizle_tipografi(str(onemli_not or "")).strip()
     ek_alan = 150 if not_metni else 0
-
-    baslik_punto = 70 if YUKSEKLIK >= 1700 else 64
-    govde_punto = 42 if YUKSEKLIK >= 1700 else 40
-    olcu = _fikir_blogu_olc(draw, "", baslik, govde, genislik, baslik_punto=baslik_punto, govde_punto=govde_punto)
-    n_yuk = 150
-    olcu = _blogu_sigdir(olcu, yer["alt"] - yer["ust"] - n_yuk - 26 - ek_alan)
-    toplam = n_yuk + 26 + olcu["h"] + ek_alan
+    olcu, n_yuk, toplam = _adim_olcusu(draw, baslik, govde, iri, ek_alan)
+    n_font = _font_yukle(FONT_FRAUNCES, n_yuk)
+    no_gosterim = f"0{mevcut_no}"[-2:]
+    hiza = max(toplam, hiza_yuksekligi)
     if YUKSEKLIK >= 1700:
         alan = yer["alt"] - yer["ust"]
-        y = yer["ust"] + max(0, (alan - toplam) // 2 - OPTIK_KALDIRMA)
+        y = yer["ust"] + max(0, (alan - hiza) // 2 - OPTIK_KALDIRMA)
     else:
-        y = max(yer["ust"], yer["taban"] - toplam)
+        y = max(yer["ust"], yer["taban"] - hiza)
 
-    draw.text((kenar, y - 30), no_gosterim, font=n_font, fill=p["vurgu"])
+    draw.text((kenar, y - int(30 * n_yuk / 150)), no_gosterim, font=n_font, fill=p["vurgu"])
     kf = _font_yukle(FONT_MONO_BOLD, 20)
     nw = draw.textbbox((0, 0), no_gosterim, font=n_font)[2]
-    draw.text((kenar + nw + 22, y + 46), f"/ {str(toplam_adim_guvenli).zfill(2)} ADIM", font=kf, fill=p["silik"])
+    draw.text((kenar + nw + 22, y + int(46 * n_yuk / 150)), f"/ {str(toplam_adim_guvenli).zfill(2)} ADIM", font=kf, fill=p["silik"])
 
     son_y = _fikir_blogu_ciz(canvas, draw, olcu, kenar, y + n_yuk + 26, p, vurgu_cizgisi=None)
 
@@ -3133,8 +3172,10 @@ def _slayt_plani(veri: Dict[str, Any]) -> List[Dict[str, Any]]:
     elif maddeler:
         # Önemli adımların her biri kendi bağımsız ekranına (slayt_adim) açılır;
         # her birinde dinamik progress bar, devasa numara ve önemli not kutusu yer alır.
+        iri = adim_iri_mi(maddeler)
         for m in maddeler:
-            plan.append({"tur": "adim", "madde": m, "toplam": len(maddeler), "zemin": "murekkep"})
+            plan.append({"tur": "adim", "madde": m, "toplam": len(maddeler), "zemin": "murekkep", "iri": iri,
+                         "tum_adimlar": maddeler})
 
     plan.append({"tur": "kapanis"})
     return plan
@@ -3212,6 +3253,8 @@ def _gonderi_slaytlarini_ciz(veri: Dict[str, Any], cikti_onek: Optional[str]) ->
                 adim["zemin"], veri.get("slayt_3_cozum", {}).get("baslik_vurgu") or rozet,
                 m.get("no", "01"), m.get("baslik", ""), m.get("aciklama", ""),
                 adim["toplam"], "EDM YAPI & GAYRİMENKUL // DANIŞMANLIK", sayfa, yol,
+                iri=bool(adim.get("iri")),
+                hiza_yuksekligi=adim_blok_yuksekligi(adim.get("tum_adimlar") or [m], bool(adim.get("iri"))),
             ))
 
         elif tur == "finansal_tablo":

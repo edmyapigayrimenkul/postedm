@@ -191,10 +191,25 @@ Karar konudan değil **metnin gerçek uzunluğundan** verilir (`make_image._slay
 | Bölüm | Eşik | Altındaysa | Üstündeyse |
 |---|---|---|---|
 | Analiz | iki açıklama toplamı ≤ 290 karakter | tek karede iki fikir | fikir başına bir slayt |
-| Adımlar | tüm açıklamalar ≤ 330 karakter | tek karede üç adım | adım başına bir slayt |
+| Adımlar | — | **her zaman adım başına bir slayt** | (aşağıya bakın) |
 
 Sonuç 4 ile 7 slayt arasında değişir. Kısa içeriği yaymak, uzun içeriği tıkmak
 kadar kötüdür.
+
+**Adımlar neden birleşmiyor (2026-10-07).** Bu tabloda adımların ≤ 330 karakterde tek karede
+toplandığı yazıyordu; kod bunu `0a416a0`'dan beri yapmıyor (Instabot paritesi: her adım kendi
+ekranında; `slayt_adimlar_toplu` yalnız eski planlar için duruyor). Ölçüm: format başına slayt
+sayısı erişimi belirliyor (tek kare formatlar en düşük erişimdeydi), bu yüzden kısa adımları
+birleştirmek yerine **aynı slayt iri dizilir**:
+
+- Kümenin TÜM adımları kısaysa (gövde ≤ 110, başlık ≤ 34 karakter; `make_image.adim_iri_mi`)
+  numara 150→190 px, başlık +14, gövde +10 punto büyür. Ölçek küme düzeyinde seçilir; tek tek
+  seçilirse ardışık slaytlarda boyut zıplar. Bir cümlelik adımın sayfa doluluğu %34 → %42-50.
+- Numara kümenin en uzun bloğuna göre hizalanır (`adim_blok_yuksekligi`): gövdesi tek satıra
+  sığan adımın numarası iki satır tutanınkinden aşağıda durup kaydırırken zıplıyordu.
+- Örnek Olay'ın 2. slaytında hüküm, rozet ile ders kutusu arasında dikey ortalanır ve sığan en
+  büyük puntoda (62'ye kadar) dizilir; eskiden tepeye yapışıktı, ortası boştu.
+- **Kapanış slaytı değişmedi** (kullanıcı kararı).
 
 ### Zemin varyantları — dekorasyon değil, anlam
 

@@ -1265,7 +1265,9 @@ def uret_vaka_slayt2(
     ust_sinir = yer["ust"] - 10
     mevcut_hukum_h = (kutu_y - 28) - ust_sinir
 
-    punto_hukum = 54
+    # Sığan EN BÜYÜK punto: kısa hükümde 54'te kalınca sayfanın yarısı boş kalıyordu (2026-10-07 ölçümü:
+    # gövde dolulukla %24); uzun hükümde döngü eskisi gibi küçültür.
+    punto_hukum = 62
     while punto_hukum >= 30:
         f_hukum_test = make_image._font_yukle(FONT_FRAUNCES, punto_hukum)
         leading_hukum_test = int(punto_hukum * 1.32)
@@ -1285,7 +1287,8 @@ def uret_vaka_slayt2(
     f_hukum = make_image._font_yukle(FONT_FRAUNCES, punto_hukum_final)
 
     hukum_blok_h = 36 + 18 + h_hukum
-    curr_y = ust_sinir + min(36, max(0, mevcut_hukum_h - hukum_blok_h) // 3)
+    # Blok, rozet ile ders kutusu arasındaki boşlukta dikey ortalanır (tepeye yapışık bırakınca orta boştu)
+    curr_y = ust_sinir + max(0, (mevcut_hukum_h - hukum_blok_h) // 2 - make_image.OPTIK_KALDIRMA)
     # Belirli bir karar yokken "Yargıtay'ın verdiği kesin hüküm" demek yanıltıcı
     # (#157, 2026-09-21). Model artık karar numarası uyduramıyor; etiket de uydurmasın.
     etiket_txt = hukum_baslik or "KANUNA GÖRE SONUÇ"
@@ -1629,13 +1632,15 @@ def _devam_slaytlari(
     vurgu = (veri.get("slayt_3_cozum") or {}).get("baslik_vurgu") if isinstance(veri.get("slayt_3_cozum"), dict) else ""
     rozet = _ilk_dolu(vurgu if rozet_okunur_mu(vurgu) else "",
                       veri.get("rozet_metni"), "ATILACAK ADIMLAR")
+    iri = make_image.adim_iri_mi(adimlar)
     with make_image.tuval(olcu):
+        hiza = make_image.adim_blok_yuksekligi(adimlar, iri)
         for i, m in enumerate(adimlar):
             sira = bas_sira + i
             yol = cikti_dizini / f"{cikti_onek}_{sira:02d}_adim.jpg"
             yollar.append(make_image.slayt_adim(
                 "kagit", rozet, m["no"], m["baslik"], m["aciklama"], len(adimlar),
-                "EDM YAPI & GAYRİMENKUL // DANIŞMANLIK", _sayfa(sira, toplam), yol,
+                "EDM YAPI & GAYRİMENKUL // DANIŞMANLIK", _sayfa(sira, toplam), yol, iri=iri, hiza_yuksekligi=hiza,
             ))
         normal["_toplam_slayt"] = toplam
         yol = cikti_dizini / f"{cikti_onek}_{toplam:02d}_kapanis.jpg"
