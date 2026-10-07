@@ -48,11 +48,13 @@ def konu_denetle(konu: dict) -> tuple[list[str], list[str]]:
     kacak = sorted(mevzuat.sure_ifadeleri(brief) - mevzuat.sure_ifadeleri(ozet["metin"]))
     if kacak:
         kritik.append("brief'teki süre güncel metinde yok: " + ", ".join(f"{n} {b}" for n, b in kacak))
-    brief_k = brief.replace("İ", "i").replace("I", "ı").lower()
-    metin_k = ozet["metin"].replace("İ", "i").replace("I", "ı").lower()
+    brief_k = mevzuat.cogunluk_katla(brief.replace("İ", "i").replace("I", "ı").lower())
+    metin_k = mevzuat.cogunluk_katla(ozet["metin"].replace("İ", "i").replace("I", "ı").lower())
     for c in mevzuat.CUNLUK_IFADELERI:
         if c in brief_k and c not in metin_k:
             kritik.append(f"brief'teki çoğunluk güncel metinde yok: {c}")
+    # Kanıt: konunun birebir alıntısı hâlâ güncel metinde duruyor mu, aci'deki sayılar metinde var mı
+    kritik.extend(mevzuat.konu_dayanagi_sorunlari(konu))
     if ozet["son_degisiklik"]:
         degisti = date.fromisoformat(ozet["son_degisiklik"])
         if degisti >= date.today() - timedelta(days=YENI_DEGISIKLIK_GUN):

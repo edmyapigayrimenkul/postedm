@@ -256,6 +256,69 @@ def brief_mevzuati(atif: Optional[str], azami_toplam: int = 15000) -> Dict[str, 
 
 
 # ---------------------------------------------------------------------------
+# Dayanak alıntısı — konunun "kanun şöyle diyor" iddiasının kanıtı
+# ---------------------------------------------------------------------------
+#
+# Konu bankasına (2026-10-07) `dayanak_alintisi` alanı geldi: atıf yapılan maddenin GÜNCEL
+# metninden birebir bir cümle. Alıntı kanıt olduğu için haftalık denetim (mevzuat_denetim.py)
+# onun hâlâ metinde durduğunu doğrular; kanun değişirse konu kırmızıya düşer ve brief yeniden
+# okunur. Ayrıca konunun `aci` alanındaki süre, oran ve çoğunluk ifadelerinin metinde geçmesi
+# şart: model eğitim bilgisiyle değil, bu metinle yazar.
+
+_DIPNOT = re.compile(r"\[\d+\]")
+
+
+def cogunluk_katla(metin: str) -> str:
+    """Çoğunluk ifadelerini çekim eklerinden bağımsız karşılaştırmak için: "çoğunluğu" → "çoğunluk".
+
+    Kanun metni "salt çoğunluğu / çoğunluğuyla" yazar (k→ğ yumuşaması); içerik ise "salt çoğunluk"
+    der. Düz alt dize araması doğru içeriği yanlışlıkla ⛔ yapıyordu (2026-10-07, KMK md. 30)."""
+    return metin.replace("çoğunluğ", "çoğunluk")
+
+
+def _alinti_normal(metin: str) -> str:
+    from . import filtre
+    metin = _DIPNOT.sub(" ", metin or "")
+    metin = re.sub(r"\s+", " ", metin).strip().rstrip(".")
+    return filtre.kucult(metin)
+
+
+def alinti_metinde_mi(alinti: str, metin: str) -> bool:
+    """Alıntı, kanun metninde (dipnot işaretleri ve boşluk farkı hariç) birebir geçiyor mu."""
+    a = _alinti_normal(alinti)
+    return len(a) >= 20 and a in _alinti_normal(metin)
+
+
+def konu_dayanagi_sorunlari(konu: Dict[str, Any]) -> List[str]:
+    """`dayanak_alintisi` taşıyan konunun güncel metne karşı sorunları (boş liste = temiz)."""
+    alinti = str(konu.get("dayanak_alintisi") or "").strip()
+    if not alinti:
+        return []
+    if not konu.get("mevzuat"):
+        return ["dayanak_alintisi var ama mevzuat atfı yok"]
+    ozet = brief_mevzuati(konu["mevzuat"], azami_toplam=200000)
+    metin = ozet["metin"]
+    if not metin:
+        return ["dayanak_alintisi var ama atıf yapılan maddenin metni alınamadı: " + "; ".join(ozet["cozulemeyen"])[:120]]
+    sorunlar: List[str] = []
+    if not alinti_metinde_mi(alinti, metin):
+        sorunlar.append("dayanak_alintisi güncel metinde birebir bulunamadı (madde değişmiş olabilir)")
+    aci = str(konu.get("aci") or "")
+    kacak_sure = sorted(sure_ifadeleri(aci) - sure_ifadeleri(metin))
+    if kacak_sure:
+        sorunlar.append("aci'deki süre güncel metinde yok: " + ", ".join(f"{n} {b}" for n, b in kacak_sure))
+    kacak_oran = sorted(oran_ifadeleri(aci) - oran_ifadeleri(metin))
+    if kacak_oran:
+        sorunlar.append("aci'deki oran güncel metinde yok: " + ", ".join(f"%{o}" for o in kacak_oran))
+    metin_k = cogunluk_katla(metin.replace("İ", "i").replace("I", "ı").lower())
+    aci_k = cogunluk_katla(aci.replace("İ", "i").replace("I", "ı").lower())
+    for c in CUNLUK_IFADELERI:
+        if c in aci_k and c not in metin_k:
+            sorunlar.append(f"aci'deki çoğunluk güncel metinde yok: {c}")
+    return sorunlar
+
+
+# ---------------------------------------------------------------------------
 # Süre ve çoğunluk ifadeleri — dogrula.py bunları kanun metnine karşı denetler
 # ---------------------------------------------------------------------------
 
@@ -267,7 +330,9 @@ _SAYI_SOZ = r"(?:(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan)(?:\
 # Ondalık sayının kuyruğu süre değildir: "%1,8 aylık enflasyon" içindeki "8 ay" iki hafta
 # önce ⛔ SÜRE KAYNAKTA YOK verdirdi (vurgu rakamı + etiket birleşince). (?<![\d.,]) bunu eler.
 _SURE = re.compile(rf"(?:(?<![\d.,])\b(\d+)\s*|\b({_SAYI_SOZ})\s+)(iş\s+günü|gün|hafta|ay|yıl)", re.I)
-CUNLUK_IFADELERI = ("üçte iki", "salt çoğunluk", "oybirliği", "dörtte üç", "beşte dört")
+# "beşte dör": kanun metni "beşte dördünün" yazar (dört → dördü, t→d ünsüz yumuşaması); "beşte dört"
+# diye aramak doğru içeriği yanlışlıkla ⛔ yapıyordu (KMK md. 28, 2026-10-07).
+CUNLUK_IFADELERI = ("üçte iki", "salt çoğunluk", "oybirliği", "dörtte üç", "beşte dör")
 
 
 def _sayiya(soz: str) -> Optional[int]:

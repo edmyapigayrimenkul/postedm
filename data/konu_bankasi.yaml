@@ -15,6 +15,10 @@
 #   mevzuat     Yalnızca doğrulanmış madde. Emin değilsek null — model de uydurmaz
 #   yerel       Silivri/Trakya bağı. Zorlama olacaksa null
 #   mevzuat_kontrol  Brief'in güncel kanun metniyle son karşılaştırıldığı tarih
+#   dayanak_alintisi  Atıf yapılan maddenin GÜNCEL metninden birebir bir cümle (kanıt). Haftalık denetim
+#                     (scripts/mevzuat_denetim.py) alıntının hâlâ metinde durduğunu ve aci'deki süre,
+#                     oran, çoğunluğun metinde geçtiğini doğrular; kanun değişirse konu kırmızıya düşer.
+#                     2026-10-07'den itibaren eklenen her konuda ZORUNLU (eskilerde yok).
 #   engel       Doluysa konu üretime ALINMAZ (dayanağı doğrulanamadı vb.) — gerekçe yazılır
 #   Denetim: python scripts/mevzuat_denetim.py (haftalık iş akışı da çalıştırır)
 # =========================================================
@@ -940,12 +944,15 @@ konular:
   - kod: S4-017
     sutun: S4
     bicim: B3
-    baslik: "Emlak vergisi yeniden değerleme oranları ve artış hesabı"
-    aci: "Her yıl kasım ayında açıklanan yeniden değerleme oranının yarısı nispetinde emlak vergi değerleri artırılır. 4 yılda bir ise takdir komisyonları arsa m² asgari rayiçlerini yeniden belirler."
+    baslik: "Emlak vergisi değeri her yıl nasıl artar: yeniden değerleme oranı"
+    # 2026-10-07: eski brief "oranın yarısı" ve "4 yılda bir" diyordu; güncel md. 29'da yok (engelliydi).
+    # Yeniden yazıldı: yalnızca md. 29 ve 30'un güncel metnindeki kural.
+    aci: "Vergi değeri, mükellefiyetin başlangıç yılını takip eden yıldan itibaren her yıl, bir önceki yıl vergi değerinin 213 sayılı Vergi Usul Kanunu uyarınca aynı yıl için tespit edilen yeniden değerleme oranında artırılmasıyla bulunur. Cumhurbaşkanı bu artış oranını sıfıra kadar indirmeye yetkilidir ve belediye grupları itibarıyla farklı oranlar belirleyebilir. Vergi değerinin hesabında bin liraya, verginin hesaplanmasında ise bir liraya kadar olan kesirler dikkate alınmaz. Emlak vergisi iki eşit taksitte ödenir: ilk taksit Mart, Nisan ve Mayıs aylarında, ikinci taksit Kasım ayı içinde."
     kanca_kalip: rakam
-    mevzuat: "Emlak Vergisi Kanunu md. 29"
+    mevzuat: "Emlak Vergisi Kanunu md. 29 ve 30"
     yerel: null
-    engel: "Emlak Vergisi Kanunu md. 29'un güncel metninde brief'teki 'yeniden değerleme oranının yarısı' ve '4 yıl' kuralları bulunamadı (2026-09-24). Dayanak doğrulanmadan üretilmez."
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Cumhurbaşkanı, bu maddede belirtilen artış oranını sıfıra kadar indirmeye"
 
   - kod: S4-018
     sutun: S4
@@ -1101,3 +1108,133 @@ konular:
     mevzuat: null
     yerel: "Trakya gelişim aksı"
     engel: "'Arsa ve konutun değeri inşaat maliyet endeksiyle katlanarak reel sermayeyi korur' kaynaksız ekonomik iddia (2026-09-24)."
+
+  # ---------------------------------------------------------
+  # 2026-10-07 — KANUN METNİNDEN BİREBİR ALINTIYLA EKLENEN KONULAR
+  #
+  # Her konunun `aci` alanı yalnızca `mevzuat`ta atıf yapılan maddenin GÜNCEL metninde
+  # yazan kural, süre ve orandan oluşur; `dayanak_alintisi` o metinden birebir bir cümledir
+  # ve `scripts/mevzuat_denetim.py` her hafta alıntının hâlâ metinde durduğunu doğrular
+  # (kanun değişirse konu kırmızıya düşer). Model eğitim bilgisiyle değil bu metinle yazar.
+  # ---------------------------------------------------------
+
+  - kod: S2-028
+    sutun: S2
+    bicim: B3
+    baslik: "Aidatı ödemeyen kat maliki: aylık yüzde beş gecikme tazminatı"
+    aci: "Kat malikleri ortak giderlere ve avansa kendi arsa payı oranında katılır; kapıcı, kaloriferci, bahçıvan ve bekçi giderleri ise aksi kararlaştırılmadıkça eşit paylaşılır. Payını ödemeyen kat maliki hakkında yönetici ya da diğer kat maliklerinden her biri dava açabilir, icra takibi yapabilir. Gider ve avans payının tamamını ödemeyen, geciktiği günler için aylık yüzde beş hesabıyla gecikme tazminatı öder."
+    kanca_kalip: rakam
+    mevzuat: "Kat Mülkiyeti Kanunu md. 20"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Gider ve avans payının tamamını ödemeyen kat maliki ödemede geciktiği günler için aylık yüzde beş hesabıyla gecikme tazminatı ödemekle yükümlüdür."
+
+  - kod: S2-029
+    sutun: S2
+    bicim: B1
+    baslik: "Aidat borcunda kiracı da sorumlu: müteselsil sorumluluk"
+    aci: "Kat Mülkiyeti Kanunu'ndaki kat maliklerinin borçlarına dair hükümler bağımsız bölümdeki kiracılara, oturma hakkı sahiplerine ve o bölümden devamlı yararlanan herkese de uygulanır. Bu borçları yerine getirmeyenler kat malikleriyle birlikte müteselsil olarak sorumlu olur. Müteselsil borçluluk, borçlulardan her birinin alacaklıya karşı borcun tamamından sorumlu olması demektir. Kiracı ile ev sahibinin aidatı kendi aralarında nasıl paylaşacağı ise ayrı bir konudur ve kira sözleşmesine bağlıdır."
+    kanca_kalip: kim_hakli
+    mevzuat: "Kat Mülkiyeti Kanunu md. 18; Türk Borçlar Kanunu md. 162"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "bu borçları yerine getirmiyenler kat malikleriyle birlikte, müteselsil olarak sorumlu olur."
+
+  - kod: S2-030
+    sutun: S2
+    bicim: B1
+    baslik: "Apartman kurulu toplantısı: kaç kişi gerekir, ikinci toplantıda ne değişir"
+    aci: "Kat malikleri kurulu yılda bir defadan az olmamak üzere toplanır. Yönetici, denetçi veya kat maliklerinin üçte biri toplantıyı isteyebilir; çağrı toplantı tarihinden en az onbeş gün önce yapılır ve ikinci toplantının yeri ile tarihi de ilk çağrıda belirtilir. İlk toplantıda kat maliklerinin sayı ve arsa payı bakımından yarısından fazlası bulunmalı ve karar oy çokluğuyla verilir. Yeter sayı sağlanamazsa ikinci toplantı yapılır: ilk ve ikinci toplantı arası yedi günden az olamaz, ikinci toplantı en geç onbeş gün sonra yapılır ve karar yeter sayısı katılanların salt çoğunluğudur. Kanunda yeter sayı için ayrıca konulmuş hükümler saklıdır."
+    kanca_kalip: rakam
+    mevzuat: "Kat Mülkiyeti Kanunu md. 29 ve 30"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kat malikleri kurulu, kat maliklerinin sayı ve arsa payı bakımından yarısından fazlasiyle toplanır ve oy çokluğuyla karar verir."
+
+  - kod: S1-026
+    sutun: S1
+    bicim: B3
+    baslik: "Apartman yönetim planı nasıl değiştirilir"
+    aci: "Yönetim planı bütün kat maliklerini bağlayan bir sözleşme hükmündedir ve kat maliklerinin külli ve cüzi haleflerini, yönetici ve denetçileri de bağlar. Planı değiştirmek için bütün kat maliklerinin beşte dördünün oyu şarttır; kat maliklerinin mahkemeye başvurma hakkı saklıdır. Planın ve değişikliklerin tarihi kat mülkiyeti kütüğünün beyanlar hanesinde gösterilir. Olağan kurul kararlarında ise ilk toplantıda kat maliklerinin sayı ve arsa payı bakımından yarısından fazlası gerekir, ikinci toplantıda karar yeter sayısı katılanların salt çoğunluğudur; kanunda yeter sayı için ayrıca konulmuş hükümler saklıdır. Yönetim planı değişikliği bu ayrıca konulmuş hükümlerden biridir. Kanun oy şartını koyar; imza veya yazılı onay gibi bir usul ayrıntısı tarif etmez."
+    kanca_kalip: rakam
+    mevzuat: "Kat Mülkiyeti Kanunu md. 28 ve 30"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Yönetim planının değiştirilmesi için bütün kat maliklerinin beşte dördünün oyu şarttır."
+
+  - kod: S1-027
+    sutun: S1
+    bicim: B1
+    baslik: "Tapuya güvenen alıcı korunur mu: iyiniyet ve yolsuz tescil"
+    aci: "Tapu kütüğündeki tescile iyiniyetle dayanarak mülkiyet veya başka bir aynî hak kazanan üçüncü kişinin bu kazanımı korunur. Ancak bir aynî hak yolsuz olarak tescil edilmişse, bunu bilen veya bilmesi gereken üçüncü kişi o tescile dayanamaz. Bağlayıcı olmayan bir hukukî işleme dayanan veya hukukî sebepten yoksun tescil yolsuzdur; hakkı zedelenen kimse bunu iyiniyetli olmayan üçüncü kişilere karşı doğrudan ileri sürebilir. Yani koruma iyiniyetli alıcı içindir; bildiği ya da bilmesi gereken bir sorunu görmezden gelen alıcı için değil."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Medeni Kanunu md. 1023 ve 1024"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tapu kütüğündeki tescile iyiniyetle dayanarak mülkiyet veya bir başka aynî hak kazanan üçüncü kişinin bu kazanımı korunur."
+
+  - kod: S1-028
+    sutun: S1
+    bicim: B3
+    baslik: "Hisseli tapuda paydaşlardan her biri paylaşma isteyebilir"
+    aci: "Hukukî bir işlem ya da malın sürekli bir amaca özgülenmiş olması nedeniyle paylı mülkiyeti sürdürme yükümlülüğü yoksa paydaşlardan her biri malın paylaşılmasını isteyebilir. Bu hak hukukî bir işlemle en çok on yıl sınırlanabilir; taşınmazlarda paylı mülkiyetin devamına ilişkin sözleşmeler resmî şekle bağlıdır ve tapu kütüğüne şerh verilebilir. Uygun olmayan zamanda paylaşma istenemez."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Medeni Kanunu md. 698"
+    yerel: "Trakya'da tarla ve bağ-bahçe tapularının önemli bölümü hisseli"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Paylaşmayı isteme hakkı, hukukî bir işlemle en çok on yıllık süre ile sınırlandırılabilir."
+
+  - kod: S1-029
+    sutun: S1
+    bicim: B1
+    baslik: "Aldığınız evde sonradan ayıp çıkarsa: bildirim ve iki yıllık süre"
+    aci: "Satıcı, bildirdiği niteliklerin satılanda bulunmamasından ve kullanım amacı bakımından değeri ya da beklenen faydayı ortadan kaldıran veya önemli ölçüde azaltan maddi, hukuki ya da ekonomik ayıplardan, bu ayıpların varlığını bilmese bile sorumludur. Alıcı satılanı işlerin olağan akışına göre imkân bulur bulmaz gözden geçirip ayıbı uygun bir süre içinde satıcıya bildirmek zorundadır; ihmal ederse satılanı kabul etmiş sayılır. Olağan gözden geçirmeyle anlaşılamayacak bir ayıp sonradan anlaşılırsa hemen bildirilmelidir. Ayıptan doğan dava, satıcı daha uzun süre üstlenmemişse devirden başlayarak iki yılda zamanaşımına uğrar; satıcı ağır kusurluysa bu süreden yararlanamaz."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 219, 223 ve 231"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Satıcı, bu ayıpların varlığını bilmese bile onlardan sorumludur."
+
+  - kod: S1-030
+    sutun: S1
+    bicim: B3
+    baslik: "Emlak vergisi borcu varsa tapu devri yapılmaz"
+    aci: "Tapu müdürlükleri bina ve arazinin devir ve ferağında, tapu harcı matrahında dikkate alınan emlak vergi değerini ve emlak vergisi borcunu belediyenin sağladığı sistem üzerinden elektronik ortamda sorgular. Miras, mahkeme kararı, cebrî icra, kamulaştırma hâlleri ile özel kanunlarda öngörülen diğer hâller hariç, emlak vergisi borcu bulunan bina ve arazinin devir ve ferağı yapılmaz."
+    kanca_kalip: belge
+    mevzuat: "Emlak Vergisi Kanunu md. 30"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Miras, mahkeme kararı, cebrî icra, kamulaştırma hâlleri ile özel kanunlarda öngörülen diğer hâller hariç emlak vergisi borcu bulunan bina ve arazinin devir ve ferağı yapılmaz."
+
+  - kod: S3-024
+    sutun: S3
+    bicim: B1
+    baslik: "Kadastro tutanağı kesinleşince: 30 günlük ilan ve on yıllık sınır"
+    aci: "30 günlük ilan süresi geçtikten sonra, dava açılmayan kadastro tutanaklarına ait sınırlandırma ve tespitler kesinleşir. Kesinleşen tutanaklar ve kadastro mahkemesinin kesinleşmiş kararları en geç 3 ay içinde tapu kütüklerine kaydedilir. Tutanakların kesinleştiği tarihten itibaren on yıl geçtikten sonra, kadastrodan önceki hukuki sebeplere dayanarak itiraz olunamaz ve dava açılamaz. Bu on yıllık süre ayrı bir kuraldır. Bundan bağımsız olarak, kadastrosu tamamlanan çalışma alanı içinde kalan eski tapu kayıtları işleme tabi kayıt niteliğini kaybeder ve bu kayıtlara dayanılarak kadastro ve tapu sicil müdürlüklerinde işlem yapılamaz."
+    kanca_kalip: sure
+    mevzuat: "3402 sayılı Kadastro Kanunu md. 12"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "30 günlük ilan süresi geçtikten sonra, dava açılmayan kadastro tutanaklarına ait sınırlandırma ve tespitler kesinleşir."
+
+  - kod: S3-025
+    sutun: S3
+    bicim: B1
+    baslik: "Ruhsatsız yapı: mühür, tapuya şerh ve yıkım süreci"
+    aci: "Ruhsatsız ya da ruhsata aykırı yapı tespit edilince belediye veya valilik o andaki inşaat durumunu tespit eder, yapı mühürlenir ve inşaat derhal durdurulur. Yapının imar mevzuatına aykırı olduğu bilgisi en geç yedi gün içinde tapu kayıtlarının beyanlar hanesine kaydedilmek üzere tapu dairesine yazılı olarak bildirilir; aykırılığın giderildiğine dair bildirim yapılmadan bu kayıt kaldırılamaz. Yapı sahibi, durdurmanın tebliğinden itibaren en çok bir ay içinde yapıyı ruhsata uygun hale getirerek veya ruhsat alarak mührün kaldırılmasını ister. Aksi takdirde ruhsat iptal edilir, ruhsatsız veya ruhsata aykırı bina belediye encümeni veya il idare kurulu kararını izleyen süreçte yıktırılır ve masrafı yapı sahibinden tahsil edilir."
+    kanca_kalip: sure
+    mevzuat: "İmar Kanunu md. 32"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Yapının imar mevzuatına aykırı olduğuna dair bilgi, tapu kayıtlarının beyanlar hanesine kaydedilmek üzere ilgili idaresince tapu dairesine en geç yedi gün içinde yazılı olarak bildirilir."
+
+  - kod: S3-026
+    sutun: S3
+    bicim: B1
+    baslik: "Tarlada tarım dışı kullanım: hangi arazide mümkün değil"
+    aci: "Mutlak tarım arazileri, özel ürün arazileri, dikili tarım arazileri ile sulu tarım arazileri tarımsal üretim amacı dışında kullanılamaz. Alternatif alan bulunmaması ve Kurulun uygun görmesi şartıyla savunma, afet sonrası geçici yerleşim, petrol ve doğal gaz arama, kamu yararı kararı alınmış madencilik, plan ve yatırımlar gibi sayılı hâllerde bakanlık izin verebilir. Bu dört sınıf dışında kalan tarım arazileri toprak koruma projelerine uyulması kaydıyla valilikler tarafından tarım dışı kullanımlara tahsis edilebilir. Tarımsal amaçlı yapılar için projesine uyulması şartıyla ihtiyaç duyulan miktarda her sınıf ve özellikteki tarım arazisi valilik izniyle kullanılır."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu md. 13"
+    yerel: null
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Mutlak tarım arazileri, özel ürün arazileri, dikili tarım arazileri ile sulu tarım arazileri tarımsal üretim amacı dışında kullanılamaz."

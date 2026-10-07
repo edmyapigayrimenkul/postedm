@@ -630,7 +630,8 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
                 f"(ya da haber kaynağında) böyle bir süre yok. Eski hukuk ya da uydurma olabilir."
             )
         kanun_kucuk = _kucult(kanun_metni)
-        kacak_cogunluk = [c for c in _mevzuat.CUNLUK_IFADELERI if c in hukuki_kucuk and c not in kanun_kucuk]
+        kacak_cogunluk = [c for c in _mevzuat.CUNLUK_IFADELERI
+                          if c in _mevzuat.cogunluk_katla(hukuki_kucuk) and c not in _mevzuat.cogunluk_katla(kanun_kucuk)]
         if kacak_cogunluk:
             uyarilar.append(
                 f"⛔ ÇOĞUNLUK KAYNAKTA YOK: \"{kacak_cogunluk[0]}\" geçiyor ama güncel metinde bu çoğunluk yok."

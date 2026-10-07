@@ -457,6 +457,17 @@ def brief_metni(konu: Dict[str, Any]) -> str:
         satirlar.append(
             "DOĞRULANMIŞ MEVZUAT: yok. Kanun maddesi numarası YAZMA, 'ilgili mevzuat' de."
         )
+    if konu.get("dayanak_alintisi"):
+        # 2026-10-07 gerçek model denemesi: model kanunda olmayan adım uydurdu ("borçsuzluk belgesi
+        # sunun", "yazılı onay ve imza alın", "valilik onaylı proje hazırlatın"). Kapı bunu yakalayamaz
+        # (anlam/usul), bu yüzden brief'te açıkça yasaklanır.
+        satirlar.append(
+            "KANUN SINIRI: Adımlara ve açıklamaya YALNIZCA yukarıdaki kanun metninde yazan işlem, süre ve "
+            "şartlar girer. Kanunda tarif edilmeyen belge, imza, noter, onay ya da usul ayrıntısı YAZMA "
+            "(ör. 'borçsuzluk belgesi sunun', 'yazılı onay alın'). Emin olmadığın adımı 'maddeyi okuyun' ya da "
+            "'ilgili kuruma sorun' düzeyinde bırak. Ayrı kuralları (farklı süre, farklı çoğunluk) birbirine "
+            "bağlama; her kural kendi şartıyla ayrı yazılır."
+        )
     if konu.get("yerel"):
         satirlar.append(f"YEREL BAĞ: {konu['yerel']}")
     if konu.get("veri_kaynagi"):
