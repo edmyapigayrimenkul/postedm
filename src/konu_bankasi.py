@@ -9,11 +9,12 @@ Havuz: data/konu_bankasi.yaml
 
 from __future__ import annotations
 
+import json
 import logging
 import random
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -205,6 +206,67 @@ def _kullanim_gecmisi() -> Dict[str, str]:
         return {}
 
 
+# ---------------------------------------------------------------------------
+# Format başına kullanım (2026-10-07)
+# ---------------------------------------------------------------------------
+#
+# Ölçüm: kullanılabilir (engelsiz) bakir konu 49, günlük tüketim 1,86 => ~26 gün; S4/S5'te fiilen
+# 1 ve 0 konu kalmıştı. Konu bir kez kullanılınca 120 gün kilitleniyordu; oysa aynı doğrulanmış
+# konu başka bir formatta (carousel, net cevap, sözlük, nedir doğrusu) farklı bir içeriktir.
+# Bakir konu kalmayınca konu, BU FORMATTA daha önce kullanılmamışsa ve son kullanımdan beri
+# YENIDEN_KULLANIM_BEKLEME_GUN geçmişse yeniden kullanılabilir (120 günlük kademeden önce denenir).
+YENIDEN_KULLANIM_BEKLEME_GUN = 21
+
+_FORMAT_ESLE = {
+    "b1": "b1", "b2": "b1", "b3": "b1", "b4": "b1", "b5": "b1", "otorite": "b1", "": "b1",
+    "sozluk": "sozluk", "sozluk_uret": "sozluk",
+    "nedir_dogrusu": "nedir_dogrusu", "dogrusu": "nedir_dogrusu", "yaygin_yanlis": "nedir_dogrusu",
+    "net_cevap": "net_cevap", "soru": "net_cevap", "kim_hakli": "net_cevap",
+    "vaka": "vaka", "emsal_karar": "vaka",
+    "finans": "finans", "reels": "reels", "dailybrief": "haber", "haber": "haber", "haber_dailybrief": "haber",
+}
+
+
+def format_adi(ham: Any) -> str:
+    """Biçim ve format adlarını kullanım takibi için tek ada indirger (B1/B2/B3 → 'b1')."""
+    return _FORMAT_ESLE.get(str(ham or "").strip().lower(), str(ham or "b1").strip().lower() or "b1")
+
+
+def _format_gecmisi() -> Dict[Tuple[str, str], str]:
+    """(konu_kodu, format) → o formattaki en son kullanım tarihi.
+
+    Format `sonuc='uretildi:<format>'`tan okunur. Eski kayıtlarda yalnız 'uretildi' var: format bağlı
+    haber kaydından (`detay_metni.format_turu`/`bicim`) okunur; o da silinmişse (kayıtlar 30 günden
+    sonra temizleniyor) 'b1' sayılır; en yaygın format odur ve temkinli yöndür."""
+    sonuc: Dict[Tuple[str, str], str] = {}
+    try:
+        with db._baglanti_al() as conn:
+            satirlar = conn.execute(
+                """SELECT g.konu_kodu, g.kullanim_tarihi, g.sonuc, h.detay_metni
+                   FROM konu_gecmisi g LEFT JOIN haberler h ON h.id = g.haber_id
+                   WHERE COALESCE(g.sonuc, 'uretildi') NOT IN ('hata', 'cope_at', 'engellendi')"""
+            ).fetchall()
+    except sqlite3.Error as e:
+        log.warning("Format geçmişi okunamadı: %s", e)
+        return sonuc
+    for s in satirlar:
+        ham = str(s["sonuc"] or "uretildi")
+        if ":" in ham:
+            fmt = format_adi(ham.split(":", 1)[1])
+        else:
+            fmt = "b1"
+            try:
+                veri = json.loads(s["detay_metni"] or "{}")
+                if isinstance(veri, dict):
+                    fmt = format_adi(veri.get("format_turu") or veri.get("bicim") or "b1")
+            except (TypeError, ValueError):
+                pass
+        anahtar = (s["konu_kodu"], fmt)
+        if anahtar not in sonuc or s["kullanim_tarihi"] > sonuc[anahtar]:
+            sonuc[anahtar] = s["kullanim_tarihi"]
+    return sonuc
+
+
 def _gun_farki(iso_tarih: str) -> float:
     try:
         dt = datetime.fromisoformat(iso_tarih)
@@ -249,9 +311,13 @@ def sonraki_konu(
     sutun: Optional[str] = None,
     bicim: Optional[str] = None,
     bekleme_gun: int = 120,
+    format_turu: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Akıllı dinamik rotasyonla yakın zamanda kullanılmamış bir konu seçer.
-    
+
+    `format_turu`: üretilecek format (b1, sozluk, nedir_dogrusu, net_cevap, vaka). Bakir konu
+    kalmadığında konu, bu formatta daha önce kullanılmadıysa yeniden kullanılabilir.
+
     Haftanın gününe katı kilitlenmez; sütunlar (S1-S4) arasında dengeli rotasyon yapar
     ve arka arkaya aynı sütunun gelmesini önler.
     Çöpe atılan/engellenen konular havuza ASLA bir daha dönmez.
@@ -294,6 +360,22 @@ def sonraki_konu(
             log.info("Konu seçildi: %s [%s/%s] — %s", secim["kod"], secim["sutun"], secim["bicim"], secim["baslik"])
             return secim
 
+    # Bakir konu kalmadı: konuyu BU FORMATTA ilk kez, son kullanımdan yeterince sonra yeniden kullan
+    fmt = format_adi(format_turu)
+    fgecmis = _format_gecmisi()
+    yeniden = [
+        (k, _gun_farki(gecmis[k["kod"]])) for k in havuz
+        if k["kod"] in gecmis
+        and _gun_farki(gecmis[k["kod"]]) >= YENIDEN_KULLANIM_BEKLEME_GUN
+        and (k["kod"], fmt) not in fgecmis
+    ]
+    if yeniden:
+        # İstenen sütun öncelikli, sonra en uzun süredir dinlenen
+        yeniden.sort(key=lambda t: (0 if t[0]["sutun"] == sutun else 1, -t[1]))
+        secim = yeniden[0][0]
+        log.info("Konu yeni formatta yeniden kullanılıyor (%s): %s — %s", fmt, secim["kod"], secim["baslik"])
+        return secim
+
     # Havuz tükendi: bekleme süresini doldurmuş, en uzun süredir kullanılmayan konu
     eskiler = [(k, _gun_farki(gecmis[k["kod"]])) for k in havuz if k["kod"] in gecmis]
     uygun = [(k, y) for k, y in eskiler if y >= bekleme_gun]
@@ -309,13 +391,13 @@ def sonraki_konu(
     return secim
 
 
-def sonraki_finans_konusu(bekleme_gun: int = 120) -> Optional[Dict[str, Any]]:
+def sonraki_finans_konusu(bekleme_gun: int = 120, format_turu: Optional[str] = "finans") -> Optional[Dict[str, Any]]:
     """Finans, bankacılık, faiz, konut kredisi veya yakın sektörleri ele alan konuyu seçer.
     
     Önce S5 sütunundaki bakir konulara bakar; bulamazsa havuzdaki finans/banka/kredi
     anahtar kelimeleri taşıyan diğer konuları da tarar.
     """
-    konu = sonraki_konu(sutun="S5", bekleme_gun=bekleme_gun)
+    konu = sonraki_konu(sutun="S5", bekleme_gun=bekleme_gun, format_turu=format_turu)
     if konu:
         return konu
 
@@ -331,14 +413,21 @@ def sonraki_finans_konusu(bekleme_gun: int = 120) -> Optional[Dict[str, Any]]:
     ]
     if adaylar:
         return random.choice(adaylar)
-    return sonraki_konu(sutun="S5", bekleme_gun=30)
+    return sonraki_konu(sutun="S5", bekleme_gun=30, format_turu=format_turu)
 
 
 
-def kullanildi_isaretle(konu_kodu: str, haber_id: Optional[int] = None, sonuc: str = "uretildi") -> None:
+def kullanildi_isaretle(konu_kodu: str, haber_id: Optional[int] = None, sonuc: str = "uretildi",
+                        format_turu: Optional[str] = None) -> None:
     """Konuyu kullanıldı olarak kaydeder. Üretim başarısızsa `sonuc='hata'` geçilir;
-    hatalı denemeler de geçmişe yazılır ki aynı bozuk konu ertesi gün tekrar denenmesin."""
+    hatalı denemeler de geçmişe yazılır ki aynı bozuk konu ertesi gün tekrar denenmesin.
+
+    `format_turu` verilirse `sonuc` alanına `uretildi:<format>` yazılır. Ayrı sütun açılmadı:
+    şema değişince veritabanı birleştirme sürücüsü ve eski kayıtlar risk altına girerdi; `sonuc`
+    zaten serbest metin ve okuyanların hepsi `!= 'hata'` ya da `IN (...)` ile bakıyor."""
     tabloyu_kur()
+    if sonuc == "uretildi" and format_turu:
+        sonuc = f"uretildi:{format_adi(format_turu)}"
     with db._baglanti_al() as conn:
         conn.execute(
             "INSERT INTO konu_gecmisi (konu_kodu, kullanim_tarihi, haber_id, sonuc) VALUES (?, ?, ?, ?)",
@@ -500,10 +589,22 @@ def durum_ozeti() -> Dict[str, Any]:
     tabloyu_kur()
     havuz = havuzu_yukle()
     gecmis = _kullanim_gecmisi()
-    bakir = [k for k in havuz if k["kod"] not in gecmis]
+    engelliler = _engellenen_konular()
+    # Engelli konular üretime alınmaz; "bakir" sayılırsa ufuk olduğundan uzun görünür (2026-10-07:
+    # 60 görünen, 49 kullanılabilir). Ayrı raporlanır.
+    bakir = [k for k in havuz if k["kod"] not in gecmis and k["kod"] not in engelliler]
+    engelli_bakir = sum(1 for k in havuz if k["kod"] not in gecmis and k["kod"] in engelliler)
     sutun_dagilim: Dict[str, int] = {}
     for k in bakir:
         sutun_dagilim[k["sutun"]] = sutun_dagilim.get(k["sutun"], 0) + 1
+    fgecmis = _format_gecmisi()
+    yeniden = {
+        fmt: sum(1 for k in havuz
+                 if k["kod"] in gecmis and k["kod"] not in engelliler
+                 and _gun_farki(gecmis[k["kod"]]) >= YENIDEN_KULLANIM_BEKLEME_GUN
+                 and (k["kod"], fmt) not in fgecmis)
+        for fmt in ("b1", "nedir_dogrusu", "net_cevap", "sozluk")
+    }
     # Tüketim hızı varsayılmıyor, son 14 günden ölçülüyor: takvim haftada 5
     # içerikten günde 3 slota çıktığında sabit "/5" hesabı havuzu olduğundan
     # üç kat uzun gösteriyordu.
@@ -513,6 +614,8 @@ def durum_ozeti() -> Dict[str, Any]:
         "toplam": len(havuz),
         "kullanilmis": len(gecmis),
         "bakir": len(bakir),
+        "engelli_bakir": engelli_bakir,
+        "format_yeniden_kullanilabilir": yeniden,
         "bakir_sutun_dagilimi": dict(sorted(sutun_dagilim.items())),
         "gunluk_tuketim": round(gunluk, 2),
         "kalan_gun": round(len(bakir) / gunluk) if gunluk else None,

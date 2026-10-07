@@ -1991,7 +1991,7 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
     yüksek etkileşimli emlak içeriğinin çoğu haber değil evergreen bilgidir ve
     her gün üretilebilir olması takvimin aksamamasını sağlar.
     """
-    konu = konu_bankasi.sonraki_konu(gun=gun)
+    konu = konu_bankasi.sonraki_konu(gun=gun, format_turu="b1")
     if not konu:
         mesaj_gonder(
             "⚠️ Konu bankasında uygun konu kalmadı. "
@@ -2035,7 +2035,7 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
         haber_id = cur.lastrowid
         conn.commit()
 
-    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id, format_turu="b1")
     return haber_onayina_sun(haber_id)
 
 
@@ -2091,7 +2091,7 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
     format_etiketi = etiketler.get(format_turu or "", "Otorite İçeriği")
     mesaj_gonder(f"⏳ <b>{format_etiketi}</b> için sıradaki konu hazırlanıyor...")
 
-    konu = konu_bankasi.sonraki_konu()
+    konu = konu_bankasi.sonraki_konu(format_turu=format_turu)
     if not konu:
         mesaj_gonder("⚠️ Konu bankasında bakir konu kalmadı.")
         return False
@@ -2129,7 +2129,7 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
         haber_id = cur.lastrowid
         conn.commit()
 
-    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id, format_turu=format_turu)
     return haber_onayina_sun(haber_id)
 
 
@@ -2152,7 +2152,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
     """
     mesaj_gonder("⏳ <b>EDM Reels Videosu (9:16 Dikey)</b> hazırlanıyor, lütfen bekleyin...")
 
-    konu = konu_bankasi.sonraki_konu() if not konu_kodu else next((k for k in konu_bankasi.havuzu_yukle() if k["kod"] == konu_kodu), None)
+    konu = konu_bankasi.sonraki_konu(format_turu="reels") if not konu_kodu else next((k for k in konu_bankasi.havuzu_yukle() if k["kod"] == konu_kodu), None)
     if not konu:
         mesaj_gonder("⚠️ Konu bankasında uygun konu bulunamadı.")
         return False
@@ -2194,7 +2194,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         haber_id = cur.lastrowid
         conn.commit()
 
-    konu_bankasi.kullanildi_isaretle(konu_kodu_val, haber_id=haber_id)
+    konu_bankasi.kullanildi_isaretle(konu_kodu_val, haber_id=haber_id, format_turu="reels")
     return haber_onayina_sun(haber_id)
 
 
@@ -2375,7 +2375,7 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
       - YouTube: Her zaman Shorts (Sesli dikey video).
       - YouTube dışındaki tüm kanallar (IG, FB, Threads, Story, TT): Standart gönderi!
     """
-    konu = konu_bankasi.sonraki_finans_konusu()
+    konu = konu_bankasi.sonraki_finans_konusu(format_turu="finans")
     if not konu:
         mesaj_gonder("⚠️ Konu bankasında uygun finans / bankacılık konusu bulunamadı.")
         return False
@@ -2418,7 +2418,7 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
         haber_id = cur.lastrowid
         conn.commit()
 
-    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id)
+    konu_bankasi.kullanildi_isaretle(konu["kod"], haber_id=haber_id, format_turu="finans")
 
     # 1. 4:5 Slaytları Üret (Instagram, Facebook, Threads, TikTok için)
     from . import make_image, video, ses
