@@ -64,6 +64,9 @@ KANUNLAR: Dict[int, Tuple[Tuple[int, ...], str]] = {
     3402: ((5,), "Kadastro Kanunu"),
     6305: ((5,), "Afet Sigortaları Kanunu"),
     6217: ((5,), "Yargı Hizmetlerinin Hızlandırılması Amacıyla Bazı Kanunlarda Değişiklik Yapılmasına Dair Kanun"),
+    7464: ((5,), "Konutların Turizm Amaçlı Kiralanması Hakkında Kanun"),
+    2863: ((5,), "Kültür ve Tabiat Varlıklarını Koruma Kanunu"),
+    7338: ((3, 4, 5), "Veraset ve İntikal Vergisi Kanunu"),
 }
 
 # Adla anılan kanunlar (brief'ler çoğunlukla numara yerine ad kullanıyor)
@@ -80,6 +83,8 @@ _ADLAR: List[Tuple[str, int]] = [
     (r"t[üu]keticinin\s+korunmas", 6502),
     (r"icra\s+ve\s+iflas\s+kanunu|\bi̇ik\b|\biik\b", 2004),
     (r"kadastro\s+kanunu", 3402),
+    (r"k[üu]lt[üu]r\s+ve\s+tabiat\s+varl[ıi]klar[ıi]n[ıi]\s+koruma", 2863),
+    (r"veraset\s+ve\s+intikal\s+vergisi\s+kanunu", 7338),
 ]
 
 
@@ -325,7 +330,9 @@ def konu_dayanagi_sorunlari(konu: Dict[str, Any]) -> List[str]:
 _BIRLER = {"bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
 _ONLAR = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50, "altmış": 60, "yetmiş": 70, "seksen": 80, "doksan": 90}
 # Kanun metinleri birleşik yazımı da kullanıyor ("oniki aylık", "onbeş gün").
-_SAYI_SOZ = r"(?:(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan)(?:\s*(?:bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz))?|bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz)"
+# "yüz" da var: 7464 sayılı Kanun "yüz gün", "yüz bin" yazar; yalnız 99'a kadar tanınınca "100 gün" yazan
+# doğru içerik "kanunda yok" sayılıyordu (S2-026, 2026-10-07). "yüzde" ile karışmaz: sonrasında boşluk şart.
+_SAYI_SOZ = r"(?:yüz(?:\s*(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan))?(?:\s*(?:bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz))?|(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan)(?:\s*(?:bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz))?|bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz)"
 # Yazıyla sayıda birimle arasında boşluk zorunlu: aksi hâlde "noter onaylı" → "on ay".
 # Ondalık sayının kuyruğu süre değildir: "%1,8 aylık enflasyon" içindeki "8 ay" iki hafta
 # önce ⛔ SÜRE KAYNAKTA YOK verdirdi (vurgu rakamı + etiket birleşince). (?<![\d.,]) bunu eler.
@@ -340,9 +347,13 @@ def _sayiya(soz: str) -> Optional[int]:
     if soz.isdigit():
         return int(soz)
     toplam = 0
+    if soz.startswith("yüz"):
+        toplam, soz = 100, soz[3:]
+        if not soz:
+            return 100
     for onlar, deger in sorted(_ONLAR.items(), key=lambda x: -len(x[0])):
         if soz.startswith(onlar) and (soz == onlar or soz[len(onlar):] in _BIRLER):
-            toplam, soz = deger, soz[len(onlar):]
+            toplam, soz = toplam + deger, soz[len(onlar):]
             break
     if soz:
         if soz not in _BIRLER:

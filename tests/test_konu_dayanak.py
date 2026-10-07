@@ -98,6 +98,36 @@ class TestCogunlukKapisi(unittest.TestCase):
         self.assertIn("salt çoğunluk", mevzuat.cogunluk_katla("salt çoğunluk"))   # zaten düzse değişmez
 
 
+class TestYuzSayisi(unittest.TestCase):
+    """7464 sayılı Kanun "yüz gün" yazar; 99'un üstü tanınmayınca "100 gün" yazan doğru içerik kanunda yok sayılıyordu."""
+
+    def test_yazi_ve_rakam_esdeger(self):
+        self.assertEqual(mevzuat.sure_ifadeleri("yüz gün"), mevzuat.sure_ifadeleri("100 gün"))
+        self.assertEqual(mevzuat.sure_ifadeleri("yüz yirmi gün"), {("120", "gün")})
+        self.assertEqual(mevzuat.sure_ifadeleri("yüz yirmi beş gün"), {("125", "gün")})
+        self.assertEqual(mevzuat.sure_ifadeleri("yüz beş gün"), {("105", "gün")})
+        self.assertEqual(mevzuat.sure_ifadeleri("on dört gün"), {("14", "gün")})  # eski davranış bozulmadı
+
+    def test_yuzde_ile_karismaz(self):
+        self.assertEqual(mevzuat.sure_ifadeleri("yüzde beş oranında artış"), set())
+        self.assertEqual(mevzuat.sure_ifadeleri("yüzdelik dilim ay sonu"), set())  # "yüz" + "de/delik" süre başlatmaz
+        self.assertEqual(mevzuat.oran_ifadeleri("yüzde yüz"), {"100"})
+        self.assertEqual(mevzuat.oran_ifadeleri("yüzde yirmi beş"), {"25"})
+
+    def test_aciklamada_100_gun_kanundaki_yuz_gunle_eslesir(self):
+        konu = {"kod": "T-002", "mevzuat": "7464 sayılı Kanun md. 3 ve 4", "aci": "100 günü aşmayan kiralamalarda izin belgesi gerekir."}
+        metin = {"metin": "Kiraya verenin konutunu en fazla yüz gün süreyle kiralamasına izin verilmesi amacıyla düzenlenen belge.",
+                 "son_degisiklik": None, "cozulemeyen": [], "cekildi": "2026-10-07"}
+        with patch.object(mevzuat, "brief_mevzuati", return_value=metin):
+            self.assertEqual(mevzuat.konu_dayanagi_sorunlari({**konu, "dayanak_alintisi": "en fazla yüz gün süreyle kiralamasına izin verilmesi amacıyla düzenlenen belge."}), [])
+
+    def test_7464_kanun_defterinde(self):
+        self.assertIn(7464, mevzuat.KANUNLAR)
+        cozulen, cozulemeyen = mevzuat.atiflari_coz("7464 sayılı Kanun md. 3 ve 4")
+        self.assertEqual(cozulen, [(7464, ["3", "4"])])
+        self.assertEqual(cozulemeyen, [])
+
+
 class TestBankaSemasi(unittest.TestCase):
     def setUp(self):
         self.konular = konu_bankasi.havuzu_yukle()

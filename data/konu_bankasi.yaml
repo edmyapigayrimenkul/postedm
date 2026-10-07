@@ -18,7 +18,9 @@
 #   dayanak_alintisi  Atıf yapılan maddenin GÜNCEL metninden birebir bir cümle (kanıt). Haftalık denetim
 #                     (scripts/mevzuat_denetim.py) alıntının hâlâ metinde durduğunu ve aci'deki süre,
 #                     oran, çoğunluğun metinde geçtiğini doğrular; kanun değişirse konu kırmızıya düşer.
-#                     2026-10-07'den itibaren eklenen her konuda ZORUNLU (eskilerde yok).
+#                     2026-10-07'den itibaren eklenen her konuda ZORUNLU. Eski konuların kanuna dayananlarına
+#                     da eklendi (77 konu); yönetmelik, tebliğ, genelge ve kurul kararına dayananlarda (12 konu)
+#                     kanun metni önbelleği olmadığı için yok, elle doğrulanır (mevzuat_denetim.py listeler).
 #   engel       Doluysa konu üretime ALINMAZ (dayanağı doğrulanamadı vb.) — gerekçe yazılır
 #   Denetim: python scripts/mevzuat_denetim.py (haftalık iş akışı da çalıştırır)
 # =========================================================
@@ -37,7 +39,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "Türk Medeni Kanunu md. 732-734"
     yerel: "Trakya'da tarla ve bağ-bahçe tapularının önemli bölümü hisseli"
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Önalım hakkı, satışın hak sahibine bildirildiği tarihin üzerinden üç ay ve her hâlde satışın üzerinden bir yıl geçmekle düşer."
 
   - kod: S1-002
     sutun: S1
@@ -47,7 +50,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Harçlar Kanunu md. 63, Vergi Usul Kanunu md. 114 ve 344, Türk Medeni Kanunu md. 734"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Gayrimenkul devir ve iktisaplarında tapu ve kadastro harcı, emlak vergisi değerinden az olmamak üzere, beyan edilen devir ve iktisap bedeli üzerinden hesaplanır."
 
   - kod: S1-003
     sutun: S1
@@ -57,7 +61,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Borçlar Kanunu md. 177, 178 ve 237"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Aksine sözleşme veya yerel âdet olmadıkça, bağlanma parası esas alacaktan düşülür."
 
   - kod: S1-004
     sutun: S1
@@ -67,7 +72,8 @@ konular:
     kanca_kalip: belge
     mevzuat: "Türk Medeni Kanunu md. 194, 1009, 1010"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Bunlar şerh verilmekle o taşınmaz üzerinde sonradan kazanılan hakların sahiplerine karşı ileri sürülebilir."
 
   - kod: S1-005
     sutun: S1
@@ -85,9 +91,10 @@ konular:
     baslik: "Aile konutu şerhi"
     aci: "Eşin açık rızası olmadan aile konutu devredilemez. Tapuda şerh olmasa da diğer eş satışa karşı dava açabilir; alıcının durumu iyi niyetine göre değerlendirilir. Alıcı için güvenli yol, satıcının medeni durumunu ve konutun aile konutu olup olmadığını baştan netleştirip eşin açık rızasını almak."
     kanca_kalip: eksik_imza
-    mevzuat: "Türk Medeni Kanunu md. 194"
+    mevzuat: "Türk Medeni Kanunu md. 194 ve 1023"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Eşlerden biri, diğer eşin açık rızası bulunmadıkça, aile konutu ile ilgili kira sözleşmesini feshedemez, aile konutunu devredemez veya aile konutu üzerindeki hakları sınırlayamaz."
 
   - kod: S1-007
     sutun: S1
@@ -95,9 +102,10 @@ konular:
     baslik: "Mirasçılardan biri satışa karşı çıkarsa"
     aci: "Elbirliği mülkiyetinde tek bir mirasçı satışı kilitler. Çözüm ortaklığın giderilmesi davası: mal aynen bölünemiyorsa dava açık artırmayla satışa gider ve fiyatı pazarlık değil ihale belirler."
     kanca_kalip: kim_hakli
-    mevzuat: "Türk Medeni Kanunu md. 640, 698, 701, 702"
+    mevzuat: "Türk Medeni Kanunu md. 640, 698, 699, 701, 702"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kanunda veya sözleşmede aksine bir hüküm bulunmadıkça, gerek yönetim, gerek tasarruf işlemleri için ortakların oybirliğiyle karar vermeleri gerekir."
 
   - kod: S1-008
     sutun: S1
@@ -114,19 +122,21 @@ konular:
     baslik: "Kat irtifakı ile kat mülkiyeti farkı"
     aci: "Kat irtifakı, yapı henüz tamamlanmadan ya da yapı kullanma izni (iskân) alınmadan önceki aşamanın tapusudur; kat mülkiyetine geçiş iskânla olur. İskânı olmayan bina kredi ve satışta sorun çıkarır; ruhsat ve projeye aykırılık varsa ayrıca imar yaptırımları gündeme gelir."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "Kat Mülkiyeti Kanunu md. 14"
+    mevzuat: "Kat Mülkiyeti Kanunu md. 3 ve 14"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kat irtifakı arsa payına bağlı bir irtifak çeşidi olup, yapının tamamı için düzenlenecek yapı kullanma izin belgesine dayalı olarak, bu Kanunda gösterilen şartlar uyarınca kat mülkiyetine resen çevrilir."
 
   - kod: S1-010
     sutun: S1
     bicim: B3
     baslik: "İskânsız daire alınır mı"
-    aci: "Yapı kullanma izni olmayan dairede doğalgaz, kredi ve resmî abonelik sorun olur. Bazı bankalar hiç kredi vermez. Fiyat cazipse sebebi genelde budur."
+    aci: "Yapı kullanma izni olmayan yapıda izin alınana kadar elektrik, su ve kanalizasyon hizmetinden yararlanılamaz; kredi ve resmî abonelikte de sorun çıkar. Bazı bankalar hiç kredi vermez. Fiyat cazipse sebebi genelde budur."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "İmar Kanunu md. 30"
+    mevzuat: "İmar Kanunu md. 30 ve 31"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kullanma izni verilmeyen ve alınmayan yapılarda izin alınıncaya kadar elektrik, su ve kanalizasyon hizmetlerinden ve tesislerinden faydalandırılmazlar."
 
   - kod: S1-011
     sutun: S1
@@ -136,7 +146,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "6502 sayılı Kanun md. 40, 43, 44"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tüketici, on dört gün içinde herhangi bir gerekçe göstermeksizin ve cezai şart ödemeksizin ön ödemeli konut satış sözleşmesinden cayma hakkına sahiptir."
 
   - kod: S1-012
     sutun: S1
@@ -147,6 +158,7 @@ konular:
     mevzuat: "Harçlar Kanunu md. 63"
     yerel: null
     mevzuat_kontrol: "2026-09-24"
+    engel: "'Kanunen alıcı ve satıcı yarı yarıya' iddiası doğrulanamadı: dayanak gösterilen Harçlar Kanunu md. 63 harcın kim tarafından ödeneceğini söylemiyor, alıcı-satıcı oranı (4) sayılı tarifede ve kanun metni önbelleğinde tarife yok. Dayanağı bulunana kadar yayınlanmaz (2026-10-07)."
 
   - kod: S1-013
     sutun: S1
@@ -156,7 +168,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "Türk Medeni Kanunu md. 713"
     yerel: "Trakya köylerinde tapusuz kullanım yaygın"
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tapu kütüğünde kayıtlı olmayan bir taşınmazı davasız ve aralıksız olarak yirmi yıl süreyle ve malik sıfatıyla zilyetliğinde bulunduran kişi, o taşınmazın tamamı, bir parçası veya bir payı üzerindeki mülkiyet hakkının tapu kütüğüne tesciline karar verilmesini isteyebilir."
 
   - kod: S1-014
     sutun: S1
@@ -166,7 +179,8 @@ konular:
     kanca_kalip: kim_hakli
     mevzuat: "Türk Borçlar Kanunu md. 520, 521"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Simsar, ancak yaptığı faaliyet sonucunda sözleşme kurulursa ücrete hak kazanır."
 
   - kod: S1-015
     sutun: S1
@@ -176,7 +190,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "6306 sayılı Kanun md. 6"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "yapının paydaşı olup olmadıkları gözetilmeksizin sahip oldukları hisseleri oranında paydaşların salt çoğunluğu ile karar verilir."
 
   # ---------------------------------------------------------
   # KANUN DEĞİŞTİ dizisi (2026-09-24)
@@ -193,7 +208,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "Türk Medeni Kanunu md. 733, 734"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "8/9/1983 tarihli ve 2886 sayılı Devlet İhale Kanunu kapsamında yapılan satışlar ile cebrî artırmayla satışlarda önalım hakkı kullanılamaz."
 
   - kod: S1-025
     sutun: S1
@@ -203,7 +219,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "6306 sayılı Kanun md. 6"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "yapının paydaşı olup olmadıkları gözetilmeksizin sahip oldukları hisseleri oranında paydaşların salt çoğunluğu ile karar verilir."
 
   - kod: S2-027
     sutun: S2
@@ -213,7 +230,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "6217 sayılı Kanun geçici madde 2; Türk Borçlar Kanunu md. 342, 346"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracının Türk Ticaret Kanununda tacir olarak sayılan kişiler ile özel hukuk ve kamu hukuku tüzel kişileri olduğu işyeri kiralarında, 11/1/2011 tarihli ve 6098 sayılı Türk Borçlar Kanununun 323, 325, 331, 340, 342, 343, 344, 346 ve 354 üncü maddeleri 1/7/2012 tarihinden itibaren 8 yıl süreyle uygulanmaz."
 
   # ---------------------------------------------------------
   # S2 — KİRACI & EV SAHİBİ  (paylaştırır)
@@ -226,6 +244,8 @@ konular:
     aci: "Tarihi boş imzalanan taahhütname çoğu zaman geçerli sayılır. Ama kira sözleşmesiyle aynı gün imzalandığı ispatlanırsa Yargıtay irade fesadı sayıp hükümsüz kılabiliyor. İki taraf da bu ayrımı bilmiyor."
     kanca_kalip: eksik_imza
     mevzuat: "Türk Borçlar Kanunu md. 352/1"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracı, kiralananın teslim edilmesinden sonra, kiraya verene karşı, kiralananı belli bir tarihte boşaltmayı yazılı olarak üstlendiği hâlde boşaltmamışsa kiraya veren, kira sözleşmesini bu tarihten başlayarak bir ay içinde icraya başvurmak veya dava açmak suretiyle sona erdirebilir."
     yerel: null
 
   - kod: S2-002
@@ -235,6 +255,8 @@ konular:
     aci: "Konutta artış, bir önceki kira yılının TÜFE on iki aylık ortalamasını aşamaz. Yıllık TÜFE değil, on iki aylık ortalama — en sık yapılan hesap hatası bu."
     kanca_kalip: rakam
     mevzuat: "Türk Borçlar Kanunu md. 344"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tarafların yenilenen kira dönemlerinde uygulanacak kira bedeline ilişkin anlaşmaları, bir önceki kira yılında tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranını geçmemek koşuluyla geçerlidir."
     yerel: null
 
   - kod: S2-002b
@@ -244,6 +266,8 @@ konular:
     aci: "Kiracı fazlasını ödemek zorunda değil ve eski kirayı yatırmaya devam ederse temerrüde düşmez. Ev sahibinin yolu kira tespit davası açmaktan geçer."
     kanca_kalip: kim_hakli
     mevzuat: "Türk Borçlar Kanunu md. 344"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tarafların yenilenen kira dönemlerinde uygulanacak kira bedeline ilişkin anlaşmaları, bir önceki kira yılında tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranını geçmemek koşuluyla geçerlidir."
     yerel: null
 
   - kod: S2-003
@@ -253,6 +277,8 @@ konular:
     aci: "On yıllık uzama süresi dolduğunda ev sahibi sebep göstermeden, üç ay önceden bildirerek tahliye isteyebilir. Uzun süreli kiracıların çoğu kendini güvende sanıyor — tam tersi."
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 347"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Ancak, on yıllık uzama süresi sonunda kiraya veren, bu süreyi izleyen her uzama yılının bitiminden en az üç ay önce bildirimde bulunmak koşuluyla, herhangi bir sebep göstermeksizin sözleşmeye son verebilir."
     yerel: null
 
   - kod: S2-004
@@ -262,6 +288,8 @@ konular:
     aci: "Ev sahibi kendisi veya bakmakla yükümlü olduğu yakını için tahliye isteyebilir; ama boşalttıktan sonra üç yıl başkasına kiralayamaz. Kiralarsa tazminat doğar."
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 350 ve 355"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiraya veren, gereksinim amacıyla kiralananın boşaltılmasını sağladığında, haklı sebep olmaksızın, kiralananı üç yıl geçmedikçe eski kiracısından başkasına kiralayamaz."
     yerel: null
 
   - kod: S2-005
@@ -271,6 +299,8 @@ konular:
     aci: "Bir kira yılı içinde iki kez usulüne uygun ihtar çekilirse ev sahibi yıl sonunda tahliye davası açabilir. Kirayı geç yatırma alışkanlığı burada tahliye sebebine dönüşüyor."
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 352/2"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracı, bir yıldan kısa süreli kira sözleşmelerinde kira süresi içinde; bir yıl ve daha uzun süreli kira sözleşmelerinde ise bir kira yılı veya bir kira yılını aşan süre içinde kira bedelini ödemediği için kendisine yazılı olarak iki haklı ihtarda bulunulmasına sebep olmuşsa kiraya veren, kira süresinin ve bir yıldan uzun süreli kiralarda ihtarların yapıldığı kira yılının bitiminden başlayarak bir ay içinde, dava yoluyla kira sözleşmesini sona erdirebilir."
     yerel: null
 
   - kod: S2-006
@@ -280,6 +310,8 @@ konular:
     aci: "Konut kirasında güvence bedeli üç aylık kirayı aşamaz ve para olarak veriliyorsa kiracı adına vadeli hesapta tutulur. Uygulamada neredeyse hiç bilinmiyor."
     kanca_kalip: rakam
     mevzuat: "Türk Borçlar Kanunu md. 342"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Konut ve çatılı işyeri kiralarında sözleşmeyle kiracıya güvence verme borcu getirilmişse, bu güvence üç aylık kira bedelini aşamaz."
     yerel: null
 
   - kod: S2-007
@@ -289,6 +321,8 @@ konular:
     aci: "Ev sahibi kiracının rızası olmadan depozitoyu tek başına çekemez. Alacağı olduğunu iddia ediyorsa dava veya icra takibi başlatmak zorunda."
     kanca_kalip: kim_hakli
     mevzuat: "Türk Borçlar Kanunu md. 342"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Banka, güvenceleri ancak iki tarafın rızasıyla veya icra takibinin kesinleşmesiyle ya da kesinleşmiş mahkeme kararına dayanarak geri verebilir."
     yerel: null
 
   - kod: S2-008
@@ -299,7 +333,8 @@ konular:
     kanca_kalip: kim_hakli
     mevzuat: "Türk Borçlar Kanunu md. 301, 317"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracı, kiralananın olağan kullanımı için gerekli temizlik ve bakım giderlerini ödemekle yükümlüdür."
 
   - kod: S2-009
     sutun: S2
@@ -317,7 +352,9 @@ konular:
     baslik: "Ev satılınca kiracı çıkar mı"
     aci: "Satış kira sözleşmesini kendiliğinden bitirmez; yeni malik sözleşmeye taraf olur. Ancak ihtiyaç iddiasıyla, edinme tarihinden itibaren bir ay içinde bildirimde bulunup tahliye isteyebilir."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "Türk Borçlar Kanunu md. 351"
+    mevzuat: "Türk Borçlar Kanunu md. 310 ve 351"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Sözleşmenin kurulmasından sonra kiralanan herhangi bir sebeple el değiştirirse, yeni malik kira sözleşmesinin tarafı olur."
     yerel: null
 
   - kod: S2-011
@@ -328,7 +365,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Borçlar Kanunu md. 323"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracı, kiraya verenin yazılı rızasını almadıkça, kira ilişkisini başkasına devredemez."
 
   - kod: S2-012
     sutun: S2
@@ -337,6 +375,8 @@ konular:
     aci: "Ödenmeyen kira için otuz günlük süre veren ihtar çekilir; süre sonunda ödeme yoksa fesih ve tahliye yolu açılır. Süre yanlış hesaplanırsa dava baştan düşer."
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 315"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracıya verilecek süre en az on gün, konut ve çatılı işyeri kiralarında ise en az otuz gündür."
     yerel: null
 
   - kod: S2-013
@@ -346,6 +386,8 @@ konular:
     aci: "Hayır. Süre bitiminde sözleşme kendiliğinden bir yıl uzar. Ev sahibinin süre bitti demesi tek başına tahliye sebebi değil."
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Borçlar Kanunu md. 347"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiraya veren, sözleşme süresinin bitimine dayanarak sözleşmeyi sona erdiremez."
     yerel: null
 
   - kod: S2-014
@@ -364,6 +406,8 @@ konular:
     aci: "Esaslı onarım veya yeniden inşa için tahliye istenebilir; ama iş, kullanımı imkânsız kılacak nitelikte olmalı. Boya badana bahanesiyle tahliye tutmaz."
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Borçlar Kanunu md. 350"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiralananın yeniden inşası veya imarı amacıyla esaslı onarımı, genişletilmesi ya da değiştirilmesi gerekli ve bu işler sırasında kiralananın kullanımı imkânsız ise, belirli süreli sözleşmelerde sürenin sonunda, belirsiz süreli sözleşmelerde kiraya ilişkin genel hükümlere göre fesih dönemine ve fesih bildirimi için öngörülen sürelere uyularak belirlenecek tarihten başlayarak bir ay içinde açacağı dava ile sona erdirebilir."
     yerel: null
 
   - kod: S2-016
@@ -374,7 +418,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Medeni Kanunu md. 732"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Paylı mülkiyette bir paydaşın taşınmaz üzerindeki payını tamamen veya kısmen üçüncü kişiye satması hâlinde, diğer paydaşlar önalım hakkını kullanabilirler."
 
   - kod: S2-017
     sutun: S2
@@ -394,17 +439,19 @@ konular:
     kanca_kalip: belge
     mevzuat: "Türk Borçlar Kanunu md. 583"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kefalet sözleşmesi, yazılı şekilde yapılmadıkça ve kefilin sorumlu olacağı azamî miktar ile kefalet tarihi belirtilmedikçe geçerli olmaz."
 
   - kod: S2-019
     sutun: S2
     bicim: B1
     baslik: "Kiracı izinsiz tadilat yaparsa"
-    aci: "Ev sahibinin rızası olmadan yapılan değişiklikte kiracı eski hâle getirmekle yükümlü. Rıza varsa ve değer artmışsa kiracı bedel talep edebilir."
+    aci: "Kiralananda yenilik ve değişiklik için kiraya verenin yazılı rızası gerekir. Yazılı rıza varsa, yazılı olarak kararlaştırılmadıkça eski hâle getirme istenemez; ama aksine yazılı bir anlaşma yoksa kiracı yaptığı değişikliğin değer artışı için de bedel isteyemez. Rızasız değişiklik kiracıyı uyuşmazlık riskine sokar."
     kanca_kalip: kim_hakli
     mevzuat: "Türk Borçlar Kanunu md. 321"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracı, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilir."
 
   - kod: S2-020
     sutun: S2
@@ -413,6 +460,8 @@ konular:
     aci: "Giremez. Kiralanan kiracının zilyetliğindedir; izinsiz giriş konut dokunulmazlığını ihlal eder. Anahtarın ev sahibinde olması bu durumu değiştirmez."
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Borçlar Kanunu md. 319"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiraya veren, çalışmaları ve kiralananın gezilip görüleceğini uygun bir süre önce kiracıya bildirmek ve bunların yapıldığı sırada kiracının yararlarını göz önünde tutmak zorundadır."
     yerel: null
 
   # ---------------------------------------------------------
@@ -426,7 +475,9 @@ konular:
     baslik: "Tarlaya tiny house veya konteyner"
     aci: "Tarım arazisine kalıcı yapı konulması ruhsata tabi. Ruhsatsız yapı yıkım ve idari para cezası doğurur; üstelik yapı kayıt belgesi de bu durumu kurtarmıyor."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "3194 sayılı İmar Kanunu"
+    mevzuat: "İmar Kanunu md. 21 ve 32"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "belediye veya valiliklerce o andaki inşaat durumu tespit edilir. Yapı mühürlenerek inşaat derhal durdurulur."
     yerel: "Silivri ve Trakya'da tarla üzerine tiny house talebi yoğun"
 
   - kod: S3-002
@@ -446,7 +497,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Medeni Kanunu md. 747"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Taşınmazından genel yola çıkmak için yeterli geçidi bulunmayan malik, tam bir bedel karşılığında bir geçit hakkı tanınmasını komşularından isteyebilir."
 
   - kod: S3-004
     sutun: S3
@@ -455,6 +507,8 @@ konular:
     aci: "18. madde uygulamasında arsadan düzenleme ortaklık payı kesilir. Kesinti sonrası elinize geçen metrekare, aldığınızdan belirgin biçimde az olabilir."
     kanca_kalip: rakam
     mevzuat: "3194 sayılı İmar Kanunu md. 18"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Ancak, bu maddeye göre alınacak düzenleme ortaklık payları, düzenlemeye tabi tutulan arazi ve arsaların düzenlemeden önceki yüzölçümlerinin yüzde kırk beşini geçemez."
     yerel: null
 
   - kod: S3-005
@@ -465,7 +519,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu md. 8"
     yerel: "Trakya'daki hisseli tarla ilanlarının sebebi"
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tarım arazileri Bakanlıkça belirlenen büyüklüklerin altında ifraz edilemez, hisselendirilemez, Hazine taşınmazlarının satış işlemleri hariç olmak üzere pay ve paydaş adedi artırılamaz."
 
   - kod: S3-006
     sutun: S3
@@ -475,7 +530,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Medeni Kanunu md. 688, 691"
     yerel: "Trakya'da hisseli tarla alımının en büyük anlaşmazlık kaynağı"
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Paylı mülkiyette birden çok kimse, maddî olarak bölünmüş olmayan bir şeyin tamamına belli paylarla maliktir."
 
   - kod: S3-007
     sutun: S3
@@ -485,7 +541,8 @@ konular:
     kanca_kalip: belge
     mevzuat: "İmar Kanunu md. 15, 16"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Parselasyon planı tescil edilmiş yerlerde yapılacak ifraz veya tevhidin imar planlarına ve imar mevzuatına uygun olması şarttır."
 
   - kod: S3-008
     sutun: S3
@@ -557,9 +614,11 @@ konular:
     sutun: S3
     bicim: B3
     baslik: "Yapı kayıt belgesi neyi çözer"
-    aci: "İmar barışı belgesi cezayı ve yıkımı durdurur ama yapıyı imara uygun hâle getirmez. Kentsel dönüşümde ve yeni ruhsatta hâlâ engel."
+    aci: "Yapı Kayıt Belgesi (imar barışı) bağlı yıkım kararını ve tahsil edilemeyen idari para cezasını iptal eder, geçici su, elektrik ve doğalgaz bağlanmasını sağlar; ama belge yapının kullanım amacına yöneliktir, yapıyı imara uygun hâle getirmez."
     kanca_kalip: yaygin_yanlis
     mevzuat: "İmar Kanunu geçici madde 16"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Yapı Kayıt Belgesi yapının kullanım amacına yöneliktir."
     yerel: null
 
   # ---------------------------------------------------------
@@ -594,6 +653,8 @@ konular:
     aci: "Güncel TÜFE on iki aylık ortalamasıyla bu ay yenilenen kiralarda uygulanabilecek azami oran. Her ay tekrarlanan format, alışkanlık yaratır."
     kanca_kalip: rakam
     mevzuat: "Türk Borçlar Kanunu md. 344"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tarafların yenilenen kira dönemlerinde uygulanacak kira bedeline ilişkin anlaşmaları, bir önceki kira yılında tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranını geçmemek koşuluyla geçerlidir."
     yerel: null
     veri_kaynagi: "TÜİK TÜFE — her ay elle güncellenir"
 
@@ -639,11 +700,12 @@ konular:
     sutun: S4
     bicim: B3
     baslik: "Emlak vergisi ne zaman ödenir"
-    aci: "İki taksit: mayıs sonu ve kasım sonu. Geciken taksite gecikme zammı işler. Yeni alınan mülkte beyan sorumluluğu alıcıda."
+    aci: "Emlak vergisi iki eşit taksittir: birincisi Mart, Nisan ve Mayıs aylarında, ikincisi Kasım ayı içinde ödenir. Geciken taksite gecikme zammı işler. Yeni alınan mülkte beyan sorumluluğu alıcıda."
     kanca_kalip: sure
     mevzuat: "Emlak Vergisi Kanunu md. 30"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Emlak Vergisi birinci taksidi Mart, Nisan ve Mayıs aylarında, ikinci taksidi Kasım ayı içinde olmak üzere iki eşit taksitte ödenir."
 
   - kod: S4-009
     sutun: S4
@@ -685,6 +747,8 @@ konular:
     aci: "Çıplak mülkiyeti satın alan kişi mülkün sahibi olur ama intifa hakkı sahibinin rızası olmadan içine giremez veya kiraya veremez. Tapudaki bu ayrımı bilmeden konut alanların karşılaştığı şok."
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Medeni Kanunu md. 794-822"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Aksine düzenleme olmadıkça bu hak, sahibine, konusu üzerinde tam yararlanma yetkisi sağlar."
     yerel: null
 
   - kod: S1-018
@@ -694,6 +758,8 @@ konular:
     aci: "Anne-baba sağlığında evi tek bir çocuğuna veya üçüncü kişiye devretse bile, diğer mirasçılar vefat sonrasında saklı paylarını almak için tenkis davası açıp haklarını geri alabilir."
     kanca_kalip: kim_hakli
     mevzuat: "Türk Medeni Kanunu md. 560-571"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Saklı paylarının karşılığını alamayan mirasçılar, mirasbırakanın tasarruf edebileceği kısmı aşan tasarruflarının tenkisini dava edebilirler."
     yerel: null
 
   - kod: S1-019
@@ -704,15 +770,18 @@ konular:
     kanca_kalip: sure
     mevzuat: "Türk Medeni Kanunu md. 995"
     yerel: "Trakya'da hisseli tarla ve aile apartmanlarında en sık açılan dava"
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "İyiniyetli olmayan zilyet, geri vermekle yükümlü olduğu şeyi haksız alıkoymuş olması yüzünden hak sahibine verdiği zararlar ve elde ettiği veya elde etmeyi ihmal eylediği ürünler karşılığında tazminat ödemek zorundadır."
 
   - kod: S1-020
     sutun: S1
     bicim: B3
     baslik: "Tapudaki eski ipotek ve haczin fekki (kaldırılması)"
-    aci: "Yıllar önce ödenmiş konut kredisinin ipoteği tapuda hâlâ duruyor olabilir. Bankadan fek yazısı alınıp harç ödenmeden tapu temizlenmez ve satış günü işlem kilitlenir."
+    aci: "Yıllar önce ödenmiş konut kredisinin ipoteği tapuda hâlâ duruyor olabilir. Bankadan fek yazısı alınıp tapu müdürlüğünde terkin ettirilmeden kayıt temizlenmez ve satış günü işlem kilitlenir."
     kanca_kalip: belge
-    mevzuat: "İcra ve İflas Kanunu md. 144"
+    mevzuat: "Türk Medeni Kanunu md. 1026 ve İcra ve İflas Kanunu md. 144"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Bir aynî hakkın sona ermesiyle tescil her türlü hukukî değerini kaybettiği takdirde, yüklü taşınmaz maliki, terkini isteyebilir."
     yerel: null
 
   - kod: S1-021
@@ -723,6 +792,7 @@ konular:
     kanca_kalip: sure
     mevzuat: "Tapu Kanunu md. 26"
     yerel: null
+    engel: "'Noterde yapılan satış vaadi şerhi 5 yıl içinde devir yapılmazsa kendiliğinden düşer' iddiası doğrulanamadı: dayanak gösterilen Tapu Kanunu md. 26 resmî senet düzenlemesini anlatıyor, 5 yıllık süre Tapu Sicil Tüzüğü'nde olabilir ve kanun önbelleğinde yok; TBK md. 238'deki on yıl önalım, alım ve geri alım hakları içindir. Dayanağı bulunana kadar yayınlanmaz (2026-10-07)."
 
   - kod: S1-022
     sutun: S1
@@ -740,6 +810,8 @@ konular:
     aci: "Eski binalarda zemin kattaki dükkan veya üst kattaki dairelerin arsa payları eşit ya da hatalı yazılmış olabilir. Dönüşüme girmeden önce arsa payı düzeltme davası açılmazsa milyonluk hak kaybı yaşanır."
     kanca_kalip: kim_hakli
     mevzuat: "Kat Mülkiyeti Kanunu md. 3"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Arsa paylarının bağımsız bölümlerin payları ile oranlı olarak tahsis edilmediği hallerde, her kat maliki veya kat irtifakı sahibi, arsa paylarının yeniden düzenlenmesi için mahkemeye başvurabilir."
     yerel: "Marmara depremi hazırlığı kapsamında riskli binalarda hayati konu"
 
   # ---------------------------------------------------------
@@ -753,6 +825,8 @@ konular:
     aci: "Kira sözleşmesinde 5 yıl dolduğunda ev sahibi artık TÜFE tavanına bağlı değildir. Mahkeme emsal kira bedellerine, evin durumuna ve hakkaniyet indirimine göre yeni piyasa kirasını belirler."
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 344/3"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Taraflarca bu konuda bir anlaşma yapılıp yapılmadığına bakılmaksızın, beş yıldan uzun süreli veya beş yıldan sonra yenilenen kira sözleşmelerinde ve bundan sonraki her beş yılın sonunda, yeni kira yılında uygulanacak kira bedeli, hâkim tarafından tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranı, kiralananın durumu ve emsal kira bedelleri göz önünde tutularak hakkaniyete uygun biçimde belirlenir."
     yerel: null
 
   - kod: S2-022
@@ -761,9 +835,10 @@ konular:
     baslik: "Kiralanan taşınmazın çatılı işyeri olması durumu"
     aci: "Yaygın yanılgı: 'İşyerinde, özellikle tacir kiracıda sözleşme serbestisi var, konut korumaları işlemez.' Bu istisna 1 Temmuz 2020'de sona erdi. Bugün çatılı işyeri kiralarında tacir kiracı da üç aylık güvence sınırı, kira artış sınırı ve ceza koşulu yasağıyla korunuyor."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "Türk Borçlar Kanunu md. 339, 342, 344 ve 346"
+    mevzuat: "6217 sayılı Kanun geçici madde 2; Türk Borçlar Kanunu md. 339, 342, 344 ve 346"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Konut ve çatılı işyeri kiralarında sözleşmeyle kiracıya güvence verme borcu getirilmişse, bu güvence üç aylık kira bedelini aşamaz."
 
   - kod: S2-023
     sutun: S2
@@ -772,6 +847,8 @@ konular:
     aci: "Ev sahibi evi satmak veya sözleşme bitiminde kiraya vermek istiyorsa, kiracı makul gün ve saatlerde evi göstermekle yükümlüdür. Göstermezse mahkemeden 'Göstermeye İzin' kararı alınır."
     kanca_kalip: kim_hakli
     mevzuat: "Türk Borçlar Kanunu md. 319"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Kiracı, bakım, satış ya da sonraki kiralama için zorunlu olduğu ölçüde, kiraya verenin ve onun belirlediği üçüncü kişinin kiralananı gezip görmesine izin vermekle yükümlüdür."
     yerel: null
 
   - kod: S2-024
@@ -782,7 +859,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "Türk Borçlar Kanunu md. 315"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Bu süre, kiracıya yazılı bildirimin yapıldığı tarihi izleyen günden itibaren işlemeye başlar."
 
   - kod: S2-025
     sutun: S2
@@ -791,6 +869,8 @@ konular:
     aci: "Mülk el değiştirdiğinde yeni malik eski kira sözleşmesinin tüm hak ve borçlarına halef olur. Sözleşme bittiğinde depozitoyu kiracıya iade etme borcu yeni ev sahibine aittir."
     kanca_kalip: yaygin_yanlis
     mevzuat: "Türk Borçlar Kanunu md. 310"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Sözleşmenin kurulmasından sonra kiralanan herhangi bir sebeple el değiştirirse, yeni malik kira sözleşmesinin tarafı olur."
     yerel: null
 
   - kod: S2-026
@@ -799,7 +879,9 @@ konular:
     baslik: "Konutların turizm amaçlı kiralanması (Airbnb) izin belgesi şartı"
     aci: "100 günün altındaki kiralamalarda Kültür ve Turizm Bakanlığı'ndan izin belgesi ve apartmandaki TÜM kat maliklerinin oy birliği şart. İzinsiz kiralama yapan mülk sahibine 100.000 TL'den başlayan devasa cezalar."
     kanca_kalip: rakam
-    mevzuat: "7464 Sayılı Konutların Turizm Amaçlı Kiralanması Kanunu"
+    mevzuat: "7464 sayılı Kanun md. 3 ve 4"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "İzin belgesi bulunmaksızın turizm amaçlı kiralanan konutları kiraya verenlere, kiralama yapılan her bir konut için yüz bin Türk lirası idari para cezası uygulanır ve izin belgesi alarak faaliyette bulunabilmesi için on beş gün süre verilir."
     yerel: "Silivri sahil şeridinde ve yazlıklarda sıkı denetim konusu"
 
   # ---------------------------------------------------------
@@ -810,9 +892,11 @@ konular:
     sutun: S3
     bicim: B1
     baslik: "5403 Sayılı Kanun: Tarım arazilerinde asgari büyüklük ve bölünemezlik"
-    aci: "Tarım arazileri mutlak tarımda 20 dönümden, dikili arazide 5 dönümden küçük parçalara bölünemez ve hisselendirilemez. Hisseli parselasyon vaadiyle satılan küçük hisselerin tapusuz kalma tehlikesi."
+    aci: "Bakanlık asgari tarımsal arazi büyüklüğünü belirler; kanun bunu mutlak tarım arazilerinde 2 hektardan (20 dönüm), dikili tarım arazilerinde 0,5 hektardan (5 dönüm) küçük belirlenemez diye sınırlar. Bu büyüklüğün altında ifraz ve hisselendirme yapılamaz. Hisseli parselasyon vaadiyle satılan küçük hisselerin tapusuz kalma tehlikesi."
     kanca_kalip: rakam
     mevzuat: "5403 Sayılı Toprak Koruma ve Arazi Kullanımı Kanunu md. 8"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Asgari tarımsal arazi büyüklüğü; mutlak tarım arazileri, marjinal tarım arazileri ve özel ürün arazilerinde 2 hektar, dikili tarım arazilerinde 0,5 hektar, örtü altı tarımı yapılan arazilerde 0,3 hektardan küçük belirlenemez."
     yerel: "Silivri, Çanta, Değirmenköy ve Trakya tarım arazilerinde birincil kural"
 
   - kod: S3-017
@@ -822,6 +906,8 @@ konular:
     aci: "Genel yola cephesi olmayan parsel maliki, komşu parsellerden en az zarar verecek olanı üzerinden geçit hakkı talep edebilir. Bedeli mahkemece belirlenir ve tapuya şerh edilir."
     kanca_kalip: kim_hakli
     mevzuat: "Türk Medeni Kanunu md. 747"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Taşınmazından genel yola çıkmak için yeterli geçidi bulunmayan malik, tam bir bedel karşılığında bir geçit hakkı tanınmasını komşularından isteyebilir."
     yerel: "Trakya iç kesimlerinde ve köy sınırlarında tarlaların yol problemi"
 
   - kod: S3-018
@@ -854,10 +940,12 @@ konular:
   - kod: S3-021
     sutun: S3
     bicim: B1
-    baslik: "İmar barışında alınan Yapı Kayıt Belgesi hangi durumlarda iptal edilir"
-    aci: "31 Aralık 2017'den sonra yapılan kaçak yapılar için alınan belgeler uydu görüntüleriyle tespit edilip iptal ediliyor. Belge iptal edilirse yıkım kararı ve TCK 184 imar kirliliği davası açılır."
+    baslik: "Yapı Kayıt Belgesi kimleri kapsıyor: 31 Aralık 2017 sınırı"
+    aci: "Yapı Kayıt Belgesi (imar barışı) yalnız 31/12/2017 tarihinden önce yapılmış yapılar içindi ve başvuru süresi 31/10/2018'de bitti; bu tarihten sonra yapılan kaçak yapıyı belge kurtarmaz. Belge yapı sahibinin beyanına göre kaydedilir ve yapının kullanım amacına yöneliktir: yıkım kararını ve cezayı iptal eder, ama yapıyı imara uygun hâle getirmez."
     kanca_kalip: yaygin_yanlis
     mevzuat: "İmar Kanunu Geçici md. 16"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Afet risklerine hazırlık kapsamında ruhsatsız veya ruhsat ve eklerine aykırı yapıların kayıt altına alınması ve imar barışının sağlanması amacıyla, 31/12/2017 tarihinden önce yapılmış yapılar için Çevre ve Şehircilik Bakanlığı ve yetkilendireceği kurum ve kuruluşlara 31/10/2018 tarihine kadar başvurulması, bu maddedeki şartların yerine getirilmesi ve 31/12/2018 tarihine kadar kayıt bedelinin ödenmesi halinde Yapı Kayıt Belgesi verilebilir."
     yerel: "Silivri sahil ve orman bitişiğindeki kaçak yapılarda denetimler"
 
   - kod: S3-022
@@ -866,7 +954,9 @@ konular:
     baslik: "Prefabrik ev yapmak için ruhsat ve imar şartı"
     aci: "Prefabrik yapı taşınabilir değildir; beton temel üzerine kurulduğu için İmar Kanunu kapsamında yapı sayılır. Ruhsatsız kurulan prefabrik ev kaçak yapı statüsündedir ve mühürlenir."
     kanca_kalip: yaygin_yanlis
-    mevzuat: "İmar Kanunu md. 5 ve 21"
+    mevzuat: "İmar Kanunu md. 5, 21 ve 32"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "belediye veya valiliklerce o andaki inşaat durumu tespit edilir. Yapı mühürlenerek inşaat derhal durdurulur."
     yerel: "Hobi bahçelerine izinsiz prefabrik koyanların yaşadığı ceza süreçleri"
 
   - kod: S3-023
@@ -877,7 +967,8 @@ konular:
     kanca_kalip: sure
     mevzuat: "İmar Kanunu md. 18 ve 19"
     yerel: "Silivri imar genişleme bölgelerinde parselasyon süreçleri"
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Bu planlar bir ay müddetle ilgili idarede asılır. Ayrıca mutat vasıtalarla duyurulur. Bu sürenin sonunda kesinleşir."
 
   # ---------------------------------------------------------
   # S4 — RAKAM, FİNANS & BÖLGE (İlave Zengin Havuz)
@@ -891,7 +982,8 @@ konular:
     kanca_kalip: rakam
     mevzuat: "Harçlar Kanunu md. 63 ve Vergi Usul Kanunu md. 114 ve 344"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Gayrimenkul devir ve iktisaplarında tapu ve kadastro harcı, emlak vergisi değerinden az olmamak üzere, beyan edilen devir ve iktisap bedeli üzerinden hesaplanır."
 
   - kod: S4-012
     sutun: S4
@@ -936,9 +1028,11 @@ konular:
     sutun: S4
     bicim: B1
     baslik: "Miras intikali ve Veraset İntikal Vergisi muafiyet sınırları"
-    aci: "Vefat eden kişiden kalan gayrimenkulün mirasçılar adına tapuda tescili için veraset ilişiğinin kesilmesi gerekir. Çocuklar ve eş için geçerli istisna tutarları ve 4 aylık beyan süresi."
+    aci: "Vefat eden kişiden kalan gayrimenkulün mirasçılar adına tapuda tescili için veraset ilişiğinin kesilmesi gerekir. Eş ve çocuklara tanınan istisna ve beyan süresi: Türkiye'deki mükellefler ölümü izleyen dört ay içinde beyanname verir. İstisna tutarları her yıl yeniden değerleme oranıyla güncellenir; rakam yazmadan önce Gelir İdaresi duyurusundan teyit edilmeli."
     kanca_kalip: sure
-    mevzuat: "7338 Sayılı Veraset ve İntikal Vergisi Kanunu"
+    mevzuat: "7338 sayılı Kanun md. 4 ve 9"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Ölüm Türkiye'de vukubulmuş ise mükelleflerin Türkiye'de bulunmaları halinde ölüm tarihini takibeden dört ay içinde"
     yerel: null
 
   - kod: S4-017
@@ -975,7 +1069,8 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "6502 sayılı Kanun md. 38"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Tüketicinin yazılı veya kalıcı veri saklayıcısı aracılığıyla açık talebi olmaksızın kredi bağlantılı sigorta yaptırılamaz."
 
   - kod: S5-002
     sutun: S5
@@ -990,18 +1085,22 @@ konular:
     sutun: S5
     bicim: B1
     baslik: "Tapudaki eski banka ipoteği ve fek yazısı süreci"
-    aci: "Yıllar önce ödenip biten konut kredisinin ipoteği tapudan kendiliğinden düşmez. Bankadan 'ipotek fek yazısı' alınıp tapu harcı ödenmezse mülk temizlenmez ve satış günü kilitlenir."
+    aci: "Yıllar önce ödenip biten konut kredisinin ipoteği tapudan kendiliğinden düşmez. Alacak sona erince malik ipoteğin terkinini ister; bankadan alınan 'ipotek fek yazısı' tapu müdürlüğüne verilip terkin ettirilmezse mülk temizlenmez ve satış günü kilitlenir."
     kanca_kalip: belge
     mevzuat: "Türk Medeni Kanunu md. 883"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Alacak sona erince ipotekli taşınmazın maliki, alacaklıdan ipoteği terkin ettirmesini isteyebilir."
     yerel: null
 
   - kod: S5-004
     sutun: S5
     bicim: B3
     baslik: "Konut kredisinde erken kapama cezası yasal tavanı"
-    aci: "Kredinizi erken kapatmak veya ara ödeme yapmak istediğinizde bankanın talep edebileceği erken ödeme tazminatı kanunen kalan vadesi 36 ayı aşmayanlarda %1, aşanlarda en fazla %2 olabilir."
+    aci: "Kredinizi erken kapatmak veya ara ödeme yapmak istediğinizde erken ödeme tazminatı yalnızca faiz oranı sabit belirlenmişse ve sözleşmede yer verilmişse istenebilir; kalan vadesi 36 ayı aşmayan kredilerde %1'i, aşanlarda %2'yi geçemez. Değişken faizli kredide hiç talep edilemez."
     kanca_kalip: rakam
     mevzuat: "6502 sayılı Kanun md. 37"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Erken ödeme tazminatı gerekli faiz indirimi yapılarak hesaplanan ve tüketici tarafından konut finansmanı kuruluşuna erken ödenen tutarın kalan vadesi otuz altı ayı aşmayan kredilerde yüzde birini, kalan vadesi otuz altı ayı aşan kredilerde ise yüzde ikisini geçemez."
     yerel: null
 
   - kod: S5-005
@@ -1032,6 +1131,7 @@ konular:
     kanca_kalip: yaygin_yanlis
     mevzuat: "Vergi Usul Kanunu md. 359 ve 213"
     yerel: null
+    engel: "S4-011 ile aynı konu (tapu harcı matrahı ve banka transferi denetimi); tekrar üretilmez. Ayrıca 'MASAK ve Vergi Denetim Kurulu radarı' iddiası dayanaksızdı (2026-10-07)."
 
   - kod: S5-008
     sutun: S5
@@ -1059,6 +1159,8 @@ konular:
     aci: "Üzerinde banka ipoteği olan ev satılabilir. Ya alıcı bankadan yeni kredi çekip eski krediyi kapatır ya da blokeli takas sistemiyle tapuda eşzamanlı borç nakli yapılır."
     kanca_kalip: belge
     mevzuat: "Türk Medeni Kanunu md. 888 (İpotekli Borcun Nakli)"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "İpotekli taşınmazın devri, aksi kararlaştırılmış olmadıkça, borçlunun sorumluluğunda ve güvencede bir değişiklik meydana getirmez."
     yerel: null
 
   - kod: S5-011
@@ -1097,7 +1199,8 @@ konular:
     kanca_kalip: "yaygin_yanlis"
     mevzuat: "6502 sayılı Kanun md. 24 ve 37"
     yerel: null
-    mevzuat_kontrol: "2026-09-24"
+    mevzuat_kontrol: "2026-10-07"
+    dayanak_alintisi: "Erken ödeme tazminatı gerekli faiz indirimi yapılarak hesaplanan ve tüketici tarafından konut finansmanı kuruluşuna erken ödenen tutarın kalan vadesi otuz altı ayı aşmayan kredilerde yüzde birini, kalan vadesi otuz altı ayı aşan kredilerde ise yüzde ikisini geçemez."
 
   - kod: S5-015
     sutun: S5
