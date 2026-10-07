@@ -150,6 +150,54 @@ def _urlleri_dogrula_ve_onar(
     return public_urller, slayt_yollari
 
 
+_HABER_BICIMLERI = ("dailybrief", "haber", "haber_dailybrief")
+_YENI_FORMATLAR = ("sozluk", "sozluk_uret", "nedir_dogrusu", "net_cevap", "vaka")
+
+
+def story_kapagi_uret(detay: dict | None, haber: dict | None, ref_id: object, tur: str,
+                      ilan: dict | None = None) -> Path | None:
+    """Story için NATIVE 9:16 (1080x1920) kapak; üretilemezse None.
+
+    Eskiden Story, onaylanan 4:5 besleme kapağını alıp `video._cercevele_9_16` ile 9:16'ya
+    yerleştiriyordu: haberde fotoğraf kutunun üstünde/altında bulanık bir dolguyla bitiyordu ve
+    tam boy fotoğraflı ana kare hiç gitmiyordu (2026-10-07 kullanıcı bildirimi: "story de 4:5'in
+    üstü kesik hali gidiyor"). Reels/Shorts videosu zaten native 9:16 çiziliyor; Story de aynı
+    kaynaktan çizilir. İçerik (4:5 kutunun içi) besleme ile aynıdır, fark kutunun dışındaki fotoğraftır.
+
+    Onaylanan fotoğraf: `haberler.gorsel_url`. Onay anında `foto_yolu` olarak veriliyordu
+    (`telegram_bot.haber_onayina_sun`); yayın anında detay_metni'nde yok, burada aynısı yapılır.
+    """
+    from src import make_image, yeni_formatlar
+    try:
+        if tur == "ilan" and ilan:
+            with make_image.tuval("story"):
+                yol = make_image.ilan_kapak_slayti_ciz(ilan)
+            return Path(yol) if yol and Path(yol).exists() else None
+        if not isinstance(detay, dict) or not detay:
+            return None
+        veri = dict(detay)
+        veri.setdefault("id", ref_id)  # sabitlenen fotoğraf adı: haber_foto_<id>.jpg (başka haberin dosyası karışmasın)
+        if not (veri.get("foto_yolu") or veri.get("gorsel_yolu")) and isinstance(haber, dict) and haber.get("gorsel_url"):
+            veri["foto_yolu"] = haber["gorsel_url"]
+        fmt = str(veri.get("format_turu") or "").lower()
+        bicim = veri.get("bicim")
+        if fmt in ("", "reels", "otorite"):
+            fmt = ""  # asıl biçim `bicim` alanında
+        onek = f"story_{ref_id}"
+        if fmt in _HABER_BICIMLERI or (not fmt and bicim in ("haber", "B5")):
+            slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu="dailybrief", cikti_onek=onek, olcu="story")
+        elif fmt in _YENI_FORMATLAR:
+            slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu=fmt, cikti_onek=onek, olcu="story")
+        elif not fmt and bicim in ("B1", "B2", "B3", "B4", None, ""):
+            slaytlar = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=onek, olcu="story")
+        else:
+            return None
+        return Path(slaytlar[0]) if slaytlar and Path(slaytlar[0]).exists() else None
+    except Exception as e:  # noqa: BLE001 — Story üretilemezse onaylı kapak çerçevelenir (yedek yol)
+        log.warning("Native 9:16 Story kapağı üretilemedi: %s", e)
+        return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="EDM Paylaşım Yayınlayıcı")
     parser.add_argument("--tur", default="haber", choices=["haber", "ilan", "reels"], help="İçerik türü")
@@ -986,10 +1034,12 @@ def main() -> None:
             from src import make_image
             story_dosya = KOK / f"data/output/story_{ref_id}.jpg"
             story_dosya.parent.mkdir(parents=True, exist_ok=True)
-            hazir_yol = None
+            hazir_yol = story_kapagi_uret(detay, haber, ref_id, tur, ilan if tur == "ilan" else None)
 
-            # 1. Öncelik: Onaylanan kapak slaytı (public URL veya yerel dosya)
-            if public_urller and len(public_urller) > 0:
+            # 1. Yedek: Onaylanan kapak slaytı (public URL veya yerel dosya) 9:16'ya çerçevelenir
+            if hazir_yol:
+                pass
+            elif public_urller and len(public_urller) > 0:
                 try:
                     import requests
                     resp = requests.get(public_urller[0], timeout=15)
