@@ -13,12 +13,22 @@ import io
 import json
 import logging
 import os
+import time
 from typing import Any, Dict, List, Optional
 
 import requests
 from PIL import Image
 
+from . import config
+
 log = logging.getLogger(__name__)
+
+# Fotoğrafa bakan model de kota/yoğunluk yüzünden düşebiliyor (2026-10-07: gemini-3.5-flash 429,
+# 3.7-flash ve flash-latest zaman aşımı). Tek modele bağlı denetim sessizce hiç çalışmıyordu; zincir
+# ve toplam süre sınırı var: kapak fotoğrafı yüzünden üretim dakikalarca beklemez.
+MODELLER = ["gemini-3.5-flash", "gemini-3.7-flash"]
+ZAMAN_ASIMI = 25
+AZAMI_TOPLAM_SURE = 45
 
 UC_NOKTA = (
     "https://generativelanguage.googleapis.com/v1beta/"
@@ -64,7 +74,9 @@ Sırayla cevapla:
 
 
 def _anahtarlar() -> List[str]:
-    """Denenecek Gemini anahtarları."""
+    """Denenecek Gemini anahtarları. Test modunda ağ yok: boş döner (testler bunu yamalar)."""
+    if config.test_modu():
+        return []
     anahtarlar = []
     for ad in ("GEMINI_API_KEY", "GEMINI_IMAGE_API_KEY", "GOOGLE_API_KEY"):
         deger = (os.getenv(ad) or "").strip()
@@ -107,8 +119,8 @@ def gorseli_denetle(
         return None
 
     g = (ayarlar or {}).get("gemini", {}) or {}
-    model = g.get("model", "gemini-2.5-flash")
-    zaman_asimi = g.get("zaman_asimi", 60)
+    modeller = [g["model"]] if g.get("model") else list(MODELLER)
+    zaman_asimi = g.get("zaman_asimi", ZAMAN_ASIMI)
 
     try:
         veri = base64.b64encode(_kucult(foto)).decode("ascii")
@@ -138,27 +150,29 @@ def gorseli_denetle(
         },
     }
 
-    for anahtar in anahtarlar:
-        try:
-            cevap = requests.post(
-                UC_NOKTA.format(model=model),
-                headers={"x-goog-api-key": anahtar},
-                json=govde,
-                timeout=zaman_asimi,
-            )
-        except requests.RequestException as e:
-            log.warning("görsel denetimi ağ hatası: %s", e)
-            continue
-        if cevap.status_code == 200:
-            try:
-                ham = cevap.json()["candidates"][0]["content"]["parts"][0]["text"]
-                return json.loads(ham)
-            except Exception as e:
-                log.warning("görsel denetim cevabı çözülemedi: %s", e)
+    baslangic = time.monotonic()
+    for model in modeller:
+        for anahtar in anahtarlar:
+            if time.monotonic() - baslangic > AZAMI_TOPLAM_SURE:
+                log.warning("görsel denetimi süre sınırını aştı, atlanıyor")
                 return None
-        if cevap.status_code == 429:
-            log.info("görsel denetimi kota doldu, sonraki anahtar deneniyor")
-            continue
-        log.warning("görsel denetimi HTTP %s: %s", cevap.status_code, cevap.text[:160])
-        return None
+            try:
+                cevap = requests.post(
+                    UC_NOKTA.format(model=model),
+                    headers={"x-goog-api-key": anahtar},
+                    json=govde,
+                    timeout=zaman_asimi,
+                )
+            except requests.RequestException as e:
+                log.warning("görsel denetimi ağ hatası (%s): %s", model, e)
+                continue
+            if cevap.status_code == 200:
+                try:
+                    ham = cevap.json()["candidates"][0]["content"]["parts"][0]["text"]
+                    return json.loads(ham)
+                except Exception as e:
+                    log.warning("görsel denetim cevabı çözülemedi (%s): %s", model, e)
+                    continue  # bozuk yanıt modele özgü olabilir; sıradaki model
+            # 429 kota, 5xx yoğunluk, 404 model yok, 400 modelin desteklemediği alan: sıradaki model/anahtar
+            log.info("görsel denetimi %s HTTP %s: %s", model, cevap.status_code, cevap.text[:120])
     return None

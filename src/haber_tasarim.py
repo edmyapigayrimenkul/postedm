@@ -1789,8 +1789,45 @@ def _kayittaki_alanlari_ac(haber: Dict[str, Any]) -> None:
                     haber[k] = v
 
 
+_FOTO_KONUSU = ("Habere uygun bir basın ya da temsili fotoğraf: gayrimenkul, konut, arsa, inşaat, "
+                "kent, ekonomi, finans, tapu ya da hukuk")
+
+
+def _foto_uygun_mu(foto: Image.Image, haber: Dict[str, Any], katman: str, bagla: bool) -> bool:
+    """Vision: fotoğraf açıkça konu dışıysa False. Soramazsa (kota, ağ, anahtar yok) True.
+
+    Yalnız kaynağı belirsiz katmanlar sorulur: kardeş haberin fotoğrafı başka bir olayı, stok araması
+    alakasız bir kareyi getirebiliyor. Haberin kendi sayfasındaki fotoğraf (og:image) yayıncının o haber
+    için seçtiği karedir; sorulmaz. `bagla`: haberin özetiyle çelişme de aranır (kardeş haber için).
+    Yanlış reddin bedeli düşük (kapak düz zeminde de iyi görünür), yanlış kabulün bedeli yüksek;
+    ama denetim akışı tıkamaz: model cevap vermezse fotoğraf kabul edilir.
+    """
+    try:
+        from . import gorsel_denetim
+        baslik = _bos_degil(haber.get("orijinal_baslik"), haber.get("manset"), haber.get("ig_baslik"))
+        baglam = ""
+        if bagla:
+            ozet = _bos_degil(haber.get("spot"), haber.get("slayt_ozet"), haber.get("orijinal_ozet"))
+            baglam = ("Bu fotoğraf başka bir haberin sayfasından alındı. Haberin özeti: " + ozet[:300]
+                      + ". Fotoğrafta bu habere AÇIKÇA ters düşen bir şey (başka olay, afet ya da kaza, siyasi afiş, "
+                      "başka ülke) varsa baglam_uyuyor_mu false olsun.") if ozet else ""
+        sonuc = gorsel_denetim.gorseli_denetle(foto, baslik, konu=_FOTO_KONUSU, baglam=baglam)
+    except Exception as e:  # noqa: BLE001 — denetim yüzünden kapak çizimi kırılmaz
+        log.debug("Fotoğraf denetimi çalışmadı (%s): %s", katman, e)
+        return True
+    if not isinstance(sonuc, dict):
+        return True
+    if sonuc.get("konuyu_gosteriyor_mu") is False or sonuc.get("baglam_uyuyor_mu") is False:
+        log.warning("Vision %s fotoğrafını reddetti: %s", katman, str(sonuc.get("sebep") or "")[:140])
+        return False
+    return True
+
+
 def fotografi_sec(haber: Dict[str, Any], foto_yolu: Any, cikti_dizini: Path) -> Optional[Image.Image]:
     """Kapak fotoğrafı zinciri: onaylanan fotoğraf → haberin kendi sayfası → kardeş haber → stok.
+
+    Kardeş haber ve stok katmanlarında Vision, fotoğrafın içine bakar (`_foto_uygun_mu`); açıkça konu
+    dışıysa sıradaki katmana geçilir, hiçbiri uymazsa kapak fotoğrafsız (düz zemin) çizilir.
 
     Seçilen fotoğraf diske sabitlenir ve kayda yazılır: akış kareleri, 9:16 video ve
     yeniden çizimler hep AYNI fotoğrafı kullanır (Instabot standardı: onaylanan görsel
@@ -1817,7 +1854,7 @@ def fotografi_sec(haber: Dict[str, Any], foto_yolu: Any, cikti_dizini: Path) -> 
     if foto is None:
         try:
             alt, atif = make_image._haber_gorseli_alternatifi(haber, sira=int(haber.get("foto_sira") or 0))
-            if alt is not None:
+            if alt is not None and _foto_uygun_mu(alt, haber, "kardeş haber", bagla=True):
                 foto = alt
                 if atif:
                     haber["foto_atif"] = atif
@@ -1836,9 +1873,15 @@ def fotografi_sec(haber: Dict[str, Any], foto_yolu: Any, cikti_dizini: Path) -> 
                 sorgu = "modern residential buildings construction architecture"
             else:
                 sorgu = "modern luxury architecture real estate villa"
-            stok = fetch_stock.stok_fotografi_ara(sorgu, kategori_kodu=haber.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ")
-            if stok and Path(stok).exists():
-                foto = ImageOps.exif_transpose(Image.open(stok)).convert("RGB")
+            # Reddedilen kare Pexels'in "son kullanılanlar" listesine girer; ikinci arama sıradaki kareyi getirir
+            for _ in range(2):
+                stok = fetch_stock.stok_fotografi_ara(sorgu, kategori_kodu=haber.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ")
+                if not (stok and Path(stok).exists()):
+                    break
+                aday = ImageOps.exif_transpose(Image.open(stok)).convert("RGB")
+                if _foto_uygun_mu(aday, haber, "stok", bagla=False):
+                    foto = aday
+                    break
         except Exception as e:
             log.warning("Stok fotoğraf aranamadı: %s", e)
 
