@@ -1,0 +1,74 @@
+# =========================================================
+#  PİYASA VERİSİ — Emlakjet bölge ortalamaları (aylık)
+#
+#  NİYE VAR (2026-10-09): S4 "Rakam & Bölge" konuları rakam istiyordu ama doğrulanmış kaynak yoktu;
+#  kaynaksız rakam yayınlanmadığı için kira çarpanı, mahalle fiyatları ve arsa-daire karşılaştırması
+#  engelliydi. Sahibinden ve Hepsiemlak sunucudan 403 verir; Emlakjet'in bölge sayfaları (hesaplamalar
+#  Endeksa'ya aittir) ortalama m² fiyatı, kira ve mahalle kırılımını hazır sunuyor ve robots.txt'te serbest.
+#
+#  Ayda BİR kez, bölge başına tek istek (2,5 sn arayla, kendini tanıtan User-Agent); site erişimi kapatırsa
+#  (403/429) zorlanmaz. Veri 40 günden eskiyse ona bağlı konular üretilmez (src/piyasa_verisi.py).
+#  Doğrulanamayan sayfa kaydedilmez; iş kırmızı biter ve Telegram'a haber gider.
+#
+#  Veritabanına yazar: edm-veritabani grubuna girer (diğer yazarlarla aynı kuyruk).
+#  Kota: ayda 1 koşu × ~1 dk.
+# =========================================================
+
+name: Piyasa Verisi
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"     # her ayın 1'i 09:00 TR
+  workflow_dispatch:
+
+concurrency:
+  group: edm-veritabani
+  cancel-in-progress: false
+
+jobs:
+  topla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Emlakjet bölge ortalamalarını topla
+        run: python scripts/piyasa_topla.py
+
+      # Kısmen başarılı toplama da (bazı bölgeler hata verdiyse) kaydedilir; kaydedilen ölçümler doğrulanmıştır.
+      - name: Veritabanını Kaydet
+        if: always()
+        run: |
+          python scripts/db_kaydet.py "db: piyasa verisi guncellendi"
+
+      - name: Toplanan veriyi göster
+        if: always()
+        run: python scripts/piyasa_topla.py --goster
+
+      - name: Hata bildir
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+          if not (t and c):
+              raise SystemExit(0)
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
+              "chat_id": c, "parse_mode": "HTML",
+              "text": f"🔴 <b>{'Piyasa Verisi Toplama'} BAŞARISIZ</b>\n\n"
+                      "Emlakjet bölge sayfaları okunamadı ya da doğrulanamadı; S4 veri konuları veri 40 günden "
+                      "eskiyse durur.\n"
+                      f'<a href="{url}">Log</a>',
+          })
+          PY

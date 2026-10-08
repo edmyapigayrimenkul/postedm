@@ -630,11 +630,13 @@ konular:
     sutun: S4
     bicim: B4
     baslik: "Silivri mahalle mahalle metrekare fiyatları"
-    aci: "Portföy ve piyasa verisiyle mahalle bazlı m² aralığı. Kendi mahallesini gören yorum yazar — bu içerik yorum motorudur."
+    # 2026-10-09: rakam artık piyasa verisinden (Emlakjet/Endeksa bölge ortalamaları, aylık toplanır; bkz.
+    # src/piyasa_verisi.py). Veri yoksa ya da bayatsa (40 günden eski) konu üretilmez.
+    aci: "Silivri'de mahalle bazında satılık daire ortalama m² fiyatları, ilçe ortalaması ve en pahalı ile en ucuz mahalle arasındaki fark. Kendi mahallesini gören yorum yazar — bu içerik yorum motorudur."
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Doğrudan Silivri"
-    veri_kaynagi: "site/data/listings.json + bölge rehberi"
+    veri_blogu: silivri_daire_mahalle
 
   - kod: S4-002
     sutun: S4
@@ -662,11 +664,13 @@ konular:
     sutun: S4
     bicim: B4
     baslik: "Kira çarpanı: yatırım kaç yılda kendini öder"
-    aci: "Satış fiyatı bölü yıllık kira. Silivri'de ilçe ortalaması ve mahalleye göre sapma. Yatırımcının ilk baktığı rakam."
+    # 2026-10-09: engel kalktı; ilçe düzeyinde ortalama m² fiyatı ve kira piyasa verisinden geliyor. Mahalle düzeyi
+    # kira örneklemi küçük olduğu için YOK (yalnız ilçe ve komşu bölgeler).
+    aci: "Satış fiyatı bölü yıllık kira. Silivri'de ilçe ortalaması ve komşu bölgelerle karşılaştırma. Yatırımcının ilk baktığı rakam; brüt olduğunu ve ortalamaya dayandığını açıkça söyle."
     kanca_kalip: rakam
     mevzuat: null
     yerel: "Silivri ilçe ortalaması"
-    engel: "İlçe ve mahalle kira çarpanı istiyor ama veri kaynağı yok; kaynaksız rakam yayınlanmaz (2026-09-24)."
+    veri_blogu: silivri_kira_carpani
 
   - kod: S4-005
     sutun: S4
@@ -695,6 +699,7 @@ konular:
     mevzuat: null
     yerel: "Doğrudan Silivri"
     veri_kaynagi: "site/data/listings.json"
+    engel: "Satış süresi verisi yok: listings.json yalnız ilan listesidir, satış tarihi tutmaz; veri modele de verilmiyordu, rakamı model uydururdu (2026-10-09)."
 
   - kod: S4-008
     sutun: S4
@@ -998,12 +1003,14 @@ konular:
   - kod: S4-013
     sutun: S4
     bicim: B4
-    baslik: "Arsa yatırımı yaparken amortisman ve getiri hesabı nasıl yapılır"
-    aci: "Arsada kira getirisi yoktur; getiri altyapı, imar açılımı ve nüfus göçü hızıyla hesaplanır. Yanlış lokasyonda alınan arsanın enflasyona yenilme riski."
+    baslik: "Silivri'de arsa, tarla ve daire m² fiyatı bir yılda ne kadar değişti"
+    # 2026-10-09: eski konu "getiri hesabı" ve "enflasyona yenilme" iddiası istiyordu; ikisi de veri olmadan yazılamazdı
+    # (engelliydi). Veri bir yıllık fiyat değişimini veriyor, getiri ya da enflasyon karşılaştırması vermiyor: konu buna göre daraltıldı.
+    aci: "Silivri'de satılık arsa, tarla ve daire ortalama m² fiyatları ve bir yıllık değişimleri yan yana. Arsada ve tarlada kira geliri yoktur; veri yalnızca fiyat değişimini gösterir, getiri hesabı değildir. Enflasyonla karşılaştırma ya da gelecek tahmini yapma."
     kanca_kalip: rakam
     mevzuat: null
-    yerel: "Kınalı-Tekirdağ otoyolu ve Kuzey Marmara Otoyolu bağlantı noktaları"
-    engel: "Getiri hesabı ve 'enflasyona yenilme' iddiası veri kaynağı olmadan yazılamaz (2026-09-24)."
+    yerel: "Silivri arsa ve tarla piyasası"
+    veri_blogu: silivri_arsa_tarla_daire
 
   - kod: S4-014
     sutun: S4

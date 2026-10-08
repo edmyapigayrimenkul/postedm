@@ -306,6 +306,22 @@ def _engellenen_konular() -> set[str]:
         return yaml_engel
 
 
+def _veri_hazir_mi(konu: Dict[str, Any], fmt: str) -> bool:
+    """Piyasa verisine bağlı konu (`veri_blogu`, S4 "Rakam & Bölge"): yalnız b1 biçiminde ve veri taze/yeterliyken
+    seçilebilir. Veri yoksa konu o gün üretilmez: rakamsız içerik değil HİÇ içerik (kaynaksız rakam yayınlanmaz)."""
+    anahtar = konu.get("veri_blogu")
+    if not anahtar:
+        return True
+    if fmt != "b1":
+        return False
+    from . import piyasa_verisi
+    try:
+        return bool(piyasa_verisi.blok(anahtar))
+    except Exception as e:  # noqa: BLE001 — veri tarafı seçimi çökertmesin; konu atlanır
+        log.warning("Piyasa verisi okunamadı (%s): %s", anahtar, e)
+        return False
+
+
 def sonraki_konu(
     gun: Optional[int] = None,
     sutun: Optional[str] = None,
@@ -331,6 +347,12 @@ def sonraki_konu(
     havuz = [k for k in ham_havuz if k["kod"] not in engelliler]
     if not havuz:
         log.warning("Havuzdaki tüm konular engellenmiş veya boş.")
+        return None
+
+    fmt_adi = format_adi(format_turu)
+    havuz = [k for k in havuz if _veri_hazir_mi(k, fmt_adi)]
+    if not havuz:
+        log.warning("Piyasa verisi bağlı konular için veri yok/bayat ve başka konu kalmadı.")
         return None
 
     # Sözlük bir TANIM verir: tanım kanun metninden doğrulanmış olmalı. 2026-10-07 incelemesi: geçmiş
@@ -418,6 +440,7 @@ def sonraki_finans_konusu(bekleme_gun: int = 120, format_turu: Optional[str] = "
         k for k in ham_havuz
         if k["kod"] not in engelliler
         and k["kod"] not in gecmis
+        and _veri_hazir_mi(k, "finans")
         and any(a in (k.get("baslik", "") + " " + k.get("aci", "")).lower() for a in finans_anahtarlar)
     ]
     if adaylar:
@@ -568,7 +591,14 @@ def brief_metni(konu: Dict[str, Any]) -> str:
         )
     if konu.get("yerel"):
         satirlar.append(f"YEREL BAĞ: {konu['yerel']}")
-    if konu.get("veri_kaynagi"):
+    if konu.get("_veri_blogu"):
+        # Piyasa verisi (Emlakjet/Endeksa bölge ortalamaları): içeriğin TEK rakam kaynağı. Kapı da içerikteki her
+        # birimli rakamı bu bloğa karşı denetler (dogrula.veri_blogu_denetimi); blok dışı rakam ⛔'dir.
+        satirlar.append(
+            "PİYASA VERİSİ (içeriğin TEK rakam kaynağı; blokta olmayan rakam yazma, bloktaki kuralları aynen uygula):\n"
+            + konu["_veri_blogu"]
+        )
+    elif konu.get("veri_kaynagi"):
         satirlar.append(f"VERİ KAYNAĞI: {konu['veri_kaynagi']}")
     else:
         # Rakam odaklı biçimlerde (B2 karşılaştırma, B4 rakam karnesi) veri kaynağı

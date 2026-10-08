@@ -138,6 +138,8 @@ def main() -> None:
         log.info("Sözlük kartı: %d kart, %d tanesi hiç yayınlanmadı (zamanlanmış otomatik yayın: %s).",
                  kart["toplam"], kart["bakir"],
                  "KAPATILMIŞ (acil fren: SOZLUK_OTO_YAYIN)" if telegram_bot.sozluk_oto_yayin_kapatildi_mi() else "açık")
+        from src import piyasa_verisi
+        log.info(piyasa_verisi.durum_ozeti())
         bekleyen = konu_bankasi.bekleyen_adaylar()
         log.info("Onay bekleyen konu adayı: %d", len(bekleyen))
         for a in bekleyen[:8]:

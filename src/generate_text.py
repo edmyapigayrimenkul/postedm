@@ -1254,6 +1254,16 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
     """Konu bankası kaydından slayt içeriği üretir. Faz 1'in ana giriş noktası."""
     from . import konu_bankasi
 
+    if konu.get("veri_blogu") and not konu.get("_veri_blogu"):
+        # Piyasa verisine bağlı konu her yoldan (koda göre seçim, yeniden üretim…) gelebilir: blok burada,
+        # üretimden hemen önce çözülür. Veri yoksa/bayatsa üretilmez; rakamsız ya da uydurma rakamlı içerik çıkmaz.
+        from . import piyasa_verisi
+        blok = piyasa_verisi.blok(konu["veri_blogu"])
+        if not blok:
+            log.warning("Konu %s için piyasa verisi yok ya da bayat; üretilmedi.", konu.get("kod"))
+            return None
+        konu = {**konu, "_veri_blogu": blok}
+
     if format_turu in ("dailybrief", "haber", "haber_dailybrief"):
         bicim = "B5"
     else:
@@ -1342,6 +1352,10 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
             "yerel": konu.get("yerel"),
             "veri_kaynagi": konu.get("veri_kaynagi"),
         }
+        if konu.get("_veri_blogu"):
+            # Ölçüt veri bloğunun kendisi: her birimli rakam, süre ve kaynak atfı ona karşı denetlenir
+            from . import piyasa_verisi
+            v["_brief"] = piyasa_verisi.brief_olustur(konu["_veri_blogu"])
         # Güncel madde metni DB'ye yazılmaz (git'e gidiyor, şişer); dogrula.py
         # denetim anında "mevzuat" atfından önbellekli olarak çeker.
 

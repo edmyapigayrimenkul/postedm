@@ -417,6 +417,48 @@ Haftalık mevzuat denetimi kartları da denetler (`scripts/mevzuat_denetim.py`):
 sırlar (`GEMINI_API_KEY_YEDEK`, `YEDEK2`) kodda hiç okunmuyordu; artık okunuyor ve `hazirla.yml`
 adımlarına verildi. Her anahtar ayrı proje (ayrı kota).
 
+## 5.5.3 Piyasa verisi: S4 "Rakam & Bölge" rakamları (2026-10-09)
+
+S4 konularının üçü rakam istiyordu ama doğrulanmış kaynak yoktu (kira çarpanı, mahalle fiyatları, arsa-daire
+karşılaştırması); kaynaksız rakam yayınlanmadığı için engelliydi. Kaynak seçimi:
+
+| Kaynak | Durum |
+|---|---|
+| Sahibinden, Hepsiemlak | sunucudan 403 (CLAUDE.md "kapanmış konular") |
+| Endeksa'nın kendi sitesi | rakamlar JavaScript ile yükleniyor; düz istekle gelmiyor |
+| **Emlakjet bölge sayfaları** | ortalama m² fiyatı, kira, mahalle kırılımı sayfada hazır; robots.txt `*` için serbest. Hesapları Endeksa yapıyor (Emlakjet "Verilerimiz ve Metodolojimiz") |
+
+**Ne toplanıyor** (`src/piyasa_verisi.py`, `scripts/piyasa_topla.py`, aylık `piyasa-verisi.yml`): Silivri için satılık daire, arsa
+ve tarla; karşılaştırma için Çatalca, Büyükçekmece ve Çorlu satılık dairesi. Bölge başına ortalama m² fiyatı, bir yıllık
+değişim, ortalama fiyat, kira, ilan sayısı ve mahalle satırları. Bölge başına tek istek, 2,5 sn arayla, kendini tanıtan
+User-Agent; 403/429'da zorlanmaz. Tablo: `piyasa_verisi` (günlük ölçüm; geçmiş birikir, ileride zaman serisi olur).
+
+**Ne OLDUĞU (içerikte hep böyle anılır):** Endeksa'nın web ilanları ile danışman ve iş ortağı satış bildirimlerinden
+hesapladığı TAHMİNİ bölge ortalamaları. Gerçekleşen tapu bedeli ya da resmî değerleme değil; Emlakjet'in kendi uyarısı da
+"resmî değerleme raporu niteliği taşımaz, yatırım tavsiyesi değildir". Kaynak (Emlakjet/Endeksa) ve tarih içerikte yazılır.
+
+**Güvenceler**
+- Sayfa biçimi değişirse yanlış rakam yazmaktansa hiç rakam yazılmaz: JSON-LD ile kart çapraz denetlenir, her alan makul
+  aralığa karşı sınanır, sayfadaki getiri/geri dönüş kendi fiyat ve kirasından yeniden hesaplanır (`olcum_sorunlari`).
+- Düşük örneklem yayınlanmaz: ilçe için 15, mahalle için 10 ilan alt sınırı. Gerçek sayfada tek ilanlı mahallede m² fiyatı
+  168.988 ₺ (ilçe ortalaması 62.962 ₺) ya da arsada %190 artış görüldü. Mahalle kırılımı yalnız satılık dairede; arsa ve
+  tarlada yalnız ilçe düzeyi (parsel büyüklüğü ve imar dağılımı çok geniş).
+- Veri 40 günden eskiyse ya da bloktaki ölçümler aynı günden değilse ona bağlı konu üretilmez (`hazirla.py --durum` yaşını yazar).
+- İçerik veri bloğuna karşı denetlenir (`dogrula.veri_blogu_denetimi`): birimli her rakam (%, ₺, m², yıl, ilan…) blokta
+  geçmeli ⛔; Emlakjet/Endeksa anılmalı ⛔; "ortalama/tahmini" denmeli ⚠️; "tapu bedeli", "kesin fiyat" gibi iddialar ⚠️.
+  Kanun maddesi anmak uydurmadır ⛔. Yuvarlama da yasak: blokta 14,7 yıl varsa "15 yıl" yazılamaz. Anlam hakemi aynı bloğu kaynak alır.
+- Konu bankasında `veri_blogu: <anahtar>` taşıyan konular yalnız b1 biçiminde ve veri varken seçilir; `konudan_uret` bloğu
+  üretimden hemen önce çözer (veri yoksa model hiç çağrılmaz).
+
+**Konular:** S4-001 (mahalle mahalle satılık daire), S4-004 (kira çarpanı; engeli kalktı), S4-013 (arsa/tarla/daire bir yıllık
+değişim; eski "getiri hesabı" ve "enflasyona yenilme" iddiası veri olmadan yazılamadığı için konu daraltıldı). S4-002, S4-009 ve
+S4-014 zaman serisi ya da sahil hattı verisi istediği için engelli kalır. S4-007 ("hangi tip ne kadar sürede satılıyor") de
+engellendi: veri modele hiç verilmiyordu, rakamı model uyduruyordu.
+
+**Canlı kontrol:** `python scripts/piyasa_topla.py --kuru` gerçek sayfaları okur ve yazmadan özetler; `--goster` kayıtlı
+ölçümleri ve içerik bloklarını yazar. Sayfa biçimi değişirse fikstürler (`tests/fixtures/emlakjet_*.html`, gerçek sayfadan
+birebir kesilmiş) yenilenir. Erişim kalıcı kapanırsa (403) S4 veri konuları 40 gün sonra kendiliğinden durur; Telegram'a haber gider.
+
 ## 5.6 Stres ve sabotaj testi
 
 > **2026-09-25:** Asıl denetim artık `scripts/gorsel_denetim.py` (CI adımı, 164 vaka).

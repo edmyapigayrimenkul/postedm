@@ -585,6 +585,55 @@ def _kanun_metni(brief: Optional[Dict[str, Any]]) -> str:
         return ""
 
 
+# ---------------------------------------------------------------------------
+# VERİ BLOĞU (S4 "Rakam & Bölge"): içerikteki her rakam bloktan gelmeli
+# ---------------------------------------------------------------------------
+#
+# Piyasa verisi (Emlakjet/Endeksa bölge ortalamaları) içeriğe hazır bir metin bloğu olarak girer
+# (bkz. piyasa_verisi). Kanun alıntısı gibi birebir doğrulanabilir bir kaynak: blokta olmayan
+# yüzde, tutar, süre, m², ilan sayısı model uydurması ya da yuvarlamasıdır. Birimsiz sayılar
+# (slayt numarası, "3 adım") denetlenmez; yalnız birimle gelenler.
+
+_VERI_SAYILARI = (
+    re.compile(r"%\s*(\d[\d.,]*)"),
+    re.compile(r"yüzde\s+(\d[\d.,]*)", re.IGNORECASE),
+    re.compile(r"(\d[\d.,]*)\s*(?:₺|TL\b|lira\b|m²|m2\b|yıl\b|ilan\b|kat\b|puan\b|milyon\b|milyar\b|bin\b)", re.IGNORECASE),
+)
+_VERI_YASAK_IFADELER = ("tapu bedeli", "gerçekleşen satış", "kesin fiyat", "kesin getiri", "garanti getiri")
+
+
+def veri_blogu_denetimi(veri: Dict[str, Any], blok: str) -> List[str]:
+    """Veri bloğundan üretilen içeriği bloğa karşı denetler: birimli her rakam blokta geçmeli (⛔), kaynak (Emlakjet/
+    Endeksa) anılmalı (⛔), rakamlar "ortalama/tahmini" diye nitelenmeli ve "tapu bedeli" gibi iddialara
+    dönüştürülmemeli (⚠️)."""
+    uyarilar: List[str] = []
+    metin = _tum_metin(veri, captionlar=True)
+    kucuk = _kucult(metin)
+    blok_sayilari = sayi_esdegerleri(blok)
+
+    eksik: List[str] = []
+    for desen in _VERI_SAYILARI:
+        for m in desen.finditer(metin):
+            ham = m.group(1).strip(".,")
+            rakamlar = ham.replace(".", "").replace(",", "")
+            # "1" veri iddiası değildir ("son 1 yıl", "1 kat"): bloğun "son bir yılda" ifadesinin rakamla yazılışı
+            if rakamlar and rakamlar != "1" and rakamlar not in blok_sayilari and ham not in eksik:
+                eksik.append(ham)
+    if eksik:
+        uyarilar.append(
+            f"⛔ RAKAM VERİ BLOĞUNDA YOK: {', '.join(eksik[:4])} içerikte geçiyor ama piyasa verisinde yok. "
+            f"Yuvarlama, hesaplama ya da uydurma olabilir; yalnız bloktaki rakamlar aynen kullanılır."
+        )
+    if "emlakjet" not in kucuk and "endeksa" not in kucuk:
+        uyarilar.append("⛔ KAYNAK ATFI YOK: piyasa verisi kullanılan içerikte Emlakjet/Endeksa anılmalı.")
+    if "ortalama" not in kucuk and "tahmini" not in kucuk and "tahmin" not in kucuk:
+        uyarilar.append("⚠️ ORTALAMA DEMİYOR: veri tahmini bölge ortalamasıdır; içerik bunu belirtmiyor.")
+    yasak = [i for i in _VERI_YASAK_IFADELER if i in kucuk]
+    if yasak:
+        uyarilar.append(f"⚠️ NİTELİK YANLIŞ: \"{yasak[0]}\" geçiyor; veri tapu bedeli ya da kesin fiyat değil, tahmini ortalamadır.")
+    return uyarilar
+
+
 def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> List[str]:
     """İçeriği denetler ve uyarı listesi döner. Boş liste = temiz.
 
@@ -691,6 +740,10 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
             uyarilar.append(
                 f"⚠️ DAYANAKSIZ RAKAM: {', '.join(kacak[:3])} — \"{veri_kaynagi}\" kaynağından elle teyit edin."
             )
+
+    # --- 2b. VERİ BLOĞU (piyasa verisinden üretilen içerik) ---
+    if (brief or {}).get("veri_blogu_metni"):
+        uyarilar.extend(veri_blogu_denetimi(veri, str(brief["veri_blogu_metni"])))
 
     # --- 3. ZORLAMA YEREL BAĞ ---
     if haber_olcutu:
