@@ -9,6 +9,7 @@ from __future__ import annotations
 import html
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -1695,18 +1696,21 @@ def _eksik_icerik_bildir(haber_id: Optional[int], hata: Exception) -> None:
     )
 
 
-def haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
-    """Haberin görselini ve metnini hazırlayıp Telegram onayına sunar."""
+def haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool = False) -> bool:
+    """Haberin görselini ve metnini hazırlayıp Telegram onayına sunar.
+
+    `oto_yayin=True`: kapıdan uyarısız geçerse onay beklenmeden yayınlanır; yayın ya da koşullardan biri
+    tutmazsa içerik her zamanki gibi onaya düşer (otomatik yol hiçbir zaman içeriği kaybettirmez)."""
     from . import yeni_formatlar
     try:
-        return _haber_onayina_sun(haber_id, yeniden_ciz=yeniden_ciz)
+        return _haber_onayina_sun(haber_id, yeniden_ciz=yeniden_ciz, oto_yayin=oto_yayin)
     except yeni_formatlar.EksikIcerik as e:
         log.warning("İçerik #%s eksik alan yüzünden durdu: %s", haber_id, e)
         _eksik_icerik_bildir(haber_id, e)
         return False
 
 
-def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
+def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool = False) -> bool:
     haber = db.haber_getir(haber_id)
     if not haber:
         return False
@@ -1742,9 +1746,21 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
 
     # YAYIN KAPISI — slayt ve video üretiminden ÖNCE: durdurulacak içerik için
     # görsel üretmek boşa dakika.
-    gecti, uyarilar = yayin_kapisi(haber_id, haber, _denetim_verisi(haber, otorite_verisi))
+    # Hazır arşiv kartı kanun metniyle ve hakemle BİR KEZ doğrulandı (sozluk_arsivi); her yayında yeniden
+    # model çağırmak kota harcar ve hakem gürültüsü kartı boşuna durdurur. Kanunun hâlâ aynı olduğu
+    # kart seçilirken sınanır.
+    kart_mi = bool(isinstance(otorite_verisi, dict) and (otorite_verisi.get("_brief") or {}).get("kart"))
+    gecti, uyarilar = yayin_kapisi(haber_id, haber, _denetim_verisi(haber, otorite_verisi), anlam_denetimi=not kart_mi)
     if not gecti:
         return False
+    if oto_yayin and uyarilar:
+        # Finanstaki kural: otomatik yayın insan onayını atlıyor, bu yüzden EN UFAK uyarıda durur
+        log.warning("İçerik #%s otomatik yayını durduruldu: %s", haber_id, "; ".join(uyarilar))
+        mesaj_gonder(
+            f"🛑 <b>Otomatik yayın durduruldu (#{haber_id})</b> — {len(uyarilar)} denetim uyarısı.\n"
+            "<i>İçerik onayınıza sunuluyor; uyarıları kontrol edip elle yayınlayın.</i>"
+        )
+        oto_yayin = False
 
     if not slayt_yollari:
         from . import yeni_formatlar, make_image
@@ -1823,6 +1839,11 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
         video_yolu=None,
         durum="onay_bekliyor"
     )
+
+    if oto_yayin:
+        if _oto_yayinla(haber_id, slayt_yollari, haber):
+            return True
+        mesaj_gonder(f"⚠️ #{haber_id} otomatik yayınlanamadı; içerik onayınıza sunuluyor.")
 
     # 2.7 Önceki tüm mesajları (eski onay kartı ve albüm slaytları) temizle
     icerik_onceki_mesajlarini_temizle("haber_album", haber_id)
@@ -1935,6 +1956,181 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True) -> bool:
     return True
 
 
+# Otomatik yayında kullanılan kanallar: finans bülteniyle aynı (hazirla.yml'deki sırlarla yayınlanabilenler;
+# LinkedIn sırları yalnız yayinla.yml'de var)
+OTO_YAYIN_HEDEFLERI = "ig,threads,story,tiktok,facebook,youtube"
+
+
+def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any]) -> bool:
+    """Onay beklemeden `scripts/yayinla.py` ile yayınlar. Yayın betiği kanal kanal sonucu Telegram'a kendisi
+    raporlar ve durumu günceller. Betik hiç sonuç üretmeden çökerse False döner: çağıran içeriği onaya düşürür.
+    """
+    manset = html.escape(str(haber.get("manset") or haber.get("orijinal_baslik") or ""))
+    fmt = ""
+    try:
+        detay = json.loads(haber.get("detay_metni") or "{}")
+        fmt = str(detay.get("format_turu") or "").lower()
+    except Exception:
+        detay = {}
+
+    is_sozluk = fmt in ("sozluk", "sozluk_uret") or str(haber.get("kaynak", "")).startswith("EDM Sözlük Kartı")
+    baslik_etiket = "📖 <b>EDM EMLAK SÖZLÜĞÜ // OTOMATİK YAYIN</b>" if is_sozluk else "🚀 <b>OTOMATİK YAYIN</b>"
+
+    try:
+        medya_grubu_gonder(
+            slayt_yollari,
+            caption=f"{baslik_etiket} (#{haber_id})\n📌 <b>{manset}</b>\n⏳ <i>Kanallara dağıtılıyor, canlı yayın durumu birazdan iletilecek...</i>",
+        )
+    except Exception as e:  # noqa: BLE001 — görünürlük için; yayını durdurmaz
+        log.warning("Otomatik yayın görseli Telegram'a iletilemedi: %s", e)
+
+    # Sözlük kartı statik bilgi kartıdır; YouTube Shorts video kanalı hariç tutulur:
+    hedefler = "ig,threads,story,tiktok,facebook" if is_sozluk else OTO_YAYIN_HEDEFLERI
+    komut = [sys.executable, str(KOK / "scripts/yayinla.py"), "--tur", "haber", "--id", str(haber_id), "--hedef", hedefler]
+    log.info("İçerik #%s otomatik yayınlanıyor: %s", haber_id, komut)
+    try:
+        calisma = subprocess.run(komut, cwd=KOK, capture_output=True, text=True, timeout=15 * 60)
+    except subprocess.TimeoutExpired:
+        log.error("İçerik #%s otomatik yayını zaman aşımına uğradı", haber_id)
+        return False
+    if calisma.returncode == 0 or "POSTEDM_SONUC=" in calisma.stdout:
+        return True
+    log.error("İçerik #%s otomatik yayınlanamadı: %s\n%s", haber_id, calisma.stdout[-600:], calisma.stderr[-600:])
+    return False
+
+
+def _tr_bugun() -> str:
+    return (datetime.now(timezone.utc) + timedelta(hours=3)).date().isoformat()
+
+
+def sozluk_oto_yayin_acik_mi() -> bool:
+    """Sözlük kartlarının onaysız yayını.
+    1. DB ayarı: db.ayar_oku('sozluk_oto_yayin') '1' / 'acik' ise aktif.
+    2. GitHub Actions değişkeni: SOZLUK_OTO_YAYIN ortam değişkeni '1' / 'acik' ise aktif.
+    """
+    db_deger = str(db.ayar_oku("sozluk_oto_yayin") or "").strip().lower()
+    if db_deger in ("1", "true", "evet", "acik", "açık"):
+        return True
+    return os.environ.get("SOZLUK_OTO_YAYIN", "").strip().lower() in ("1", "true", "evet", "acik", "açık")
+
+
+_OTO_YAYIN_KAPALI_DEGERLER = ("0", "false", "hayir", "hayır", "kapali", "kapalı")
+
+
+def sozluk_oto_yayin_kapatildi_mi() -> bool:
+    """Otomatik yayın AÇIKÇA kapatılmış mı: GitHub değişkeni `SOZLUK_OTO_YAYIN` ya da DB ayarı `sozluk_oto_yayin`
+    '0' / 'kapali'. Tanımsız ya da boş = kapatılmamış.
+
+    NİYE ayrı bir işlev: 12:30 çalıştırması `--oto-yayin` ile gelir; açık anahtarı beklemek zamanlamayı anlamsız
+    kılar. Ama kod değiştirmeden, bir değişkenle durdurulabilen bir acil fren olmalı (yanlış kart yayınlandığında
+    push ve dağıtım beklemeden)."""
+    for deger in (os.environ.get("SOZLUK_OTO_YAYIN", ""), str(db.ayar_oku("sozluk_oto_yayin") or "")):
+        if deger.strip().lower() in _OTO_YAYIN_KAPALI_DEGERLER:
+            return True
+    return False
+
+
+def _sozluk_karti_sec() -> Tuple[Optional[Dict[str, Any]], Optional[bool]]:
+    """(kart, taze). Kanunu değişmiş kart yayınlanmaz: Telegram'a bildirilir ve sıradakine geçilir.
+    taze=None: kanun metni alınamadı (doğrulanamadı)."""
+    from . import sozluk_arsivi
+    reddedilen: set = set()
+    for _ in range(8):
+        kart = sozluk_arsivi.sonraki_kart(haric=reddedilen)
+        if kart is None:
+            return None, None
+        taze, sorunlar = sozluk_arsivi.kart_kanun_durumu(kart)
+        if taze is False:
+            reddedilen.add(kart["kod"])
+            log.warning("Sözlük kartı %s kanunla uyuşmuyor: %s", kart["kod"], "; ".join(sorunlar))
+            mesaj_gonder(
+                f"🛑 <b>Sözlük kartı {kart['kod']} ({html.escape(kart['terim'])}) durduruldu</b>\n"
+                f"<i>Kanun metniyle uyuşmuyor; madde değişmiş olabilir:</i>\n"
+                + "\n".join(f"• {html.escape(s)}" for s in sorunlar[:3])
+                + "\n<i>Kart bu çalıştırmada atlandı; data/sozluk_kartlari.yaml'da güncellenmeli.</i>"
+            )
+            continue
+        return kart, taze
+    return None, None
+
+
+def sozluk_karti_hazirla_ve_sun(oto_yayin: Optional[bool] = None) -> Optional[bool]:
+    """Hazır arşivden sıradaki sözlük kartını hazırlar. Kart yoksa None döner (çağıran modele geçer).
+
+    `oto_yayin`: True = bu çalıştırma otomatik yayına yetkili (zamanlanmış 12:30 işi `--oto-yayin` ile gelir),
+    False = hiçbir zaman otomatik değil, None = anahtara bak (`sozluk_oto_yayin_acik_mi`).
+
+    Otomatik yayın YALNIZCA şu koşulların hepsi varsa olur; biri eksikse kart onaya düşer:
+    anahtar açıkça kapatılmamış, kanun metni alındı ve kartla tutuyor, bot duraklatılmamış, bugün başka
+    otomatik sözlük yayınlanmamış, denetim kapısı uyarısız. Model hiçbir aşamada çalışmaz."""
+    from . import sozluk_arsivi
+    kart, taze = _sozluk_karti_sec()
+    if kart is None:
+        return None
+    istenen = sozluk_oto_yayin_acik_mi() if oto_yayin is None else bool(oto_yayin)
+    neden = ""
+    if istenen:
+        duraklatildi, _ = bot_duraklatildi_mi()
+        if sozluk_oto_yayin_kapatildi_mi():
+            neden = "otomatik yayın anahtarı kapatılmış (SOZLUK_OTO_YAYIN=0)"
+        elif taze is not True:
+            neden = "kanun metni alınamadığı için kart doğrulanamadı"
+        elif duraklatildi:
+            neden = "bot duraklatılmış"
+        elif db.ayar_oku("sozluk_oto_son_gun") == _tr_bugun():
+            neden = "bugün zaten bir sözlük kartı otomatik yayınlandı"
+    otomatik = istenen and not neden
+    if istenen and neden:
+        mesaj_gonder(f"ℹ️ Sözlük kartı otomatik yayınlanmadı: {neden}. Onayınıza sunuluyor.")
+
+    mesaj_gonder(f"📖 <b>Sözlük kartı</b> · {kart['kod']} · {html.escape(kart['terim'])}"
+                 + (" · <b>otomatik yayın</b>" if otomatik else ""))
+    veri = sozluk_arsivi.karttan_veri(kart)
+    simdi = datetime.now(timezone.utc).isoformat()
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                                     eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
+                                     ig_caption, threads_metin, durum)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'yeni')""",
+            (
+                f"EDM Sözlük Kartı // {kart['kod']}",
+                f"{kart['terim']} nedir?",
+                f"edm://sozluk/{kart['kod']}/{int(time.time())}",
+                veri.get("spot", ""),
+                simdi,
+                veri.get("onem_puani", 8),
+                kart["kategori_kodu"],
+                generate_text.manset_birlestir(veri),
+                json.dumps(veri, ensure_ascii=False),
+                veri.get("caption_instagram", ""),
+                veri.get("caption_threads", ""),
+            ),
+        )
+        haber_id = cur.lastrowid
+        conn.commit()
+
+    konu_bankasi.kullanildi_isaretle(kart["kod"], haber_id=haber_id, format_turu="sozluk")
+    sonuc = haber_onayina_sun(haber_id, oto_yayin=otomatik)
+    if otomatik:
+        from . import durum_kurali
+        if durum_kurali.yayinda_mi(db.haber_getir(haber_id) or {}):
+            db.ayar_yaz("sozluk_oto_son_gun", _tr_bugun())
+    return sonuc
+
+
+def _sozluk_slotu(oto_yayin: Optional[bool] = None) -> bool:
+    """Günün sözlüğü: önce hazır kart; kart kalmadıysa modelle üretilip HER ZAMAN onaya sunulur."""
+    if oto_yayin is None:
+        sonuc = sozluk_karti_hazirla_ve_sun()
+    else:
+        sonuc = sozluk_karti_hazirla_ve_sun(oto_yayin=oto_yayin)
+    if sonuc is None:
+        mesaj_gonder("ℹ️ Yayınlanabilir hazır sözlük kartı kalmadı; konu bankasından üretilip onayınıza sunuluyor.")
+        return hizli_icerik_uret(format_turu="sozluk")
+    return sonuc
+
+
 def haberden_icerik_hazirla(haber: Dict[str, Any], brief: Dict[str, Any]) -> bool:
     """Triyajdan geçmiş haberi, konu bankası akışıyla AYNI yoldan içeriğe çevirir.
 
@@ -2040,20 +2236,20 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
     return haber_onayina_sun(haber_id)
 
 
-def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici") -> bool:
+def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici", oto_yayin: Optional[bool] = None) -> bool:
     """Günün içeriği ve elle tetiklenen slotlar.
 
     - 'bilgilendirici': GÜNÜN TEK İÇERİĞİ (10:00 TR). Format altı günlük döngüde
       döner (konu_bankasi.BILGILENDIRICI_FORMATLAR).
-    - 'sozluk': elle istenen sözlük içeriği.
+    - 'sozluk': sözlük içeriği (oto_yayin aktifse doğrudan yayınlanır).
     - 'haber': içerik ÜRETMEZ; taze haberleri tarihleriyle öneri olarak düşürür
       (haber_oneri). Hangisinin içeriğe çevrileceğine insan karar verir.
     """
     slot = (slot or "bilgilendirici").lower()
 
     if slot == "sozluk":
-        log.info("Sözlük içeriği hazırlanıyor...")
-        return hizli_icerik_uret(format_turu="sozluk")
+        log.info("Sözlük içeriği hazırlanıyor (Otomatik yayın: %s)...", oto_yayin)
+        return _sozluk_slotu(oto_yayin=oto_yayin)
 
     if slot == "haber":
         from . import haber_oneri
@@ -2064,6 +2260,8 @@ def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici") -> bool:
     log.info("Günün içeriği — döngüdeki format: %s", secilen_format)
     if secilen_format == "b1":
         basarili = konu_bankasindan_hazirla()
+    elif secilen_format == "sozluk":
+        basarili = _sozluk_slotu(oto_yayin=oto_yayin)
     else:
         basarili = hizli_icerik_uret(format_turu=secilen_format)
 

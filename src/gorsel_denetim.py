@@ -78,7 +78,8 @@ def _anahtarlar() -> List[str]:
     if config.test_modu():
         return []
     anahtarlar = []
-    for ad in ("GEMINI_API_KEY", "GEMINI_IMAGE_API_KEY", "GOOGLE_API_KEY"):
+    for ad in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_YEDEK", "GEMINI_API_KEY_YEDEK2",
+               "GEMINI_IMAGE_API_KEY", "GOOGLE_API_KEY"):
         deger = (os.getenv(ad) or "").strip()
         if deger and deger not in anahtarlar:
             anahtarlar.append(deger)

@@ -352,9 +352,15 @@ def _kelimeyi_bol(
     return parcalar
 
 
-def _metin_sar(metin: str, font: ImageFont.FreeTypeFont, azami_genislik: int, draw: ImageDraw.ImageDraw) -> List[str]:
+def _metin_sar(
+    metin: str,
+    font: ImageFont.FreeTypeFont,
+    azami_genislik: int,
+    draw: ImageDraw.ImageDraw,
+    kelime_bol: bool = True,
+) -> List[str]:
     """
-    Metni piksel genişliğine göre satırlara böler. Sığmayan kelimeyi de böler.
+    Metni piksel genişliğine göre satırlara böler. Sığmayan kelimeyi de böler (kelime_bol=True ise).
     ₺ gibi para birimlerinin önceki rakamdan ve unvanların sonraki kelimeden
     kopmasını engelleyen akıllı yapışkanlık (glue) kurallarını uygular.
     """
@@ -414,9 +420,13 @@ def _metin_sar(metin: str, font: ImageFont.FreeTypeFont, azami_genislik: int, dr
                     if draw.textbbox((0, 0), parca, font=font)[2] <= azami_genislik:
                         mevcut = [parca]
                     else:
-                        parcalar = _kelimeyi_bol(parca, font, azami_genislik, draw)
-                        satirlar.extend(parcalar[:-1])
-                        mevcut = [parcalar[-1]] if parcalar else []
+                        if kelime_bol:
+                            parcalar = _kelimeyi_bol(parca, font, azami_genislik, draw)
+                            satirlar.extend(parcalar[:-1])
+                            mevcut = [parcalar[-1]] if parcalar else []
+                        else:
+                            satirlar.append(parca)
+                            mevcut = []
                 else:
                     deneme_parca = " ".join(mevcut + [parca])
                     if draw.textbbox((0, 0), deneme_parca, font=font)[2] <= azami_genislik:
@@ -426,9 +436,13 @@ def _metin_sar(metin: str, font: ImageFont.FreeTypeFont, azami_genislik: int, dr
                         if draw.textbbox((0, 0), parca, font=font)[2] <= azami_genislik:
                             mevcut = [parca]
                         else:
-                            parcalar = _kelimeyi_bol(parca, font, azami_genislik, draw)
-                            satirlar.extend(parcalar[:-1])
-                            mevcut = [parcalar[-1]] if parcalar else []
+                            if kelime_bol:
+                                parcalar = _kelimeyi_bol(parca, font, azami_genislik, draw)
+                                satirlar.extend(parcalar[:-1])
+                                mevcut = [parcalar[-1]] if parcalar else []
+                            else:
+                                satirlar.append(parca)
+                                mevcut = []
 
     if mevcut:
         satirlar.append(" ".join(mevcut))
@@ -640,12 +654,12 @@ def _govde_sigdir(
     boyut = baslangic_boyut
     while boyut >= min_boyut:
         f = _font_yukle(font_yolu, boyut)
-        satirlar = _metin_sar(metin, f, azami_w, draw)
-        if len(satirlar) <= azami_satir:
+        satirlar = _metin_sar(metin, f, azami_w, draw, kelime_bol=False)
+        if len(satirlar) <= azami_satir and all(draw.textbbox((0, 0), s, font=f)[2] <= azami_w for s in satirlar):
             return f, satirlar
         boyut -= 1
     f = _font_yukle(font_yolu, min_boyut)
-    return f, _metin_sar(metin, f, azami_w, draw)
+    return f, _metin_sar(metin, f, azami_w, draw, kelime_bol=True)
 
 
 def _ek_dolgu_hesapla(

@@ -359,6 +359,64 @@ farklı) içeriği kaynakla (haber metni ya da maddenin güncel metni) karşıla
   yanlış güven verir.
 - Test modunda ağ yok; testler sahte `cagri` ile mantığı sınar.
 
+## 5.5.2 Sözlük: hazır kart arşivi ve otomatik yayın (2026-10-08)
+
+Sözlüğü otomatik yayına almadan önce yapılan inceleme (gerçek model, kanun alıntısıyla doğrulanmış
+12 konu, her biri iki ölçüde çizildi):
+
+| Katman | Ölçüm | Sonuç |
+|---|---|---|
+| Çizim | 12 içerik × besleme ve story | 12/12 sorunsuz: taşma, çakışma, kırpılma yok |
+| İçerik | elle okuma | en az 4'ünde ince yanlışlık: S2-001 "teslim" yerine "sözleşme", S3-005 "Bakanlık izni olmadan ifraz yapılamaz", S3-007 "plansız alanda ifraz yapılamaz", S2-006 belirsiz iade süresi |
+| Düzenli ifade kapısı | aynı 12 | gerçek yanlışı HİÇ yakalamadı (yalnız sayı ve özel isme bakar); 5/12 yanlış "yerel bağ", 1/12 yanlış ⛔ |
+| Anlam hakemi | aynı 12 | gerçekten çalıştığında 9/12'de bulgu (bazıları gerçek, bazıları kullanılmayan bloklardan); kota bitince **sessizce hiç çalışmıyor** ve "temiz" görünüyor |
+
+**Sonuç: modelin yazdığı sözlük otomatik yayına uygun değil.** İnsan onayı varken bu kusurlar kabul
+edilebilir; onay kalkınca değildir. Bu yüzden iki ayrı yol var:
+
+1. **Modelle üretilen sözlük** (eskisi gibi, HER ZAMAN onaya düşer). Ama sadeleştirildi: model B1'in bütün
+   şemasını dolduruyordu, kullanılmayan `slayt_2/3/4` blokları hiçbir kanala gitmiyor ama kapıyı ve
+   hakemi yanıltıyordu; artık silinir. Başlık "TERİM nedir?" olur (modelin serbest cümlesi değil), `spot`
+   tanımın ilk cümlesidir. Yalnızca kanun alıntısıyla doğrulanmış konulardan üretilir. Kutu başlığı
+   kitleye göre ("YATIRIMCI İÇİN ÖNEMİ" kiracı kartında yanlıştı).
+2. **Hazır kart arşivi** (`data/sozluk_kartlari.yaml`, `src/sozluk_arsivi.py`): her kart bir KEZ yazılır,
+   kanun metniyle ve anlam hakemiyle (üç ayrı geçiş) doğrulanır; yayın anında **modele hiç başvurulmaz**.
+   İçerik değişmez, yalnız kanunun hâlâ aynı olduğu yeniden sınanır.
+
+**Kart yazma kuralı:** tanım ve maddeler yalnızca atıf yapılan maddede yazanı aktarır. Kartta geçen her sayı,
+süre ve oran o maddede bulunmalıdır; madde numarası anılıyorsa atıf listesinde olmalıdır. Hakem üç geçişte
+bile yeni nüanslar buldu (kesinleşmiş karar, "aşırı ifa güçlüğü" istisnası, yüzdenin hesap tabanı): tek
+geçiş yetmez. Yeni kart: YAML'a ekle → `python -m unittest tests.test_sozluk_arsivi` (biçim, kanun metni,
+kapı, çizim) → hakemle kontrol.
+
+**Otomatik yayın** (`telegram_bot.sozluk_karti_hazirla_ve_sun`): her gün öğlen 12:30 TR (09:30 UTC, `hazirla.yml` cron
+`30 9 * * *`) `hazirla.py --slot sozluk --oto-yayin` çalışır. `--oto-yayin` "bu çalıştırma onaysız yayına yetkili" demektir;
+bayraksız çalıştırmalar (10:00 günlük döngü, elle `--slot sozluk`) açık anahtar yoksa hiçbir zaman otomatik değildir.
+Modelin yazdığı sözlük bayrakla bile ASLA otomatik yayınlanmaz (kart kalmadıysa onaya düşer).
+
+**Acil fren** (kod değiştirmeden, push ve dağıtım beklemeden): GitHub → Settings → Secrets and variables → Actions →
+Variables → `SOZLUK_OTO_YAYIN` = `0` (ya da DB ayarı `sozluk_oto_yayin` = `0`). Kart o gün onaya düşer ve Telegram'a nedeni
+yazılır; değişken tanımsız ya da boşken zamanlanmış çalıştırma yayınlar. Telegram'dan bot duraklatılırsa da durur.
+Yayınlanmış bir kartı geri almak için ayrıca yayın kanallarından silmek gerekir; fren yalnız sonrakini durdurur.
+Otomatik yayın YALNIZCA şu koşulların HEPSİ varsa olur, biri eksikse kart onaya düşer ve Telegram'a nedeni yazılır:
+
+- kart hazır arşivden (model yazmadı) ve kanun metni alındı, alıntı güncel metinde birebir var, kartta geçen
+  sayılar maddede mevcut (kanun değişmişse kart durur ve Telegram'a bildirilir; sıradaki kart denenir)
+- bot duraklatılmamış; bugün başka bir sözlük kartı otomatik yayınlanmamış (günde en çok bir)
+- denetim kapısı UYARISIZ (⛔ içerik hiç sunulmaz; herhangi bir ⚠️ otomatiği durdurur)
+- yayın betiği çökerse (sonuç satırı üretmezse) kart onaya düşer; kanallar görsel karta uygun olarak
+  (IG, Threads, Story, TikTok, Facebook — YouTube Shorts video gerektirdiğinden hariç tutulur)
+- Önce kart görseli ve başlığı Telegram'a düşer (`📖 EDM EMLAK SÖZLÜĞÜ // OTOMATİK YAYIN`), dağıtım tamamlandığında
+  canlı yayınlama raporu ve bağlantı butonları Telegram'a raporlanır.
+
+Haftalık mevzuat denetimi kartları da denetler (`scripts/mevzuat_denetim.py`): kanun değişince kart yayından
+önce kırmızıya düşer. Kart sayısı ve anahtar durumu: `python scripts/hazirla.py --durum`.
+
+**Gemini kotası (aynı gün bulundu).** Anahtar ÜCRETSİZ katmanda; model başına günlük istek sınırı var ve
+2026-10-07'de tek günlük yoğun deneme üç modelin kotasını doldurdu (yenilenme ~5 saat). GitHub'daki yedek
+sırlar (`GEMINI_API_KEY_YEDEK`, `YEDEK2`) kodda hiç okunmuyordu; artık okunuyor ve `hazirla.yml`
+adımlarına verildi. Her anahtar ayrı proje (ayrı kota).
+
 ## 5.6 Stres ve sabotaj testi
 
 > **2026-09-25:** Asıl denetim artık `scripts/gorsel_denetim.py` (CI adımı, 164 vaka).

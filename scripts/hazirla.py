@@ -133,6 +133,11 @@ def main() -> None:
             "Konu bankası: %d konudan %d bakir (~%s hafta). Sütun dağılımı: %s",
             ozet["toplam"], ozet["bakir"], ozet["kalan_hafta"], ozet["bakir_sutun_dagilimi"],
         )
+        from src import sozluk_arsivi
+        kart = sozluk_arsivi.durum_ozeti()
+        log.info("Sözlük kartı: %d kart, %d tanesi hiç yayınlanmadı (zamanlanmış otomatik yayın: %s).",
+                 kart["toplam"], kart["bakir"],
+                 "KAPATILMIŞ (acil fren: SOZLUK_OTO_YAYIN)" if telegram_bot.sozluk_oto_yayin_kapatildi_mi() else "açık")
         bekleyen = konu_bankasi.bekleyen_adaylar()
         log.info("Onay bekleyen konu adayı: %d", len(bekleyen))
         for a in bekleyen[:8]:
@@ -145,8 +150,8 @@ def main() -> None:
         return
 
     if args.slot:
-        log.info("Günlük slot çalıştırılıyor: '%s'...", args.slot)
-        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot)
+        log.info("Günlük slot çalıştırılıyor: '%s' (Otomatik yayın: %s)...", args.slot, args.oto_yayin)
+        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot, oto_yayin=args.oto_yayin)
         return
 
     if args.finans:
@@ -179,15 +184,18 @@ def main() -> None:
 
     # Belirli bir format istendiyse doğrudan o formatı üret
     if args.format_turu:
-        log.info("'%s' formatında içerik hazırlanıyor...", args.format_turu)
-        telegram_bot.hizli_icerik_uret(format_turu=args.format_turu)
+        log.info("'%s' formatında içerik hazırlanıyor (Otomatik yayın: %s)...", args.format_turu, args.oto_yayin)
+        if args.format_turu == "sozluk":
+            telegram_bot.sozluk_karti_hazirla_ve_sun(oto_yayin=args.oto_yayin)
+        else:
+            telegram_bot.hizli_icerik_uret(format_turu=args.format_turu)
         return
 
     # Varsayılan akış: Günlük bilgilendirici slot rotasyonu veya belirtilen slot
     if not args.haber_tara:
         hedef_slot = args.slot or "bilgilendirici"
-        log.info("Slot hazırlanıyor: '%s'...", hedef_slot)
-        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=hedef_slot)
+        log.info("Slot hazırlanıyor: '%s' (Otomatik yayın: %s)...", hedef_slot, args.oto_yayin)
+        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=hedef_slot, oto_yayin=args.oto_yayin)
         return
 
     # Yalnızca --haber-tara bayrağı verildiğinde RSS taranır

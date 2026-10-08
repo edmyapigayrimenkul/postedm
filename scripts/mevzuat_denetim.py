@@ -29,7 +29,7 @@ from pathlib import Path
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 
-from src import konu_bankasi, mevzuat  # noqa: E402
+from src import konu_bankasi, mevzuat, sozluk_arsivi  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
@@ -62,6 +62,24 @@ def konu_denetle(konu: dict) -> tuple[list[str], list[str]]:
     return kritik, bilgi
 
 
+def kart_denetle(kart: dict) -> tuple[list[str], list[str]]:
+    """Hazır sözlük kartı: alıntı güncel metinde birebir duruyor mu, kartta yazan sayılar maddede var mı.
+    Kart otomatik yayınlanabildiği için kanun değiştiğinde insan bakmadan çıkmaması gerekir; bu denetim kartı
+    önceden kırmızıya düşürür (yayın anında da aynı sınama yapılır, bkz. telegram_bot._sozluk_karti_sec)."""
+    taze, sorunlar = sozluk_arsivi.kart_kanun_durumu(kart)
+    kritik, bilgi = [], []
+    if taze is None:
+        bilgi.append("kanun metni alınamadı: " + "; ".join(sorunlar)[:100])
+    elif taze is False:
+        kritik.extend(sorunlar)
+    ozet = mevzuat.brief_mevzuati(kart["mevzuat"])
+    if ozet.get("son_degisiklik"):
+        degisti = date.fromisoformat(ozet["son_degisiklik"])
+        if degisti >= date.today() - timedelta(days=YENI_DEGISIKLIK_GUN):
+            kritik.append(f"madde {degisti:%d.%m.%Y}'de değişti — kart yeniden okunmalı")
+    return kritik, bilgi
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sessiz", action="store_true")
@@ -78,7 +96,15 @@ def main() -> int:
         if bilgi:
             bilgiler[k["kod"]] = bilgi
 
-    satirlar = [f"{len(konular)} konu · {len(atifli)} atıflı · {len(kritikler)} kritik · "
+    kartlar = [k for k in sozluk_arsivi.kartlari_yukle(tazele=True) if not k.get("pasif")]
+    for k in kartlar:
+        kritik, bilgi = kart_denetle(k)
+        if kritik:
+            kritikler[k["kod"]] = (f"Sözlük kartı: {k['terim']}", kritik)
+        if bilgi:
+            bilgiler[k["kod"]] = bilgi
+
+    satirlar = [f"{len(konular)} konu · {len(atifli)} atıflı · {len(kartlar)} sözlük kartı · {len(kritikler)} kritik · "
                 f"{len(bilgiler)} otomatik doğrulanamayan"]
     for kod, (baslik, sorunlar) in sorted(kritikler.items()):
         satirlar.append(f"\n⛔ {kod} — {baslik}")

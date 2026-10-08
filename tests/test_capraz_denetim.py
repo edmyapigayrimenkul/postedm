@@ -247,6 +247,76 @@ class TestDayaniklilik(unittest.TestCase):
         ag.assert_not_called()
 
 
+class TestUcNoktaToleransi(unittest.TestCase):
+    """Model uzun kaynak cümlesini "..." ile kısaltıyor; parçalar sırayla aranır (2026-10-08, S2-006)."""
+
+    KAYNAK_N = cd._normal(KAYNAK)
+
+    def test_parcalar_sirayla_bulunursa_kabul(self):
+        self.assertTrue(cd._bulunur("İkinci toplantıda karar yeter sayısı... salt çoğunluğudur", self.KAYNAK_N))
+        # "…" kelime atladığında bölünmezse parçalar birleşik aranır ve bulunamaz
+        self.assertTrue(cd._bulunur("İkinci toplantıda karar yeter sayısı … salt çoğunluğudur", self.KAYNAK_N))
+
+    def test_sira_bozuksa_reddedilir(self):
+        self.assertFalse(cd._bulunur("salt çoğunluğudur... İkinci toplantıda karar yeter sayısı", self.KAYNAK_N))
+
+    def test_bir_parca_metinde_yoksa_reddedilir(self):
+        self.assertFalse(cd._bulunur("İkinci toplantıda karar yeter sayısı... oybirliği gerekir", self.KAYNAK_N))
+
+    def test_hepsi_kisa_parcalarsa_kanit_sayilmaz(self):
+        # Üç parça da metinde SIRAYLA geçiyor ama hiçbiri 12 karakter değil: tek başına kanıt değil
+        self.assertFalse(cd._bulunur("karar... kat... salt", self.KAYNAK_N))
+
+    def test_ucnoktasiz_alinti_eskisi_gibi(self):
+        self.assertTrue(cd._bulunur("İkinci toplantıda karar yeter sayısı, katılanların salt çoğunluğudur", self.KAYNAK_N))
+        self.assertFalse(cd._bulunur("", self.KAYNAK_N))
+
+    def test_kisaltilmis_kaynak_alintili_bulgu_kabul_edilir(self):
+        bulgu = {**GERCEK, "kaynak_alintisi": "İkinci toplantıda karar yeter sayısı... salt çoğunluğudur"}
+        self.assertEqual(len(cd.denetle(VERI, KAYNAK, cagri=_Hakem(_cevap(bulgu)))), 1)
+
+
+class TestAyrintiliSonuc(unittest.TestCase):
+    """`denetle_ayrintili`: "bulgu yok" ile "hakem çalışmadı" ayrılır; otomatik yayın buna dayanır."""
+
+    def setUp(self):
+        cd._ONBELLEK.clear()
+
+    def test_temiz_yanit_hakem_calisti_demek(self):
+        self.assertEqual(cd.denetle_ayrintili(VERI, KAYNAK, cagri=_Hakem(_cevap())), ([], True))
+
+    def test_bulgu_varsa_calisti_ve_uyari(self):
+        uyarilar, calisti = cd.denetle_ayrintili(VERI, KAYNAK, cagri=_Hakem(_cevap(GERCEK)))
+        self.assertTrue(calisti)
+        self.assertEqual(len(uyarilar), 1)
+
+    def test_calismadigi_durumlar_false(self):
+        for ad, yanit in (("None", None), ("bos", ""), ("bozuk", "json degil"), ("istisna", RuntimeError("kota"))):
+            with self.subTest(durum=ad):
+                cd._ONBELLEK.clear()
+                self.assertEqual(cd.denetle_ayrintili(VERI, KAYNAK, cagri=_Hakem(yanit)), ([], False))
+
+    def test_kaynak_yoksa_ya_da_kisaysa_false(self):
+        hakem = _Hakem(_cevap())
+        self.assertEqual(cd.denetle_ayrintili(VERI, "", cagri=hakem), ([], False))
+        self.assertEqual(cd.denetle_ayrintili(VERI, "kısa", cagri=hakem), ([], False))
+        self.assertEqual(hakem.sayi, 0)
+
+    def test_test_modunda_cagri_yoksa_false(self):
+        self.assertEqual(cd.denetle_ayrintili(VERI, KAYNAK), ([], False))
+
+    def test_onbellekten_gelen_sonuc_da_calisti_sayilir(self):
+        hakem = _Hakem(_cevap(GERCEK))
+        ilk = cd.denetle_ayrintili(VERI, KAYNAK, cagri=hakem)
+        ikinci = cd.denetle_ayrintili(VERI, KAYNAK, cagri=hakem)
+        self.assertEqual(ilk, ikinci)
+        self.assertEqual(hakem.sayi, 1)
+
+    def test_denetle_eski_arayuzu_korur(self):
+        self.assertEqual(cd.denetle(VERI, KAYNAK, cagri=_Hakem(None)), [])
+        self.assertEqual(len(cd.denetle(VERI, KAYNAK, cagri=_Hakem(_cevap(GERCEK)))), 1)
+
+
 class TestKapiBaglantisi(unittest.TestCase):
     def setUp(self):
         cd._ONBELLEK.clear()

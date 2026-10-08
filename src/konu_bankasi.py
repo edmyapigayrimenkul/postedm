@@ -333,6 +333,15 @@ def sonraki_konu(
         log.warning("Havuzdaki tüm konular engellenmiş veya boş.")
         return None
 
+    # Sözlük bir TANIM verir: tanım kanun metninden doğrulanmış olmalı. 2026-10-07 incelemesi: geçmiş
+    # sözlüklerin zayıfları kanun alıntısı olmayan (BDDK, SPK, GYF) konulardan geliyordu; #133 kaparo
+    # yanlış hukuk söylüyordu, #221 GYF sermaye piyasası aracı öneriyordu.
+    if format_adi(format_turu) == "sozluk":
+        havuz = [k for k in havuz if k.get("dayanak_alintisi")]
+        if not havuz:
+            log.warning("Sözlük için kanun alıntısıyla doğrulanmış uygun konu kalmadı.")
+            return None
+
     gecmis = _kullanim_gecmisi()
     bakir = [k for k in havuz if k["kod"] not in gecmis]
     son_sutunlar = _son_kullanilan_sutunlar(limit=2)

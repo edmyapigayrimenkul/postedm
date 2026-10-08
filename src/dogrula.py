@@ -182,6 +182,10 @@ _ICI_BOS_KALIPLAR = [
 # Abartı / clickbait kalıpları (prompt yasaklıyor, burada denetleniyor)
 _ABARTI = ["şok", "inanılmaz", "kaçırmayın", "bomba", "müjde", "sakın",
            "asla", "herkes bunu", "kimse bilmiyor", "sır gibi"]
+# Kelime SINIRIYLA aranır: alt-dize eşleşmesi "sakınca" (fen bakımından sakınca), "paslanmaz" (içinde "asla"),
+# "aslan", "bombardıman" gibi sıradan kelimeleri abartı sayıyordu (2026-10-08, sözlük kartı SZ-014).
+_TR_HARF = "a-zçğıöşüâîû"
+_ABARTI_DESENLERI = [(a, re.compile(rf"(?<![{_TR_HARF}]){re.escape(a)}(?![{_TR_HARF}])")) for a in _ABARTI]
 
 # İçi boş genel geçer tavsiyeler ("Sakin Otorite" yerine kuru nasihat veren kalıplar)
 _BOS_TAVSIYELER = [
@@ -702,7 +706,7 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     # --- 4. MARKA SESİ ---
     if "!" in metin:
         uyarilar.append("⚠️ ÜNLEM İŞARETİ: marka sesi sakin otorite, ünlem kullanılmıyor.")
-    abartilar = [a for a in _ABARTI if a in kucuk]
+    abartilar = [a for a, desen in _ABARTI_DESENLERI if desen.search(kucuk)]
     if abartilar:
         uyarilar.append(f"⚠️ ABARTI DİLİ: \"{abartilar[0]}\" geçiyor.")
     bos_tavsiyeler = [b for b in _BOS_TAVSIYELER if b in kucuk]

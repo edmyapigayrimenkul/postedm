@@ -587,15 +587,28 @@ MARKANIN SES TONU & İLKELERİ:
 _TUKENMIS: set[tuple[str, str]] = set()
 
 
+# Anahtar adları: GitHub sırları `GEMINI_API_KEY_YEDEK` ve `GEMINI_API_KEY_YEDEK2` adıyla tanımlı
+# (yayinla.yml), kod ise yalnız `GEMINI_API_KEY_2` ve `GEMINI_IMAGE_API_KEY`'i okuyordu: yedek
+# anahtarlar ortamda durduğu hâlde HİÇ denenmiyordu (2026-10-08). Anahtar ücretsiz katmanda ve model
+# başına günlük istek sınırı var: 2026-10-07'de tek bir gün yoğun denemeyle üç modelin günlük kotası
+# doldu. Her anahtar ayrı proje (ayrı kota) olduğundan yedekler gerçek kapasite demek.
+YEDEK_ANAHTAR_ADLARI = ("GEMINI_API_KEY_2", "GEMINI_API_KEY_YEDEK", "GEMINI_API_KEY_YEDEK2", "GEMINI_IMAGE_API_KEY")
+
+
 def _anahtarlari_al() -> List[Tuple[str, str]]:
-    """Denenecek API anahtarlarını döner."""
-    anahtarlar = []
-    ana = config.env_al("GEMINI_API_KEY")
+    """Denenecek API anahtarlarını döner: birincil, sonra yedekler (aynı değerler tekrarlanmaz)."""
+    anahtarlar: List[Tuple[str, str]] = []
+    gorulen = set()
+    ana = config.env_al("GEMINI_API_KEY").strip()
     if ana:
         anahtarlar.append(("birincil", ana))
-    yedek = config.env_al("GEMINI_API_KEY_2") or config.env_al("GEMINI_IMAGE_API_KEY")
-    if yedek and yedek != ana:
-        anahtarlar.append(("yedek", yedek))
+        gorulen.add(ana)
+    for ad in YEDEK_ANAHTAR_ADLARI:
+        deger = config.env_al(ad).strip()
+        if deger and deger not in gorulen:
+            # Ad, günlük kota tükenmişlerini (model, anahtar_adi) ayırt etmek için benzersiz olmalı
+            anahtarlar.append((f"yedek:{ad}", deger))
+            gorulen.add(deger)
     return anahtarlar
 
 
@@ -1194,6 +1207,48 @@ def _kritik_duzelt(veri: Dict[str, Any], girdi: str, bicim: str,
     return yeni
 
 
+# Sözlük tek karedir (terim, tanım, maddeler). Model yine de B1'in tüm şemasını dolduruyor; bu bloklar
+# hiçbir kanala gitmiyor (tek görselli yayında Threads zinciri, video ve LinkedIn bunları kullanmıyor)
+# ama denetimi yanıltıyordu: 2026-10-07 denemesinde kullanılmayan "slayt_4_cta"daki "Silivri'de" 12
+# sözlüğün 5'inde "yerel bağ uydurulmuş" uyarısı, kullanılmayan bir adımdaki "1 gün" ise yanlış ⛔ verdi;
+# hakem de kullanılmayan bloklardaki iddialara takıldı. Yayınlanmayan metin denetlenmez, silinir.
+_SOZLUK_GOSTERILMEYEN = ("slayt_2_detay", "slayt_3_cozum", "slayt_4_cta", "soru")
+
+
+def _ilk_cumle(metin: Any, azami: int = 180) -> str:
+    metin = " ".join(str(metin or "").split())
+    m = re.match(r"(.+?[.!?])(?:\s|$)", metin)
+    ilk = m.group(1) if m else metin
+    if len(ilk) <= azami:
+        return ilk
+    return ilk[:azami].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+
+
+def sozluk_sadelestir(veri: Dict[str, Any], konu: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Sözlük kaydını gösterilen ve yayınlanan alanlara indirir.
+
+    - Kullanılmayan B1 blokları silinir.
+    - Başlık (YouTube/TikTok/Telegram `manset`) modelin serbest yazdığı cümle yerine "TERİM nedir?" olur:
+      kartta görünen terimle birebir tutar, doğrulanmamış iddia taşımaz.
+    - `spot` tanımın ilk cümlesidir; `yasal_dayanak` konunun DOĞRULANMIŞ atfıdır (modelin yazdığı değil).
+    Captionlar (model yazar) olduğu gibi kalır; onları kapı ve hakem denetler.
+    """
+    if not isinstance(veri, dict):
+        return veri
+    for alan in _SOZLUK_GOSTERILMEYEN:
+        veri.pop(alan, None)
+    terim = " ".join(str(veri.get("terim") or "").split())
+    if terim:
+        veri["manset_parca_1"] = ""
+        veri["manset_vurgu"] = terim
+        veri["manset_parca_2"] = "nedir?"
+    if veri.get("tanim_metni"):
+        veri["spot"] = _ilk_cumle(veri["tanim_metni"])
+    if isinstance(konu, dict) and konu.get("mevzuat"):
+        veri["yasal_dayanak"] = konu["mevzuat"]
+    return veri
+
+
 def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
                  ek_talimat: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Konu bankası kaydından slayt içeriği üretir. Faz 1'in ana giriş noktası."""
@@ -1274,6 +1329,8 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
         if format_turu:
             v["format_turu"] = format_turu
         v["konu_kodu"] = konu["kod"]
+        if format_turu in ("sozluk", "sozluk_uret"):
+            sozluk_sadelestir(v, konu)
         if bicim == "B5":
             # Kaynakta dayanağı olmayan alıntı, vurgu rakamı, boş övgü ve boş kanca atılır
             from . import dogrula

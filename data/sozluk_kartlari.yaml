@@ -1,0 +1,384 @@
+# =========================================================
+# EDM — Sözlük Kartları (hazır bilgi arşivi)
+# Kod ve gerekçe: src/sozluk_arsivi.py (modül başlığı), ICERIK-SISTEMI.md
+#
+# Her kart bir KEZ yazılır, kanun metniyle ve anlam hakemiyle doğrulanır; otomatik yayında modele
+# başvurulmaz. Yayın anında yalnız kanunun hâlâ aynı olduğu yeniden sınanır: alıntı güncel metinde
+# birebir bulunmuyorsa kart DURUR (kanun değişmiştir) ve insan onayına düşer.
+#
+# Alanlar:
+#   kod               SZ-000. Kalıcı kimlik (yayın geçmişi buna bakar); silinmez, yeniden kullanılmaz
+#   terim             Kartın büyük başlığı (en fazla 26 karakter, büyük harf)
+#   kategori_kodu     yeni_formatlar.KATEGORI_HARITASI'ndaki kod; kutu başlığı ve etiketler buna göre
+#   tanim             Terimin tanımı (40-260 karakter). YALNIZCA atıf yapılan maddede yazanı aktarır
+#   puf               2-3 madde (her biri en fazla 115 karakter). Her sayı, süre ve oran maddede geçmeli
+#   mevzuat           Atıf: scripts/mevzuat_denetim.py ve mevzuat.py bu atıftan güncel metni çeker
+#   dayanak_alintisi  O maddeden BİREBİR en az 40 karakterlik cümle (kanıt)
+#   kontrol           Son doğrulama tarihi
+#   pasif             true ise kart yayınlanmaz
+# Kural: kartta olmayan bir şeyi eklemek isteyen önce atıf listesine ilgili maddeyi ekler.
+# =========================================================
+
+kartlar:
+- kod: SZ-001
+  terim: ÖNALIM HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Paylı mülkiyette bir paydaş payını üçüncü kişiye satarsa, diğer paydaşların payı alıcıya karşı dava açarak öne geçip alabilmesini sağlayan haktır.
+  puf:
+  - Hak, satışın bildirildiği tarihten itibaren üç ay, her hâlde satıştan itibaren bir yıl geçmekle düşer.
+  - Satış, alıcı veya satıcı tarafından diğer paydaşlara noter aracılığıyla bildirilir.
+  - Payın rayiç bedelini hâkim belirler.
+  mevzuat: Türk Medeni Kanunu md. 732-734
+  dayanak_alintisi: Önalım hakkı, satışın hak sahibine bildirildiği tarihin üzerinden üç ay ve her hâlde satışın üzerinden bir yıl geçmekle düşer.
+  kontrol: '2026-10-08'
+- kod: SZ-002
+  terim: BAĞLANMA PARASI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Sözleşme yapılırken verilen para, aksi anlaşılmadıkça cayma parası değil, sözleşmenin yapıldığına kanıt sayılır; halk arasında kaparo denir.
+  puf:
+  - Aksine sözleşme veya yerel âdet yoksa bağlanma parası esas alacaktan düşülür.
+  - Vazgeçen kaybeder, alan iki katını öder kuralı yalnızca cayma parası için geçerlidir.
+  - Cayma parası kararlaştırılmamışsa bu kural işlemez.
+  mevzuat: Türk Borçlar Kanunu md. 177 ve 178
+  dayanak_alintisi: Sözleşme yapılırken bir kimsenin vermiş olduğu bir miktar para, cayma parası olarak değil sözleşmenin yapıldığına kanıt olarak verilmiş sayılır.
+  kontrol: '2026-10-08'
+- kod: SZ-003
+  terim: CAYMA PARASI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Tarafların sözleşmeden dönebilmek için açıkça kararlaştırdığı paradır; cayan taraf bu para üzerinden sonucuna katlanır.
+  puf:
+  - Cayma parası kararlaştırılmışsa taraflardan her biri sözleşmeden caymaya yetkili sayılır.
+  - Parayı vermiş olan cayarsa verdiğini bırakır.
+  - Parayı almış olan cayarsa aldığının iki katını geri verir.
+  mevzuat: Türk Borçlar Kanunu md. 177 ve 178
+  dayanak_alintisi: Cayma parası kararlaştırılmışsa, taraflardan her biri sözleşmeden caymaya yetkili sayılır; bu durumda parayı vermiş olan cayarsa verdiğini bırakır; almış olan cayarsa aldığının iki katını geri verir.
+  kontrol: '2026-10-08'
+- kod: SZ-004
+  terim: GÜVENCE BEDELİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında kiracıdan sözleşmeyle istenen güvencedir; üç aylık kira bedelini aşamaz. Halk arasında depozito denir.
+  puf:
+  - Para olarak verilirse kiracı, kiraya verenin onayı olmadan çekilmemek üzere vadeli hesaba yatırır.
+  - Banka güvenceyi ancak iki tarafın rızasıyla, kesinleşmiş icra takibi veya kesinleşmiş mahkeme kararıyla geri verir.
+  - Sözleşme bittikten sonra üç ayda dava veya takip bildirilmezse banka, kiracı isterse güvenceyi geri verir.
+  mevzuat: Türk Borçlar Kanunu md. 342
+  dayanak_alintisi: Konut ve çatılı işyeri kiralarında sözleşmeyle kiracıya güvence verme borcu getirilmişse, bu güvence üç aylık kira bedelini aşamaz.
+  kontrol: '2026-10-08'
+- kod: SZ-005
+  terim: KİRA ARTIŞ SINIRI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Yenilenen kira dönemlerinde kira bedeli, bir önceki kira yılındaki on iki aylık TÜFE ortalamasına göre değişim oranını geçemez.
+  puf:
+  - Bu kural bir yıldan uzun süreli kira sözleşmelerinde de uygulanır.
+  - Beş yıldan uzun süreli kiralarda bedeli hâkim, emsal kira bedellerini de gözeterek belirler.
+  - Yabancı parayla kira bedeli beş yıl geçmedikçe değişmez; aşırı ifa güçlüğü (md. 138) hükmü saklıdır.
+  mevzuat: Türk Borçlar Kanunu md. 138 ve 344
+  dayanak_alintisi: Tarafların yenilenen kira dönemlerinde uygulanacak kira bedeline ilişkin anlaşmaları, bir önceki kira yılında tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranını geçmemek koşuluyla geçerlidir.
+  kontrol: '2026-10-08'
+- kod: SZ-006
+  terim: TAHLİYE TAAHHÜDÜ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının, kiralananı teslim aldıktan sonra belirli bir tarihte boşaltmayı yazılı olarak üstlendiği belgedir.
+  puf:
+  - Taahhüt, kiralananın teslim edilmesinden sonra verilmiş olmalıdır.
+  - Kiracı o tarihte boşaltmazsa kiraya veren bir ay içinde icraya başvurabilir veya dava açabilir.
+  mevzuat: Türk Borçlar Kanunu md. 352
+  dayanak_alintisi: Kiracı, kiralananın teslim edilmesinden sonra, kiraya verene karşı, kiralananı belli bir tarihte boşaltmayı yazılı olarak üstlendiği hâlde boşaltmamışsa kiraya veren, kira sözleşmesini bu tarihten başlayarak bir ay içinde icraya başvurmak veya dava açmak suretiyle sona erdirebilir.
+  kontrol: '2026-10-08'
+- kod: SZ-007
+  terim: İHTİYAÇTAN TAHLİYE
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiraya verenin, kiralananı kendisi, eşi, altsoyu, üstsoyu veya bakmakla yükümlü olduğu kişiler için kullanma zorunluluğu varsa sözleşmeyi dava ile sona erdirebilmesidir.
+  puf:
+  - Belirli süreli sözleşmede dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır.
+  - Boşaltılan konut haklı sebep olmadan üç yıl geçmedikçe eski kiracıdan başkasına kiralanamaz.
+  - Aykırılıkta kiraya veren, bir yıllık kira bedelinden az olmamak üzere tazminat öder.
+  mevzuat: Türk Borçlar Kanunu md. 350 ve 355
+  dayanak_alintisi: Kiraya veren, gereksinim amacıyla kiralananın boşaltılmasını sağladığında, haklı sebep olmaksızın, kiralananı üç yıl geçmedikçe eski kiracısından başkasına kiralayamaz.
+  kontrol: '2026-10-08'
+- kod: SZ-008
+  terim: BEŞ YILLIK KİRA TESPİTİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Beş yıldan uzun süreli veya beş yıldan sonra yenilenen kira sözleşmelerinde kira bedelinin hâkim tarafından belirlenmesidir.
+  puf:
+  - Hâkim, TÜFE'deki on iki aylık ortalama değişim oranını, kiralananın durumunu ve emsal kira bedellerini gözetir.
+  - Bu belirleme bundan sonraki her beş yılın sonunda yeniden yapılabilir.
+  mevzuat: Türk Borçlar Kanunu md. 344
+  dayanak_alintisi: Taraflarca bu konuda bir anlaşma yapılıp yapılmadığına bakılmaksızın, beş yıldan uzun süreli veya beş yıldan sonra yenilenen kira sözleşmelerinde ve bundan sonraki her beş yılın sonunda, yeni kira yılında uygulanacak kira bedeli, hâkim tarafından tüketici fiyat endeksindeki oniki aylık ortalamalara göre değişim oranı, kiralananın durumu ve emsal kira bedelleri göz önünde tutularak hakkaniyete uygun biçimde belirlenir.
+  kontrol: '2026-10-08'
+- kod: SZ-009
+  terim: KEFALET
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kefilin, borçlunun borcu için sorumluluk üstlendiği sözleşmedir; kanun bunu sıkı şekil şartlarına bağlar.
+  puf:
+  - Yazılı yapılmalı; kefilin sorumlu olacağı azami miktar ile kefalet tarihi belirtilmelidir.
+  - Kefil azami miktarı ve tarihi kendi el yazısıyla belirtmelidir.
+  - Sorumluluğu artıran sonraki değişiklikler aynı şekle uyulmadıkça hüküm doğurmaz.
+  mevzuat: Türk Borçlar Kanunu md. 583
+  dayanak_alintisi: Kefalet sözleşmesi, yazılı şekilde yapılmadıkça ve kefilin sorumlu olacağı azamî miktar ile kefalet tarihi belirtilmedikçe geçerli olmaz.
+  kontrol: '2026-10-08'
+- kod: SZ-010
+  terim: TURİZM KİRALAMASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konutun gerçek veya tüzel kişilere en fazla yüz gün süreyle kiralanmasıdır; sözleşmeden önce izin belgesi alınması zorunludur.
+  puf:
+  - Tek seferde yüz günden uzun süreli kiralamalar bu kanunun kapsamı dışındadır.
+  - İzin başvurusunda binanın tüm kat maliklerinin oy birliğiyle aldığı karar ibraz edilir.
+  - İzinsiz kiralamada konut başına yüz bin Türk lirası idari para cezası uygulanır.
+  mevzuat: 7464 sayılı Kanun md. 1, 3 ve 4
+  dayanak_alintisi: İzin belgesi bulunmaksızın turizm amaçlı kiralanan konutları kiraya verenlere, kiralama yapılan her bir konut için yüz bin Türk lirası idari para cezası uygulanır ve izin belgesi alarak faaliyette bulunabilmesi için on beş gün süre verilir.
+  kontrol: '2026-10-08'
+- kod: SZ-011
+  terim: KAT İRTİFAKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Henüz yapılmamış veya tamamlanmamış bir arsa üzerinde, bağımsız bölümlere arsa payı tahsis edilerek kurulan ve tapuya tescil edilen irtifak hakkıdır.
+  puf:
+  - Kat irtifakı arsa payına bağlı bir irtifak çeşididir.
+  - Yapı kullanma izin belgesine dayalı olarak kat mülkiyetine resen çevrilir.
+  - Kurulması için malik, proje ve yönetim planını tapu idaresine vermelidir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 3 ve 14
+  dayanak_alintisi: Kat irtifakı arsa payına bağlı bir irtifak çeşidi olup, yapının tamamı için düzenlenecek yapı kullanma izin belgesine dayalı olarak, bu Kanunda gösterilen şartlar uyarınca kat mülkiyetine resen çevrilir.
+  kontrol: '2026-10-08'
+- kod: SZ-012
+  terim: KAT MÜLKİYETİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Arsa payı ve anagayrimenkuldeki ortak yerlerle bağlantılı özel bir mülkiyettir.
+  puf:
+  - Her bağımsız bölüme, değeriyle oranlı bir arsa payı tahsis edilir.
+  - Arsa payları değerle oranlı değilse her kat maliki mahkemeye başvurup yeniden düzenlenmesini isteyebilir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 3
+  dayanak_alintisi: Kat mülkiyeti, arsa payı ve anagayrimenkuldeki ortak yerlerle bağlantılı özel bir mülkiyettir.
+  kontrol: '2026-10-08'
+- kod: SZ-013
+  terim: YÖNETİM PLANI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Anagayrimenkulün yönetim tarzını, kullanma maksat ve şeklini, yönetici ve denetçi ücretini düzenleyen plandır.
+  puf:
+  - Yönetim planı, bütün kat maliklerini bağlayan bir sözleşme hükmündedir.
+  - Planı değiştirmek için bütün kat maliklerinin beşte dördünün oyu şarttır.
+  - Plan ve değişiklikler, kat maliklerinin külli ve cüzi haleflerini, yönetici ve denetçileri de bağlar.
+  mevzuat: Kat Mülkiyeti Kanunu md. 28
+  dayanak_alintisi: Yönetim planının değiştirilmesi için bütün kat maliklerinin beşte dördünün oyu şarttır.
+  kontrol: '2026-10-08'
+- kod: SZ-014
+  terim: İSKÂN BELGESİ
+  kategori_kodu: IMAR_VE_PARSEL
+  tanim: Biten yapının kullanılabilmesi için belediye veya valilikten alınması zorunlu olan izindir; resmi adı yapı kullanma iznidir.
+  puf:
+  - Başvuruda yapının ruhsat ve eklerine uygun olduğu, fen bakımından sakınca bulunmadığı aranır.
+  - Belediyeler başvuruyu en geç otuz gün içinde sonuçlandırmak zorundadır.
+  - İzin alınana kadar yapı elektrik, su ve kanalizasyon hizmetinden yararlanamaz.
+  mevzuat: İmar Kanunu md. 30 ve 31
+  dayanak_alintisi: Kullanma izni verilmeyen ve alınmayan yapılarda izin alınıncaya kadar elektrik, su ve kanalizasyon hizmetlerinden ve tesislerinden faydalandırılmazlar.
+  kontrol: '2026-10-08'
+- kod: SZ-015
+  terim: YAPI RUHSATI
+  kategori_kodu: IMAR_VE_PARSEL
+  tanim: Kanun kapsamındaki yapıların yapılabilmesi için belediye veya valilikten alınması zorunlu olan izindir.
+  puf:
+  - Ruhsatlı yapıda herhangi bir değişiklik yeniden ruhsat almaya bağlıdır.
+  - Derz, iç ve dış sıva, boya, badana gibi tamirler ruhsata tabi değildir.
+  - Ruhsatsız başlanan yapı mühürlenir ve inşaat derhal durdurulur.
+  mevzuat: İmar Kanunu md. 21 ve 32
+  dayanak_alintisi: Ruhsat alınmış yapılarda herhangi bir değişiklik yapılması da yeniden ruhsat alınmasına bağlıdır.
+  kontrol: '2026-10-08'
+- kod: SZ-016
+  terim: DÜZENLEME PAYI (DOP)
+  kategori_kodu: IMAR_VE_PARSEL
+  tanim: İmar uygulamasında yol, park gibi kamu alanları ve değer artışı karşılığında arazi ve arsalardan düşülebilen paydır; kısaca DOP denir.
+  puf:
+  - Pay, düzenlemeden önceki yüzölçümünün yüzde kırk beşini geçemez.
+  - Herhangi bir parselden bir defadan fazla pay alınmaması esastır.
+  mevzuat: İmar Kanunu md. 18
+  dayanak_alintisi: Ancak, bu maddeye göre alınacak düzenleme ortaklık payları, düzenlemeye tabi tutulan arazi ve arsaların düzenlemeden önceki yüzölçümlerinin yüzde kırk beşini geçemez.
+  kontrol: '2026-10-08'
+- kod: SZ-017
+  terim: PARSELASYON PLANI
+  kategori_kodu: IMAR_VE_PARSEL
+  tanim: İmar planına göre yapılan, onaylandıktan sonra askıya çıkan ve kesinleşince tapu kayıtlarını düzenleyen plandır.
+  puf:
+  - Plan bir ay ilgili idarede asılır; bu sürenin sonunda kesinleşir.
+  - Kesinleşen plan tescil edilmek üzere tapu dairesine gönderilir.
+  - Tapu daireleri sicilleri, ilgililerin muvafakati aranmaksızın plana göre resen düzenler.
+  mevzuat: İmar Kanunu md. 18 ve 19
+  dayanak_alintisi: Bu planlar bir ay müddetle ilgili idarede asılır. Ayrıca mutat vasıtalarla duyurulur. Bu sürenin sonunda kesinleşir.
+  kontrol: '2026-10-08'
+- kod: SZ-018
+  terim: ASGARİ ARAZİ BÜYÜKLÜĞÜ
+  kategori_kodu: TARIM_VE_ARAZI
+  tanim: Tarım arazilerinin bölünebileceği en küçük büyüklüktür; bölge ve yörenin özellikleri gözetilerek Bakanlıkça belirlenir.
+  puf:
+  - Bu büyüklüğe erişen tarımsal araziler bölünemez eşya niteliği kazanır.
+  - Bakanlıkça belirlenen büyüklüklerin altında ifraz ve hisselendirme yapılamaz.
+  - Mutlak tarım arazilerinde 2 hektardan, dikili arazide 0,5 hektardan küçük belirlenemez.
+  mevzuat: 5403 sayılı Kanun md. 8
+  dayanak_alintisi: Asgari tarımsal arazi büyüklüğü; mutlak tarım arazileri, marjinal tarım arazileri ve özel ürün arazilerinde 2 hektar, dikili tarım arazilerinde 0,5 hektar, örtü altı tarımı yapılan arazilerde 0,3 hektardan küçük belirlenemez.
+  kontrol: '2026-10-08'
+- kod: SZ-019
+  terim: GEÇİT HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmazından genel yola çıkmak için yeterli geçidi bulunmayan malikin, tam bedel karşılığında komşularından isteyebildiği haktır.
+  puf:
+  - Önce mülkiyet ve yol durumuna göre en uygun düşen komşudan, sonra en az zarar görecek olandan istenir.
+  - Zorunlu geçit iki tarafın menfaati gözetilerek belirlenir.
+  mevzuat: Türk Medeni Kanunu md. 747
+  dayanak_alintisi: Taşınmazından genel yola çıkmak için yeterli geçidi bulunmayan malik, tam bir bedel karşılığında bir geçit hakkı tanınmasını komşularından isteyebilir.
+  kontrol: '2026-10-08'
+- kod: SZ-020
+  terim: İNTİFA HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınır, taşınmaz, hak veya malvarlığı üzerinde kurulabilen ve sahibine konusu üzerinde tam yararlanma yetkisi veren haktır.
+  puf:
+  - Taşınmazlarda intifa hakkı tapu kütüğüne tescil ile kurulur.
+  - Gerçek kişilerde hak sahibinin ölümüyle sona erer.
+  - Tüzel kişilerin intifa hakkı en çok yüz yıl devam edebilir.
+  mevzuat: Türk Medeni Kanunu md. 794-797
+  dayanak_alintisi: Aksine düzenleme olmadıkça bu hak, sahibine, konusu üzerinde tam yararlanma yetkisi sağlar.
+  kontrol: '2026-10-08'
+- kod: SZ-021
+  terim: AİLE KONUTU ŞERHİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Aile konutu olarak özgülenen taşınmazın maliki olmayan eşin, tapu kütüğüne konutla ilgili gerekli şerhin verilmesini istemesidir.
+  puf:
+  - Diğer eşin açık rızası bulunmadıkça aile konutu devredilemez.
+  - Aile konutu üzerindeki haklar da eşin açık rızası olmadan sınırlandırılamaz.
+  - Rızayı sağlayamayan eş hâkimin müdahalesini isteyebilir.
+  mevzuat: Türk Medeni Kanunu md. 194
+  dayanak_alintisi: Eşlerden biri, diğer eşin açık rızası bulunmadıkça, aile konutu ile ilgili kira sözleşmesini feshedemez, aile konutunu devredemez veya aile konutu üzerindeki hakları sınırlayamaz.
+  kontrol: '2026-10-08'
+- kod: SZ-022
+  terim: ELBİRLİĞİ MÜLKİYETİ
+  kategori_kodu: MIRAS_VE_INTIKAL
+  tanim: Kanun veya sözleşmeden doğan bir topluluk dolayısıyla mallara birlikte malik olanların mülkiyetidir; ortakların belirlenmiş payı yoktur.
+  puf:
+  - Aksine hüküm yoksa yönetim ve tasarruf işlemleri için ortakların oybirliği gerekir.
+  - Sözleşmeden doğan topluluk sürdükçe paylaşma yapılamaz.
+  - Miras ortaklığında mirasçılar terekeye elbirliğiyle sahip olur.
+  mevzuat: Türk Medeni Kanunu md. 640, 701 ve 702
+  dayanak_alintisi: Kanunda veya sözleşmede aksine bir hüküm bulunmadıkça, gerek yönetim, gerek tasarruf işlemleri için ortakların oybirliğiyle karar vermeleri gerekir.
+  kontrol: '2026-10-08'
+- kod: SZ-023
+  terim: PAYLI MÜLKİYET
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Birden çok kişinin, maddî olarak bölünmemiş bir şeyin tamamına belli paylarla malik olmasıdır.
+  puf:
+  - Başka türlü belirlenmedikçe paylar eşit sayılır.
+  - Paydaş payını devredebilir, rehnedebilir; alacaklılar payı haczettirebilir.
+  mevzuat: Türk Medeni Kanunu md. 688
+  dayanak_alintisi: Paylı mülkiyette birden çok kimse, maddî olarak bölünmüş olmayan bir şeyin tamamına belli paylarla maliktir.
+  kontrol: '2026-10-08'
+- kod: SZ-024
+  terim: ZİLYETLİKLE TESCİL
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Tapu kütüğünde kayıtlı olmayan taşınmazı davasız ve aralıksız yirmi yıl, malik sıfatıyla kullanan kişinin tescil isteyebilmesidir.
+  puf:
+  - Dava Hazineye, ilgili kamu tüzel kişilerine veya tapuda malik görünen kişinin mirasçılarına karşı açılır.
+  - Dava, gazete ve internet haber sitesinde ve taşınmazın bulunduğu yerde en az üç defa ilân olunur.
+  mevzuat: Türk Medeni Kanunu md. 713
+  dayanak_alintisi: Tapu kütüğünde kayıtlı olmayan bir taşınmazı davasız ve aralıksız olarak yirmi yıl süreyle ve malik sıfatıyla zilyetliğinde bulunduran kişi, o taşınmazın tamamı, bir parçası veya bir payı üzerindeki mülkiyet hakkının tapu kütüğüne tesciline karar verilmesini isteyebilir.
+  kontrol: '2026-10-08'
+- kod: SZ-025
+  terim: TENKİS
+  kategori_kodu: MIRAS_VE_INTIKAL
+  tanim: Saklı payının karşılığını alamayan mirasçıların, mirasbırakanın tasarruf edebileceği kısmı aşan tasarruflarının azaltılmasını dava etmesidir.
+  puf:
+  - Hak, saklı payın zedelendiğinin öğrenilmesinden itibaren bir yıl, her hâlde on yıl geçmekle düşer.
+  - Tenkis iddiası def'i yoluyla her zaman ileri sürülebilir.
+  mevzuat: Türk Medeni Kanunu md. 560 ve 571
+  dayanak_alintisi: Saklı paylarının karşılığını alamayan mirasçılar, mirasbırakanın tasarruf edebileceği kısmı aşan tasarruflarının tenkisini dava edebilirler.
+  kontrol: '2026-10-08'
+- kod: SZ-026
+  terim: SİMSARLIK SÖZLEŞMESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Simsarın, taraflar arasında bir sözleşme kurulması imkânını hazırlamayı veya kurulmasına aracılık etmeyi üstlendiği sözleşmedir.
+  puf:
+  - Taşınmazlar konusundaki simsarlık sözleşmesi yazılı yapılmadıkça geçerli olmaz.
+  - Simsar ancak faaliyeti sonucunda sözleşme kurulursa ücrete hak kazanır.
+  mevzuat: Türk Borçlar Kanunu md. 520 ve 521
+  dayanak_alintisi: Simsar, ancak yaptığı faaliyet sonucunda sözleşme kurulursa ücrete hak kazanır.
+  kontrol: '2026-10-08'
+- kod: SZ-027
+  terim: TAŞINMAZ SATIŞ VAADİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmazın ileride satılacağına dair verilen sözdür; kanun bunun geçerliliğini resmî şekle bağlar.
+  puf:
+  - Taşınmaz satışı vaadi, resmî şekilde düzenlenmedikçe geçerli olmaz.
+  - Taşınmaz satışının geçerli olması için sözleşmenin resmî şekilde düzenlenmesi şarttır.
+  mevzuat: Türk Borçlar Kanunu md. 237
+  dayanak_alintisi: Taşınmaz satışı vaadi, geri alım ve alım sözleşmeleri, resmî şekilde düzenlenmedikçe geçerli olmaz.
+  kontrol: '2026-10-08'
+- kod: SZ-028
+  terim: ÖN ÖDEMELİ KONUT SATIŞI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Tüketicinin konutun bedelini önceden peşin veya taksitle ödediği, satıcının ise konutu sonradan devretmeyi üstlendiği sözleşmedir.
+  puf:
+  - Yapı ruhsatı alınmadan ön ödemeli konut satış sözleşmesi yapılamaz.
+  - Tüketici on dört gün içinde gerekçe göstermeden ve cezai şart ödemeden cayabilir.
+  - Teslim süresi sözleşme tarihinden itibaren kırk sekiz ayı geçemez.
+  mevzuat: 6502 sayılı Kanun md. 40, 43 ve 44
+  dayanak_alintisi: Ön ödemeli konut satış sözleşmesi, tüketicinin konut amaçlı bir taşınmazın satış bedelini önceden peşin veya taksitle ödemeyi, satıcının da bedelin tamamen veya kısmen ödenmesinden sonra taşınmazı tüketiciye devir veya teslim etmeyi üstlendiği sözleşmedir.
+  kontrol: '2026-10-08'
+- kod: SZ-029
+  terim: ERKEN ÖDEME TAZMİNATI
+  kategori_kodu: FINANS_VE_BANKACILIK
+  tanim: Sabit faizli konut kredisini vadesinden önce ödeyen tüketiciden, sözleşmede yer verilmişse bankanın isteyebileceği tazminattır.
+  puf:
+  - Kalan vade 36 ayı aşmıyorsa tazminat, faiz indirimi yapılmış erken ödenen tutarın yüzde birini geçemez.
+  - Kalan vade 36 ayı aşıyorsa aynı tutarın yüzde ikisini geçemez.
+  - Faiz değişken ise erken ödeme tazminatı talep edilemez.
+  mevzuat: 6502 sayılı Kanun md. 37
+  dayanak_alintisi: Erken ödeme tazminatı gerekli faiz indirimi yapılarak hesaplanan ve tüketici tarafından konut finansmanı kuruluşuna erken ödenen tutarın kalan vadesi otuz altı ayı aşmayan kredilerde yüzde birini, kalan vadesi otuz altı ayı aşan kredilerde ise yüzde ikisini geçemez.
+  kontrol: '2026-10-08'
+- kod: SZ-030
+  terim: BAĞLANTILI SİGORTA
+  kategori_kodu: FINANS_VE_BANKACILIK
+  tanim: Konut kredisine bağlı olarak yaptırılan sigortadır; tüketicinin açık talebi olmadan yaptırılamaz.
+  puf:
+  - Banka, sigortasız bir sözleşme teklif etmek koşuluyla sigortalı sözleşme sunabilir.
+  - Tüketicinin istediği şirketten sağladığı teminat banka tarafından kabul edilmek zorundadır.
+  mevzuat: 6502 sayılı Kanun md. 38
+  dayanak_alintisi: Tüketicinin yazılı veya kalıcı veri saklayıcısı aracılığıyla açık talebi olmaksızın kredi bağlantılı sigorta yaptırılamaz.
+  kontrol: '2026-10-08'
+- kod: SZ-031
+  terim: TAPU HARCI
+  kategori_kodu: VERGI_VE_HARC
+  tanim: Gayrimenkul devir ve iktisaplarında tapu işlemi nedeniyle ödenen harçtır.
+  puf:
+  - Harç, emlak vergisi değerinden az olmamak üzere beyan edilen bedel üzerinden hesaplanır.
+  - Bedelin gerçeği yansıtmadığı sonradan anlaşılırsa aradaki farka isabet eden harç resen tarh edilir.
+  - Bu farka vergi ziyaı cezası bir kat uygulanır.
+  mevzuat: Harçlar Kanunu md. 63
+  dayanak_alintisi: Gayrimenkul devir ve iktisaplarında tapu ve kadastro harcı, emlak vergisi değerinden az olmamak üzere, beyan edilen devir ve iktisap bedeli üzerinden hesaplanır.
+  kontrol: '2026-10-08'
+- kod: SZ-032
+  terim: EMLAK VERGİSİ
+  kategori_kodu: VERGI_VE_HARC
+  tanim: Bina vergisini binanın maliki öder; intifa hakkı sahibi varsa vergiyi o öder.
+  puf:
+  - Paylı mülkiyette malikler hisseleri oranında mükelleftir.
+  - Elbirliği mülkiyetinde malikler vergiden müteselsilen sorumludur.
+  - 'Vergi iki eşit taksitte ödenir: Mart-Mayıs aylarında ve Kasım ayında.'
+  mevzuat: Emlak Vergisi Kanunu md. 3 ve 30
+  dayanak_alintisi: Bina Vergisini, binanın maliki, varsa intifa hakkı sahibi, her ikisi de yoksa binaya malik gibi tasarruf edenler öder.
+  kontrol: '2026-10-08'
+- kod: SZ-033
+  terim: VERASET BEYANNAMESİ
+  kategori_kodu: MIRAS_VE_INTIKAL
+  tanim: Miras yoluyla mal edinenlerin, edindikleri malları vergi dairesine bildirmek için verdikleri beyannamedir.
+  puf:
+  - Ölüm Türkiye'de olmuş ve mükellefler Türkiye'deyse beyanname ölümü izleyen dört ay içinde verilir.
+  - Ölüm Türkiye'de olmuş ve mükellefler yurt dışındaysa süre ölümü izleyen altı aydır.
+  mevzuat: 7338 sayılı Kanun md. 7 ve 9
+  dayanak_alintisi: Ölüm Türkiye'de vukubulmuş ise mükelleflerin Türkiye'de bulunmaları halinde ölüm tarihini takibeden dört ay içinde
+  kontrol: '2026-10-08'
+- kod: SZ-034
+  terim: YAPI KAYIT BELGESİ
+  kategori_kodu: IMAR_VE_PARSEL
+  tanim: 31/12/2017 tarihinden önce yapılmış ruhsatsız veya ruhsata aykırı yapıların kayıt altına alınması için verilen belgedir; imar barışı olarak bilinir.
+  puf:
+  - Belge yapının kullanım amacına yöneliktir.
+  - Belge alan yapılara talep hâlinde geçici olarak su, elektrik ve doğalgaz bağlanabilir.
+  - Başvuru süresi 31/10/2018 tarihinde sona ermiştir.
+  mevzuat: İmar Kanunu geçici madde 16
+  dayanak_alintisi: Afet risklerine hazırlık kapsamında ruhsatsız veya ruhsat ve eklerine aykırı yapıların kayıt altına alınması ve imar barışının sağlanması amacıyla, 31/12/2017 tarihinden önce yapılmış yapılar için Çevre ve Şehircilik Bakanlığı ve yetkilendireceği kurum ve kuruluşlara 31/10/2018 tarihine kadar başvurulması, bu maddedeki şartların yerine getirilmesi ve 31/12/2018 tarihine kadar kayıt bedelinin ödenmesi halinde Yapı Kayıt Belgesi verilebilir.
+  kontrol: '2026-10-08'

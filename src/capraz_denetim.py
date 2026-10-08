@@ -168,9 +168,24 @@ def _normal(metin: str, dipnot_sil: bool = False) -> str:
     return " ".join(dogrula._sadelestir(_kalin_sil(metin or "")).split())
 
 
+_UC_NOKTA = re.compile(r"\s*(?:\.{3}|…)\s*")
+
+
 def _bulunur(alinti: str, metin_normal: str) -> bool:
-    a = _normal(alinti)
-    return len(a) >= EN_AZ_ALINTI and a in metin_normal
+    """Alıntı metinde geçiyor mu. Model uzun cümleyi "..." ile kısaltabiliyor: parçalar SIRAYLA aranır.
+    (2026-10-08: bu yüzden gerçek bir bulgu — S2-006'daki güvence iadesi — kanıtsız sanılıp atılmıştı.)
+    En az bir parça `EN_AZ_ALINTI` uzunluğunda olmalı; çok kısa parçalar tek başına kanıt sayılmaz."""
+    parcalar = [_normal(p) for p in _UC_NOKTA.split(str(alinti or ""))]
+    parcalar = [p for p in parcalar if p]
+    if not parcalar or max(len(p) for p in parcalar) < EN_AZ_ALINTI:
+        return False
+    konum = 0
+    for parca in parcalar:
+        bulunan = metin_normal.find(parca, konum)
+        if bulunan < 0:
+            return False
+        konum = bulunan + len(parca)
+    return True
 
 
 def _istem(kaynak: str, satirlar: List[Tuple[str, bool]]) -> str:
@@ -249,36 +264,47 @@ def denetle(veri: Dict[str, Any], kaynak: str,
             cagri: Optional[Callable[[str, str], Optional[str]]] = None) -> List[str]:
     """İçeriği kaynakla karşılaştırır; anlam kayması bulgularını ⚠️ olarak döner.
 
-    `kaynak`: haberde kaynak haber metni, konuda maddenin güncel metni. Kaynak yoksa ya da çok kısaysa
-    karşılaştıracak bir şey olmadığından [] döner. Hakem çalışmazsa da [] döner (fail-open).
+    Hakem çalışamadıysa [] döner (fail-open): insan onaylı akışta hakem yüzünden içerik durmaz. Hakemin
+    GERÇEKTEN çalışıp çalışmadığı önemliyse (otomatik yayın) `denetle_ayrintili` kullanılır."""
+    return denetle_ayrintili(veri, kaynak, cagri)[0]
+
+
+def denetle_ayrintili(veri: Dict[str, Any], kaynak: str,
+                      cagri: Optional[Callable[[str, str], Optional[str]]] = None) -> Tuple[List[str], bool]:
+    """(uyarılar, hakem_calisti). `hakem_calisti` yalnızca model ayrıştırılabilir bir yanıt verdiyse True.
+
+    Neden ayrı: "bulgu yok" ile "hakem hiç çalışmadı" ikisi de [] dönüyordu. 2026-10-07'de ücretsiz katman
+    kotası dolduğunda on iki sözlüğün hepsi sessizce "temiz" göründü; denetlenmemiş içeriği otomatik
+    yayına almak buna dayanamaz. Kaynak yoksa ya da çok kısaysa da karşılaştıracak bir şey yoktur: False.
+    `kaynak`: haberde kaynak haber metni, konuda maddenin güncel metni.
     `cagri(istem, sistem)`: ham yanıt metni ya da None; testlerde sahte verilir."""
     kaynak = (kaynak or "").strip()
     if len(kaynak) < EN_AZ_KAYNAK:
-        return []
+        return [], False
     satirlar = _satirlari_topla(veri)
     if not satirlar:
-        return []
+        return [], False
     if cagri is None:
         cagri = _varsayilan_cagri()
         if cagri is None:
-            return []
+            return [], False
 
     anahtar = hashlib.sha1((kaynak + "\n\x00\n" + "\n".join(f"{int(y)}{s}" for s, y in satirlar)).encode("utf-8")).hexdigest()
     if anahtar in _ONBELLEK:
-        return list(_ONBELLEK[anahtar])
+        return list(_ONBELLEK[anahtar]), True
 
     try:
         ham = cagri(_istem(kaynak, satirlar), _SISTEM)
     except Exception as e:  # noqa: BLE001 — hakem yüzünden yayın akışı kırılmaz
         log.warning("Çapraz denetim çalışmadı: %s", e)
-        return []
+        return [], False
     if not ham:
-        return []
+        return [], False
     from . import generate_text
     sonuc = generate_text._json_coz(ham) if isinstance(ham, str) else ham
     if sonuc is None:
         log.warning("Çapraz denetim yanıtı çözülemedi: %s", str(ham)[:120])
-        return []
+        return [], False
 
     icerik_normal = _normal(" ".join(s for s, _ in satirlar))
     yorum_normal = _normal(" ".join(s for s, y in satirlar if y))
@@ -289,4 +315,4 @@ def denetle(veri: Dict[str, Any], kaynak: str,
     _ONBELLEK[anahtar] = list(uyarilar)
     if uyarilar:
         log.warning("Çapraz denetim %d anlam kayması buldu: %s", len(uyarilar), " | ".join(uyarilar))
-    return uyarilar
+    return uyarilar, True

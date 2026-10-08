@@ -23,8 +23,12 @@ def _gun_once(gun: int) -> str:
     return (datetime.now(timezone.utc) - timedelta(days=gun)).isoformat()
 
 
-def _konu(kod: str, sutun: str = "S1") -> dict:
-    return {"kod": kod, "sutun": sutun, "bicim": "B1", "baslik": f"Konu {kod}", "aci": "a", "kanca_kalip": "k"}
+def _konu(kod: str, sutun: str = "S1", dayanakli: bool = True) -> dict:
+    """Sözlük yalnız kanun alıntısı olan konudan yazılır (bkz. sonraki_konu); fikstür varsayılan olarak onu taşır."""
+    konu = {"kod": kod, "sutun": sutun, "bicim": "B1", "baslik": f"Konu {kod}", "aci": "a", "kanca_kalip": "k"}
+    if dayanakli:
+        konu["dayanak_alintisi"] = "Kanun metninden birebir alıntı."
+    return konu
 
 
 class _Ortam(unittest.TestCase):
@@ -87,6 +91,21 @@ class TestSecim(_Ortam):
         gecmis = {"A": _gun_once(90), "B": _gun_once(30), "C": _gun_once(60)}
         fg = {(k, "b1"): v for k, v in gecmis.items()}
         self.assertEqual(self._sec(havuz, gecmis, fg, format_turu="sozluk", sutun="S1")["kod"], "C")
+
+    def test_sozluk_dayanak_alintisi_olmayan_konuyu_secmez(self):
+        """Modelin kanundan yazdığı sözlük ince yanlışlar taşıyordu (2026-10-08): alıntısız konu sözlüğe girmez."""
+        havuz = [_konu("A", dayanakli=False)]
+        self.assertIsNone(self._sec(havuz, {}, {}, format_turu="sozluk"))
+
+    def test_dayanak_alintisi_aranmasi_yalniz_sozluge_ozgudur(self):
+        havuz = [_konu("A", dayanakli=False)]
+        self.assertEqual(self._sec(havuz, {}, {}, format_turu="b1")["kod"], "A")
+        self.assertEqual(self._sec(havuz, {}, {}, format_turu="net_cevap")["kod"], "A")
+
+    def test_sozluk_alintili_konuyu_alintisizdan_ayirir(self):
+        havuz = [_konu("A", dayanakli=False), _konu("B")]
+        for _ in range(20):
+            self.assertEqual(self._sec(havuz, {}, {}, format_turu="sozluk")["kod"], "B")
 
     def test_format_verilmezse_b1_sayilir(self):
         havuz = [_konu("A")]

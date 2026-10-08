@@ -411,15 +411,15 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             )
 
     def test_cron_takvimle_uyumlu(self) -> None:
-        """Günde TEK içerik (10:00 TR); haberler ayrı iş akışında öneri olarak (2026-09-24 kararı)."""
+        """Günde iki zamanlama: 10:00 TR (07:00 UTC) bilgilendirici döngü, 12:30 TR (09:30 UTC) sözlük kartı otomatik yayın."""
         import yaml as _yaml
 
         w = _yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         cronlar = [c["cron"] for c in w[True]["schedule"]]
         gunluk = [c for c in cronlar if c.strip().endswith("* * *")]
         self.assertEqual(
-            gunluk, ["0 7 * * *"],
-            f"Günlük içerik tetikleyicisi tek olmalı (10:00 TR = 07:00 UTC): {cronlar}",
+            gunluk, ["0 7 * * *", "30 9 * * *"],
+            f"Günlük tetikleyiciler 10:00 TR ve 12:30 TR olmalı: {cronlar}",
         )
 
         h = _yaml.safe_load((KOK / ".github/workflows/haber-oneri.yml").read_text(encoding="utf-8"))

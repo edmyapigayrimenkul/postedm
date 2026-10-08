@@ -64,18 +64,24 @@ def _satir_genisligi(metin: str, font: ImageFont.FreeTypeFont) -> int:
 _SARMA_ONBELLEK: Dict[Tuple[str, str, int, int, int], List[str]] = {}
 
 
-def _girintili_sar(metin: str, font: ImageFont.FreeTypeFont, genislik: int, girinti: int = 0) -> List[str]:
-    """Ortak satır kırıcı (uzun kelimeyi de böler). İlk satır girintiyle sığmazsa
+def _girintili_sar(
+    metin: str,
+    font: ImageFont.FreeTypeFont,
+    genislik: int,
+    girinti: int = 0,
+    kelime_bol: bool = False,
+) -> List[str]:
+    """Ortak satır kırıcı. İlk satır girintiyle sığmazsa
     bütün satırlar girinti kadar dar kırılır — girinti hiçbir zaman taşma yaratmaz.
 
     Sonuç önbelleğe alınır: yerleşim çözücü aynı metni onlarca punto/alan
     birleşiminde dener (uzun tanımda önbelleksiz 11 sn sürüyordu)."""
-    anahtar = (metin or "", str(getattr(font, "path", "")), int(getattr(font, "size", 0)), genislik, girinti)
+    anahtar = (metin or "", str(getattr(font, "path", "")), int(getattr(font, "size", 0)), genislik, girinti, kelime_bol)
     if anahtar in _SARMA_ONBELLEK:
         return list(_SARMA_ONBELLEK[anahtar])
-    satirlar = make_image._metin_sar(metin or "", font, genislik, _OLCUM)
+    satirlar = make_image._metin_sar(metin or "", font, genislik, _OLCUM, kelime_bol=kelime_bol)
     if girinti and satirlar and _satir_genisligi(satirlar[0], font) + girinti > genislik:
-        satirlar = make_image._metin_sar(metin or "", font, genislik - girinti, _OLCUM)
+        satirlar = make_image._metin_sar(metin or "", font, genislik - girinti, _OLCUM, kelime_bol=kelime_bol)
     if len(_SARMA_ONBELLEK) > 4000:
         _SARMA_ONBELLEK.clear()
     _SARMA_ONBELLEK[anahtar] = satirlar
@@ -91,17 +97,22 @@ def _sigdir(
     satir_carpani: float = 1.36,
     girinti_carpani: float = 0.0,
     azami_satir: Optional[int] = None,
+    kelime_bol: bool = False,
 ) -> Optional[Tuple[ImageFont.FreeTypeFont, List[str], int, int]]:
     """Metni verilen alana sığan en büyük puntoyla kırar.
     Döner: (font, satırlar, satır yüksekliği, girinti) ya da sığmıyorsa None."""
     for punto in puntolar:
         font = make_image._font_yukle(font_yolu, punto)
         girinti = int(punto * girinti_carpani)
-        satirlar = _girintili_sar(metin, font, genislik, girinti)
+        satirlar = _girintili_sar(metin, font, genislik, girinti, kelime_bol=kelime_bol)
         satir_h = int(punto * satir_carpani)
         if len(satirlar) * satir_h <= azami_yukseklik and (azami_satir is None or len(satirlar) <= azami_satir):
-            ilk_sigdi = not girinti or _satir_genisligi(satirlar[0], font) + girinti <= genislik if satirlar else True
-            return font, satirlar, satir_h, (girinti if ilk_sigdi else 0)
+            if not satirlar:
+                return font, satirlar, satir_h, 0
+            ilk_max = genislik - girinti if girinti else genislik
+            if _satir_genisligi(satirlar[0], font) <= ilk_max and all(_satir_genisligi(s, font) <= genislik for s in satirlar[1:]):
+                ilk_sigdi = not girinti or _satir_genisligi(satirlar[0], font) + girinti <= genislik
+                return font, satirlar, satir_h, (girinti if ilk_sigdi else 0)
     return None
 
 
@@ -220,6 +231,17 @@ def ciz_buyuk_sozluk_filigran_vector(
     draw_target.polygon(ribbon_pts, fill=(196, 3, 15, int(alpha * 1.8)))
 
 
+def sozluk_kutu_etiketi(kategori_kodu: Any) -> str:
+    """Kutunun başlığı okuyan kitleye göre: kiracı/ev sahibi konusunda "YATIRIMCI İÇİN ÖNEMİ" yazması
+    kartı yanlış kitleye hitap ediyordu (tahliye taahhütnamesi, 2026-10-07 incelemesi)."""
+    kod = str(kategori_kodu or "").upper()
+    if any(a in kod for a in ("KIRA", "KIRACI", "EV_SAHIBI", "TAHLIYE")):
+        return "KİRACI VE EV SAHİBİ İÇİN:"
+    if any(a in kod for a in ("YATIRIM", "FINANS", "KREDI", "BANKA", "PIYASA")):
+        return "YATIRIMCI İÇİN ÖNEMİ:"
+    return "BİLİNMESİ GEREKENLER:"
+
+
 def uret_sozluk(
     cikti_yolu: Path,
     terim: str,
@@ -227,13 +249,13 @@ def uret_sozluk(
     tanim_metni: str,
     puf_maddeleri: Any,
     sayfa_no: str = "SÖZLÜK // 01",
+    kutu_etiketi: Optional[str] = None,
 ) -> Path:
     """Emlak Sözlüğü kartı: terim (kahraman), tanım, alta dayalı "önemi" kutusu.
 
-    Yerleşim ÖLÇÜLEREK çözülür (2026-09-25): önce kutu (bütün maddeler), sonra
-    terim ve tanım kalan alana sığan en büyük puntoyla. Eskiden tanımın puntosu
-    yalnızca karakter sayısından seçiliyordu ve #243'te son iki satır kutunun
-    altında kaldı; kutu da maddelerin yalnızca ilk ikisini basıyordu.
+    Ayrım çizgisi arkadaki açık kitap filigranının sayfa alt hizasında SABİTTİR (y=510, Zilyetlikle Tescil hizası).
+    Tek satırlık terimler enine sığdıkça büyür (160 pt tavan).
+    İki satırlık terimler ~112-144 pt aralığında kalır (minimum punto tabanı).
     """
     canvas = Image.new("RGB", (GENISLIK, YUKSEKLIK), RENK_KIREC_BEJ)
     canvas = make_image._filigran_uygula(canvas, acik_zemin=True)
@@ -244,8 +266,13 @@ def uret_sozluk(
     ku = yer["kronik_ust"]
     alt_y = yer["alt_bar"]
     ust_sinir = ku + 80
-    ARA_TERIM_TANIM = 16 + 34 + 36   # çizgi + etiket boşluğu
 
+    # Story vs Besleme dikey ofset uyumu (beslemede ku=62, story'de ku=300)
+    ku_ofset = ku - 62
+    sabit_cizgi_y = 510 + ku_ofset
+    filigran_cy = 330 + ku_ofset
+
+    # 1. Kutu ölçüleri (Bilinmesi Gerekenler / Önemi kutusu)
     maddeler = _madde_listesi(puf_maddeleri)
     f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
 
@@ -256,66 +283,66 @@ def uret_sozluk(
         yukseklik = (52 + sum(len(b) for b in bloklar) * satir_h + (len(bloklar) - 1) * 12 + 24) if maddeler else 0
         return font, bloklar, satir_h, yukseklik
 
-    # Öncelik OKUNAKLILIK: önce tanım rahat puntoda (≥36) tutulur, terim ona göre
-    # küçülür; ikinci turda tanım 32'ye kadar iner. (Önceki sıra terimi 136px'te
-    # tutup uzun tanımı 32px'e itiyordu.) Kısa tanım alan varsa 48px'e büyür.
-    terim_olcu = {}
+    # 2. Terim Boyutlandırma ve Satır Düzeni
+    # Kullanıcı kuralı (2026-10-08):
+    # - Kelime tek satırsa ve enine sığıyorsa font büyüsün (160 -> 116 pt)
+    # - Tek satıra sığmıyorsa 2 satırda büyük punto (144 -> 112 pt)
+    # - Minimum font boyutu Zilyetlikle Tescil seviyesi (≥112 pt)
+    # - Sabotaj / aşırı uzun metin fallback'i (asla patlamaz)
+    terim_sonuc = _sigdir(terim, FONT_FRAUNCES, range(160, 115, -2), kullanilabilir_w, 10_000, 1.15, azami_satir=1)
+    if not terim_sonuc:
+        terim_sonuc = _sigdir(terim, FONT_FRAUNCES, range(144, 111, -2), kullanilabilir_w, 10_000, 1.15, azami_satir=2)
+    if not terim_sonuc:
+        # Fallback 1: 3 satır veya 110..89 pt aralığı
+        terim_sonuc = _sigdir(terim, FONT_FRAUNCES, range(110, 89, -2), kullanilabilir_w, 10_000, 1.15, azami_satir=3)
+    if not terim_sonuc:
+        # Fallback 2: Son çare sabotaj koruması (kelime bölerek çöküşü önle)
+        terim_sonuc = _sigdir(terim, FONT_FRAUNCES, range(88, 47, -4), kullanilabilir_w, 10_000, 1.15, azami_satir=3, kelime_bol=True)
+    if not terim_sonuc:
+        raise TasmaHatasi(f"Terim hiçbir şekilde sığmadı: {terim}")
 
-    def terim_olc(p: int):
-        if p not in terim_olcu:
-            terim_olcu[p] = _sigdir(terim, FONT_FRAUNCES, [p], kullanilabilir_w, 10_000, 1.15, azami_satir=2 if p > 76 else 3)
-        return terim_olcu[p]
+    f_terim, terim_satirlar, terim_h, _ = terim_sonuc
+
+    # 3. Tanım ve Kutu Çözümü
+    label_y = sabit_cizgi_y + 34
+    tanim_ust = label_y + 36
 
     cozum = None
-    for tanim_puntolari, terim_puntolari in ((range(48, 35, -2), range(136, 75, -4)), (range(34, 31, -2), range(136, 59, -4))):
-        for puf_p in (30, 28, 26, 24):
-            f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
-            kutu_y = alt_y - 26 - h_kutu
-            tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
-            for tanim_p in tanim_puntolari:
-                for terim_p in terim_puntolari:
-                    terim_sonuc = terim_olc(terim_p)
-                    if not terim_sonuc:
-                        continue
-                    f_terim, terim_satirlar, terim_h, _ = terim_sonuc
-                    tanim_ust = ust_sinir + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
-                    tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, [tanim_p], kullanilabilir_w,
-                                          tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6)
-                    if tanim_sonuc:
-                        cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt)
-                        break
-                if cozum:
-                    break
-            if cozum:
+    for puf_p in (30, 28, 26, 24):
+        f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
+        kutu_y = alt_y - 26 - h_kutu
+        tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
+        h_tanim_avail = tanim_alt - tanim_ust
+
+        for tanim_p in (44, 40, 36, 34, 32, 30, 28):
+            tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, [tanim_p], kullanilabilir_w,
+                                  h_tanim_avail, 1.38, girinti_carpani=1.6)
+            if tanim_sonuc:
+                cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, tanim_sonuc, tanim_alt)
                 break
         if cozum:
             break
+
     if cozum is None:
-        # Son şans: en küçük okunur puntolar
+        # Son şans tanım: daha küçük punto ve gerekirse kelime bölme (sabotaj koruması)
         f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(24)
         kutu_y = alt_y - 26 - h_kutu
         tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
-        terim_sonuc = _sigdir(terim, FONT_FRAUNCES, range(60, 47, -4), kullanilabilir_w, 10_000, 1.15, azami_satir=3)
-        if terim_sonuc:
-            f_terim, terim_satirlar, terim_h, _ = terim_sonuc
-            tanim_ust = ust_sinir + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
-            tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, (30, 28), kullanilabilir_w, tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6)
-            if tanim_sonuc:
-                cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt)
+        h_tanim_avail = tanim_alt - tanim_ust
+        tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, range(26, 17, -2), kullanilabilir_w,
+                              h_tanim_avail, 1.38, girinti_carpani=1.6, kelime_bol=True)
+        if tanim_sonuc:
+            cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, tanim_sonuc, tanim_alt)
+
     if cozum is None:
         raise TasmaHatasi(
             f"Sözlük kartına sığmadı: terim {len(terim)}, tanım {len(tanim_metni or '')} karakter, "
             f"{len(maddeler)} madde ({sum(len(m) for m in maddeler)} karakter)"
         )
 
-    f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, f_terim, terim_satirlar, terim_h, tanim_sonuc, tanim_alt = cozum
+    f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, tanim_sonuc, tanim_alt = cozum
     f_tanim, tanim_satirlar, tanim_h, girinti = tanim_sonuc
     f_tanim_punto = f_tanim.size
-
-    # Dikey yerleşim: artan boşluk üste en fazla 36px, gerisi bloklar arasında kalır
-    orta_h = len(terim_satirlar) * terim_h + ARA_TERIM_TANIM + len(tanim_satirlar) * tanim_h
-    # Kalan boşluk üst ve alta 2'ye 3 oranında dağılır (eskiden hepsi tanımın altında kalıyordu)
-    curr_y = ust_sinir + max(0, (tanim_alt - ust_sinir - orta_h) * 2 // 5)
 
     # Header
     kat_temiz = kategori_temizle(kategori)
@@ -328,11 +355,10 @@ def uret_sozluk(
     # Filigran Katmanı (Kitap filigranı + Paragraf başı '“' filigranı)
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
     overlay_draw = ImageDraw.Draw(overlay)
-    ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=330, w=520, h=350, alpha=23)
-    ty = curr_y + len(terim_satirlar) * terim_h + ARA_TERIM_TANIM
+    ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=filigran_cy, w=520, h=350, alpha=23)
     if girinti:
         f_quote = make_image._font_yukle(FONT_FRAUNCES, int(f_tanim_punto * 1.8))
-        overlay_draw.text((kenar + 2, ty - 8), "“", font=f_quote, fill=(18, 19, 22, 60))
+        overlay_draw.text((kenar + 2, tanim_ust - 8), "“", font=f_quote, fill=(18, 19, 22, 60))
 
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(canvas)
@@ -344,27 +370,32 @@ def uret_sozluk(
     sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
     draw.text((GENISLIK - kenar - sw, alt_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
 
-    # Terim Başlığı
+    # Terim Dikey Yerleşimi: [ust_sinir, sabit_cizgi_y - 16] kutusu içinde dikey ortalama
+    terim_kutu_h = (sabit_cizgi_y - 16) - ust_sinir
+    terim_toplam_h = len(terim_satirlar) * terim_h
+    ty = ust_sinir + max(0, (terim_kutu_h - terim_toplam_h) // 2)
+
     for s in terim_satirlar:
-        draw.text((kenar, curr_y), s, font=f_terim, fill=RENK_MUREKKEP)
-        curr_y += terim_h
-    curr_y += 16
+        draw.text((kenar, ty), s, font=f_terim, fill=RENK_MUREKKEP)
+        ty += terim_h
 
-    draw.line([(kenar, curr_y), (GENISLIK - kenar, curr_y)], fill=RENK_KIREC_BORDER, width=2)
-    curr_y += 34
+    # SABİT AYRIM ÇİZGİSİ: Kitap filigranı sayfa alt hizasında (y=510) sabit!
+    draw.line([(kenar, sabit_cizgi_y), (GENISLIK - kenar, sabit_cizgi_y)], fill=RENK_KIREC_BORDER, width=2)
 
-    draw.text((kenar, curr_y), "TANIM & ANLAMI", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_KURSUN)
-    curr_y += 36
+    # Tanım Başlığı
+    draw.text((kenar, label_y), "TANIM & ANLAMI", font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_KURSUN)
 
+    # Tanım Metni
+    curr_tanim_y = tanim_ust
     for i, s in enumerate(tanim_satirlar):
-        draw.text((kenar + (girinti if i == 0 else 0), curr_y), s, font=f_tanim, fill=RENK_MUREKKEP)
-        curr_y += tanim_h
+        draw.text((kenar + (girinti if i == 0 else 0), curr_tanim_y), s, font=f_tanim, fill=RENK_MUREKKEP)
+        curr_tanim_y += tanim_h
 
     # Alta dayalı "önemi" kutusu — BÜTÜN maddeler, her biri ayrı satır
     if h_kutu:
         draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
         draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
-        draw.text((kenar + 28, kutu_y + 18), "YATIRIMCI İÇİN ÖNEMİ:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
+        draw.text((kenar + 28, kutu_y + 18), kutu_etiketi or "BİLİNMESİ GEREKENLER:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
         py = kutu_y + 52
         for blok in puf_bloklar:
             draw.text((kenar + 28, py), "—", font=f_puf, fill=RENK_KART_ETIKET)
@@ -719,7 +750,7 @@ def uret_sozluk_detay(
     # Filigran
     overlay = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (255, 255, 255, 0))
     overlay_draw = ImageDraw.Draw(overlay)
-    ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=330, w=520, h=350, alpha=16)
+    ciz_buyuk_sozluk_filigran_vector(overlay_draw, cx=320, cy=330 + (ku - 62), w=520, h=350, alpha=16)
     canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(canvas)
 
@@ -1700,7 +1731,8 @@ def slaytlari_uret(
                 toplam = 2
                 p1 = cikti_dizini / f"{cikti_onek}_01_sozluk.jpg"
                 p2 = cikti_dizini / f"{cikti_onek}_02_sozluk_detay.jpg"
-                uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam))
+                uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler, sayfa_no=_sayfa(1, toplam),
+                            kutu_etiketi=sozluk_kutu_etiketi(veri.get("kategori_kodu")))
                 ornek_baslik = _ilk_dolu(veri.get("ornek_baslik"), veri.get("detay_baslik"), "SAHADAN UYGULAMA VE DETAYLAR")
                 uygulama_notu = _ilk_dolu(veri.get("uygulama_notu"), veri.get("dikkat_notu"), (maddeler[0] if maddeler else ""))
                 ornek_detay = _ilk_dolu(veri.get("ornek"), veri.get("ornek_detay"), veri.get("ornek_metin"),
@@ -1720,7 +1752,8 @@ def slaytlari_uret(
                 return [p1, p2]
 
             p1 = cikti_dizini / f"{cikti_onek}_sozluk.jpg"
-            uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler)
+            uret_sozluk(p1, terim=terim, kategori=kategori, tanim_metni=tanim, puf_maddeleri=maddeler,
+                        kutu_etiketi=sozluk_kutu_etiketi(veri.get("kategori_kodu")))
             log.info("Format üretildi (SÖZLÜK, 1 slayt): %s", p1)
             return [p1]
 
