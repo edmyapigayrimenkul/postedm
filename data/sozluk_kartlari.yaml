@@ -23,14 +23,14 @@ kartlar:
 - kod: SZ-001
   terim: ÖNALIM HAKKI
   kategori_kodu: TAPU_VE_HUKUK
-  tanim: Paylı mülkiyette bir paydaş payını üçüncü kişiye satarsa, diğer paydaşların payı alıcıya karşı dava açarak öne geçip alabilmesini sağlayan haktır.
+  tanim: Paylı mülkiyette bir paydaş payını üçüncü kişiye satarsa, diğer paydaşların alıcıya dava açarak o payı öncelikle satın alabilmesini sağlayan haktır.
   puf:
   - Hak, satışın bildirildiği tarihten itibaren üç ay, her hâlde satıştan itibaren bir yıl geçmekle düşer.
   - Satış, alıcı veya satıcı tarafından diğer paydaşlara noter aracılığıyla bildirilir.
   - Payın rayiç bedelini hâkim belirler.
   mevzuat: Türk Medeni Kanunu md. 732-734
   dayanak_alintisi: Önalım hakkı, satışın hak sahibine bildirildiği tarihin üzerinden üç ay ve her hâlde satışın üzerinden bir yıl geçmekle düşer.
-  kontrol: '2026-10-08'
+  kontrol: '2026-10-09'
 - kod: SZ-002
   terim: BAĞLANMA PARASI
   kategori_kodu: TAPU_VE_HUKUK
@@ -124,31 +124,31 @@ kartlar:
   puf:
   - Tek seferde yüz günden uzun süreli kiralamalar bu kanunun kapsamı dışındadır.
   - İzin başvurusunda binanın tüm kat maliklerinin oy birliğiyle aldığı karar ibraz edilir.
-  - İzinsiz kiralamada konut başına yüz bin Türk lirası idari para cezası uygulanır.
+  - İzinsiz kiralamada konut başına yüz bin lira idari para cezası; on beş günde izin alınmazsa beş yüz bin lira olur.
   mevzuat: 7464 sayılı Kanun md. 1, 3 ve 4
   dayanak_alintisi: İzin belgesi bulunmaksızın turizm amaçlı kiralanan konutları kiraya verenlere, kiralama yapılan her bir konut için yüz bin Türk lirası idari para cezası uygulanır ve izin belgesi alarak faaliyette bulunabilmesi için on beş gün süre verilir.
-  kontrol: '2026-10-08'
+  kontrol: '2026-10-09'
 - kod: SZ-011
   terim: KAT İRTİFAKI
   kategori_kodu: TAPU_VE_HUKUK
   tanim: Henüz yapılmamış veya tamamlanmamış bir arsa üzerinde, bağımsız bölümlere arsa payı tahsis edilerek kurulan ve tapuya tescil edilen irtifak hakkıdır.
   puf:
-  - Kat irtifakı arsa payına bağlı bir irtifak çeşididir.
+  - Her bağımsız bölüme düşen arsa payı tapu kütüğünün beyanlar hanesinde gösterilir.
   - Yapı kullanma izin belgesine dayalı olarak kat mülkiyetine resen çevrilir.
   - Kurulması için malik, proje ve yönetim planını tapu idaresine vermelidir.
   mevzuat: Kat Mülkiyeti Kanunu md. 3 ve 14
   dayanak_alintisi: Kat irtifakı arsa payına bağlı bir irtifak çeşidi olup, yapının tamamı için düzenlenecek yapı kullanma izin belgesine dayalı olarak, bu Kanunda gösterilen şartlar uyarınca kat mülkiyetine resen çevrilir.
-  kontrol: '2026-10-08'
+  kontrol: '2026-10-09'
 - kod: SZ-012
   terim: KAT MÜLKİYETİ
   kategori_kodu: TAPU_VE_HUKUK
-  tanim: Arsa payı ve anagayrimenkuldeki ortak yerlerle bağlantılı özel bir mülkiyettir.
+  tanim: Bir yapının her bağımsız bölümü üzerinde, arsa payı ve ortak yerlerle bağlantılı olarak kurulan özel mülkiyettir.
   puf:
   - Her bağımsız bölüme, değeriyle oranlı bir arsa payı tahsis edilir.
   - Arsa payları değerle oranlı değilse her kat maliki mahkemeye başvurup yeniden düzenlenmesini isteyebilir.
   mevzuat: Kat Mülkiyeti Kanunu md. 3
   dayanak_alintisi: Kat mülkiyeti, arsa payı ve anagayrimenkuldeki ortak yerlerle bağlantılı özel bir mülkiyettir.
-  kontrol: '2026-10-08'
+  kontrol: '2026-10-09'
 - kod: SZ-013
   terim: YÖNETİM PLANI
   kategori_kodu: TAPU_VE_HUKUK
@@ -273,10 +273,11 @@ kartlar:
   tanim: Tapu kütüğünde kayıtlı olmayan taşınmazı davasız ve aralıksız yirmi yıl, malik sıfatıyla kullanan kişinin tescil isteyebilmesidir.
   puf:
   - Dava Hazineye, ilgili kamu tüzel kişilerine veya tapuda malik görünen kişinin mirasçılarına karşı açılır.
-  - Dava, gazete ve internet haber sitesinde ve taşınmazın bulunduğu yerde en az üç defa ilân olunur.
+  - Dava; gazetede, internet haber sitesinde ve taşınmazın bulunduğu yerde en az üç defa ilân edilir.
+  - Son ilândan sonra üç ay içinde itiraz gelmez ve iddia ispatlanırsa hâkim tescile karar verir.
   mevzuat: Türk Medeni Kanunu md. 713
   dayanak_alintisi: Tapu kütüğünde kayıtlı olmayan bir taşınmazı davasız ve aralıksız olarak yirmi yıl süreyle ve malik sıfatıyla zilyetliğinde bulunduran kişi, o taşınmazın tamamı, bir parçası veya bir payı üzerindeki mülkiyet hakkının tapu kütüğüne tesciline karar verilmesini isteyebilir.
-  kontrol: '2026-10-08'
+  kontrol: '2026-10-09'
 - kod: SZ-025
   terim: TENKİS
   kategori_kodu: MIRAS_VE_INTIKAL
@@ -302,11 +303,11 @@ kartlar:
   kategori_kodu: TAPU_VE_HUKUK
   tanim: Taşınmazın ileride satılacağına dair verilen sözdür; kanun bunun geçerliliğini resmî şekle bağlar.
   puf:
-  - Taşınmaz satışı vaadi, resmî şekilde düzenlenmedikçe geçerli olmaz.
-  - Taşınmaz satışının geçerli olması için sözleşmenin resmî şekilde düzenlenmesi şarttır.
+  - Taşınmaz satışı, sözleşme resmî şekilde düzenlenmedikçe geçerli olmaz.
+  - Satış vaadi, geri alım ve alım sözleşmeleri de resmî şekil ister; önalım sözleşmesi için yazılı şekil yeter.
   mevzuat: Türk Borçlar Kanunu md. 237
   dayanak_alintisi: Taşınmaz satışı vaadi, geri alım ve alım sözleşmeleri, resmî şekilde düzenlenmedikçe geçerli olmaz.
-  kontrol: '2026-10-08'
+  kontrol: '2026-10-09'
 - kod: SZ-028
   terim: ÖN ÖDEMELİ KONUT SATIŞI
   kategori_kodu: TAPU_VE_HUKUK
