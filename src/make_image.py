@@ -15,6 +15,7 @@ import math
 import os
 import re
 import textwrap
+import threading
 import time
 import unicodedata
 from pathlib import Path
@@ -1606,6 +1607,9 @@ TUVAL_OLCULERI: Dict[str, Tuple[int, int]] = {
 }
 
 
+_tuval_lock = threading.RLock()
+
+
 @contextmanager
 def tuval(olcu: Any) -> Iterator[Tuple[int, int]]:
     """Çizim boyutunu geçici olarak değiştirir.
@@ -1615,8 +1619,9 @@ def tuval(olcu: Any) -> Iterator[Tuple[int, int]]:
     yöneticisi ölçüyü kuşatır ve `finally` ile HER DURUMDA geri alır — çizim
     ortasında istisna çıksa bile sonraki çağrı doğru boyutta başlar.
 
-    Tek iş parçacıklı cron ve CLI için güvenli; eşzamanlı çizim yapılacaksa
-    bu yaklaşım süreç başına izole edilmeli.
+    `_tuval_lock` (RLock) sayesinde paralel iş parçacıklarında (örn. ThreadPoolExecutor ile
+    Threads ve Story kanalları aynı anda çalışırken) tuval boyutlarının birbirini ezmesi
+    (race condition) mimari olarak engellenmiştir.
 
         with tuval("story"):
             slayt_tek_fikir(...)
@@ -1634,12 +1639,13 @@ def tuval(olcu: Any) -> Iterator[Tuple[int, int]]:
             raise ValueError(f"Tuval ölçüsü makul aralıkta değil: {en}x{boy}")
         en, boy = int(en), int(boy)
 
-    onceki = (GENISLIK, YUKSEKLIK)
-    GENISLIK, YUKSEKLIK = en, boy
-    try:
-        yield (en, boy)
-    finally:
-        GENISLIK, YUKSEKLIK = onceki
+    with _tuval_lock:
+        onceki = (GENISLIK, YUKSEKLIK)
+        GENISLIK, YUKSEKLIK = en, boy
+        try:
+            yield (en, boy)
+        finally:
+            GENISLIK, YUKSEKLIK = onceki
 
 
 def _yerlesim() -> Dict[str, int]:

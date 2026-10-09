@@ -190,6 +190,33 @@ class TestStoryAkisi(_Temizlik):
         self.assertGreater(orta[2], orta[0])  # onaylı mavi kapaktan türedi
         ig_story.assert_called_once()
 
+    def test_story_ve_threads_es_zamanli_cizim_race_condition_olusturmaz(self):
+        """Threads (4:5 besleme) ve Story (9:16) aynı anda ThreadPool'da çalışsa bile
+        _tuval_lock sayesinde tuval boyutları birbirini ezmez; Story her zaman 1080x1920 kalır.
+        """
+        import concurrent.futures
+        from src import make_image
+
+        def _threads_gorevi():
+            with patch.object(haber_tasarim, "fotografi_sec", return_value=_foto()):
+                return make_image.otorite_gonderi_slaytlari_uret(dict(B1), cikti_onek=f"th_{REF}", olcu="besleme")
+
+        def _story_gorevi():
+            with patch.object(haber_tasarim, "fotografi_sec", return_value=_foto()):
+                return yayinla.story_kapagi_uret(dict(B1), None, f"{REF}_st", "reels")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+            f_th = ex.submit(_threads_gorevi)
+            f_st = ex.submit(_story_gorevi)
+            th_yollar = f_th.result()
+            st_yol = f_st.result()
+
+        self.assertIsNotNone(st_yol)
+        with Image.open(st_yol) as im_st:
+            self.assertEqual(im_st.size, (1080, 1920), "Story tuvali Threads tarafından 1350'ye ezilmemeli")
+        with Image.open(th_yollar[0]) as im_th:
+            self.assertEqual(im_th.size, (1080, 1350), "Threads tuvali 1350 kalmalı")
+
 
 if __name__ == "__main__":
     unittest.main()

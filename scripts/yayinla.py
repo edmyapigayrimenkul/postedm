@@ -167,7 +167,7 @@ def story_kapagi_uret(detay: dict | None, haber: dict | None, ref_id: object, tu
     Onaylanan fotoğraf: `haberler.gorsel_url`. Onay anında `foto_yolu` olarak veriliyordu
     (`telegram_bot.haber_onayina_sun`); yayın anında detay_metni'nde yok, burada aynısı yapılır.
     """
-    from src import make_image, yeni_formatlar
+    from src import config, make_image, yeni_formatlar
     try:
         if tur == "ilan" and ilan:
             with make_image.tuval("story"):
@@ -186,13 +186,17 @@ def story_kapagi_uret(detay: dict | None, haber: dict | None, ref_id: object, tu
         onek = f"story_{ref_id}"
         if fmt in _HABER_BICIMLERI or (not fmt and bicim in ("haber", "B5")):
             slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu="dailybrief", cikti_onek=onek, olcu="story")
+            return Path(slaytlar[0]) if slaytlar and Path(slaytlar[0]).exists() else None
         elif fmt in _YENI_FORMATLAR:
             slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu=fmt, cikti_onek=onek, olcu="story")
+            return Path(slaytlar[0]) if slaytlar and Path(slaytlar[0]).exists() else None
         elif not fmt and bicim in ("B1", "B2", "B3", "B4", None, ""):
-            slaytlar = make_image.otorite_gonderi_slaytlari_uret(veri, cikti_onek=onek, olcu="story")
+            cikti_kapak = config.yol_al(f"data/output/{onek}_01_kapak.jpg")
+            with make_image.tuval("story"):
+                slayt_yolu = make_image.otorite_slayt_1_kapak(veri, cikti_kapak)
+            return Path(slayt_yolu) if Path(slayt_yolu).exists() else None
         else:
             return None
-        return Path(slaytlar[0]) if slaytlar and Path(slaytlar[0]).exists() else None
     except Exception as e:  # noqa: BLE001 — Story üretilemezse onaylı kapak çerçevelenir (yedek yol)
         log.warning("Native 9:16 Story kapağı üretilemedi: %s", e)
         return None
@@ -735,6 +739,7 @@ def main() -> None:
 
     v_yolu = None
     sesli_video_yolu = None
+    dikey_slaytlar: list[str] = []
     if video_lazim:
         log.info("Dikey video ve fon müziği hazırlanıyor (Shorts, Reels & Telegram video çıktısı)...")
         if haber and haber.get("video_yolu") and not ses_modu:  # onaydaki video seslendirmesiz
@@ -767,7 +772,6 @@ def main() -> None:
             # 1. Öncelik: Tam Ekran Native 9:16 Slaytlar (1080x1920)
             # Video (Reels/Shorts/TikTok) asla 4:5 kırpılmış ve tepesi boş bırakılmış zeminle üretilmez.
             # Onaylanan görsel/fotoğraf yolu kilitlenerek 2 ila 3 slaytlık native 9:16 akış hazırlanır.
-            dikey_slaytlar = []
             if detay and isinstance(detay, dict):
                 try:
                     if fmt in ("dailybrief", "haber", "haber_dailybrief") or detay.get("bicim") in ("haber", "B5"):
@@ -1034,63 +1038,47 @@ def main() -> None:
             from src import make_image
             story_dosya = KOK / f"data/output/story_{ref_id}.jpg"
             story_dosya.parent.mkdir(parents=True, exist_ok=True)
-            hazir_yol = story_kapagi_uret(detay, haber, ref_id, tur, ilan if tur == "ilan" else None)
+            hazir_yol = None
 
-            # 1. Yedek: Onaylanan kapak slaytı (public URL veya yerel dosya) 9:16'ya çerçevelenir
-            if hazir_yol:
-                pass
-            elif public_urller and len(public_urller) > 0:
+            # 1. Öncelik: Video için üretilmiş native 9:16 dikey kapak varsa doğrudan kullan
+            if dikey_slaytlar and Path(dikey_slaytlar[0]).exists():
                 try:
-                    import requests
-                    resp = requests.get(public_urller[0], timeout=15)
-                    if resp.status_code == 200:
-                        with open(story_dosya, "wb") as f:
-                            f.write(resp.content)
-                        hazir_yol = story_dosya
-                except Exception as ue:
-                    log.warning("Story public URL indirme hatası: %s", ue)
-            elif haber and haber.get("slayt_urlleri"):
-                try:
-                    import requests
-                    db_urller = json.loads(haber["slayt_urlleri"])
-                    if isinstance(db_urller, list) and len(db_urller) > 0:
-                        resp = requests.get(db_urller[0], timeout=15)
+                    with Image.open(dikey_slaytlar[0]) as d_im:
+                        if d_im.size == (1080, 1920):
+                            hazir_yol = Path(dikey_slaytlar[0])
+                except Exception as de:
+                    log.debug("Dikey slayt öncelik kontrolü: %s", de)
+
+            # 2. Öncelik: Native 9:16 Story kapağı üret (1080x1920)
+            if not hazir_yol or not hazir_yol.exists():
+                hazir_yol = story_kapagi_uret(detay, haber, ref_id, tur, ilan if tur == "ilan" else None)
+
+            # 3. Son Çare Yedek: Yalnızca native 9:16 hiçbir şekilde üretilemezse onaylanan 4:5 kapak çerçevelenir
+            if not hazir_yol or not hazir_yol.exists():
+                if public_urller and len(public_urller) > 0:
+                    try:
+                        import requests
+                        resp = requests.get(public_urller[0], timeout=15)
                         if resp.status_code == 200:
                             with open(story_dosya, "wb") as f:
                                 f.write(resp.content)
                             hazir_yol = story_dosya
-                except Exception as ue:
-                    log.warning("Story db URL indirme hatası: %s", ue)
-            elif slayt_yollari and Path(slayt_yollari[0]).exists():
-                hazir_yol = Path(slayt_yollari[0])
-
-            # 2. Fallback: Onaylı slayt yoksa sıfırdan üret
-            if not hazir_yol or not hazir_yol.exists():
-                if detay and isinstance(detay, dict) and (
-                    detay.get("format_turu") in ("sozluk", "nedir_dogrusu", "net_cevap", "vaka", "dailybrief", "haber", "haber_dailybrief")
-                    or detay.get("bicim") in ("haber", "B5")
-                ):
+                    except Exception as ue:
+                        log.warning("Story public URL indirme hatası: %s", ue)
+                elif haber and haber.get("slayt_urlleri"):
                     try:
-                        from src import yeni_formatlar
-                        fmt = detay.get("format_turu") or "dailybrief"
-                        d_slaytlar = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"story_{ref_id}", olcu="story")
-                        if d_slaytlar and Path(d_slaytlar[0]).exists():
-                            hazir_yol = Path(d_slaytlar[0])
-                    except Exception as de:
-                        log.warning("Yeni format story üretim hatası: %s", de)
-                elif detay:
-                    try:
-                        with make_image.tuval("story"):
-                            hazir_yol = Path(make_image.otorite_slayt_1_kapak(detay, str(story_dosya)))
-                    except Exception as de:
-                        log.warning("Story native 9:16 üretim hatası: %s", de)
-                elif tur == "ilan" and ilan:
-                    try:
-                        ilan_kapak = make_image.ilan_kapak_slayti_ciz(ilan)
-                        if ilan_kapak and Path(ilan_kapak).exists():
-                            hazir_yol = Path(ilan_kapak)
-                    except Exception as ie:
-                        log.warning("İlan story kapak hatası: %s", ie)
+                        import requests
+                        db_urller = json.loads(haber["slayt_urlleri"])
+                        if isinstance(db_urller, list) and len(db_urller) > 0:
+                            resp = requests.get(db_urller[0], timeout=15)
+                            if resp.status_code == 200:
+                                with open(story_dosya, "wb") as f:
+                                    f.write(resp.content)
+                                hazir_yol = story_dosya
+                    except Exception as ue:
+                        log.warning("Story db URL indirme hatası: %s", ue)
+                elif slayt_yollari and Path(slayt_yollari[0]).exists():
+                    hazir_yol = Path(slayt_yollari[0])
 
             if hazir_yol and hazir_yol.exists():
                 with Image.open(hazir_yol) as im:
