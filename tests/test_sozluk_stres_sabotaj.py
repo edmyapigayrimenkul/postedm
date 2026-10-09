@@ -218,7 +218,7 @@ class TestOtomatikYayinVeRotasyonDöngüsü(unittest.TestCase):
         cls.kartlar = sa.kartlari_yukle(tazele=True)
 
     def test_34_gunluk_arsiv_rotasyonu_ve_bekleme_suresi_guvencesi(self):
-        """34 günlük kesintisiz yayında tüm kartlar hiç tekrarsız yayınlanır, 180 gün dolmadan erken tekrar yapılmaz."""
+        """34 günlük kesintisiz yayında tüm kartlar hiç tekrarsız yayınlanır, bekleme süresi (730 gün) dolmadan erken tekrar yapılmaz."""
         gecmis = {}
         son_kat = None
         yayinlananlar = []
@@ -246,13 +246,13 @@ class TestOtomatikYayinVeRotasyonDöngüsü(unittest.TestCase):
         bugun_erken = start_date + timedelta(days=35)
         with patch("src.konu_bankasi._gun_farki", side_effect=lambda iso: (bugun_erken - datetime.fromisoformat(iso)).days):
             secilen_erken = sa.sonraki_kart(gecmis, son_kategori=son_kat)
-            self.assertIsNone(secilen_erken, "180 gün dolmadan kart erken tekrar seçilmemeli")
+            self.assertIsNone(secilen_erken, "bekleme süresi dolmadan kart erken tekrar seçilmemeli")
 
         # 3. Aşama: 185. gün (BEKLEME_GUN dolunca) en eski kart seçilmeli
         bugun_gec = start_date + timedelta(days=sa.BEKLEME_GUN + 5)
         with patch("src.konu_bankasi._gun_farki", side_effect=lambda iso: (bugun_gec - datetime.fromisoformat(iso)).days):
             secilen_gec = sa.sonraki_kart(gecmis, son_kategori=son_kat)
-            self.assertIsNotNone(secilen_gec, "180 gün dolunca en eski kart seçilmeli")
+            self.assertIsNotNone(secilen_gec, "bekleme süresi dolunca en eski kart seçilmeli")
             self.assertEqual(secilen_gec["kod"], yayinlananlar[0], "En eski yayınlanan ilk kart seçilmeliydi")
 
     def test_mevzuat_uyusmazliginda_otomatik_yayin_durdurulur(self):

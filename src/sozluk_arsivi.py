@@ -30,7 +30,10 @@ from . import config
 log = logging.getLogger(__name__)
 
 ARSIV_YOLU = config.yol_al("data/sozluk_kartlari.yaml")
-BEKLEME_GUN = 180            # aynı kart bu süre geçmeden yeniden yayınlanmaz
+BEKLEME_GUN = 730            # aynı kart bu süre geçmeden yeniden yayınlanmaz: günde bir kartla EN AZ 2 YIL tekrar yok
+                             # (kullanıcı şartı, 2026-10-09; önceki 180 gün 34 kartla 6 ayda tekrara düşürüyordu)
+HEDEF_KART = 730             # günde bir kart × 2 yıl: tekrarsız yayın için gereken kart sayısı
+STOK_UYARI_ESIGI = 14        # hiç yayınlanmamış kart bu sayıya inince her yayında Telegram'a hatırlatma gider
 KOD_KALIBI = re.compile(r"^SZ-\d{3}$")
 ZORUNLU = ("kod", "terim", "kategori_kodu", "tanim", "puf", "mevzuat", "dayanak_alintisi", "kontrol")
 YASAKLI_ISARETLER = ("**", "#", "\n", "!", "<", ">")
@@ -180,13 +183,23 @@ def sonraki_kart(gecmis: Optional[Dict[str, str]] = None, son_kategori: Optional
 
 
 def durum_ozeti(gecmis: Optional[Dict[str, str]] = None) -> Dict[str, int]:
-    """Arşivin doluluğu: kaç kart var, kaçı hiç yayınlanmadı."""
+    """Arşivin doluluğu: kaç kart var, kaçı hiç yayınlanmadı, 2 yıllık tekrarsız yayın için kaç kart eksik."""
     from . import konu_bankasi
     kartlar = [k for k in kartlari_yukle() if not k.get("pasif")]
     if gecmis is None:
         gecmis = konu_bankasi._kullanim_gecmisi()
     bakir = sum(1 for k in kartlar if k["kod"] not in gecmis)
-    return {"toplam": len(kartlar), "bakir": bakir}
+    return {"toplam": len(kartlar), "bakir": bakir, "eksik": max(0, HEDEF_KART - len(kartlar))}
+
+
+def stok_kalan(kart: Dict[str, Any], gecmis: Optional[Dict[str, str]] = None) -> int:
+    """`kart` yayınlandıktan SONRA hiç yayınlanmamış kaç kart kalır (günde bir kartla ≈ kaç gün). Stok bitmeden
+    haber verilsin diye: kart bitince sözlük sessizce modele ve günlük onay isteğine döner."""
+    from . import konu_bankasi
+    if gecmis is None:
+        gecmis = konu_bankasi._kullanim_gecmisi()
+    bakir = sum(1 for k in kartlari_yukle() if not k.get("pasif") and k["kod"] not in gecmis)
+    return max(0, bakir - (1 if kart["kod"] not in gecmis else 0))
 
 
 # ---------------------------------------------------------------------------

@@ -389,6 +389,16 @@ bile yeni nüanslar buldu (kesinleşmiş karar, "aşırı ifa güçlüğü" isti
 geçiş yetmez. Yeni kart: YAML'a ekle → `python -m unittest tests.test_sozluk_arsivi` (biçim, kanun metni,
 kapı, çizim) → hakemle kontrol.
 
+**Stok ve tekrar (kullanıcı şartı: EN AZ 2 YIL tekrarsız):** günde bir kartla 2 yıl için 730 kart gerekir (`sozluk_arsivi.HEDEF_KART`);
+bekleme süresi bu yüzden 730 gün (`BEKLEME_GUN`, önceki 180 gün 34 kartla 6 ayda tekrara düşürüyordu). 2026-10-09'da 34 kart var:
+34 gün yeter, sonra yayınlanabilir kart kalmaz ve sözlük her gün modelle üretilip onaya düşer (eksik: 696 kart). Hiç yayınlanmamış
+kart 14'e inince her yayında Telegram'a "stok azalıyor" hatırlatması gider; `hazirla.py --durum` eksik kart sayısını yazar.
+Yeni kartlar bu bölümdeki kuralla yazılır (kanun alıntısı birebir, her sayı atıf listesinde, üç hakem geçişi) ve ancak ondan sonra
+`data/sozluk_kartlari.yaml`'a girer.
+
+**Metin boyutu:** kısa içerikli kartlarda yazı büyür (`yeni_formatlar.SOZLUK_BUYUME_BASAMAKLARI`: tanım 46-60, madde 31-40 punto);
+yoğun kart eski tavanda (44/30) kalır. Kutudaki "—" işaretinin girintisi ve başlık puntosu büyüklükle orantılı artar.
+
 **Otomatik yayın** (`telegram_bot.sozluk_karti_hazirla_ve_sun`): her gün öğlen 12:30 TR (09:30 UTC, `hazirla.yml` cron
 `30 9 * * *`) `hazirla.py --slot sozluk --oto-yayin` çalışır. `--oto-yayin` "bu çalıştırma onaysız yayına yetkili" demektir;
 bayraksız çalıştırmalar (10:00 günlük döngü, elle `--slot sozluk`) açık anahtar yoksa hiçbir zaman otomatik değildir.

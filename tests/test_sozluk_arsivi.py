@@ -150,7 +150,7 @@ class TestSecim(unittest.TestCase):
             self.assertNotEqual(sa.sonraki_kart({}, son_kategori=None, haric={"SZ-902"})["kod"], "SZ-902")
 
     def test_durum_ozeti(self):
-        self.assertEqual(sa.durum_ozeti({"SZ-901": self._gun(1)}), {"toplam": 3, "bakir": 2})
+        self.assertEqual(sa.durum_ozeti({"SZ-901": self._gun(1)}), {"toplam": 3, "bakir": 2, "eksik": sa.HEDEF_KART - 3})
 
 
 class TestKaydaCevirme(unittest.TestCase):
@@ -342,6 +342,53 @@ class TestGercekArsiv(unittest.TestCase):
                 satirlar = cozum[1]
                 kelimeler = [w for s in satirlar for w in s.split()]
                 self.assertEqual(kelimeler, terim.split(), f"Kelime harf harf bölünmüş: {terim} -> {satirlar}")
+
+
+class TestStokVeBekleme(unittest.TestCase):
+    """Kullanıcı şartı (2026-10-09): günde bir kartla EN AZ 2 YIL tekrara düşmemek. 34 kart 34 gün yeter; 730 kart gerekir."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kartlar = sa.kartlari_yukle(tazele=True)
+
+    @staticmethod
+    def _gun(onceki: int) -> str:
+        from datetime import datetime, timedelta, timezone
+        return (datetime.now(timezone.utc) - timedelta(days=onceki)).isoformat()
+
+    def test_bekleme_iki_yil_ve_hedef_730(self):
+        self.assertGreaterEqual(sa.BEKLEME_GUN, 730)
+        self.assertEqual(sa.HEDEF_KART, 730)
+
+    def test_kart_iki_yil_dolmadan_tekrar_secilmez(self):
+        gecmis = {k["kod"]: self._gun(sa.BEKLEME_GUN - 1) for k in self.kartlar}
+        self.assertIsNone(sa.sonraki_kart(gecmis=gecmis, son_kategori=None))
+        gecmis = {k["kod"]: self._gun(sa.BEKLEME_GUN + 1) for k in self.kartlar}
+        self.assertIsNotNone(sa.sonraki_kart(gecmis=gecmis, son_kategori=None))
+
+    def test_hic_yayinlanmamis_kart_varken_bekleme_aranmaz(self):
+        gecmis = {k["kod"]: self._gun(5) for k in self.kartlar[1:]}                   # biri hiç kullanılmadı
+        self.assertEqual(sa.sonraki_kart(gecmis=gecmis, son_kategori=None)["kod"], self.kartlar[0]["kod"])
+
+    def test_durum_ozeti_eksik_karti_soyler(self):
+        ozet = sa.durum_ozeti(gecmis={})
+        self.assertEqual(ozet["toplam"], len(self.kartlar))
+        self.assertEqual(ozet["bakir"], len(self.kartlar))
+        self.assertEqual(ozet["eksik"], sa.HEDEF_KART - len(self.kartlar))
+
+    def test_stok_kalan_bu_kart_dusulerek_sayilir(self):
+        ilk, ikinci = self.kartlar[0], self.kartlar[1]
+        self.assertEqual(sa.stok_kalan(ilk, gecmis={}), len(self.kartlar) - 1)         # bu kart da hiç yayınlanmamış
+        kullanilmis = {ilk["kod"]: self._gun(3)}
+        self.assertEqual(sa.stok_kalan(ikinci, gecmis=kullanilmis), len(self.kartlar) - 2)
+        self.assertEqual(sa.stok_kalan(ilk, gecmis=kullanilmis), len(self.kartlar) - 1)  # zaten kullanılmış: ikinci kez düşülmez
+
+    def test_stok_kalan_sifirin_altina_inmez_ve_pasifi_saymaz(self):
+        hepsi = {k["kod"]: self._gun(1) for k in self.kartlar}
+        self.assertEqual(sa.stok_kalan(self.kartlar[0], gecmis=hepsi), 0)
+        pasif = [{**k, "pasif": True} if i == 0 else k for i, k in enumerate(self.kartlar)]
+        with patch.object(sa, "kartlari_yukle", return_value=pasif):
+            self.assertEqual(sa.stok_kalan(self.kartlar[1], gecmis={}), len(self.kartlar) - 2)
 
 
 class TestThreadsAciklamasi(unittest.TestCase):

@@ -135,8 +135,9 @@ def main() -> None:
         )
         from src import sozluk_arsivi
         kart = sozluk_arsivi.durum_ozeti()
-        log.info("Sözlük kartı: %d kart, %d tanesi hiç yayınlanmadı (zamanlanmış otomatik yayın: %s).",
-                 kart["toplam"], kart["bakir"],
+        log.info("Sözlük kartı: %d kart, %d tanesi hiç yayınlanmadı (≈%d gün); %d yıl tekrarsız için %d kart gerekir, %d eksik "
+                 "(zamanlanmış otomatik yayın: %s).",
+                 kart["toplam"], kart["bakir"], kart["bakir"], sozluk_arsivi.BEKLEME_GUN // 365, sozluk_arsivi.HEDEF_KART, kart["eksik"],
                  "KAPATILMIŞ (acil fren: SOZLUK_OTO_YAYIN)" if telegram_bot.sozluk_oto_yayin_kapatildi_mi() else "açık")
         from src import piyasa_verisi
         log.info(piyasa_verisi.durum_ozeti())

@@ -529,6 +529,24 @@ class TestZamanlanmisCalistirma(unittest.TestCase):
         self.assertFalse(otomatik)
         self.assertFalse(any("otomatik yayınlanmadı" in m for m in mesajlar), mesajlar)   # istenmediyse rahatsız edilmez
 
+    def test_stok_azalinca_her_yayinda_hatirlatma_gider(self):
+        with patch.object(sa, "stok_kalan", return_value=sa.STOK_UYARI_ESIGI):
+            _, mesajlar = self._calistir(True)
+        uyari = [m for m in mesajlar if "stoğu azalıyor" in m]
+        self.assertEqual(len(uyari), 1, mesajlar)
+        self.assertIn(f"{sa.STOK_UYARI_ESIGI} kart kaldı", uyari[0])
+        self.assertIn("730 kart", uyari[0])
+
+    def test_stok_boldyken_hatirlatma_yok(self):
+        with patch.object(sa, "stok_kalan", return_value=sa.STOK_UYARI_ESIGI + 1):
+            _, mesajlar = self._calistir(True)
+        self.assertFalse(any("stoğu" in m for m in mesajlar), mesajlar)
+
+    def test_stok_hatirlatmasi_otomatigi_engellemez(self):
+        with patch.object(sa, "stok_kalan", return_value=0):
+            otomatik, _ = self._calistir(True)
+        self.assertTrue(otomatik)
+
     def test_oto_yayin_none_anahtara_bakar(self):
         self.assertTrue(self._calistir(None, env="1")[0])
         self.assertFalse(self._calistir(None)[0])

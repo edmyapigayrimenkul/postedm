@@ -61,6 +61,12 @@ def _satir_genisligi(metin: str, font: ImageFont.FreeTypeFont) -> int:
     return _OLCUM.textbbox((0, 0), metin, font=font)[2]
 
 
+# Sözlük kartında kısa içerik yazıyı BÜYÜTÜR (2026-10-09, kullanıcı: "kısa kelimeleri büyütebilirsin"): kısa tanımlı
+# kartlarda tanım ile kutu arasında büyük boşluk kalıyordu. (tanım punto, madde punto) basamakları büyükten küçüğe;
+# ilk SIĞAN seçilir. Hiçbiri sığmazsa (yoğun kart) eski çözüm (tanım ≤44, madde ≤30) çalışır: yoğun kartlar DEĞİŞMEZ.
+# Basamaklar tanım/madde oranını ~1,5'te tutar (44/30 ile aynı hiyerarşi).
+SOZLUK_BUYUME_BASAMAKLARI: Tuple[Tuple[int, int], ...] = ((60, 40), (56, 38), (52, 35), (48, 33), (46, 31))
+
 _SARMA_ONBELLEK: Dict[Tuple[str, str, int, int, int], List[str]] = {}
 
 
@@ -146,6 +152,17 @@ def _sigdir(
                 ilk_sigdi = not girinti or _satir_genisligi(satirlar[0], font) + girinti <= genislik
                 return font, satirlar, satir_h, (girinti if ilk_sigdi else 0)
     return None
+
+
+def _madde_girintisi(punto: int) -> int:
+    """Kutudaki "—" işaretinden sonra metnin başladığı uzaklık (px). 30 puntoya kadar eskisi gibi 30; daha büyük
+    puntoda çizgi de genişler ve sabit 30 px metne yapışırdı (2026-10-09 yazı büyütmede görüldü)."""
+    return 30 if punto <= 30 else punto + 4
+
+
+def _etiket_puntosu(madde_puntosu: int) -> int:
+    """Kutu başlığı ("BİLİNMESİ GEREKENLER:") madde yazısı büyüdükçe orantılı büyür; 30 puntoya kadar eski 20."""
+    return 20 if madde_puntosu <= 30 else 22 if madde_puntosu < 36 else 24
 
 
 def _madde_listesi(ham: Any) -> List[str]:
@@ -306,12 +323,11 @@ def uret_sozluk(
 
     # 1. Kutu ölçüleri (Bilinmesi Gerekenler / Önemi kutusu)
     maddeler = _madde_listesi(puf_maddeleri)
-    f_puf_etiket = make_image._font_yukle(FONT_MONO_BOLD, 20)
 
     def kutu_olc(punto: int):
         font = make_image._font_yukle(FONT_SANS_MEDIUM, punto)
         satir_h = int(punto * 1.36)
-        bloklar = [_dengeli_sar(m, font, kullanilabilir_w - 56 - 30) for m in maddeler]
+        bloklar = [_dengeli_sar(m, font, kullanilabilir_w - 56 - _madde_girintisi(punto)) for m in maddeler]
         yukseklik = (52 + sum(len(b) for b in bloklar) * satir_h + (len(bloklar) - 1) * 12 + 24) if maddeler else 0
         return font, bloklar, satir_h, yukseklik
 
@@ -340,7 +356,17 @@ def uret_sozluk(
     tanim_ust = label_y + 36
 
     cozum = None
-    for puf_p in (30, 28, 26, 24):
+    for tanim_p, puf_p in SOZLUK_BUYUME_BASAMAKLARI:
+        f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
+        kutu_y = alt_y - 26 - h_kutu
+        tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
+        tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, [tanim_p], kullanilabilir_w,
+                              tanim_alt - tanim_ust, 1.38, girinti_carpani=1.6, dengeli=True)
+        if tanim_sonuc:
+            cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, tanim_sonuc, tanim_alt)
+            break
+
+    for puf_p in (30, 28, 26, 24) if cozum is None else ():
         f_puf, puf_bloklar, puf_h, h_kutu = kutu_olc(puf_p)
         kutu_y = alt_y - 26 - h_kutu
         tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
@@ -427,12 +453,14 @@ def uret_sozluk(
     if h_kutu:
         draw.rounded_rectangle([(kenar, kutu_y), (GENISLIK - kenar, kutu_y + h_kutu)], radius=12, fill=RENK_MUREKKEP, outline=(50, 53, 62), width=1)
         draw.rounded_rectangle([(kenar, kutu_y), (kenar + 6, kutu_y + h_kutu)], radius=2, fill=RENK_KART_CUBUK)
-        draw.text((kenar + 28, kutu_y + 18), kutu_etiketi or "BİLİNMESİ GEREKENLER:", font=f_puf_etiket, fill=RENK_KART_ETIKET)
+        etiket_font = make_image._font_yukle(FONT_MONO_BOLD, _etiket_puntosu(f_puf.size))
+        draw.text((kenar + 28, kutu_y + 18), kutu_etiketi or "BİLİNMESİ GEREKENLER:", font=etiket_font, fill=RENK_KART_ETIKET)
         py = kutu_y + 52
+        madde_girinti = _madde_girintisi(f_puf.size)
         for blok in puf_bloklar:
             draw.text((kenar + 28, py), "—", font=f_puf, fill=RENK_KART_ETIKET)
             for s in blok:
-                draw.text((kenar + 28 + 30, py), s, font=f_puf, fill=RENK_BEYAZ)
+                draw.text((kenar + 28 + madde_girinti, py), s, font=f_puf, fill=RENK_BEYAZ)
                 py += puf_h
             py += 12
 
