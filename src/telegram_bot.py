@@ -2239,8 +2239,9 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
 def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici", oto_yayin: Optional[bool] = None) -> bool:
     """Günün içeriği ve elle tetiklenen slotlar.
 
-    - 'bilgilendirici': GÜNÜN TEK İÇERİĞİ (10:00 TR). Format altı günlük döngüde
-      döner (konu_bankasi.BILGILENDIRICI_FORMATLAR).
+    - 'bilgilendirici': 10:00 TR'nin içeriği. Format dört günlük döngüde döner: b1, nedir_dogrusu,
+      net_cevap, b1 (konu_bankasi.BILGILENDIRICI_FORMATLAR). Sözlük bu döngüde DEĞİL: her gün 12:30'da
+      'sozluk' slotuyla ayrıca yayınlanır.
     - 'sozluk': sözlük içeriği (oto_yayin aktifse doğrudan yayınlanır).
     - 'haber': içerik ÜRETMEZ; taze haberleri tarihleriyle öneri olarak düşürür
       (haber_oneri). Hangisinin içeriğe çevrileceğine insan karar verir.

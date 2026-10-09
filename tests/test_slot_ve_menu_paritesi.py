@@ -37,14 +37,25 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_bilgilendirici_format_rotasyonu(self):
-        """Günün tek içeriği beş formatlı döngüde döner (vaka elle tetiklenir); B1 iki kez, sözlük bir kez."""
-        beklenen = ["b1", "nedir_dogrusu", "net_cevap", "b1", "sozluk", "b1"]
+        """10:00 içeriği dört formatlı döngüde döner (vaka elle tetiklenir); B1 iki kez. Sözlük döngüde YOK:
+        12:30'da ayrıca yayınlandığı için döngüde kalsaydı beşinci günde aynı gün iki sözlük çıkardı."""
+        self.assertNotIn("sozluk", konu_bankasi.BILGILENDIRICI_FORMATLAR)
+        beklenen = ["b1", "nedir_dogrusu", "net_cevap", "b1", "b1", "nedir_dogrusu", "net_cevap", "b1"]
         gorulen = []
         for _ in beklenen:
             f = konu_bankasi.siradaki_bilgilendirici_format()
             gorulen.append(f)
             konu_bankasi.bilgilendirici_format_kaydet(f)
         self.assertEqual(gorulen, beklenen)
+
+    def test_eski_sozluk_sirasi_donguyu_bozmaz_basa_doner(self):
+        """Üretimdeki eski kayıt döngünün 5. sırasını (sözlük) göstermiş olabilir: aralık dışı sıra ve "sozluk"
+        son formatı hata vermez, döngü b1'den başlar."""
+        db.ayar_yaz("bilgilendirici_sira", "4")
+        db.ayar_yaz("son_bilgilendirici_format", "sozluk")
+        self.assertEqual(konu_bankasi.siradaki_bilgilendirici_format(), "b1")
+        konu_bankasi.bilgilendirici_format_kaydet("sozluk")          # döngüde olmayan format kaydı bozmaz
+        self.assertEqual(konu_bankasi.siradaki_bilgilendirici_format(), "b1")
 
     def test_eski_kayittan_rotasyon_devam_eder(self):
         """Üretimdeki eski anahtar (yalnızca format adı) döngüyü bozmadan devralınır."""

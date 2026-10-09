@@ -344,5 +344,65 @@ class TestGercekArsiv(unittest.TestCase):
                 self.assertEqual(kelimeler, terim.split(), f"Kelime harf harf bölünmüş: {terim} -> {satirlar}")
 
 
+class TestThreadsAciklamasi(unittest.TestCase):
+    """Threads sınırı 480: genel kırpma cümle ortasında "…" ile kesiyordu (34 kartın 13'ünde: "Dayanak: Türk…").
+    Kartın Threads açıklaması yalnız TAM birimlerden kurulur."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kartlar = sa.kartlari_yukle(tazele=True)
+
+    def test_hicbir_kartin_threads_metni_kesilmez_ve_sinira_sigar(self):
+        for k in self.kartlar:
+            th = sa.karttan_veri(k)["caption_threads"]
+            self.assertNotIn("…", th, k["kod"])
+            self.assertLessEqual(len(th), sa.THREADS_SINIRI, k["kod"])
+
+    def test_baslik_ve_tanim_her_zaman_tam(self):
+        for k in self.kartlar:
+            th = sa.karttan_veri(k)["caption_threads"]
+            self.assertTrue(th.startswith(f"{k['terim']} nedir?\n\n{k['tanim']}"), k["kod"])
+
+    def test_maddeler_ya_tam_ya_hic_ve_sirayla(self):
+        for k in self.kartlar:
+            th = sa.karttan_veri(k)["caption_threads"]
+            tam = [m for m in k["puf"] if m in th]
+            self.assertGreaterEqual(len(tam), 1, k["kod"])                    # en az bir madde sığıyor
+            self.assertEqual(tam, k["puf"][:len(tam)], k["kod"])              # baştan kesintisiz, sırayla
+            for m in k["puf"][len(tam):]:                                     # alınmayan maddeden parça sızmaz
+                self.assertNotIn(m[:30], th, k["kod"])
+
+    def test_dayanak_yalniz_tam_sigiyorsa_yazilir(self):
+        for k in self.kartlar:
+            th = sa.karttan_veri(k)["caption_threads"]
+            if "Dayanak:" in th:
+                self.assertIn(f"Dayanak: {k['mevzuat']}.", th, k["kod"])
+
+    def test_madde_atlanirsa_sonrakiler_eklenmez_sira_bozulmaz(self):
+        # 1. madde sığar, 2. çok uzun (sığmaz), 3. kısa (tek başına sığardı): 3. eklenmemeli, yoksa metin 2. maddeyi atlar
+        k = next(x for x in self.kartlar if x["kod"] == "SZ-004")
+        veri = sa.karttan_veri(k)
+        kisa1, uzun, kisa3 = "Birinci kısa madde burada.", "Çok uzun madde. " * 30, "Üçüncü kısa madde."
+        th = sa._threads_govdesi(veri, k["terim"], k["tanim"], [kisa1, uzun, kisa3], k["mevzuat"])
+        self.assertIn(kisa1, th)
+        self.assertNotIn(kisa3, th)
+        self.assertNotIn("Çok uzun", th)
+
+    def test_sigmayan_maddeler_dusurulur_kirpilmaz(self):
+        k = next(x for x in self.kartlar if x["kod"] == "SZ-004")             # 3 maddeli, uzun
+        with patch.object(sa, "THREADS_SINIRI", 360):
+            th = sa.karttan_veri(k)["caption_threads"]
+        self.assertLess(sum(1 for m in k["puf"] if m in th), len(k["puf"]))
+        self.assertNotIn("…", th)
+
+    def test_instagram_ve_facebook_aciklamasi_tum_maddeleri_tasir(self):
+        for k in self.kartlar:
+            v = sa.karttan_veri(k)
+            for alan in ("caption_instagram", "caption_facebook"):
+                for m in k["puf"]:
+                    self.assertIn(m, v[alan], f"{k['kod']} {alan}")
+            self.assertLessEqual(len(v["caption_instagram"]), 2200, k["kod"])
+
+
 if __name__ == "__main__":
     unittest.main()

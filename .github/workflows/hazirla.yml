@@ -3,8 +3,8 @@ name: Paylaşım Hazırla (EDM)
 on:
   schedule:
     # GÜNDE TEK İÇERİK (2026-09-24 kararı; önceden 10:00 / 13:30 / 18:30 üç slot vardı).
-    # 10:00 TR (UTC 07:00): format altı günlük döngüde döner — B1, Nedir Doğrusu,
-    # Net Cevap, B1, Örnek Olay, Sözlük. Haberler içerikten bağımsız: haber-oneri.yml.
+    # 10:00 TR (UTC 07:00): format dört günlük döngüde döner — B1, Nedir Doğrusu,
+    # Net Cevap, B1 (sözlük döngüde YOK: aşağıda 12:30'da ayrı). Haberler içerikten bağımsız: haber-oneri.yml.
     - cron: '0 7 * * *'
     # HER GÜN ÖĞLEN SÖZLÜK KARTI (12:30 TR / UTC 09:30) - TAM OTOMATİK YAYIN
     - cron: '30 9 * * *'

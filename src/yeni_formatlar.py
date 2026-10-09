@@ -88,6 +88,34 @@ def _girintili_sar(
     return list(satirlar)
 
 
+def _dengeli_sar(
+    metin: str,
+    font: ImageFont.FreeTypeFont,
+    genislik: int,
+    girinti: int = 0,
+    kelime_bol: bool = False,
+) -> List[str]:
+    """Satırları, satır sayısını ARTIRMADAN olabildiğince eşit uzunlukta kırar.
+
+    NİYE (2026-10-09 incelemesi): açgözlü kırma satırı sonuna kadar doldurur ve son satıra tek bir kelime kalır
+    ("…depozito / denir."); 34 sözlük tanımının 10'unda vardı. Açgözlü kırmanın verdiği satır sayısı N sabit tutulur;
+    N satıra hâlâ sığan EN DAR genişlik ikili aramayla bulunur. Dar genişlik yalnız satır sonlarını öne çeker: hiçbir
+    satır `genislik`ten geniş olamaz (taşma riski yok) ve yükseklik değişmez (yerleşim çözümü bozulmaz)."""
+    tam = _girintili_sar(metin, font, genislik, girinti, kelime_bol=kelime_bol)
+    n = len(tam)
+    if n < 2:
+        return tam
+    alt, ust, en_iyi = int(genislik * 0.55), genislik, tam
+    while alt < ust:
+        orta = (alt + ust) // 2
+        aday = _girintili_sar(metin, font, orta, girinti, kelime_bol=kelime_bol)
+        if len(aday) <= n:
+            en_iyi, ust = aday, orta
+        else:
+            alt = orta + 1
+    return en_iyi if len(en_iyi) == n else tam
+
+
 def _sigdir(
     metin: str,
     font_yolu: Path,
@@ -98,8 +126,10 @@ def _sigdir(
     girinti_carpani: float = 0.0,
     azami_satir: Optional[int] = None,
     kelime_bol: bool = False,
+    dengeli: bool = False,
 ) -> Optional[Tuple[ImageFont.FreeTypeFont, List[str], int, int]]:
     """Metni verilen alana sığan en büyük puntoyla kırar.
+    `dengeli`: boyut seçildikten sonra satırlar aynı satır sayısıyla eşitlenir (bkz. `_dengeli_sar`).
     Döner: (font, satırlar, satır yüksekliği, girinti) ya da sığmıyorsa None."""
     for punto in puntolar:
         font = make_image._font_yukle(font_yolu, punto)
@@ -109,6 +139,8 @@ def _sigdir(
         if len(satirlar) * satir_h <= azami_yukseklik and (azami_satir is None or len(satirlar) <= azami_satir):
             if not satirlar:
                 return font, satirlar, satir_h, 0
+            if dengeli:
+                satirlar = _dengeli_sar(metin, font, genislik, girinti, kelime_bol=kelime_bol)
             ilk_max = genislik - girinti if girinti else genislik
             if _satir_genisligi(satirlar[0], font) <= ilk_max and all(_satir_genisligi(s, font) <= genislik for s in satirlar[1:]):
                 ilk_sigdi = not girinti or _satir_genisligi(satirlar[0], font) + girinti <= genislik
@@ -279,7 +311,7 @@ def uret_sozluk(
     def kutu_olc(punto: int):
         font = make_image._font_yukle(FONT_SANS_MEDIUM, punto)
         satir_h = int(punto * 1.36)
-        bloklar = [_girintili_sar(m, font, kullanilabilir_w - 56 - 30) for m in maddeler]
+        bloklar = [_dengeli_sar(m, font, kullanilabilir_w - 56 - 30) for m in maddeler]
         yukseklik = (52 + sum(len(b) for b in bloklar) * satir_h + (len(bloklar) - 1) * 12 + 24) if maddeler else 0
         return font, bloklar, satir_h, yukseklik
 
@@ -316,7 +348,7 @@ def uret_sozluk(
 
         for tanim_p in (44, 40, 36, 34, 32, 30, 28):
             tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, [tanim_p], kullanilabilir_w,
-                                  h_tanim_avail, 1.38, girinti_carpani=1.6)
+                                  h_tanim_avail, 1.38, girinti_carpani=1.6, dengeli=True)
             if tanim_sonuc:
                 cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, tanim_sonuc, tanim_alt)
                 break
@@ -330,7 +362,7 @@ def uret_sozluk(
         tanim_alt = (kutu_y - 28) if h_kutu else (alt_y - 40)
         h_tanim_avail = tanim_alt - tanim_ust
         tanim_sonuc = _sigdir(tanim_metni, FONT_SANS_MEDIUM, range(26, 17, -2), kullanilabilir_w,
-                              h_tanim_avail, 1.38, girinti_carpani=1.6, kelime_bol=True)
+                              h_tanim_avail, 1.38, girinti_carpani=1.6, kelime_bol=True, dengeli=True)
         if tanim_sonuc:
             cozum = (f_puf, puf_bloklar, puf_h, h_kutu, kutu_y, tanim_sonuc, tanim_alt)
 

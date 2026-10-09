@@ -198,6 +198,34 @@ def _ilk_cumle(metin: str, azami: int = 180) -> str:
     return generate_text._ilk_cumle(metin, azami)
 
 
+THREADS_SINIRI = 480        # generate_text.caption_zenginlestir'in Threads sınırı (platform sınırı 500)
+
+
+def _threads_govdesi(veri: Dict[str, Any], terim: str, tanim: str, puf: List[str], mevzuat: str) -> str:
+    """Threads açıklamasının gövdesi: TAM birimler sığdıkça eklenir (başlık, tanım, maddeler, dayanak).
+
+    NİYE (2026-10-09): genel Threads kırpması 480'i aşan metni cümle ortasında "…" ile kesiyordu; 34 kartın 13'ünde
+    ("Dayanak: Türk…", "…kırk sekiz ayı…") yayınlanacaktı. Burada sığmayan madde ya da dayanak hiç yazılmaz. Sığma ölçüsü
+    gerçek zenginleştirme işlevidir (kapanış çağrısı, site ve etiketler dahil), tahmin değil."""
+    from . import generate_text
+
+    def sigar(govde: str) -> bool:
+        sonuc = generate_text.caption_zenginlestir(
+            govde, kategori_kodu=veri.get("kategori_kodu"), platform="threads", manset=generate_text.manset_birlestir(veri))
+        return "…" not in sonuc and len(sonuc) <= THREADS_SINIRI
+
+    baslik = f"{terim} nedir?\n\n{tanim}"
+    eklenen: List[str] = []
+    for madde in puf:
+        aday = "\n\n".join([baslik, "\n".join(eklenen + [madde])])
+        if not sigar(aday):
+            break
+        eklenen.append(madde)
+    govde = "\n\n".join([baslik, "\n".join(eklenen)]) if eklenen else baslik
+    dayanakli = f"{govde}\n\nDayanak: {mevzuat}."
+    return dayanakli if sigar(dayanakli) else govde
+
+
 def karttan_veri(kart: Dict[str, Any]) -> Dict[str, Any]:
     """Kartı, modelin ürettiği sözlük kaydıyla AYNI biçimde içerik kaydına çevirir (çizici, yayın, Telegram
     önizlemesi ve veritabanı değişmeden çalışsın). Hiçbir alan model çıktısı değildir."""
@@ -230,5 +258,6 @@ def karttan_veri(kart: Dict[str, Any]) -> Dict[str, Any]:
         # `kart`: bu kaydın hazır arşivden geldiği (model yazmadığı) işareti; otomatik yayın buna bakar
         "_brief": {"mevzuat": kart["mevzuat"], "yerel": None, "veri_kaynagi": None, "kart": True},
     }
+    veri["caption_threads"] = _threads_govdesi(veri, terim, tanim, puf, kart["mevzuat"])
     generate_text._captionlari_zenginlestir(veri)
     return veri

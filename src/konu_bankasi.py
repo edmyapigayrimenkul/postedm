@@ -46,14 +46,16 @@ GUN_FORMATLARI: Dict[int, str] = {
     6: "net_cevap",
 }
 
-# Günde TEK içerik. Format döngüde döner (vaka analizi otomatik döngüden
+# 10:00'daki günün içeriği. Format döngüde döner (vaka analizi otomatik döngüden
 # çıkarıldı; yalnızca kullanıcı /vaka veya menüden elle tetiklediğinde üretilir).
+# SÖZLÜK BU DÖNGÜDE YOK (2026-10-09): sözlük her gün 12:30'da ayrı ve otomatik yayınlanıyor (hazirla.yml);
+# döngüde de kalsaydı beşinci günde aynı gün iki sözlük çıkardı. Eski kayıtta (`bilgilendirici_sira=4` ya da
+# son format "sozluk") döngü kendiliğinden başa döner (bkz. `_son_sira`).
 BILGILENDIRICI_FORMATLAR: List[str] = [
     "b1",
     "nedir_dogrusu",
     "net_cevap",
     "b1",
-    "sozluk",
 ]
 
 
@@ -79,7 +81,7 @@ def _siradaki_sira() -> int:
 
 
 def siradaki_bilgilendirici_format() -> str:
-    """Döngüdeki sıradaki format: b1 → nedir_dogrusu → net_cevap → b1 → sozluk → b1 …"""
+    """Döngüdeki sıradaki format: b1 → nedir_dogrusu → net_cevap → b1 → b1 …"""
     return BILGILENDIRICI_FORMATLAR[_siradaki_sira()]
 
 

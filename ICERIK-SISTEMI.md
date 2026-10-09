@@ -394,6 +394,15 @@ kapı, çizim) → hakemle kontrol.
 bayraksız çalıştırmalar (10:00 günlük döngü, elle `--slot sozluk`) açık anahtar yoksa hiçbir zaman otomatik değildir.
 Modelin yazdığı sözlük bayrakla bile ASLA otomatik yayınlanmaz (kart kalmadıysa onaya düşer).
 
+**Günde bir sözlük:** sözlük 10:00'daki günlük döngüde YOK (döngü: b1, nedir_dogrusu, net_cevap, b1); yalnız 12:30'da
+yayınlanır. Döngüde kalsaydı beşinci günde aynı gün iki sözlük çıkardı (biri onayda bekler, biri otomatik yayınlanır).
+
+**Dizgi (kart görseli):** terim büyük ve ayrım çizgisi sabit (kullanıcı kuralı, `yeni_formatlar.uret_sozluk`). Satırlar
+`_dengeli_sar` ile eşitlenir: açgözlü kırma son satıra tek kelime bırakıyordu (34 tanımın 10'unda, "…depozito / denir.");
+satır sayısı artmadan en dar genişlik aranır, boyut seçimi ve yükseklik değişmez. Tanım ve kutu maddelerine uygulanır
+(`tests/test_sozluk_dengeli_satir.py`: 34 kartta tanım ve 90 maddenin hiçbirinin son satırı tek kelime değil).
+Kart başına ortalama 44 görünür kelime (28–63): terim ~2, tanım ~15, maddeler ~27; Instagram açıklaması ortalama 68 kelime.
+
 **Acil fren** (kod değiştirmeden, push ve dağıtım beklemeden): GitHub → Settings → Secrets and variables → Actions →
 Variables → `SOZLUK_OTO_YAYIN` = `0` (ya da DB ayarı `sozluk_oto_yayin` = `0`). Kart o gün onaya düşer ve Telegram'a nedeni
 yazılır; değişken tanımsız ya da boşken zamanlanmış çalıştırma yayınlar. Telegram'dan bot duraklatılırsa da durur.
