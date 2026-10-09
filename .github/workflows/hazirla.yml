@@ -160,9 +160,9 @@ jobs:
           FORMAT: ${{ github.event.client_payload.format_turu }}
           HEDEF: ${{ inputs.hedef }}
           ZAMANLAMA: ${{ github.event.schedule }}
-          # Sözlük kartlarının ONAYSIZ yayını. Varsayılan KAPALI (değişken tanımsız ya da boş).
-          # Açmak: GitHub → Settings → Secrets and variables → Actions → Variables → SOZLUK_OTO_YAYIN = 1
-          # Kapatmak: değişkeni sil ya da 0 yap. Koşullar ve güvenceler: src/sozluk_arsivi.py başlığı.
+          # Sözlük kartı: her gün 12:30 çalıştırması `--oto-yayin` ile ONAYSIZ yayınlar (değişken tanımsız/boşken de AÇIK).
+          # ACİL FREN: GitHub → Settings → Secrets and variables → Actions → Variables → SOZLUK_OTO_YAYIN = 0
+          # (kart o gün Telegram'da onaya düşer). Tekrar açmak için değişkeni sil. Koşullar: ICERIK-SISTEMI.md §5.5.2.
           SOZLUK_OTO_YAYIN: ${{ vars.SOZLUK_OTO_YAYIN }}
         run: |
           if [ -n "$FORMAT" ]; then
