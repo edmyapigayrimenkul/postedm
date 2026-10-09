@@ -57,8 +57,20 @@ TasmaHatasi = make_image.TasmaHatasi
 _OLCUM = ImageDraw.Draw(Image.new("RGB", (10, 10)))
 
 
+_GENISLIK_ONBELLEK: Dict[Tuple[str, int, str], int] = {}
+
+
 def _satir_genisligi(metin: str, font: ImageFont.FreeTypeFont) -> int:
-    return _OLCUM.textbbox((0, 0), metin, font=font)[2]
+    """Metnin piksel genişliği. Önbellekli: dengeli kırma aynı parçaları onlarca kez ölçer (font nesnesi her çağrıda
+    yeniden yüklendiği için anahtar yol + punto + metindir)."""
+    anahtar = (str(getattr(font, "path", "")), int(getattr(font, "size", 0)), metin)
+    genislik = _GENISLIK_ONBELLEK.get(anahtar)
+    if genislik is None:
+        if len(_GENISLIK_ONBELLEK) > 200_000:
+            _GENISLIK_ONBELLEK.clear()
+        genislik = _OLCUM.textbbox((0, 0), metin, font=font)[2]
+        _GENISLIK_ONBELLEK[anahtar] = genislik
+    return genislik
 
 
 # Sözlük kartında kısa içerik yazıyı BÜYÜTÜR (2026-10-09, kullanıcı: "kısa kelimeleri büyütebilirsin"): kısa tanımlı
@@ -94,6 +106,89 @@ def _girintili_sar(
     return list(satirlar)
 
 
+def _birimlere_ayir(metin: str) -> List[str]:
+    """Kelimeleri, `make_image._metin_sar`ın yapışkanlık kurallarına uyarak BÖLÜNMEZ birimlere toplar: rakam + büyüklük
+    (bin, milyon) + para simgesi birlikte; unvan/ön ek (md., no., 14.) sonraki kelimeyle birlikte kalır."""
+    kelimeler = make_image._temizle_tipografi(metin)[:make_image.AZAMI_SARILACAK].split()
+    birimler: List[List[str]] = []
+    for i, k in enumerate(kelimeler):
+        onceki = birimler[-1] if birimler else None
+        yapis_onceye = False
+        if onceki:
+            son_kelime = onceki[-1]
+            if make_image._is_para_birimi(k):
+                # rakam ya da "rakam büyüklük" zinciri para simgesinden kopmaz
+                yapis_onceye = make_image._is_sayi(son_kelime) or (
+                    son_kelime.lower().strip("*") in make_image.BUYUKLUK_KELIMELERI
+                    and len(onceki) >= 2 and make_image._is_sayi(onceki[-2])
+                )
+            elif k.lower().strip("*") in make_image.BUYUKLUK_KELIMELERI:
+                yapis_onceye = make_image._is_sayi(son_kelime)
+            if not yapis_onceye and make_image._is_unvan_veya_on_ek(son_kelime):
+                yapis_onceye = True            # önceki birim unvan/ön ek ile bitiyor: bu kelime onunla kalır
+        if yapis_onceye:
+            onceki.append(k)
+        else:
+            birimler.append([k])
+    return [" ".join(b) for b in birimler]
+
+
+# Son satırda tek birim kalırsa (dul satır) maliyete eklenir; eşit dağılımın doğal maliyetinden her zaman büyük.
+_DUL_SATIR_CEZASI = 10 ** 9
+
+
+def _en_esit_kir(birimler: List[str], font: ImageFont.FreeTypeFont, genislik: int, girinti: int, n: int) -> Optional[List[str]]:
+    """Birimleri TAM `n` satıra, satır boşluklarının kareleri toplamı en küçük olacak biçimde dağıtır (dinamik
+    programlama). Son satır daha az cezalıdır (kısa bitmesi doğal) ama tek birimle bitemez; mümkün değilse en iyisi
+    seçilir. İlk satırın payı `girinti` kadar dardır (başındaki tırnak işareti). Sığmayan birim varsa None."""
+    m = len(birimler)
+    if m < n:
+        return None
+    genlik: Dict[Tuple[int, int], int] = {}
+
+    def gen(i: int, j: int) -> int:
+        anahtar = (i, j)
+        if anahtar not in genlik:
+            genlik[anahtar] = _satir_genisligi(" ".join(birimler[i:j]), font)
+        return genlik[anahtar]
+
+    def limit(k: int) -> int:
+        return genislik - girinti if (k == 0 and girinti) else genislik
+
+    SONSUZ = float("inf")
+    en_iyi = [[SONSUZ] * (m + 1) for _ in range(n + 1)]
+    secim = [[-1] * (m + 1) for _ in range(n + 1)]
+    en_iyi[n][m] = 0
+    for k in range(n - 1, -1, -1):
+        son_satir = k == n - 1
+        for i in range(m - 1, -1, -1):
+            for j in range(i + 1, m + 1):
+                g = gen(i, j)
+                if g > limit(k):
+                    break                        # birim eklemek yalnız genişletir
+                if son_satir and j != m:
+                    continue                     # son satır kalan her şeyi taşır
+                if not son_satir and j == m:
+                    continue                     # satır kaldı ama birim bitti: tam n satır istenir
+                bos = limit(k) - g
+                maliyet = bos * bos * (0.3 if son_satir else 1.0)
+                if son_satir and j - i == 1 and n >= 2:
+                    maliyet += _DUL_SATIR_CEZASI
+                toplam = maliyet + en_iyi[k + 1][j]
+                if toplam < en_iyi[k][i]:
+                    en_iyi[k][i] = toplam
+                    secim[k][i] = j
+    if en_iyi[0][0] == SONSUZ:
+        return None
+    satirlar: List[str] = []
+    i = 0
+    for k in range(n):
+        j = secim[k][i]
+        satirlar.append(" ".join(birimler[i:j]))
+        i = j
+    return satirlar
+
+
 def _dengeli_sar(
     metin: str,
     font: ImageFont.FreeTypeFont,
@@ -101,25 +196,19 @@ def _dengeli_sar(
     girinti: int = 0,
     kelime_bol: bool = False,
 ) -> List[str]:
-    """Satırları, satır sayısını ARTIRMADAN olabildiğince eşit uzunlukta kırar.
+    """Satırları, satır sayısını ARTIRMADAN olabildiğince eşit uzunlukta kırar ve son satıra tek kelime bırakmaz.
 
     NİYE (2026-10-09 incelemesi): açgözlü kırma satırı sonuna kadar doldurur ve son satıra tek bir kelime kalır
-    ("…depozito / denir."); 34 sözlük tanımının 10'unda vardı. Açgözlü kırmanın verdiği satır sayısı N sabit tutulur;
-    N satıra hâlâ sığan EN DAR genişlik ikili aramayla bulunur. Dar genişlik yalnız satır sonlarını öne çeker: hiçbir
-    satır `genislik`ten geniş olamaz (taşma riski yok) ve yükseklik değişmez (yerleşim çözümü bozulmaz)."""
+    ("…depozito / denir."); 34 sözlük tanımının 10'unda vardı. İlk çözüm "satır sayısını koruyan en dar genişlik"ti
+    ama uzun bir son kelimede (ör. "beyannamedir.") işe yaramadı ve GitHub'ın Linux ortamında (HarfBuzz yerleşimi,
+    kerning farkı) aynı kart yine dul satır verdi. Şimdi satır sayısı açgözlü kırmanınkiyle aynı tutulur (yükseklik
+    ve boyut seçimi değişmez) ve satırlar `_en_esit_kir` ile en eşit biçimde dağıtılır; hiçbir satır alandan taşmaz."""
     tam = _girintili_sar(metin, font, genislik, girinti, kelime_bol=kelime_bol)
     n = len(tam)
     if n < 2:
         return tam
-    alt, ust, en_iyi = int(genislik * 0.55), genislik, tam
-    while alt < ust:
-        orta = (alt + ust) // 2
-        aday = _girintili_sar(metin, font, orta, girinti, kelime_bol=kelime_bol)
-        if len(aday) <= n:
-            en_iyi, ust = aday, orta
-        else:
-            alt = orta + 1
-    return en_iyi if len(en_iyi) == n else tam
+    dengeli = _en_esit_kir(_birimlere_ayir(metin), font, genislik, girinti, n)
+    return dengeli if dengeli is not None else tam
 
 
 def _sigdir(

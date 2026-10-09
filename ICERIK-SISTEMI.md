@@ -389,6 +389,14 @@ bile yeni nüanslar buldu (kesinleşmiş karar, "aşırı ifa güçlüğü" isti
 geçiş yetmez. Yeni kart: YAML'a ekle → `python -m unittest tests.test_sozluk_arsivi` (biçim, kanun metni,
 kapı, çizim) → hakemle kontrol.
 
+**Ortam farkı (öğrenilen ders, 2026-10-09):** yayın GitHub'ın Linux makinesinde çiziliyor (Pillow orada HarfBuzz/raqm ile
+kerning uygular), geliştirme macOS'ta (BASIC yerleşim). Metin birkaç piksel farklı ölçülür: aynı kart bir yerde 3 öbüründe 4
+satır çıktı, bir terim 116 yerine 118 punto oldu ve macOS'ta kusursuz görünen tanım Linux'ta tek kelimelik son satırla bitti
+(CI kırmızıydı). Bu yüzden (1) satırlar `_en_esit_kir` ile ölçüme bakarak dağıtılır, (2) testler kesin piksel/punto eşitliği
+değil ÖZELLİK sınar (sığar, taşmaz, dul satır yok; genişlik kaydırılarak farklı ölçüm ortamları taklit edilir),
+(3) yayınlanacak görünümü görmek için Actions → "Sözlük Önizleme" → Run workflow: 34 kartı Linux'ta çizip kontak sayfaları
+olarak yükler (`scripts/sozluk_onizleme.py`; veritabanına, Telegram'a ve kanallara dokunmaz).
+
 **Stok ve tekrar (kullanıcı şartı: EN AZ 2 YIL tekrarsız):** günde bir kartla 2 yıl için 730 kart gerekir (`sozluk_arsivi.HEDEF_KART`);
 bekleme süresi bu yüzden 730 gün (`BEKLEME_GUN`, önceki 180 gün 34 kartla 6 ayda tekrara düşürüyordu). 2026-10-09'da 34 kart var:
 34 gün yeter, sonra yayınlanabilir kart kalmaz ve sözlük her gün modelle üretilip onaya düşer (eksik: 696 kart). Hiç yayınlanmamış

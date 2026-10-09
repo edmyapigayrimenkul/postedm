@@ -1,0 +1,36 @@
+# =========================================================
+#  SÖZLÜK ÖNİZLEME — kartları GERÇEK yayın ortamında çizer
+#
+#  Yayın GitHub'ın Linux makinesinde çiziliyor, geliştirme macOS'ta: Pillow orada HarfBuzz/raqm ile kerning uyguluyor ve
+#  metin birkaç piksel farklı ölçülüyor (aynı kart 3 yerine 4 satır oldu, bir terim 116 yerine 118 punto çıktı).
+#  Bu iş 34 kartı iki ölçüde çizip kontak sayfaları olarak artefakt yükler: yayınlanacak görünümü yayından ÖNCE görmek için.
+#  Elle çalıştırılır; veritabanına, Telegram'a ve hiçbir sosyal kanala dokunmaz.
+# =========================================================
+
+name: Sözlük Önizleme
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sozluk-onizleme
+  cancel-in-progress: true
+
+jobs:
+  onizle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Kartları çiz
+        run: python scripts/sozluk_onizleme.py --cikti onizleme
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sozluk-onizleme
+          path: onizleme
+          retention-days: 7

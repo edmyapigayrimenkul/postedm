@@ -101,6 +101,10 @@ class TestTipografiVePuntoTabani(unittest.TestCase):
             "SZ-019": 122,  # GEÇİT HAKKI
             "SZ-011": 116,  # KAT İRTİFAKI
         }
+        # Beklenen değerler macOS (BASIC yerleşim) ölçümüdür. GitHub'ın Linux ortamında Pillow HarfBuzz/raqm ile
+        # kerning uyguluyor ve metin biraz daha dar çıkıyor (KAT İRTİFAKI: 116 yerine 118 pt; CI'da 2026-10-09
+        # kırmızıydı). Bu yüzden kesin eşitlik yerine ÖZELLİK sınanır: sığar, bir sonraki boyut sığmaz (en büyük sığan
+        # seçilmiş) ve ölçüm beklenenden en çok 6 pt sapar.
         for k in self.kartlar:
             kod = k["kod"]
             if kod in tek_satir_beklenen:
@@ -108,7 +112,11 @@ class TestTipografiVePuntoTabani(unittest.TestCase):
                     r = yeni_formatlar._sigdir(k["terim"], yeni_formatlar.FONT_FRAUNCES, range(160, 115, -2), self.kw, 10000, 1.15, azami_satir=1)
                     self.assertIsNotNone(r, f"{kod} tek satira sigmaliydi")
                     punto = r[0].size
-                    self.assertEqual(punto, tek_satir_beklenen[kod], f"{kod} punto uyumsuz: {punto} != {tek_satir_beklenen[kod]}")
+                    self.assertLessEqual(abs(punto - tek_satir_beklenen[kod]), 6, f"{kod} punto uyumsuz: {punto} != {tek_satir_beklenen[kod]}")
+                    genislik = lambda p: yeni_formatlar._satir_genisligi(k["terim"], make_image._font_yukle(yeni_formatlar.FONT_FRAUNCES, p))
+                    self.assertLessEqual(genislik(punto), self.kw, f"{kod} {punto} pt alana sığmıyor")
+                    if punto < 160:
+                        self.assertGreater(genislik(punto + 2), self.kw, f"{kod} daha büyük punto da sığıyordu ({punto + 2})")
 
     def test_tum_kartlar_asgari_114_punto_tabanina_uyar(self):
         """Tüm kartlar Zilyetlikle Tescil standardı gereği ≥114 pt punto ile çizilir (küçük puntoya düşmez)."""
