@@ -182,6 +182,33 @@ def sonraki_kart(gecmis: Optional[Dict[str, str]] = None, son_kategori: Optional
     return max(uygun, key=lambda t: t[1])[0] if uygun else None
 
 
+TEMSILCI_ESIK = 60           # bu sayıya kadar arşivin TAMAMI temsilcidir
+TEMSILCI_ARALIK = 25         # daha büyük arşivde her 25. kart + en uzun örnekler
+
+
+def temsilci_kartlar(kartlar: Optional[List[Dict[str, Any]]] = None, aralik: int = TEMSILCI_ARALIK) -> List[Dict[str, Any]]:
+    """Çizim/geometri süpürmeleri için küçük ama zorlayıcı örneklem (arşiv sırasıyla).
+
+    NİYE (2026-10-12): arşiv 34 → 730 kart olacak. İki ölçüde çizim, dengeli satır ve yazı büyütme testleri her kartı
+    çiziyor; 730 kartta test paketi dakikalar uzar ve CI zaman aşımına yaklaşır. Her kartın çizimi zaten yeni kart
+    arşive girerken `scripts/sozluk_kart_dogrula.py` ile (iki ölçüde) sınanıyor; testlerde tam tarama gereksiz.
+
+    Örneklem: en uzun tanım, en uzun madde, en uzun terim, en uzun tek sözcüklü terim (bölünme zorlaması) + her
+    `aralik`. kart. Arşiv `TEMSILCI_ESIK` ya da daha küçükse HEPSİ döner (bugün 34 kart: davranış değişmez).
+    Yapı, tekrar ve kanun metni testleri örneklem değil TÜM kartı tarar; onlar ucuzdur."""
+    kartlar = list(kartlari_yukle() if kartlar is None else kartlar)
+    if len(kartlar) <= TEMSILCI_ESIK:
+        return kartlar
+    secilen = {
+        max(kartlar, key=lambda k: len(str(k["tanim"])))["kod"],
+        max(kartlar, key=lambda k: max(len(str(m)) for m in k["puf"]))["kod"],
+        max(kartlar, key=lambda k: len(str(k["terim"])))["kod"],
+        max(kartlar, key=lambda k: max(len(w) for w in str(k["terim"]).split()))["kod"],
+    }
+    secilen.update(k["kod"] for i, k in enumerate(kartlar) if i % aralik == 0)
+    return [k for k in kartlar if k["kod"] in secilen]
+
+
 def durum_ozeti(gecmis: Optional[Dict[str, str]] = None) -> Dict[str, int]:
     """Arşivin doluluğu: kaç kart var, kaçı hiç yayınlanmadı, 2 yıllık tekrarsız yayın için kaç kart eksik."""
     from . import konu_bankasi

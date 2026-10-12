@@ -329,4 +329,7 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
    başka bir oturumda, talep atfı olmadan eklenmişti). S4-001/004/013 `engel` altında, aylık cron yorum satırı; kod, testler ve toplanan 111 satır durur.
    Yeniden açma: ICERIK-SISTEMI §5.5.3 başındaki not.
 9. **Silinen ölü modüller:** `fetch_photo`, `haftalik_bulten`, `makro_kart`, `otomatik_onay`, `sparkline` (hiçbir yerden çağrılmıyordu, testleri yoktu). Git geçmişinde duruyor.
-10. **Testler `data/` klasörüne dosya sızdırmaz:** hata günlüğü ve yayın raporu işareti `config.veri_yolu()` ile test modunda geçici dizine gider.
+10. **Sözlük kart üretim araçları yazıldı** (`kanun_oku.py`, `sozluk_kart_dogrula.py`, `sozluk_kart_birlestir.py`; SOZLUK-KART-URETIMI.md). Sahte kanun metniyle
+    testli; **canlı kanunla denenmedi** (mevzuat.gov.tr geliştirme ortamında kapalıydı). 14 yeni kanunun tertipleri tahmin: ilk açık ağda `kanun_oku.py kanunlar --dene`.
+    Araçlar `src.db` göçünden `data/edm.db`'yi korumak için test modunda başlar (`--hakem` hariç).
+11. **Testler `data/` klasörüne dosya sızdırmaz:** hata günlüğü ve yayın raporu işareti `config.veri_yolu()` ile test modunda geçici dizine gider.

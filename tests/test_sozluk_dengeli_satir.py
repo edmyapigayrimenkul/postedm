@@ -99,11 +99,12 @@ class TestSigdirDengeli(unittest.TestCase):
 
 
 class TestKartlarda(unittest.TestCase):
-    """34 kartın gerçek yerleşimi: tanım ve maddelerin hiçbirinin son satırı tek kelime değil."""
+    """Kartların gerçek yerleşimi: tanım ve maddelerin hiçbirinin son satırı tek kelime değil (temsilci örneklem:
+    arşiv ≤60 kartken tamamı, daha büyükse en uzun örnekler + her 25. kart — bkz. sozluk_arsivi.temsilci_kartlar)."""
 
     @classmethod
     def setUpClass(cls):
-        cls.kartlar = sa.kartlari_yukle(tazele=True)
+        cls.kartlar = sa.temsilci_kartlar(sa.kartlari_yukle(tazele=True))
         cls.tmp = tempfile.TemporaryDirectory()
         cls.kayit = {}
         orijinal = yf._dengeli_sar

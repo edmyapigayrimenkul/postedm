@@ -24,21 +24,32 @@ buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.
 
 Hakem (Gemini) geçişi yalnız orkestratörde, ücretsiz kotayı gözeterek; yazarlar `--hakem` kullanmaz.
 
-## Yazılacak araçlar (henüz YOK; pilottan önce yapılır)
+## Araçlar (YAZILDI 2026-10-12; testli, ama canlı kanun metniyle HENÜZ denenmedi)
 
-1. `scripts/kanun_oku.py`: `madde "<atıf>"` (atıftaki maddelerin TAM metni; aralık sınırı yok), `ara <kanun no> "<kelime>"…`
-   (madde no + bağlam), `kanunlar`. Madde metninin sonundaki bir sonraki maddenin başlığı ayrıca işaretlenir.
-2. `scripts/sozluk_kart_dogrula.py <taslak.yaml>…`: yapı (`kart_yapisal_sorunlari`), tekrar (arşiv + diğer taslaklar +
-   dosya içi, aksan/boşluk gözetmeden), kanun metni (`kart_kanun_durumu` taze olmalı, atıf eksiksiz çözülmeli), kapı
-   (`dogrula.denetle` UYARISIZ), iki ölçüde çizim (TasmaHatasi yok), cümle başına sözcük kökü örtüşmesi (yalnız ipucu).
-   Çıkış kodu 1 = sorun var. `--json`, `--hakem` (yalnız orkestratör).
-3. `scripts/sozluk_kart_birlestir.py`: onaylı taslak kartları arşive ekler (kod ataması, sıra, tekrar atma, `--kuru`).
-4. `src/mevzuat.py`: yeni kanunlar (`KANUNLAR` + `_ADLAR`; tertip adayları denenir) ve önbelleğe atomik yazma
-   (paralel ajanlar aynı dosyayı yazarken yarım okuma olmasın). Dalgadan önce önbellek ısıtılır (ajanlar yalnız okur).
-   Eklenecek: 2942 Kamulaştırma, 3621 Kıyı, 4342 Mera, 6831 Orman, 4708 Yapı Denetimi, 488 Damga, 193 GVK, 3065 KDV,
-   6100 HMK, 6325 Arabuluculuk, 2985 Toplu Konut, 1163 Kooperatifler, 2886 Devlet İhale, 5393 Belediye.
-5. Testler 730 kartta patlamasın: render/geometri/süpürme testleri tüm arşiv yerine `sozluk_arsivi.temsilci_kartlar()`
-   (en uzun tanım/madde/terim + her 25. kart, ~60 kart) üzerinde koşar; tam arşiv taraması doğrulayıcıda yapılır.
+Yazıldıkları ortamda `www.mevzuat.gov.tr` ağ politikasıyla kapalıydı: tüm testler sahte kanun metniyle çalışıyor. **Pilottan önce, ağı açık
+bir ortamda (yerel ya da ağ erişimi verilmiş bulut oturumu):**
+1. `python scripts/kanun_oku.py kanunlar --dene` — her kanunu gerçekten çekmeyi dener. ÇEKİLEMEDİ çıkan kanunun tertip adayını
+   `src/mevzuat.py › KANUNLAR`ta düzelt (14 yeni kanunun tertipleri tahmindir; yanlış tertip sitede 302 döner).
+2. Pilot taslağı (A07, 6 kart) yazılıp aşağıdaki iki komutla denenir; çıktı beklenenden farklıysa araç düzeltilir, dalga başlatılmaz.
+
+| Araç | Ne yapar |
+|---|---|
+| `python scripts/kanun_oku.py madde "<atıf>"` | atıftaki maddelerin TAM metni (aralık sınırı yok); her maddenin sonunda "BU MADDE BURADA BİTER ▶ sonraki madde: …" işareti |
+| `python scripts/kanun_oku.py ara <kanun no> "<kelime>" …` | kelime geçişleri: madde no + bağlam (Türkçe İ/I duyarlı) |
+| `python scripts/kanun_oku.py kanunlar [--dene]` | okunabilir kanunlar (14 yeni kanun dahil), önbellek durumu |
+| `python scripts/sozluk_kart_dogrula.py <taslak.yaml>…` | yapı → tekrar (arşiv + diğer taslaklar + dosya içi) → kanun (atıf tam okunabilir, alıntı birebir, sayılar maddede) → yayın kapısı → iki ölçüde çizim; cümle başına sözcük kökü örtüşmesi İPUCU. Çıkış 0/1/2. `--json`, `--hakem` (YALNIZ orkestratör), `--kanunsuz`/`--cizimsiz` (hızlı, birleştirme için geçersiz) |
+| `python scripts/sozluk_kart_birlestir.py <taslak.yaml>… [--kuru]` | yalnız `inceleme: onay`/`duzeltildi` olup denetimden YENİDEN temiz çıkan kartları arşivin sonuna ekler; kod SZ-035… arşivdeki en büyük numaradan devam eder (pasif/boşluk dahil, yeniden kullanılmaz); başlık yorumlarına dokunmaz; atomik yazar, ardından arşivi yeniden doğrular, tutmazsa eski haline döner |
+
+Taslak biçimi arşivle aynıdır (`kartlar:` listesi) ama `kod` yazılmaz; inceleme ajanı `inceleme: onay|duzeltildi|red` ve `inceleme_notu` ekler.
+Kitaplık: `src/kanun_okuma.py`, `src/sozluk_dogrulama.py` (testler: `tests/test_kanun_okuma.py`, `tests/test_sozluk_kart_araclari.py`).
+
+**Güvenceler (testli):**
+- Doğrulayıcı ve birleştirici `POSTEDM_TEST_MODU=1` ile başlar: `src.db` içe aktarılırken şemayı göç ettirir ve `data/edm.db`'yi DEĞİŞTİRİR
+  (ölçüldü); paralel ajanların depo kopyasında DB'ye dokunmaması gerekir. `--hakem` bunun tek istisnası (`.env` anahtarı ister).
+- `mevzuat.kanun_metni` önbelleğe artık atomik yazar: paralel ajanlar aynı kanunu aynı anda çekerken okuyucu yarım metin görmez.
+- Çizim/geometri testleri arşivin tamamı yerine `sozluk_arsivi.temsilci_kartlar()` (en uzun tanım/madde/terim/sözcük + her 25. kart,
+  ≤60 kartta hepsi) üzerinde koşar; her kartın çizimi zaten arşive girerken doğrulayıcıda sınanır. Yapı, tekrar ve kanun metni testleri
+  TÜM kartı tarar (ucuz). `test_sozluk_stres_sabotaj.py` kod bazlı beklentiler içerir (SZ-009 …); 730 kartta gözden geçirilmeli.
 
 ## Alan planı (37 alan, ham hedef ~764 → tekrar ve ret sonrası ~700)
 

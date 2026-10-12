@@ -316,8 +316,10 @@ class TestGercekArsiv(unittest.TestCase):
             self.assertEqual(dogrula.denetle(sa.karttan_veri(k), brief), [], f"{k['kod']} {k['terim']}")
 
     def test_her_kart_iki_olcude_tasmadan_cizilir(self):
+        # Temsilci örneklem (730 kartta test paketi dakikalar uzamasın): arşiv ≤60 kartken HEPSİ. Her yeni kartın iki ölçüde
+        # çizimi zaten scripts/sozluk_kart_dogrula.py ile arşive girerken sınanır.
         with tempfile.TemporaryDirectory() as tmp:
-            for k in self.kartlar:
+            for k in sa.temsilci_kartlar(self.kartlar):
                 veri = sa.karttan_veri(k)
                 for olcu, boyut in (("besleme", (1080, 1350)), ("story", (1080, 1920))):
                     with self.subTest(kart=k["kod"], olcu=olcu):
