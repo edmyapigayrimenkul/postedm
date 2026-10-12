@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from . import filtre, haber_alanlari
 
@@ -889,6 +889,31 @@ def icerigi_denetle(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None
     if anlam and not kritik_var(uyarilar):
         uyarilar += _anlam_denetimi(veri, brief)
     return uyarilar
+
+
+def otomatik_yayina_uygun_mu(veri: Dict[str, Any], haber: Optional[Dict[str, Any]] = None) -> Tuple[bool, List[str]]:
+    """Onaysız (otomatik) yayın kararı: (uygun_mu, gerekçeler).
+
+    İnsan onayında hakemin sessizce atlanması kabul edilebilir (uyarıyı insan görür). Onaysız yayında değil:
+    düzenli ifade kapısı gerçek yanlışı yakalamadı (ICERIK-SISTEMI §5.5.2: 12 örnekte 0), anlam hakemi ise kota
+    bitince ya da kaynak metin yokken HİÇ çalışmadan "temiz" görünüyordu. Bu yüzden otomatik yayın için
+    (1) hiç ⛔/⚠️ olmamalı VE (2) hakem gerçekten çalışıp temiz sonuç vermiş olmalı (`denetle_ayrintili`).
+    Hakem çalışamadıysa içerik reddedilmez, onaya düşer."""
+    from . import capraz_denetim
+    brief = _birlesik_brief(veri, haber)
+    uyarilar = kaynak_denetle(haber) + denetle(veri, brief)
+    if uyarilar:
+        return False, uyarilar
+    try:
+        bulgular, hakem_calisti = capraz_denetim.denetle_ayrintili(veri, _kanun_metni(brief))
+    except Exception as e:  # noqa: BLE001 — hakem hatası otomatik yayına izin vermez
+        log.warning("Otomatik yayın için anlam denetimi çalışmadı: %s", e)
+        return False, ["ℹ️ ANLAM DENETİMİ ÇALIŞMADI: ikinci model içeriği kaynakla karşılaştıramadı"]
+    if bulgular:
+        return False, bulgular
+    if not hakem_calisti:
+        return False, ["ℹ️ ANLAM DENETİMİ ÇALIŞMADI: kaynak metin yok ya da ikinci model yanıt vermedi"]
+    return True, []
 
 
 def _anlam_denetimi(veri: Dict[str, Any], brief: Optional[Dict[str, Any]]) -> List[str]:

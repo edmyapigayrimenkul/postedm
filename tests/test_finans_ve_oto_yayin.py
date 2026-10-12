@@ -72,6 +72,9 @@ class TestFinansVeOtoYayin(unittest.TestCase):
             patch("src.upload_image.coklu_gorsel_yukle", return_value=["https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"]),
             patch("src.video.slaytlardan_reels_uret", return_value=dummy_video),
             patch("src.ses.sesli_video_hazirla", return_value=dummy_video),
+            # Kapı (hakem dahil) temiz diyor: bu test yalnız onaysız yayın AKIŞINI sınar.
+            # Kapının kendisi tests/test_otomatik_yayin_kapisi.py içinde.
+            patch("src.dogrula.otomatik_yayina_uygun_mu", return_value=(True, [])),
             patch("subprocess.run") as mock_subproc,
             patch("src.telegram_bot.mesaj_gonder") as mock_mesaj,
             patch("src.telegram_bot.medya_grubu_gonder") as mock_medya,

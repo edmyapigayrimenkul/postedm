@@ -2667,15 +2667,20 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     # denetim uyarısında (doğrulanmamış madde numarası, kaynaksız faiz/oran,
     # abartı) yayın DURUR ve içerik onaya düşer. Finansta "dayanaksız rakam"
     # da kritiktir: faiz ve kredi koşulları okuyanın parasını etkiler.
+    # Model yazdığı için kapı iki ayaklıdır (dogrula.otomatik_yayina_uygun_mu): hiç uyarı olmamalı VE anlam
+    # hakemi (ikinci model) gerçekten çalışıp temiz demiş olmalı. Hakem kota/kaynak yüzünden çalışamadıysa
+    # "temiz" varsayılmaz; içerik onaya düşer.
     from . import dogrula
-    uyarilar = dogrula.icerigi_denetle(veri)
-    if oto_yayin and uyarilar:
-        log.warning("Finans #%d otomatik yayını durduruldu: %s", haber_id, "; ".join(uyarilar))
-        mesaj_gonder(
-            f"🛑 <b>Otomatik yayın durduruldu (#{haber_id})</b> — {len(uyarilar)} denetim uyarısı.\n"
-            "<i>İçerik onayına sunuluyor; uyarıları kontrol edip elle yayınla.</i>"
-        )
-        oto_yayin = False
+    if oto_yayin:
+        uygun, uyarilar = dogrula.otomatik_yayina_uygun_mu(veri)
+        if not uygun:
+            log.warning("Finans #%d otomatik yayını durduruldu: %s", haber_id, "; ".join(uyarilar))
+            mesaj_gonder(
+                f"🛑 <b>Otomatik yayın durduruldu (#{haber_id})</b> — {len(uyarilar)} denetim bulgusu.\n"
+                + "\n".join(html.escape(u) for u in uyarilar[:3])
+                + "\n<i>İçerik onayına sunuluyor; uyarıları kontrol edip elle yayınla.</i>"
+            )
+            oto_yayin = False
 
     if not oto_yayin:
         return haber_onayina_sun(haber_id)
