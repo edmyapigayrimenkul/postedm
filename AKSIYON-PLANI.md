@@ -317,8 +317,8 @@ Yine de yakalama kodu konmalı; başka bir gruba taşınırsa aynı sorun.
 
 instabot ölçtü: ~1290/2000 dakika (%65). Bizde hiç ölçülmedi.
 
-**GÜNCELLEME:** depo public kalıyor (§0.1) → GitHub Actions dakikası
-**sınırsız**. Bu madde büyük ölçüde düştü.
+**GÜNCELLEME (ESKİ — geçersiz):** burada depo public kalıyor sanılıyordu; §0.1'de depo **private**'a çevrildi, yani Actions
+dakikası **sınırlı** (2000 dk/ay). Kota izleme gerekli: `rapor_uretici.github_actions_kullanimi` ölçer.
 
 Geriye kalan tek darboğaz **Gemini kotası**: `gemini-3.5-flash` zaten 429
 veriyor ve 11 Eylül'de dört model birden 503 verdi.

@@ -233,7 +233,11 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    dışındaki HER açılış gerçek DB'ye göç yazar ve CI kırmızı olur.
 
 ### 9.3 Seslendirme (ElevenLabs) — kullanıcı kararları
-1. **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** Sıla Özalp
+1. > ⚠️ **2026-10-12 denetimi:** `config.yaml` ve `src/ses.py` bugün **Alex** (`KediIz7pebzt5TaDHiiZ`, hız 1.15, -14 LUFS) kullanıyor; aşağıdaki
+   > Sıla Özalp kararıyla çelişiyor. Hangisinin güncel olduğu depo geçmişinden anlaşılamadı (geçmiş tek commit'e indirilmiş). Kullanıcı netleştirene
+   > kadar config'e dokunulmadı; değişirse bu madde ve `config.yaml` birlikte güncellenmeli.
+
+   **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** Sıla Özalp
    (`r3deco0KTo6o0Kb5inro`, haber sunucusu), yedek Adam; hız 1.05, stability 0.40,
    style 0.30; -12 LUFS. `ELEVENLABS_VOICE_ID` ortam değişkeni OKUNMAZ (yereldeki eski
    değer seçimi sessizce geri çeviriyordu). Anahtar: `ELEVENLABS_API_KEY` (GitHub
@@ -296,3 +300,27 @@ Commit'ler: `6243ae6` `fc6217f` (tasarım) · `a321e32` (test izolasyonu) · `0a
 `8346378` (glif) · `51071a4` (seslendirme) · `74e1b84` (öneri + sesli yayın) ·
 `75427e4` (planlı yayın) · `7bcda6c` (okunuş ölçümü).
 
+## 10. 2026-10-12 DENETİMİ — KURALLAR VE DÜZELTMELER
+
+Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunlugu.py`, `test_zamanlanmis_duraklatma.py`, `test_otomatik_yayin_kapisi.py`).
+
+1. **Onay zaman aşımı TÜM kuyruğa uygulanır** (`hatirlat.py`). Eskiden `LIMIT 5` yüzünden altıncı ve eski içerikler 5 güne hiç girmiyordu (14 içerik, en eskisi
+   27 Eylül'den beri bekliyordu). Hatırlatma yine yalnız en yeni 5'e gider; aynı turda düşenler tek özet mesajdır.
+2. **Duraklatma zamanlanmış koşuları da durdurur.** `hazirla.yml` zamanlanmış koşuyu `ZAMANLANMIS=true` ile işaretler; `--slot`/`--format` bayrağı artık
+   duraklatmayı aşmaz (cron'lar bu bayraklarla çalışıyor). Elle tetiklenenler (Telegram, `workflow_dispatch`) aşar.
+3. **Konu yalnız yayınlanırsa tüketilir.** Atla / çöpe at / zaman aşımı → `konu_bankasi.konuyu_havuza_iade_et`: kayıt silinmez, `sonuc='hata'` yapılır (3 gün
+   sonra yeniden sıraya girer; birleştirme sürücüsü satır güncellemesini güvenle taşır). Yeni içerik yalnız `EDM Konu Bankası` ve Reels'te üretilir;
+   sözlük kartı ya da haber önerisi reddi karusel doğurmaz. `konu_gecmisi.sonuc='cope_at'` kalıcı engel olarak ayrılmış kalır (kimse yazmıyor).
+4. **Hata günlüğü DB'dedir** (`hata_kayitlari`, 30 gün). `data/hata_kayitlari.jsonl` ve `son_hata.txt` .gitignore'da ve Actions makinesiyle silinir; yalnız aynı iş
+   içindeki sonraki adımlar içindir. **Hata metni kaydedilmeden önce `src/gizlilik.maskele` ile maskelenir** (requests istisnası URL'deki `access_token`'ı taşır;
+   DB git'e gider). Yeni hata kayıt noktası eklenirse `hata_bildir.hata_kaydet` üzerinden geçmeli. `yayinla.yml`'de "Hata bildir" adımı "Veritabanını Kaydet"ten
+   ÖNCE olmalı (kayıt makineyle gitmesin). Worker'ın "Ham hata" düğmesi hâlâ repodaki `data/son_hata.txt`'yi okuyor (bulamıyor): düzeltmek Worker dağıtımı ister.
+5. **Onaysız yayında anlam hakemi gerçekten çalışmış olmalı** (`dogrula.otomatik_yayina_uygun_mu`, ICERIK-SISTEMI §5.5.2). Şu an yalnız finans bülteni modelle üretilip
+   onaysız yayına gidebilen yol.
+6. **Ölçülemeyen değer rapora "0 hata ✓" diye girmez.** Günlük kota raporunda "HATA GUNLUGU": uygulamanın kaydı + GitHub'ın bildirdiği başarısız koşu sayısı
+   (`rapor_uretici.basarisiz_is_akislari`; jeton/API yoksa "ölçülemedi").
+7. **Site kuyruğu 401 (açık sorun):** `site-kuyrugu.yml` saatlik güvenlik ağı, 11 Ekim 2026 00:55 UTC'den beri `https://edmyapigayrimenkul.com/api/postedm/kuyruk`
+   adresinden **401 Unauthorized** alıyor (kod 9 Ekim'den beri değişmedi). Workflow `EDM_SITE_API_ANAHTARI` geçirmiyor, OIDC'ye düşüyor: site tarafındaki anahtar/OIDC
+   doğrulaması kontrol edilmeli. Sözleşme gereği (§7.9) 401 arızadır; her saat Telegram'a "BAŞARISIZ" düşer.
+8. **Silinen ölü modüller:** `fetch_photo`, `haftalik_bulten`, `makro_kart`, `otomatik_onay`, `sparkline` (hiçbir yerden çağrılmıyordu, testleri yoktu). Git geçmişinde duruyor.
+9. **Testler `data/` klasörüne dosya sızdırmaz:** hata günlüğü ve yayın raporu işareti `config.veri_yolu()` ile test modunda geçici dizine gider.

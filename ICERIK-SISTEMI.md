@@ -93,6 +93,10 @@ TAKS/KAKS, tarla vasfı, yola cephe, ifraz/tevhid, kadastro, tiny house.
 **Neden işler:** portföyün yarısı arsa/tarla ve marka kimliği konut değil **toprak**
 üzerine kurulu (bkz. site `CLAUDE.md`). Rakiplerin çoğu bu konuyu bilmiyor.
 
+### S5 — Finans & Kredi *(2026-09 sonrası eklendi)*
+Konut kredisi, cayma hakkı, ekspertiz, DASK, faiz/BDDK. Kodda `sutun.SUTUN_ADLARI` ve konu bankasında 15 konu var. Model yazdığı için
+onaysız yayın yolu en sıkı kapıya bağlıdır (§5.5.2 sonu: `dogrula.otomatik_yayina_uygun_mu`).
+
 ### S4 — Rakam & Bölge *(yerelleştirir)*
 Silivri mahalle m² fiyatları, kira çarpanı, TÜFE kira tavanı, konut vs arsa getirisi.
 **Neden işler:** yerel takipçi getirir — yani gerçekten müşteri olabilecek takipçi.
@@ -444,6 +448,12 @@ Haftalık mevzuat denetimi kartları da denetler (`scripts/mevzuat_denetim.py`):
 sırlar (`GEMINI_API_KEY_YEDEK`, `YEDEK2`) kodda hiç okunmuyordu; artık okunuyor ve `hazirla.yml`
 adımlarına verildi. Her anahtar ayrı proje (ayrı kota).
 
+**Onaysız yayında kapı (2026-10-12).** İnsan onayında hakemin sessizce atlanması kabul edilebilir (uyarıyı insan görür); onaysız yayında
+değil. Model yazdığı içerik (finans bülteni) yalnız `dogrula.otomatik_yayina_uygun_mu` temiz derse çıkar: hiç ⛔/⚠️ olmamalı **ve**
+anlam hakemi (`capraz_denetim.denetle_ayrintili`) gerçekten çalışıp temiz sonuç vermiş olmalı. Hakem kota ya da kaynak metin yokluğu
+yüzünden çalışamadıysa "temiz" varsayılmaz: içerik reddedilmez, onaya düşer ve nedeni Telegram'a yazılır. Hazır sözlük arşivi bu kapıya
+girmez (modele hiç başvurulmaz; kendi güvenceleri yukarıda).
+
 ## 5.5.3 Piyasa verisi: S4 "Rakam & Bölge" rakamları (2026-10-09)
 
 S4 konularının üçü rakam istiyordu ama doğrulanmış kaynak yoktu (kira çarpanı, mahalle fiyatları, arsa-daire
@@ -727,7 +737,11 @@ emoji. Marka sesi sakin otorite; bağıran içerik ucuzlatır ve kurumsal kimlik
 
 ---
 
-## 8. Haftalık takvim
+## 8. Haftalık takvim (ESKİ — üretimde uygulanmıyor)
+
+> **2026-10-12 notu:** Bu tablo ilk tasarımdı. Bugün günün içeriği `konu_bankasi.BILGILENDIRICI_FORMATLAR` döngüsüyle
+> (b1 → nedir_dogrusu → net_cevap → b1) 10:00'da, sözlük 12:30'da ayrı ve otomatik yayınlanır; haberler 09:17/18:17'de öneri olarak gelir
+> (§5.7.1). `konu_bankasi.TAKVIM` yalnız `hazirla.py --gun` ile sütun önerisi için duruyor.
 
 | Gün | Sütun | Biçim | Not |
 |---|---|---|---|
