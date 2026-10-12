@@ -151,6 +151,18 @@ def tablolari_olustur() -> None:
             ham_veri TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS hata_kayitlari (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tarih TEXT NOT NULL,
+            nerede TEXT,
+            baslik TEXT,
+            ne_oldu TEXT,
+            neden TEXT,
+            eylem TEXT,
+            tanindi INTEGER DEFAULT 0,
+            ham_hata TEXT
+        );
+
         CREATE INDEX IF NOT EXISTS idx_haber_durum ON haberler(durum);
         CREATE INDEX IF NOT EXISTS idx_haber_url ON haberler(orijinal_url);
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
@@ -367,6 +379,52 @@ def durum_zaman_asimi_yap(haber_id: int) -> None:
             (simdi, str(haber_id)),
         )
         conn.commit()
+
+
+# --- HATA KAYITLARI (2026-10-12) ---
+# Hata günlüğü eskiden data/hata_kayitlari.jsonl'ye yazılıyordu; dosya .gitignore'da ve Actions makinesi
+# iş bitince siliniyor: kayıt hiçbir zaman ertesi güne ulaşmıyordu. DB git'e commit edildiği için kalıcı olur.
+# Metin ÖNCE maskelenir (src/gizlilik.py): requests istisnaları URL'deki access_token'ı taşır.
+HATA_SAKLAMA_GUN = 30
+HAM_HATA_AZAMI = 1500
+
+
+def hata_kaydi_ekle(nerede: str, baslik: str, ne_oldu: str, neden: str, eylem: str,
+                    tanindi: bool, ham_hata: str) -> int:
+    """Hata kaydını DB'ye yazar; döner: kayıt kimliği. Eski (HATA_SAKLAMA_GUN gün) kayıtları siler."""
+    from . import gizlilik
+    simdi = datetime.now(timezone.utc)
+    esik = (simdi - timedelta(days=HATA_SAKLAMA_GUN)).isoformat()
+    with _baglanti_al() as conn:
+        conn.execute("DELETE FROM hata_kayitlari WHERE tarih < ?", (esik,))
+        cur = conn.execute(
+            "INSERT INTO hata_kayitlari (tarih, nerede, baslik, ne_oldu, neden, eylem, tanindi, ham_hata) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (simdi.isoformat(), gizlilik.maskele(nerede)[:120], gizlilik.maskele(baslik)[:200],
+             gizlilik.maskele(ne_oldu)[:400], gizlilik.maskele(neden)[:400], str(eylem or "")[:60],
+             1 if tanindi else 0, gizlilik.maskele(ham_hata)[:HAM_HATA_AZAMI]),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+
+
+def son_hata_kayitlari(saat: int = 24, limit: int = 50) -> List[Dict[str, Any]]:
+    """Son `saat` saatteki hata kayıtları (yeniden eskiye)."""
+    esik = (datetime.now(timezone.utc) - timedelta(hours=saat)).isoformat()
+    with _baglanti_al() as conn:
+        satirlar = conn.execute(
+            "SELECT * FROM hata_kayitlari WHERE tarih >= ? ORDER BY id DESC LIMIT ?", (esik, limit)
+        ).fetchall()
+        return [dict(s) for s in satirlar]
+
+
+def son_hata_metni() -> Optional[str]:
+    """En son kaydedilen ham hata metni (yoksa None)."""
+    with _baglanti_al() as conn:
+        s = conn.execute("SELECT tarih, nerede, baslik, ham_hata FROM hata_kayitlari ORDER BY id DESC LIMIT 1").fetchone()
+    if not s:
+        return None
+    return f"[{s['tarih']}] {s['nerede']} -> {s['baslik']}\n\n{s['ham_hata']}"
 
 
 # --- İLAN İŞLEMLERİ ---

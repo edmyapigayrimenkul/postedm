@@ -24,8 +24,9 @@ log = logging.getLogger(__name__)
 
 BANKA_YOLU = config.yol_al("data/konu_bankasi.yaml")
 
-# Haftalık 7 Günlük Takvim (Pazartesi=0 ... Pazar=6).
-# Her gün 1 Otorite Postu (Görsel/Carousel) + 1 Dikey Video (Reels).
+# ESKİ haftalık takvim (Pazartesi=0 ... Pazar=6). ÜRETİMDE KULLANILMIYOR: günün içeriği `BILGILENDIRICI_FORMATLAR`
+# döngüsüyle (aşağıda) seçilir, sözlük 12:30'da ayrıca yayınlanır. Yalnız `sonraki_konu(gun=...)` ile
+# (hazirla.py --gun) sütun önerisi için ve sözleşme testleri için duruyor. Açıklamalar tarihsel.
 TAKVIM: Dict[int, Dict[str, Any]] = {
     0: {"sutun": "S2", "bicim": "B1"},           # Pazartesi: Sözlük
     1: {"sutun": "S4", "bicim": "B3"},           # Salı: Net Cevap Rehberi
@@ -36,6 +37,7 @@ TAKVIM: Dict[int, Dict[str, Any]] = {
     6: {"sutun": "S4", "bicim": "B3"},           # Pazar: Net Cevap Rehberi
 }
 
+# ESKİ gün → format eşlemesi; üretimde kullanılmıyor (bkz. TAKVIM notu).
 GUN_FORMATLARI: Dict[int, str] = {
     0: "sozluk",
     1: "net_cevap",
@@ -449,6 +451,34 @@ def sonraki_finans_konusu(bekleme_gun: int = 120, format_turu: Optional[str] = "
         return random.choice(adaylar)
     return sonraki_konu(sutun="S5", bekleme_gun=30, format_turu=format_turu)
 
+
+
+def konuyu_havuza_iade_et(haber_id: int) -> int:
+    """Yayına çıkmayan (atlanan, çöpe atılan, zaman aşımına düşen) içeriğin konusunu havuza geri verir.
+
+    Eskiden üretim anında konu tüketiliyor, içerik yayınlanmasa da geri verilmiyordu: üretilen konuların
+    yaklaşık yarısı onayda kalıp ya da atılıp yanıyor ve 30 günlük stok fiilen yarıya iniyordu. Üstelik
+    "Pas geç / Çöpe at" mesajı "konu havuza iade edildi" diyordu (yanlıştı).
+
+    Satır SİLİNMEZ, `sonuc='hata'` yapılır: `_kullanim_gecmisi` hatalı denemeyi yalnız `HATA_BEKLEME_GUNU`
+    kadar sayar. Böylece (1) atılan konu hemen aynı turda yeniden seçilmez, 3 gün sonra sıraya döner;
+    (2) satır güncellemesi `db_birlestir` ile güvenle birleşir; (3) `_format_gecmisi` ve sözlük arşivi
+    zaten 'hata' kayıtlarını "kullanılmadı" sayar.
+
+    Yayındaki içeriğe dokunulmaz (durum ya da kanal kimliği). Döner: geri verilen kayıt sayısı."""
+    from . import durum_kurali
+    tabloyu_kur()
+    haber = db.haber_getir(haber_id)
+    if haber and durum_kurali.yayinda_mi(haber):
+        return 0
+    with db._baglanti_al() as conn:
+        cur = conn.execute(
+            "UPDATE konu_gecmisi SET sonuc = 'hata' "
+            "WHERE haber_id = ? AND COALESCE(sonuc, 'uretildi') NOT IN ('hata', 'cope_at', 'engellendi')",
+            (haber_id,),
+        )
+        conn.commit()
+        return cur.rowcount
 
 
 def kullanildi_isaretle(konu_kodu: str, haber_id: Optional[int] = None, sonuc: str = "uretildi",

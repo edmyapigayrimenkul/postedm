@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -115,7 +116,13 @@ def main() -> None:
     if duraklatildi and args.haber_oneri:
         log.info("Bot duraklatılmış (%s); haber önerisi atlanıyor.", kalan)
         return
-    if duraklatildi and not args.durum and not args.slot and not args.format_turu and not args.format_degistir_id and not args.reels and not args.finans and not args.haber_oneri:
+    # Duraklatma ZAMANLANMIŞ koşuları da durdurur. Eskiden `--slot`/`--format` bayrağı "elle istek" sayılıp
+    # duraklatmayı atlıyordu; 10:00 ve 12:30 cron'ları da `--slot` ile çalıştığı için bot duraklatılmışken
+    # içerik üretiliyor, Gemini kotası ve konu harcanıyordu. Zamanlanmış koşuyu hazirla.yml `ZAMANLANMIS=true`
+    # ile işaretler; elle tetiklenen (Telegram butonu, workflow_dispatch) koşular duraklatmayı aşar.
+    zamanlanmis = os.environ.get("ZAMANLANMIS", "").strip().lower() == "true"
+    elle_istek = bool(args.slot or args.format_turu or args.format_degistir_id or args.reels or args.finans)
+    if duraklatildi and not args.durum and (zamanlanmis or not elle_istek):
         log.info("Bot kullanıcı tarafından duraklatılmış (%s). Otomatik hazırlık atlanıyor.", kalan)
         return
 
@@ -150,6 +157,11 @@ def main() -> None:
     if args.haber_oneri:
         from src import haber_oneri
         haber_oneri.onerileri_gonder(tara=True)
+        return
+
+    if args.konu:
+        log.info("Yalnızca konu bankasından üretiliyor (RSS taranmıyor)...")
+        telegram_bot.konu_bankasindan_hazirla(gun=args.gun)
         return
 
     if args.slot:
@@ -249,13 +261,8 @@ def main() -> None:
         telegram_bot.haberden_icerik_hazirla(aday, brief)
         return
 
-    if args.haber_tara:
-        log.info("Triyajı geçen haber yok ve --haber-tara verildi; konu bankasına başvurulmuyor.")
-        return
-
-    # 3. Varsayılan yol: konu bankası. Takvim RSS'e bağımlı olmadığı için aksamaz.
-    log.info("Triyajı geçen haber yok. Konu bankasından üretiliyor...")
-    telegram_bot.konu_bankasindan_hazirla(gun=args.gun)
+    # Bu noktaya yalnız `--haber-tara` ile gelinir (varsayılan yol yukarıda slot'a, `--konu` konu bankasına gider).
+    log.info("Triyajı geçen haber yok; --haber-tara konu bankasına başvurmaz.")
 
 
 if __name__ == "__main__":
