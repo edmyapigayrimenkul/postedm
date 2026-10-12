@@ -333,3 +333,13 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     testli; **canlı kanunla denenmedi** (mevzuat.gov.tr geliştirme ortamında kapalıydı). 14 yeni kanunun tertipleri tahmin: ilk açık ağda `kanun_oku.py kanunlar --dene`.
     Araçlar `src.db` göçünden `data/edm.db`'yi korumak için test modunda başlar (`--hakem` hariç).
 11. **Testler `data/` klasörüne dosya sızdırmaz:** hata günlüğü ve yayın raporu işareti `config.veri_yolu()` ile test modunda geçici dizine gider.
+12. **Telegram teslimi (albüm + düğmeli onay kartı) — 2026-10-12.** Günlük içeriğin albümü 60 sn okuma zaman aşımına uğradı (Actions logu: "Yerel medya grubu
+    istisnası … Read timed out"); eski yedek yol **yerel dosya yolunu Telegram'a "URL" diye gönderip** sessizce 400 aldı → albüm hiç gelmedi, hata günlüğüne de yazılmadı.
+    Ayrıca başarısız çağrıdan sonra `son_medya_grubu_mesaj_idleri()` ÖNCEKİ içeriğin kimliklerini veriyordu (yanlış mesajlar bu içeriğe bağlanıp sonra silinirdi).
+    Düzeltme (`telegram_bot.py`, testler `tests/test_telegram_medya_teslimi.py`): `medya_grubu_gonder` sırayla yerel albüm → URL albümü (`yedek_urller=` ImgBB) →
+    indirip yükleme → TEK TEK `sendPhoto` dener; her istek (10 sn bağlanma, 40 sn okuma) 429'da `retry_after`, 5xx/ağ hatasında bekleyip yeniden denenir, başlık HTML hatasında
+    düz metne düşer; hiçbiri tutmazsa `hata_kayitlari`'na `telegram.medya` yazılır. Onay kartı albüm gelmese de gider ve başına uyarı + ImgBB bağlantıları konur;
+    kart gitmezse kısa kartla (aynı düğmelerle) tekrar denenir (`_onay_kartini_gonder`); manşet/kategori/dayanak HTML'e kaçırılır. **Zaman aşımı belirsizdir** (Telegram isteği
+    işleyip cevabı geciktirmiş olabilir): nadiren aynı albüm iki kez düşebilir — albümün kaybolmasından iyidir.
+    **Açık gözlem:** GitHub `schedule` koşuları 6–10 saat gecikiyor (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı). Çözüm Cloudflare cron'una taşımak
+    (Worker `scheduled()` + `hazirla.yml` cron'unu kaldırma; `test_tek_tetikleyici_kurali` ikisinin birlikte açık olmasını yasaklar, Worker dağıtımıyla aynı anda yapılmalı) — yapılmadı.
