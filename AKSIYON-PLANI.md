@@ -155,6 +155,10 @@ bunu dinliyor; `hazirla.yml`'nin kendi cron'u da var. İkisi birden açık olsay
 aynı gün **iki tur** çalışırdı: iki önizleme, iki konu tüketimi, iki paylaşım.
 Cloudflare cron'u bilerek kapalı dağıtıldı, kural sözleşme testine bağlandı.
 
+**Güncelleme (2026-10-12):** GitHub cron'u 6–10 saat geciktiği için günlük tur Cloudflare cron'una taşındı (`slot_hazirla`, `zamanli: true`).
+GitHub cron'ları gecikmeli yedek olarak kaldı; çift içerik riski artık "yalnız biri açık" kuralıyla değil, `hazirla.py`'deki günde-bir-kez
+koruması (`zamanli_slot_bugun_yapildi`) ve onu zorunlu kılan sözleşme testiyle önleniyor. Ayrıntı: MEMORY.md §10 madde 13.
+
 ---
 
 # P1 — Sessizce ölecek şeyler

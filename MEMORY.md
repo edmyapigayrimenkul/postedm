@@ -75,10 +75,10 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 ## 4. TEKNİK MİMARİ & ÇALIŞMA AKIŞI
 
 1. **İçerik Hazırlığı & Cron (günde BİR içerik, 10:00 TR — bkz. §8.5):**
-   * Günlük turun tetikleyicisi GitHub cron'udur (`.github/workflows/hazirla.yml`).
-     Worker'ın `[triggers]` bölümü 2026-09-26'dan beri YALNIZCA planlı yayın çalar
-     saatiyle (`*/10`) açık; `scheduled()` günlük tur (`sabah_hazirla`) GÖNDERMEZ —
-     ikisi birden günlük turu tetiklerse aynı gün iki tur çalışır (bkz. §9.5).
+   * **Günlük turun ASIL tetikleyicisi Cloudflare cron'udur (2026-10-12, bkz. §10 madde 13):** Worker `scheduled()` 07:00 UTC'de
+     `slot_hazirla {slot: bilgilendirici, zamanli: true}`, 09:30 UTC'de `{slot: sozluk}` yollar (`worker/wrangler.toml` `[triggers]`).
+     `.github/workflows/hazirla.yml`'deki aynı saatli GitHub cron'ları GECİKMELİ YEDEKTİR (6-10 saat gecikiyorlar); `hazirla.py`
+     zamanlanmış bir slotu aynı Türkiye gününde ikinci kez üretmez. Eskiden ikisi birden açıkken günde iki tur çalışırdı (bkz. §9.5).
    * RSS taranır, Gemini kanca başlıklı 3 slaytlık analiz üretir ve görseller `src/make_image.py` ile çizilir.
    * Telegram grubuna `@PostEdmBot` üzerinden önizleme ve onay butonları (`✅ Yayına Al (IG + FB + Threads)`) iletilir.
 2. **Onay ve Yayınlama:**
@@ -341,5 +341,13 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     düz metne düşer; hiçbiri tutmazsa `hata_kayitlari`'na `telegram.medya` yazılır. Onay kartı albüm gelmese de gider ve başına uyarı + ImgBB bağlantıları konur;
     kart gitmezse kısa kartla (aynı düğmelerle) tekrar denenir (`_onay_kartini_gonder`); manşet/kategori/dayanak HTML'e kaçırılır. **Zaman aşımı belirsizdir** (Telegram isteği
     işleyip cevabı geciktirmiş olabilir): nadiren aynı albüm iki kez düşebilir — albümün kaybolmasından iyidir.
-    **Açık gözlem:** GitHub `schedule` koşuları 6–10 saat gecikiyor (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı). Çözüm Cloudflare cron'una taşımak
-    (Worker `scheduled()` + `hazirla.yml` cron'unu kaldırma; `test_tek_tetikleyici_kurali` ikisinin birlikte açık olmasını yasaklar, Worker dağıtımıyla aynı anda yapılmalı) — yapılmadı.
+    GitHub `schedule` koşularının 6–10 saat geciktiği görüldü (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı) → madde 13.
+13. **Günlük tur Cloudflare cron'una taşındı — 2026-10-12.** Worker `scheduled()`: `0 7 * * *` → `slot_hazirla {slot: bilgilendirici, zamanli: true}`, `30 9 * * *` →
+    `{slot: sozluk, zamanli: true}`; GitHub'a ulaşamazsa 3 kez dener, olmazsa gruba "Günlük içerik tetiklenemedi" yazar. `hazirla.yml` cron'ları SİLİNMEDİ, gecikmeli yedek:
+    `ZAMANLANMIS` artık dispatch'te de `client_payload.zamanli` ile true (duraklatma ve günlük koruma uygulanır) ve `hazirla.py` bir slotu zamanlanmış koşuda
+    **o Türkiye gününde bir kez** çalıştırır (`ayarlar › zamanli_slot_son_gun:<slot>`, yalnız başarılı turda yazılır; elle tetiklenenler korumaya takılmaz, işaret de bırakmaz).
+    Neden yedek bırakıldı: Worker dağıtılmadan GitHub cron'u kaldırılırsa HİÇ içerik çıkmaz; ikisi korumasız açık kalırsa günde iki içerik çıkar. Koruma ikisini güvenle birlikte açık tutar;
+    `tests/test_sozlesme.py › test_tek_tetikleyici_kurali` bunu zorunlu kılar. **Dağıtım gerekir:** `cd worker && npx --yes wrangler deploy`, sonra Cloudflare panelinde
+    Workers › Cron Triggers'ta ÜÇ satır (`*/10 * * * *`, `0 7 * * *`, `30 9 * * *`) görünmeli (sınıra takılan dağıtım cron'u sessizce yazmıyordu — Instabot). Cloudflare cron'u
+    bir hafta sorunsuz çalışırsa GitHub cron'ları `hazirla.yml`'den kaldırılabilir (o zaman test kuralı ve `test_cron_takvimle_uyumlu` birlikte güncellenir). Worker'ın durum menüsündeki
+    eski takvim (13:30 / 18:30) de düzeltildi.

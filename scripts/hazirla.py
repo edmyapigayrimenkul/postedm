@@ -165,8 +165,15 @@ def main() -> None:
         return
 
     if args.slot:
+        # Zamanlanmış tur Cloudflare cron'undan (asıl) ve GitHub cron'undan (gecikmeli yedek) gelebilir: aynı slot aynı
+        # Türkiye gününde ikinci kez üretilmez. Elle tetiklenenler (Telegram, workflow_dispatch) bu korumaya takılmaz.
+        if zamanlanmis and telegram_bot.zamanli_slot_bugun_yapildi(args.slot):
+            log.info("Zamanlanmış '%s' turu bugün zaten çalışmış; yedek tetik atlanıyor.", args.slot)
+            return
         log.info("Günlük slot çalıştırılıyor: '%s' (Otomatik yayın: %s)...", args.slot, args.oto_yayin)
-        telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot, oto_yayin=args.oto_yayin)
+        basarili = telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot, oto_yayin=args.oto_yayin)
+        if zamanlanmis and basarili:
+            telegram_bot.zamanli_slot_isaretle(args.slot)
         return
 
     if args.finans:

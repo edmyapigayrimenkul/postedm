@@ -38,6 +38,8 @@ class TestDuraklatma(unittest.TestCase):
         with mock.patch.dict(os.environ, ortam), \
              mock.patch.object(sys, "argv", ["hazirla.py", *argv]), \
              mock.patch.object(tb, "bot_duraklatildi_mi", return_value=(duraklatildi, "Süresiz" if duraklatildi else "")), \
+             mock.patch.object(tb, "zamanli_slot_bugun_yapildi", return_value=False), \
+             mock.patch.object(tb, "zamanli_slot_isaretle"), \
              mock.patch.object(tb, "slot_icerigi_hazirla_ve_sun") as slot, \
              mock.patch.object(tb, "konu_bankasindan_hazirla") as konu, \
              mock.patch.object(tb, "reels_hazirla_ve_sun") as reels, \

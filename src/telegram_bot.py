@@ -2176,6 +2176,29 @@ def _tr_bugun() -> str:
     return (datetime.now(timezone.utc) + timedelta(hours=3)).date().isoformat()
 
 
+# Zamanlanmış günlük turu iki yerden tetiklenebilir: Cloudflare cron'u (asıl yol, dakikasında çalışır) ve GitHub cron'u
+# (yedek; 6-10 saat gecikebiliyor). Aynı slot aynı Türkiye gününde ikinci kez ÜRETİLMEZ: aksi halde geç gelen GitHub
+# koşusu ikinci içerik, ikinci konu tüketimi ve (sözlükte) onay kuyruğuna ikinci kart demek olurdu.
+ZAMANLI_GUNLUK_SLOTLAR = ("bilgilendirici", "sozluk")
+
+
+def _zamanli_slot_anahtari(slot: str) -> str:
+    return f"zamanli_slot_son_gun:{slot}"
+
+
+def zamanli_slot_bugun_yapildi(slot: str) -> bool:
+    """Bu slotun zamanlanmış turu bugün (TR) zaten başarıyla çalıştı mı?"""
+    if slot not in ZAMANLI_GUNLUK_SLOTLAR:
+        return False
+    return db.ayar_oku(_zamanli_slot_anahtari(slot)) == _tr_bugun()
+
+
+def zamanli_slot_isaretle(slot: str) -> None:
+    """Zamanlanmış turun bugün başarıyla çalıştığını kaydeder (başarısız tur işaretlenmez: yedek tetik yeniden dener)."""
+    if slot in ZAMANLI_GUNLUK_SLOTLAR:
+        db.ayar_yaz(_zamanli_slot_anahtari(slot), _tr_bugun())
+
+
 def sozluk_oto_yayin_acik_mi() -> bool:
     """Sözlük kartlarının onaysız yayını.
     1. DB ayarı: db.ayar_oku('sozluk_oto_yayin') '1' / 'acik' ise aktif.

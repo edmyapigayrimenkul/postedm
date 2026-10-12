@@ -411,8 +411,9 @@ Yeni kartlar bu bölümdeki kuralla yazılır (kanun alıntısı birebir, her sa
 **Metin boyutu:** kısa içerikli kartlarda yazı büyür (`yeni_formatlar.SOZLUK_BUYUME_BASAMAKLARI`: tanım 46-60, madde 31-40 punto);
 yoğun kart eski tavanda (44/30) kalır. Kutudaki "—" işaretinin girintisi ve başlık puntosu büyüklükle orantılı artar.
 
-**Otomatik yayın** (`telegram_bot.sozluk_karti_hazirla_ve_sun`): her gün öğlen 12:30 TR (09:30 UTC, `hazirla.yml` cron
-`30 9 * * *`) `hazirla.py --slot sozluk --oto-yayin` çalışır. `--oto-yayin` "bu çalıştırma onaysız yayına yetkili" demektir;
+**Otomatik yayın** (`telegram_bot.sozluk_karti_hazirla_ve_sun`): her gün öğlen 12:30 TR (09:30 UTC) `hazirla.py --slot sozluk --oto-yayin`
+çalışır. Asıl tetikleyici Cloudflare cron'udur (Worker `scheduled()` → `slot_hazirla {slot: sozluk, zamanli: true}`); `hazirla.yml` cron'u
+`30 9 * * *` 6–10 saat gecikebilen yedektir ve o gün zaten çalışmış slotu tekrar üretmez (MEMORY.md §10 madde 13). `--oto-yayin` "bu çalıştırma onaysız yayına yetkili" demektir;
 bayraksız çalıştırmalar (10:00 günlük döngü, elle `--slot sozluk`) açık anahtar yoksa hiçbir zaman otomatik değildir.
 Modelin yazdığı sözlük bayrakla bile ASLA otomatik yayınlanmaz (kart kalmadıysa onaya düşer).
 
