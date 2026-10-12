@@ -460,6 +460,7 @@ def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
         "saved": None,
         "shares": None,
         "impressions": None,
+        "views": None,
         "media_type": "",
         "insights_hata": None,
     }
@@ -489,7 +490,9 @@ def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
     url_insights = f"{GRAPH_TABAN}/{medya_id}/insights"
     try:
         r_ins = None
-        for metrik in ("reach,saved,shares,total_interactions", "reach,saved"):
+        # `views`: Meta'nın kullanımdan kaldırdığı `impressions` yerine koyduğu metrik. Bu sürümde (ve medya
+        # türünde) desteklenmeyebilir; o durumda API 100 döner ve bir önceki, dar küme denenir.
+        for metrik in ("reach,saved,shares,total_interactions,views", "reach,saved,shares,total_interactions", "reach,saved"):
             r_ins = requests.get(url_insights, params={"metric": metrik, "access_token": token}, timeout=12)
             hata = (r_ins.json().get("error") or {}) if r_ins.status_code != 200 else {}
             if r_ins.status_code == 200 or hata.get("code") != 100:
@@ -513,6 +516,8 @@ def medya_metrikleri_al(medya_id: str) -> Optional[Dict[str, Any]]:
                     sonuc["shares"] = m_val
                 elif m_name == "impressions":
                     sonuc["impressions"] = m_val
+                elif m_name == "views":
+                    sonuc["views"] = m_val
         else:
             hata = (r_ins.json().get("error") or {}) if r_ins is not None else {}
             if hata.get("code") == 10:
