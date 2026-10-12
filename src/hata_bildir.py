@@ -397,6 +397,25 @@ def bildir(baslik: str, hata: Any, nerede: str = "", mesaj_id: Optional[str] = N
     )
 
 
+def son_hatayi_gonder() -> bool:
+    """"🔍 Ham Hata Göster" düğmesi: en son kaydedilen ham hata metnini (DB, maskeli) Telegram'a gönderir.
+
+    Worker bu düğmede önceden repodaki data/son_hata.txt'yi GitHub'dan okuyordu; dosya .gitignore'da olduğu için
+    hiçbir zaman bulunamıyordu. Metin HTML'e kaçırılır (ham hata `<` ve `&` taşıyabilir; kaçırılmayan metin Telegram'da
+    mesajı hiç göndermiyordu)."""
+    try:
+        from . import db
+        ham = db.son_hata_metni()
+    except Exception as e:  # noqa: BLE001
+        log.warning("Son hata okunamadı: %s", e)
+        ham = None
+    if not ham:
+        return bool(telegram_bot.mesaj_gonder("ℹ️ Kayıtlı ham hata metni bulunamadı."))
+    return bool(telegram_bot.mesaj_gonder(
+        f"🔍 <b>HAM HATA METNİ</b>\n\n<pre>{html_lib.escape(ham[:3500])}</pre>"
+    ))
+
+
 def son_ham_hata_kaydet(metin: str) -> None:
     """Ham hatayı anlık olarak son_hata.txt'ye yazar."""
     try:

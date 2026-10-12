@@ -508,18 +508,12 @@ export default {
           return new Response("OK");
         }
 
+        // Ham hata metni artık repodaki dosyadan değil DB'den (hata_kayitlari) okunur: eski yol data/son_hata.txt'yi
+        // GitHub'dan çekiyordu, dosya .gitignore'da olduğu için HİÇ bulunamıyordu (2026-10-12). DB'ye Actions erişir,
+        // Worker erişmez; bu yüzden diğer yönetim düğmeleri gibi bot_yonetim üzerinden gider (birkaç sn gecikir).
         if (data === "hata_ayrinti" || data === "hata:ayrinti") {
           await cevapVer("Hata detayı getiriliyor...");
-          const ham = await hamHataOku(env);
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: ham ? `🔍 <b>HAM HATA METNİ</b>\n\n<pre><code>${ham.slice(0, 3500)}</code></pre>` : "ℹ️ Kayıtlı ham hata metni bulunamadı.",
-              parse_mode: "HTML",
-            }),
-          });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "hata_ayrinti" });
           return new Response("OK");
         }
 
@@ -1863,26 +1857,6 @@ async function tetikleGitHub(env, eventType, clientPayload) {
 
   return resp.status === 204;
 }
-
-async function hamHataOku(env) {
-  const repo = env.GITHUB_REPOSITORY || "edmyapigayrimenkul/postedm";
-  const url = `https://api.github.com/repos/${repo}/contents/data/son_hata.txt`;
-  try {
-    const cevap = await fetch(url, {
-      headers: {
-        authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        accept: "application/vnd.github+json",
-        "user-agent": "EDM-Cloudflare-Worker",
-      },
-    });
-    if (!cevap.ok) return null;
-    const veri = await cevap.json();
-    return decodeURIComponent(escape(atob((veri.content || "").replace(/\n/g, ""))));
-  } catch (e) {
-    return null;
-  }
-}
-
 
 // =====================================================================
 // GÜVENLİK VE BİLDİRİM YARDIMCILARI

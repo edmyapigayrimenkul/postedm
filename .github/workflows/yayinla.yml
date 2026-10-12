@@ -75,6 +75,8 @@ jobs:
             python -c "from src import telegram_bot; m, b = telegram_bot.son_postlar_raporu(); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           elif [ "$EYLEM" = "havuz" ]; then
             python -c "from src import telegram_bot; telegram_bot.mesaj_gonder(telegram_bot.havuz_mesaji())"
+          elif [ "$EYLEM" = "hata_ayrinti" ]; then
+            python -c "from src import hata_bildir; hata_bildir.son_hatayi_gonder()"
           elif [ "$EYLEM" = "yayin_kontrol" ]; then
             python -c "import os; from src import telegram_bot; m, b = telegram_bot.yayin_kontrol_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           elif [ "$EYLEM" = "son_mesaji_sil" ] || [ "$EYLEM" = "mesaj_sil" ]; then

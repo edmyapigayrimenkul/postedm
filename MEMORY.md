@@ -314,7 +314,8 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
 4. **Hata günlüğü DB'dedir** (`hata_kayitlari`, 30 gün). `data/hata_kayitlari.jsonl` ve `son_hata.txt` .gitignore'da ve Actions makinesiyle silinir; yalnız aynı iş
    içindeki sonraki adımlar içindir. **Hata metni kaydedilmeden önce `src/gizlilik.maskele` ile maskelenir** (requests istisnası URL'deki `access_token`'ı taşır;
    DB git'e gider). Yeni hata kayıt noktası eklenirse `hata_bildir.hata_kaydet` üzerinden geçmeli. `yayinla.yml`'de "Hata bildir" adımı "Veritabanını Kaydet"ten
-   ÖNCE olmalı (kayıt makineyle gitmesin). Worker'ın "Ham hata" düğmesi hâlâ repodaki `data/son_hata.txt`'yi okuyor (bulamıyor): düzeltmek Worker dağıtımı ister.
+   ÖNCE olmalı (kayıt makineyle gitmesin). "🔍 Ham Hata Göster" düğmesi artık `bot_yonetim/hata_ayrinti` ile Actions'a gider ve metni DB'den okur (`hata_bildir.son_hatayi_gonder`); eski Worker
+   dosyayı repodan okumaya çalışıp hiç bulamıyordu. **Worker değişti: `cd worker && npx --yes wrangler deploy` ile dağıtılmalı** (dağıtılana dek düğme eskisi gibi "bulunamadı" der).
 5. **Onaysız yayında anlam hakemi gerçekten çalışmış olmalı** (`dogrula.otomatik_yayina_uygun_mu`, ICERIK-SISTEMI §5.5.2). Şu an yalnız finans bülteni modelle üretilip
    onaysız yayına gidebilen yol.
 6. **Ölçülemeyen değer rapora "0 hata ✓" diye girmez.** Günlük kota raporunda "HATA GUNLUGU": uygulamanın kaydı + GitHub'ın bildirdiği başarısız koşu sayısı

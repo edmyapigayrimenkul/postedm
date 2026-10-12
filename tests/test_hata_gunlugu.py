@@ -136,6 +136,45 @@ class TestHataKaydiKalici(unittest.TestCase):
         self.assertNotEqual(config.veri_yolu("x").parent, config.KOK_DIZIN / "data")
 
 
+class TestHamHataDugmesi(unittest.TestCase):
+    """"🔍 Ham Hata Göster": Worker bot_yonetim/hata_ayrinti yollar, yayinla.yml bunu işler, metin DB'den gelir."""
+
+    def setUp(self):
+        db.tablolari_olustur()
+        with db._baglanti_al() as conn:
+            conn.execute("DELETE FROM hata_kayitlari")
+            conn.commit()
+
+    def test_kayitli_hata_html_kacirilarak_gonderilir(self):
+        db.hata_kaydi_ekle("Yayınla", "Yayınla", "", "", "", False, "KeyError: '<b>x</b> & y' access_token=EAAB1234567890abcdefghijklmn")
+        with patch.object(hata_bildir.telegram_bot, "mesaj_gonder", return_value={"message_id": 1}) as gonder:
+            self.assertTrue(hata_bildir.son_hatayi_gonder())
+        metin = gonder.call_args.args[0]
+        self.assertIn("HAM HATA METNİ", metin)
+        self.assertIn("&lt;b&gt;x&lt;/b&gt; &amp; y", metin)     # kaçırılmamış '<' Telegram'da mesajı düşürürdü
+        self.assertNotIn("EAAB1234567890", metin)               # DB'ye maskeli girdi
+
+    def test_kayit_yoksa_bulunamadi_der(self):
+        with patch.object(hata_bildir.telegram_bot, "mesaj_gonder", return_value={"message_id": 1}) as gonder:
+            hata_bildir.son_hatayi_gonder()
+        self.assertIn("bulunamadı", gonder.call_args.args[0])
+
+    def test_uzun_hata_telegram_sinirina_kirpilir(self):
+        db.hata_kaydi_ekle("A", "A", "", "", "", False, "x" * 5000)
+        with patch.object(hata_bildir.telegram_bot, "mesaj_gonder", return_value=True) as gonder:
+            hata_bildir.son_hatayi_gonder()
+        self.assertLess(len(gonder.call_args.args[0]), 4096)
+
+    def test_workflow_ve_worker_ayni_eylemi_kullanir(self):
+        workflow = (config.KOK_DIZIN / ".github/workflows/yayinla.yml").read_text(encoding="utf-8")
+        worker = (config.KOK_DIZIN / "worker/index.js").read_text(encoding="utf-8")
+        self.assertIn('"$EYLEM" = "hata_ayrinti"', workflow)
+        self.assertIn("hata_bildir.son_hatayi_gonder()", workflow)
+        self.assertIn('{ eylem: "hata_ayrinti" }', worker)
+        self.assertNotIn("/contents/data/son_hata.txt", worker)  # repodan dosya okuma (GitHub contents API) yolu kalmadı
+        self.assertNotIn("hamHataOku", worker)
+
+
 class TestRaporSatirlari(unittest.TestCase):
     def test_olculemeyen_basarisiz_is_sifir_gosterilmez(self):
         with patch.object(rapor_uretici, "basarisiz_is_akislari", return_value=None):
