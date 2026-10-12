@@ -233,11 +233,11 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    dışındaki HER açılış gerçek DB'ye göç yazar ve CI kırmızı olur.
 
 ### 9.3 Seslendirme (ElevenLabs) — kullanıcı kararları
-1. > ⚠️ **2026-10-12 denetimi:** `config.yaml` ve `src/ses.py` bugün **Alex** (`KediIz7pebzt5TaDHiiZ`, hız 1.15, -14 LUFS) kullanıyor; aşağıdaki
-   > Sıla Özalp kararıyla çelişiyor. Hangisinin güncel olduğu depo geçmişinden anlaşılamadı (geçmiş tek commit'e indirilmiş). Kullanıcı netleştirene
-   > kadar config'e dokunulmadı; değişirse bu madde ve `config.yaml` birlikte güncellenmeli.
+1. > ✅ **KARAR (kullanıcı, 2026-10-12): seslendirme sesi ALEX'tir.** Güncel ayar `config.yaml › seslendirme`: Alex (`KediIz7pebzt5TaDHiiZ`, Instabot ana sesi),
+   > yedek Adam, hız 1.15, stability 0.55, style 0.0, **-14 LUFS**. Aşağıdaki Sıla Özalp / 1.05 / -12 LUFS değerleri 2026-09-26'nın TARİHSEL kararıdır, geçersiz.
+   > Sıla'ya dönülmek istenirse yalnız `config.yaml` değişir (`ELEVENLABS_VOICE_ID` ortam değişkeni okunmaz).
 
-   **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** Sıla Özalp
+   **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** (ESKİ karar, geçersiz:) Sıla Özalp
    (`r3deco0KTo6o0Kb5inro`, haber sunucusu), yedek Adam; hız 1.05, stability 0.40,
    style 0.30; -12 LUFS. `ELEVENLABS_VOICE_ID` ortam değişkeni OKUNMAZ (yereldeki eski
    değer seçimi sessizce geri çeviriyordu). Anahtar: `ELEVENLABS_API_KEY` (GitHub
