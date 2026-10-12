@@ -30,9 +30,15 @@ on:
   # Asıl yol: site iş yazdığı anda tetikliyor
   repository_dispatch:
     types: [site_ilan_kuyrugu, site_ilan_kuyrugu_kuru]
-  # Güvenlik ağı: dispatch düşerse saatlik yoklama yakalar
-  schedule:
-    - cron: '7 * * * *'
+  # Güvenlik ağı: dispatch düşerse saatlik yoklama yakalar.
+  #
+  # ⏸ GEÇİCİ OLARAK KAPALI (2026-10-12, kullanıcı kararı): site API'si 11 Ekim 00:55 UTC'den beri
+  # /api/postedm/kuyruk adresinde 401 veriyor (kod değişmedi, sorun site tarafında) ve ilan paylaşımı EİDS
+  # gerekçesiyle zaten donduruldu; saatlik yoklama yalnızca her seferinde Telegram'a "BAŞARISIZ" mesajı düşürüyordu.
+  # Site düzelince AÇMAK İÇİN aşağıdaki iki satırın başındaki '#' işaretini kaldırın.
+  # (Siteden gelen anlık tetikleme — repository_dispatch — ve elle çalıştırma açık kalır.)
+  # schedule:
+  #   - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       kuru_calisma:

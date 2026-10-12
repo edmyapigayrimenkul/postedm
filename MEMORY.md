@@ -322,5 +322,7 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
 7. **Site kuyruğu 401 (açık sorun):** `site-kuyrugu.yml` saatlik güvenlik ağı, 11 Ekim 2026 00:55 UTC'den beri `https://edmyapigayrimenkul.com/api/postedm/kuyruk`
    adresinden **401 Unauthorized** alıyor (kod 9 Ekim'den beri değişmedi). Workflow `EDM_SITE_API_ANAHTARI` geçirmiyor, OIDC'ye düşüyor: site tarafındaki anahtar/OIDC
    doğrulaması kontrol edilmeli. Sözleşme gereği (§7.9) 401 arızadır; her saat Telegram'a "BAŞARISIZ" düşer.
+   **2026-10-12 kullanıcı kararı: saatlik yoklama (`schedule`) geçici olarak kapatıldı** (`site-kuyrugu.yml`; site düzelince yorum işaretlerini kaldırın).
+   Anlık tetikleme (`repository_dispatch`) ve elle çalıştırma açık; site düzelene dek panelden paylaşım 401 ile düşer.
 8. **Silinen ölü modüller:** `fetch_photo`, `haftalik_bulten`, `makro_kart`, `otomatik_onay`, `sparkline` (hiçbir yerden çağrılmıyordu, testleri yoktu). Git geçmişinde duruyor.
 9. **Testler `data/` klasörüne dosya sızdırmaz:** hata günlüğü ve yayın raporu işareti `config.veri_yolu()` ile test modunda geçici dizine gider.
