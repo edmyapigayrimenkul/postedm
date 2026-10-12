@@ -456,6 +456,11 @@ girmez (modele hiç başvurulmaz; kendi güvenceleri yukarıda).
 
 ## 5.5.3 Piyasa verisi: S4 "Rakam & Bölge" rakamları (2026-10-09)
 
+> ⏸ **KAPALI (2026-10-12, kullanıcı kararı).** postedm'de piyasa verisi gönderisi istenmiyor; rakamlı fiyat analizi web sitesi için
+> istenmişti. `veri_blogu` taşıyan üç konu (S4-001, S4-004, S4-013) `engel` altında, aylık toplama zamanlaması (`piyasa-verisi.yml` `schedule`)
+> yorum satırı. Kod, testler ve 12 Ekim'de toplanan 111 satır yerinde duruyor. Yeniden açmak: konulardaki `engel` satırlarını sil,
+> workflow'daki `schedule` işaretlerini kaldır. Aşağıdaki anlatım kapatılmadan önceki tasarımdır.
+
 S4 konularının üçü rakam istiyordu ama doğrulanmış kaynak yoktu (kira çarpanı, mahalle fiyatları, arsa-daire
 karşılaştırması); kaynaksız rakam yayınlanmadığı için engelliydi. Kaynak seçimi:
 

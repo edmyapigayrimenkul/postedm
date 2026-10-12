@@ -751,7 +751,8 @@ class TestKonuSecimi(unittest.TestCase):
         self.assertGreaterEqual(len(veri_konulari), 3)
         for k in veri_konulari:
             self.assertIn(k["veri_blogu"], pv.BLOKLAR, k["kod"])
-            self.assertFalse(k.get("engel"), k["kod"])
+            # 2026-10-12: kullanıcı kararıyla kapalı. Engel gerekçeli olmalı (sessizce kapanmasın) ve yalnız o karardan gelmeli.
+            self.assertIn("Kullanıcı kararı (2026-10-12)", k.get("engel") or "", k["kod"])
             self.assertIsNone(k.get("mevzuat"), k["kod"])       # piyasa içeriği kanun maddesi anmaz
             self.assertEqual(k["bicim"], "B4", k["kod"])
 
@@ -917,10 +918,15 @@ class TestIsAkisi(unittest.TestCase):
         cls.metin = (KOK / ".github/workflows/piyasa-verisi.yml").read_text(encoding="utf-8")
         cls.yml = yaml.safe_load(cls.metin)
 
-    def test_aylik_ve_elle_tetiklenir(self):
+    def test_zamanlama_kapali_elle_tetiklenir(self):
+        """2026-10-12 kullanıcı kararı: postedm'de piyasa verisi gönderisi istenmiyor; aylık zamanlama KAPALI,
+        elle çalıştırma açık. Yeniden açma: yorum satırlarını kaldır (aşağıdaki test eski cron'un doğru olduğunu sınar)."""
         on = self.yml.get("on") or self.yml.get(True)
-        self.assertEqual([s["cron"] for s in on["schedule"]], ["0 6 1 * *"])
+        self.assertNotIn("schedule", on)
         self.assertIn("workflow_dispatch", on)
+
+    def test_kapali_zamanlama_geri_acilirsa_ayin_birinde_calisir(self):
+        self.assertIn('#   - cron: "0 6 1 * *"', self.metin)  # yorum satırı hâlâ doğru cron'u taşıyor
 
     def test_veritabani_kuyruguna_girer_ve_yazma_izni_var(self):
         self.assertEqual(self.yml["concurrency"]["group"], "edm-veritabani")
