@@ -156,7 +156,7 @@ class TestTelegramInstabotSeviyesi(unittest.TestCase):
                 self.assertLessEqual(len(cb.encode("utf-8")), 64)
                 cb_listesi.append(cb)
 
-        self.assertIn(f"yayinla:{hid}", cb_listesi)
+        self.assertIn(f"onayla:haber:hepsi:{hid}", cb_listesi)   # Worker "yayinla:<id>" işlemez (tests/test_buton_sozlesmesi.py)
         self.assertIn(f"yenile:{hid}", cb_listesi)
         self.assertIn(f"yayin_kontrol:{hid}", cb_listesi)
         self.assertIn(f"cope_at:{hid}", cb_listesi)

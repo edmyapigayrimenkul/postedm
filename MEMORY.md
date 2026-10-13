@@ -421,6 +421,14 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     konusundan `konudan_uret` ile modelle yazılır ve diğer rehber içerikle AYNI otorite carousel'iyle (`make_image.otorite_gonderi_slaytlari_uret`, 6 slayt 4:5) çizilir; YouTube için ayrıca Shorts videosu. Tek fark rozet/konu. Son iki yayın: #72 (17 Eylül,
     14 gün cayma) ve #103 (18 Eylül, DASK). Elle tetiklenince de hâlâ `--oto-yayin` (madde 19'da bilerek dışarıda). Faiz/oran tablosu, rakam grafiği gibi finansa özgü görsel YOK. Karar bekliyor: finans için ayrı tasarım gerekir mi, elle de düğmeli kart mı.
 
+22. **Telegram buton sözleşmesi testi + 4 ölü buton — 2026-10-13.** Buton adları (`callback_data`) iki yerde ayrı yazılıyor: Python mesajı kurar (`src/telegram/*`, `src/yayin/`, `src/kota_uretici.py`, `src/hata_bildir.py`…), `worker/index.js`
+    callback bloğu tıklamayı işler. **Worker tanımadığı adı SESSİZCE yok sayar** (cevap yok, bekleme simgesi döner, hata günlüğüne düşmez) ve hiçbir test iki tarafı karşılaştırmıyordu. Yeni `tests/test_buton_sozlesmesi.py`: (1) Python'ın ürettiği her ad Worker'da işleniyor,
+    (2) Worker'ın kendi menüleri de, (3) Worker'ın yolladığı her `repository_dispatch` olayını bir workflow dinliyor, (4) statik adlar 64 bayt sınırında; ayrıştırıcı çürürse "yeterince şey bulundu" denetimleri kırılır (iki yönde bozma denemesiyle doğrulandı).
+    **Bulduğu ve düzelttiği ölü butonlar (hepsi Python tarafında düzeltildi, Worker dağıtımı gerekmez):** (a) içerik inceleme kartındaki **▶️ Şimdi Yayınla** `yayinla:<id>` yolluyordu → artık `onayla:haber:hepsi:<id>` (hata kurtarma düğmesiyle aynı Worker yolu; kanal seçimi sorulmadan
+    hepsine yayınlar, yayın kapısı yine uygulanır); (b) kapak adayları mesajındaki **🔄 Başka adaylar** `foto_degistir:<id>` → `foto_adaylar:<id>`; (c) kota raporundaki **🎛 Kontrol Paneli** `yonetim_panel` → `panel` (iki yerde). Bu üç düğme eskiden basılınca hiçbir şey yapmıyordu;
+    iki eski test de ölü adı doğru diye sabitlemişti (`test_kota_uretici`, `test_telegram_instabot_seviyesi`; güncellendi). Altın çıktılar yalnız bu düğme adları için yeniden kaydedildi (telegram: 6 `incele_*`/`kart_incele_*` senaryosu, yayinla: `foto_adaylar`).
+    **Bilinçli istisna** (`BILINEN_OLU`): `piyasa_yayinla` (piyasa özelliği kapalı, madde 8). Yeni buton eklerken: Python'da üret → Worker'da `data === "ad"` / `data.startsWith("ad:")` işleyicisi yaz → test yeşil. Test, listeyi çürümekten korur (artık ölü olmayan ya da hiç üretilmeyen istisna kırılır).
+
 ## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
 
 Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:

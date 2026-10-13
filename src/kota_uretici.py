@@ -488,7 +488,7 @@ def kota_secenek_menusu() -> Tuple[str, Dict[str, Any]]:
                 {"text": "📱 2. Sosyal Medya & Yayın Kotaları", "callback_data": "kota_kat:2"},
             ],
             [
-                {"text": "🎛 Kontrol Paneli", "callback_data": "yonetim_panel"},
+                {"text": "🎛 Kontrol Paneli", "callback_data": "panel"},
             ]
         ]
     }
@@ -654,7 +654,7 @@ def kota_gonder(
         ],
         [
             {"text": "📋 Kota Menüsü", "callback_data": "kota_menu"},
-            {"text": "🎛 Kontrol Paneli", "callback_data": "yonetim_panel"},
+            {"text": "🎛 Kontrol Paneli", "callback_data": "panel"},
         ]
     ]
 
