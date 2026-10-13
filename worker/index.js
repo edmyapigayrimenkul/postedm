@@ -2142,7 +2142,7 @@ function durumMetni() {
     "• <b>08:40</b> — Günlük rapor (kota, jetonlar, son çalışmalar)\n" +
     "• <b>09:17</b> ve <b>18:17</b> — Haber önerileri; hangisinin içeriğe çevrileceğine siz karar verirsiniz\n" +
     "• <b>10:00</b> — Bilgilendirici (rotasyon: B1 · Nedir Doğrusu · Net Cevap · B1) — önce bu gruba <b>onaya</b> gelir\n" +
-    "• <b>12:30</b> — Emlak Sözlüğü kartı — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez). Elle /sozluk derseniz kart <b>onay butonlarıyla</b> düşer\n" +
+    "• <b>12:30</b> — Emlak Sözlüğü kartı, <b>iki günde bir</b> — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez). Elle /sozluk derseniz kart <b>onay butonlarıyla</b> düşer\n" +
     "• <b>13:30</b> ve <b>21:30</b> — Onay bekleyen içerik varsa hatırlatma\n\n" +
     "<i>Bu mesaj takvimi gösterir, sistemin sağlığını değil. Gerçek durum için " +
     "“Canlı Sağlık Raporu”na bas — kanallar, jetonlar ve son çalışmalar gerçekten denetlenir.</i>"

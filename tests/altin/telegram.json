@@ -18233,7 +18233,12 @@
    "{\"args\": [{\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kod\": \"SZ-001\", \"terim\": \"İPOTEK\"}], \"islev\": \"sozluk_arsivi.stok_kalan\", \"kwargs\": {}}"
   ],
   "db": {
-   "ayarlar": [],
+   "ayarlar": [
+    {
+     "anahtar": "sozluk_zamanli_son_gun",
+     "deger": "<BUGUN>"
+    }
+   ],
    "haberler": [
     {
      "detay_metni": "{\"manset\": \"Üretilen Manşet\", \"spot\": \"Spot metni\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"onem_puani\": 8, \"yasal_dayanak\": \"TMK md. 732\", \"format_turu\": \"sozluk\", \"terim\": \"İPOTEK\"}",
@@ -19520,7 +19525,7 @@
    "ayarlar": [
     {
      "anahtar": "sozluk_oto_son_gun",
-     "deger": "2026-10-13"
+     "deger": "<BUGUN>"
     }
    ],
    "haberler": [
@@ -20471,7 +20476,7 @@
      "chat_id": "-100123",
      "disable_web_page_preview": true,
      "parse_mode": "HTML",
-     "text": "📉 <b>Sözlük kartı stoğu azalıyor</b>: bu karttan sonra yayınlanmamış 5 kart kaldı (günde bir kartla ≈5 gün). Kartlar bitince sözlük her gün modelle üretilip onayınıza düşer; tekrarsız 2 yıl için 730 kart gerekir. Yeni kart yazılmalı."
+     "text": "📉 <b>Sözlük kartı stoğu azalıyor</b>: bu karttan sonra yayınlanmamış 5 kart kaldı (2 günde bir kartla ≈10 gün). Kartlar bitince sözlük modelle üretilip onayınıza düşer; tekrarsız 2 yıl için 365 kart gerekir. Yeni kart yazılmalı."
     },
     "metot": "sendMessage",
     "zaman_asimi": 25

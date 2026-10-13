@@ -410,6 +410,17 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     **Ölçüm (data/edm.db, 2026-10-13):** onay kartları 29 Eylül'den beri `-1003984339543` sohbetine gidiyor (168 kayıt, 15 gün). 10:00 içeriği 2–9 Ekim arası GitHub cron'uyla ≈10:20'de, 10–12 Ekim arası GitHub gecikmesiyle 13:30–16:38'de,
     13 Ekim'de ilk kez Cloudflare ile 10:01'de geldi. Çok sayıda kart onaylanmadan 5 günlük zaman aşımına düştü (4–6 Ekim); 13 Ekim akşamı #594 ve #600 hâlâ onay bekliyor.
 
+20. **Zamanlanmış sözlük iki günde bir — 2026-10-13 (kullanıcı kararı).** 12:30 sözlüğü onaysız otomatik yayınlanmaya DEVAM eder ama sıklığı günde bir → iki günde bir oldu. Kural: son TESLİM edilen zamanlanmış turdan
+    (`ayarlar › sozluk_zamanli_son_gun`; kart yayınlandı ya da onaya düştü) beri `sozluk_arsivi.YAYIN_ARALIK_GUN` (=2) gün geçmediyse tur sessizce atlanır: kart tüketilmez, model çalışmaz, Telegram'a mesaj düşmez, atlanan gün "başarılı"
+    sayılır (yedek GitHub cron'u da tekrar denemez). **Sabit tek/çift gün DEĞİL**: başarısız tur işaretlenmez, ertesi gün yeniden denenir. Elle `/sozluk` bu aralığa girmez ve işaret yazmaz (madde 19). Kod: `telegram/akislar/sozluk.py ›
+    sozluk_zamanli_gunu_mu / sozluk_zamanli_isaretle`, çağıran `uretim._sozluk_slotu` (`oto_yayin is True` = zamanlanmış tur). **Sonuçlar:** (a) 66 kartlık arşiv ≈132 gün yeter (eskiden 66); (b) `HEDEF_KART` 730 → **365**
+    (`BEKLEME_GUN // YAYIN_ARALIK_GUN`: iki günde bir kartla 2 yıl tekrarsız; tekrar bekleme süresi 730 gün aynen) — Gemini'nin yazacağı kart hedefi yarıya indi; (c) stok uyarısı "2 günde bir kartla ≈N gün" der.
+    Sıklığı değiştirmek tek satır (`YAYIN_ARALIK_GUN`). Testler: `tests/test_sozluk_iki_gunde_bir.py` (6 günlük simülasyon dahil). Test yazarken: paylaşılan test DB'sinde bu işaret kalır, zamanlanmış sözlük turunu çağıran
+    testler `sozluk_zamanli_gunu_mu`/`sozluk_zamanli_isaretle`'yi yamalamalı (bkz. `test_sozluk_oto_yayin_guvenceleri.py`).
+21. **Finans bülteni (durum, 2026-10-13):** kullanıcı onaysız yayına itiraz etmedi ("oto yayınlanabilir") ama tasarımı henüz görmediği için önce bakılması istendi. Bülten ayrı bir tasarım DEĞİL: konu bankasının S5 (kredi/banka/tüketici hakları)
+    konusundan `konudan_uret` ile modelle yazılır ve diğer rehber içerikle AYNI otorite carousel'iyle (`make_image.otorite_gonderi_slaytlari_uret`, 6 slayt 4:5) çizilir; YouTube için ayrıca Shorts videosu. Tek fark rozet/konu. Son iki yayın: #72 (17 Eylül,
+    14 gün cayma) ve #103 (18 Eylül, DASK). Elle tetiklenince de hâlâ `--oto-yayin` (madde 19'da bilerek dışarıda). Faiz/oran tablosu, rakam grafiği gibi finansa özgü görsel YOK. Karar bekliyor: finans için ayrı tasarım gerekir mi, elle de düğmeli kart mı.
+
 ## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
 
 Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:

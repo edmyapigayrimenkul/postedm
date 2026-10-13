@@ -125,14 +125,23 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
 
 
 def _sozluk_slotu(oto_yayin: Optional[bool] = None) -> bool:
-    """Günün sözlüğü: önce hazır kart; kart kalmadıysa modelle üretilip HER ZAMAN onaya sunulur."""
+    """Sözlük: önce hazır kart; kart kalmadıysa modelle üretilip HER ZAMAN onaya sunulur.
+
+    `oto_yayin=True` zamanlanmış 12:30 turudur ve iki günde bir çalışır (`sozluk_zamanli_gunu_mu`); atlanan gün başarılı sayılır
+    (sessiz, kart tüketilmez, model çalışmaz). Elle istek ve diğer çağrılar bu aralığa girmez."""
+    zamanli_tur = oto_yayin is True
+    if zamanli_tur and not sozluk.sozluk_zamanli_gunu_mu():
+        log.info("Zamanlanmış sözlük bugün atlanıyor: iki günde bir çıkar.")
+        return True
     if oto_yayin is None:
         sonuc = sozluk.sozluk_karti_hazirla_ve_sun()
     else:
         sonuc = sozluk.sozluk_karti_hazirla_ve_sun(oto_yayin=oto_yayin)
     if sonuc is None:
         istemci.mesaj_gonder("ℹ️ Yayınlanabilir hazır sözlük kartı kalmadı; konu bankasından üretilip onayınıza sunuluyor.")
-        return hizli_icerik_uret(format_turu="sozluk")
+        sonuc = hizli_icerik_uret(format_turu="sozluk")
+    if zamanli_tur and sonuc:
+        sozluk.sozluk_zamanli_isaretle()
     return sonuc
 
 
@@ -140,9 +149,9 @@ def slot_icerigi_hazirla_ve_sun(slot: str = "bilgilendirici", oto_yayin: Optiona
     """Günün içeriği ve elle tetiklenen slotlar.
 
     - 'bilgilendirici': 10:00 TR'nin içeriği. Format dört günlük döngüde döner: b1, nedir_dogrusu,
-      net_cevap, b1 (konu_bankasi.BILGILENDIRICI_FORMATLAR). Sözlük bu döngüde DEĞİL: her gün 12:30'da
+      net_cevap, b1 (konu_bankasi.BILGILENDIRICI_FORMATLAR). Sözlük bu döngüde DEĞİL: iki günde bir 12:30'da
       'sozluk' slotuyla ayrıca yayınlanır.
-    - 'sozluk': sözlük içeriği (oto_yayin aktifse doğrudan yayınlanır).
+    - 'sozluk': sözlük içeriği (oto_yayin aktifse doğrudan yayınlanır; zamanlanmış tur iki günde bir).
     - 'haber': içerik ÜRETMEZ; taze haberleri tarihleriyle öneri olarak düşürür
       (haber_oneri). Hangisinin içeriğe çevrileceğine insan karar verir.
     """

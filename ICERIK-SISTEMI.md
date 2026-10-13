@@ -401,7 +401,7 @@ değil ÖZELLİK sınar (sığar, taşmaz, dul satır yok; genişlik kaydırıla
 (3) yayınlanacak görünümü görmek için Actions → "Sözlük Önizleme" → Run workflow: 34 kartı Linux'ta çizip kontak sayfaları
 olarak yükler (`scripts/sozluk_onizleme.py`; veritabanına, Telegram'a ve kanallara dokunmaz).
 
-**Stok ve tekrar (kullanıcı şartı: EN AZ 2 YIL tekrarsız):** günde bir kartla 2 yıl için 730 kart gerekir (`sozluk_arsivi.HEDEF_KART`);
+**Stok ve tekrar (kullanıcı şartı: EN AZ 2 YIL tekrarsız):** zamanlanmış sözlük 2026-10-13'ten beri **iki günde bir** çıkar (`sozluk_arsivi.YAYIN_ARALIK_GUN`); iki günde bir kartla 2 yıl için 365 kart gerekir (`sozluk_arsivi.HEDEF_KART`; eskiden günde bir kartla 730 idi);
 bekleme süresi bu yüzden 730 gün (`BEKLEME_GUN`, önceki 180 gün 34 kartla 6 ayda tekrara düşürüyordu). 2026-10-09'da 34 kart var:
 34 gün yeter, sonra yayınlanabilir kart kalmaz ve sözlük her gün modelle üretilip onaya düşer (eksik: 696 kart). Hiç yayınlanmamış
 kart 14'e inince her yayında Telegram'a "stok azalıyor" hatırlatması gider; `hazirla.py --durum` eksik kart sayısını yazar.
@@ -419,7 +419,7 @@ bayraksız çalıştırmalar (10:00 günlük döngü) açık anahtar yoksa hiçb
 `tests/test_hazirla_yml_elle_tetik.py` workflow'un kabuk betiğini gerçekten çalıştırarak sınar). Finans bülteni bu kararın dışındadır (elle de `--oto-yayin`).
 Modelin yazdığı sözlük bayrakla bile ASLA otomatik yayınlanmaz (kart kalmadıysa onaya düşer).
 
-**Günde bir sözlük:** sözlük 10:00'daki günlük döngüde YOK (döngü: b1, nedir_dogrusu, net_cevap, b1); yalnız 12:30'da
+**İki günde bir sözlük (2026-10-13 kararı; eskiden günde bir):** son teslim edilen zamanlanmış turdan (`ayarlar › sozluk_zamanli_son_gun`) beri iki gün geçmediyse 12:30 turu sessizce atlanır (kart tüketilmez, mesaj düşmez); başarısız tur işaretlenmez, ertesi gün yeniden denenir. Elle `/sozluk` bu aralığa girmez. Sıklığı değiştirmek tek satır: `YAYIN_ARALIK_GUN`. Sözlük 10:00'daki günlük döngüde YOK (döngü: b1, nedir_dogrusu, net_cevap, b1); yalnız 12:30'da
 yayınlanır. Döngüde kalsaydı beşinci günde aynı gün iki sözlük çıkardı (biri onayda bekler, biri otomatik yayınlanır).
 
 **Dizgi (kart görseli):** terim büyük ve ayrım çizgisi sabit (kullanıcı kuralı, `yeni_formatlar.uret_sozluk`). Satırlar

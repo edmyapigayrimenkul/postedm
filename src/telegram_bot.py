@@ -59,6 +59,8 @@ _EV = {
     "sozluk_karti_hazirla_ve_sun": "akislar.sozluk",
     "sozluk_oto_yayin_acik_mi": "akislar.sozluk",
     "sozluk_oto_yayin_kapatildi_mi": "akislar.sozluk",
+    "sozluk_zamanli_gunu_mu": "akislar.sozluk",
+    "sozluk_zamanli_isaretle": "akislar.sozluk",
     # akislar.uretim
     "_sozluk_slotu": "akislar.uretim",
     "haberden_icerik_hazirla": "akislar.uretim",

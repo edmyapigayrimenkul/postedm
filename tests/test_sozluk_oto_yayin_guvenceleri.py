@@ -434,7 +434,11 @@ class TestSlotYonlendirme(unittest.TestCase):
         kaydet.assert_called_once_with("sozluk")
 
     def test_oto_yayin_bayragi_slottan_karta_kadar_iletilir(self):
-        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"):
+        # Zamanlanmış tur iki günde bir çalışır (tests/test_sozluk_iki_gunde_bir.py); burada yalnız bayrağın iletilmesi sınanır,
+        # paylaşılan test veritabanındaki "son tur" işareti sonucu etkilemesin.
+        with patch("src.telegram.akislar.sozluk.sozluk_zamanli_gunu_mu", return_value=True), \
+             patch("src.telegram.akislar.sozluk.sozluk_zamanli_isaretle"), \
+             patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"):
             tb.slot_icerigi_hazirla_ve_sun(slot="sozluk", oto_yayin=True)
             kart.assert_called_once_with(oto_yayin=True)
         with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"):
@@ -535,7 +539,7 @@ class TestZamanlanmisCalistirma(unittest.TestCase):
         uyari = [m for m in mesajlar if "stoğu azalıyor" in m]
         self.assertEqual(len(uyari), 1, mesajlar)
         self.assertIn(f"{sa.STOK_UYARI_ESIGI} kart kaldı", uyari[0])
-        self.assertIn("730 kart", uyari[0])
+        self.assertIn(f"{sa.HEDEF_KART} kart", uyari[0])
 
     def test_stok_boldyken_hatirlatma_yok(self):
         with patch.object(sa, "stok_kalan", return_value=sa.STOK_UYARI_ESIGI + 1):
