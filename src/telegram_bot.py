@@ -867,11 +867,9 @@ def yayindan_kaldir(
 
     # 6. Veritabanını güncelle: havuza DÖNMEMESİ için durum='kaldirildi'
     if haber:
-        db.haber_guncelle(
-            int(ref_str),
-            durum="kaldirildi",
-            atlanma_zamani=datetime.now(timezone.utc).isoformat(),
-        )
+        # (2026-10-13) Eskiden buraya `atlanma_zamani` da yazılıyordu; haberler tablosunda bu sütun hiç yok,
+        # UPDATE "no such column" ile çöküyor, gönderiler silinmiş hâlde kayıt "yayında" kalıyordu.
+        db.haber_guncelle(int(ref_str), durum="kaldirildi")
     elif ilan:
         db.ilan_kaldirildi_isaretle(ref_str)
 
