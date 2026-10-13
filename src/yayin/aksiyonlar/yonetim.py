@@ -36,11 +36,11 @@ def plan_kaydi(istek: Istek) -> None:
 
 
 def ertele(istek: Istek) -> None:
-    """Hatırlatma sayacını ve süresini sıfırlar."""
+    """Onay isteğini 1 saat erteler (otomatik hatırlatma yok; 1 günlük havuz kuralı yine geçerlidir)."""
     db.onay_istegi_ertele(istek.tur, str(istek.ref_id), dakika=60)
     ad = tur_adi(istek.tur)
     log.info("%s #%s için onay süresi 1 saat ertelendi.", ad, istek.ref_id)
-    telegram_bot.mesaj_gonder(f"⏰ <b>{ad} #{istek.ref_id} için yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>")
+    telegram_bot.mesaj_gonder(f"⏰ <b>{ad} #{istek.ref_id} için yayın 1 saat ertelendi.</b>")
 
 
 def kaldir(istek: Istek) -> None:

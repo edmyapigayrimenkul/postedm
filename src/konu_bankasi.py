@@ -481,6 +481,48 @@ def konuyu_havuza_iade_et(haber_id: int) -> int:
         return cur.rowcount
 
 
+# Onaylanmayan içeriğin HAVUZA alınıp yeniden sunulabildiği formatlar (2026-10-13 kararı): modelin yazdığı, zamana bağlı olmayan
+# (evergreen) içerikler. Haber (bayatlar), sözlük kartı (ucuz, kartı yeniden kurmak model gerektirmez), finans ve reels buna girmez.
+HAVUZ_FORMATLARI = ("b1", "nedir_dogrusu", "net_cevap", "vaka")
+
+
+def icerik_formati(haber_id: int) -> Optional[str]:
+    """İçeriğin üretim formatı (`konu_gecmisi.sonuc = 'uretildi:<format>'`), bilinmiyorsa None."""
+    tabloyu_kur()
+    with db._baglanti_al() as conn:
+        satir = conn.execute(
+            "SELECT sonuc FROM konu_gecmisi WHERE haber_id = ? AND sonuc LIKE 'uretildi:%' ORDER BY id DESC LIMIT 1",
+            (haber_id,),
+        ).fetchone()
+    return format_adi(str(satir["sonuc"]).split(":", 1)[1]) if satir else None
+
+
+def havuza_alinabilir_mi(haber: Dict[str, Any]) -> bool:
+    """Süresi dolan içerik havuza mı (hazır içerik saklanır), yoksa arşive mi gider (eskisi gibi)?
+
+    Havuza: konu bankasından modelle yazılmış, metni tam, formatı `HAVUZ_FORMATLARI`'nda olan içerik."""
+    if not str(haber.get("kaynak") or "").startswith("EDM Konu Bankası") or not haber.get("manset") or not haber.get("detay_metni"):
+        return False
+    return icerik_formati(int(haber["id"])) in HAVUZ_FORMATLARI
+
+
+def havuzdaki_hazir_icerik(format_turu: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Bu formatta havuza alınmış (hazır, model çağrısı gerektirmeyen) EN ESKİ içerik; yoksa None."""
+    fmt = format_adi(format_turu)
+    if fmt not in HAVUZ_FORMATLARI:
+        return None
+    tabloyu_kur()
+    with db._baglanti_al() as conn:
+        satir = conn.execute(
+            """SELECT h.* FROM haberler h
+               WHERE h.durum = 'havuzda' AND h.manset IS NOT NULL AND h.detay_metni IS NOT NULL
+                 AND EXISTS (SELECT 1 FROM konu_gecmisi g WHERE g.haber_id = h.id AND g.sonuc = ?)
+               ORDER BY h.id ASC LIMIT 1""",
+            (f"uretildi:{fmt}",),
+        ).fetchone()
+    return dict(satir) if satir else None
+
+
 def kullanildi_isaretle(konu_kodu: str, haber_id: Optional[int] = None, sonuc: str = "uretildi",
                         format_turu: Optional[str] = None) -> None:
     """Konuyu kullanıldı olarak kaydeder. Üretim başarısızsa `sonuc='hata'` geçilir;

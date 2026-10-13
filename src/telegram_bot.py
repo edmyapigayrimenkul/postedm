@@ -53,6 +53,8 @@ _EV = {
     # akislar.reels
     "_reels_hazirla_ve_sun": "akislar.reels",
     "reels_hazirla_ve_sun": "akislar.reels",
+    # akislar.havuz
+    "havuzdan_sun": "akislar.havuz",
     # akislar.sozluk
     "_OTO_YAYIN_KAPALI_DEGERLER": "akislar.sozluk",
     "_sozluk_karti_sec": "akislar.sozluk",

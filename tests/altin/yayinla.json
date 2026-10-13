@@ -231,7 +231,7 @@
  },
  "ertele_haber": {
   "cagrilar": [
-   "{\"args\": [\"⏰ <b>İçerik #737 için yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}"
+   "{\"args\": [\"⏰ <b>İçerik #737 için yayın 1 saat ertelendi.</b>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}"
   ],
   "db": {
    "haberler": [
@@ -269,7 +269,7 @@
   "telegram": [
    {
     "args": [
-     "⏰ <b>İçerik #737 için yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>"
+     "⏰ <b>İçerik #737 için yayın 1 saat ertelendi.</b>"
     ],
     "islev": "telegram_bot.mesaj_gonder",
     "kwargs": {}
@@ -278,7 +278,7 @@
  },
  "ertele_ilan": {
   "cagrilar": [
-   "{\"args\": [\"⏰ <b>İlan #ilan-4 için yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}"
+   "{\"args\": [\"⏰ <b>İlan #ilan-4 için yayın 1 saat ertelendi.</b>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}"
   ],
   "db": {
    "haberler": [],
@@ -305,7 +305,7 @@
   "telegram": [
    {
     "args": [
-     "⏰ <b>İlan #ilan-4 için yayın 1 saat ertelendi. Hatırlatıcılar duraklatıldı.</b>"
+     "⏰ <b>İlan #ilan-4 için yayın 1 saat ertelendi.</b>"
     ],
     "islev": "telegram_bot.mesaj_gonder",
     "kwargs": {}

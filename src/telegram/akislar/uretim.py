@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional
 
 from ... import db, generate_text, konu_bankasi
 from .. import istemci
-from . import onay, reels, sozluk
+from . import havuz, onay, reels, sozluk
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +76,10 @@ def konu_bankasindan_hazirla(gun: Optional[int] = None) -> bool:
     yüksek etkileşimli emlak içeriğinin çoğu haber değil evergreen bilgidir ve
     her gün üretilebilir olması takvimin aksamamasını sağlar.
     """
+    havuzdan = havuz.havuzdan_sun("b1")
+    if havuzdan is not None:
+        return havuzdan
+
     konu = konu_bankasi.sonraki_konu(gun=gun, format_turu="b1")
     if not konu:
         istemci.mesaj_gonder(
@@ -198,6 +202,9 @@ def hizli_icerik_uret(format_turu: Optional[str] = None) -> bool:
         "net_cevap": "❓ Net Cevap Rehberi",
     }
     format_etiketi = etiketler.get(format_turu or "", "Otorite İçeriği")
+    havuzdan = havuz.havuzdan_sun(format_turu or "")
+    if havuzdan is not None:
+        return havuzdan
     istemci.mesaj_gonder(f"⏳ <b>{format_etiketi}</b> için sıradaki konu hazırlanıyor...")
 
     konu = konu_bankasi.sonraki_konu(format_turu=format_turu)

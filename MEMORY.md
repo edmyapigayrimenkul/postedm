@@ -79,6 +79,7 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
      `slot_hazirla {slot: bilgilendirici, zamanli: true}`, 09:30 UTC'de `{slot: sozluk}` yollar (`worker/wrangler.toml` `[triggers]`).
      `.github/workflows/hazirla.yml`'deki aynı saatli GitHub cron'ları GECİKMELİ YEDEKTİR (6-10 saat gecikiyorlar); `hazirla.py`
      zamanlanmış bir slotu aynı Türkiye gününde ikinci kez üretmez. Eskiden ikisi birden açıkken günde iki tur çalışırdı (bkz. §9.5).
+   * **Güncel tam zamanlayıcı listesi §12.2'de** (rapor, haber önerisi ×2, içerik, iki günde bir sözlük, sessiz kuyruk bakımı ×2: hepsi Cloudflare cron'u; bkz. §10 madde 18, 20, 23).
    * RSS taranır, Gemini kanca başlıklı 3 slaytlık analiz üretir ve görseller `src/make_image.py` ile çizilir.
    * Telegram grubuna `@PostEdmBot` üzerinden önizleme ve onay butonları (`✅ Yayına Al (IG + FB + Threads)`) iletilir.
 2. **Onay ve Yayınlama:**
@@ -305,7 +306,7 @@ Commit'ler: `6243ae6` `fc6217f` (tasarım) · `a321e32` (test izolasyonu) · `0a
 
 Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunlugu.py`, `test_zamanlanmis_duraklatma.py`, `test_otomatik_yayin_kapisi.py`).
 
-1. **Onay zaman aşımı TÜM kuyruğa uygulanır** (`hatirlat.py`). Eskiden `LIMIT 5` yüzünden altıncı ve eski içerikler 5 güne hiç girmiyordu (14 içerik, en eskisi
+1. **[GÜNCEL 2026-10-13: süre 5 gün → 1 gün, hazır içerik havuza alınır, hatırlatma kapalı — madde 23]** **Onay zaman aşımı TÜM kuyruğa uygulanır** (`hatirlat.py`). Eskiden `LIMIT 5` yüzünden altıncı ve eski içerikler 5 güne hiç girmiyordu (14 içerik, en eskisi
    27 Eylül'den beri bekliyordu). Hatırlatma yine yalnız en yeni 5'e gider; aynı turda düşenler tek özet mesajdır.
 2. **Duraklatma zamanlanmış koşuları da durdurur.** `hazirla.yml` zamanlanmış koşuyu `ZAMANLANMIS=true` ile işaretler; `--slot`/`--format` bayrağı artık
    duraklatmayı aşmaz (cron'lar bu bayraklarla çalışıyor). Elle tetiklenenler (Telegram, `workflow_dispatch`) aşar.
@@ -397,7 +398,7 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     Telegram'ın `haber_oneri` dispatch'i `zamanli` taşımadığı için eskisi gibi `--slot haber`. Bilinen ödünler: (a) bot duraklatılmışken zamanlı haber önerisi atlanır ama o slot "yapıldı" işaretlenir
     (gün içinde duraklatma kalkarsa o sabahın önerisi yedek tetikle de gelmez; akşam turu etkilenmez); (b) iş sessizce yutulan bir hatayla "başarılı" bitiyorsa (çıkış kodu 0) slot işaretlenir;
     (c) GitHub aynı `concurrency` grubunda (`edm-veritabani`) en çok BİR bekleyen koşu tutar, yeni bekleyen eskisini iptal eder: yedek koşular hızlı atladığı için risk düşük ama sıfır değil (yeni değil, tüm DB'ye yazan işlerde var).
-    **Dağıtım gerekir:** main'e birleşince Actions → **Worker Dağıt** → Run workflow; Cron Triggers'ta SEKİZ satır görünmeli (iş bunu Cloudflare API'sinden doğrular, eksikse kırmızı biter).
+    **DAĞITILDI (2026-10-13 21:26 UTC, Worker Dağıt koşusu #2, `main`@724de95, yeşil; sekiz cron Cloudflare API'sinden doğrulandı).** Eski not: main'e birleşince Actions → **Worker Dağıt** → Run workflow; Cron Triggers'ta SEKİZ satır görünmeli (iş bunu Cloudflare API'sinden doğrular, eksikse kırmızı biter).
     Dağıtılana dek her şey eskisi gibi GitHub cron'uyla çalışır (koruma bunu bozmaz: ilk koşu çalışır ve işaretlenir). **GitHub yedek cron'larını bir hafta sorunsuz Cloudflare çalışmasından sonra silin**
     (4 workflow'da `schedule` bloğu; `test_tek_tetikleyici_kurali`, `test_cron_takvimle_uyumlu`, `test_zamanli_isler.py` birlikte güncellenir). Testler: `tests/test_zamanli_isler.py` (Worker tablosu ↔ toml ↔ workflow ↔ dağıtım doğrulaması,
     koruma betiği), `tests/worker_gunluk_tur.test.mjs` (her cron'un olayı, yükü, hata bildirimi).
@@ -429,18 +430,72 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     iki eski test de ölü adı doğru diye sabitlemişti (`test_kota_uretici`, `test_telegram_instabot_seviyesi`; güncellendi). Altın çıktılar yalnız bu düğme adları için yeniden kaydedildi (telegram: 6 `incele_*`/`kart_incele_*` senaryosu, yayinla: `foto_adaylar`).
     **Bilinçli istisna** (`BILINEN_OLU`): `piyasa_yayinla` (piyasa özelliği kapalı, madde 8). Yeni buton eklerken: Python'da üret → Worker'da `data === "ad"` / `data.startsWith("ad:")` işleyicisi yaz → test yeşil. Test, listeyi çürümekten korur (artık ölü olmayan ya da hiç üretilmeyen istisna kırılır).
 
-## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
+23. **Hatırlatma kapalı, onay süresi 1 gün, onaylanmayan içerik havuza döner ve YENİDEN ÜRETİLMEZ — 2026-10-13 (kullanıcı kararı).** Kullanıcının sözü: "hatırlatma gelmesin, istemiyorum; bir içeriği 1 gün yayınlamadıysam havuza dönsün,
+    daha önce hazırlandığı için tekrar oluşturulmasın, başka bir gün tekrar önerilir."
+    * **Hatırlatma:** `scripts/hatirlat.py` zamanlanmış koşuda (Cloudflare 13:30 / 21:30 + GitHub yedeği) artık YALNIZ sessiz kuyruk bakımı yapar; mesaj atmaz (eski "İÇERİK ZAMAN AŞIMINA UĞRADI" özeti de kalktı). Hatırlatma yalnız KULLANICI isterse:
+      `--zorla` (Telegram "⏰ Onayları Hatırlat" düğmesi, `/hatirlat`). Cron'lar ve `hatirlat` olayı/slot adları (`hatirlat_ogle/aksam`) DEĞİŞMEDİ (yeniden Worker dağıtımı gerekmedi); workflow görünen adı "Onay Kuyruğu Bakımı (EDM)".
+    * **1 gün:** `ZAMAN_ASIMI_DAKIKA = 24*60` (eskiden 5 gün). Bakım günde iki koşu olduğu için fiilen 24–36 saat. Süresi dolanın eski albümü ve kartı gruptan SİLİNİR (ölü düğme kalmasın; Telegram 48 saat sınırı içinde kalır).
+      Planlı yayını bekleyen içerik (planlanan_yayin) süresi dolsa da dokunulmaz.
+    * **Havuz:** modelle yazılmış, konu bankasından gelen hazır içerik (`konu_bankasi.HAVUZ_FORMATLARI` = b1, nedir_dogrusu, net_cevap, vaka; `havuza_alinabilir_mi`) SİLİNMEZ: `haberler.durum='havuzda'` (`db.durum_havuza_al`). Konusu havuza İADE EDİLMEZ
+      (hazır içerik havuzun kendisi; yoksa konu yeniden seçilip model ikinci kez çağrılırdı). **Yeniden sunum:** aynı formatın bir sonraki turu (10:00 döngüsü ya da elle /dogrusu /vaka /soru; `uretim.konu_bankasindan_hazirla` ve `hizli_icerik_uret`)
+      ÖNCE havuza bakar (`telegram/akislar/havuz.py › havuzdan_sun`, en eski önce): içerik MODEL ÇAĞRILMADAN, AYNI numarayla (#id) yeniden onaya sunulur (slaytlar saklı `detay_metni`'nden yeniden çizilir; yayın kapısı yine çalışır). Kapıdan geçemezse arşive alınır,
+      konusu iade edilir ve o turda taze içerik üretilir (gün boş geçmez). Havuz kayıtları `eski_kayitlari_temizle` ile 14 günde silinir (havuz sınırsız büyümez); kullanıcı "Çöpe At / Bu turu atla" derse içerik havuza girmez.
+    * **Havuza girmeyenler (eskisi gibi arşiv + konu iadesi):** haber kaynaklı içerik (bayatlar), sözlük kartı (yeniden kurmak ucuz), finans, reels, metni/manşeti eksik olanlar.
+    * **Bilinen artıklar (kaldırılmadı, Gemini'ye bırakıldı):** "⏰ 1 saat ertele" düğmesi (Worker `anaMenu`, `yonetim.ertele`) ve ayar menüsündeki "Onay Hatırlatıcı AÇIK/KAPALI" düğmesi (`src/ayar.py › hatirlatici`) artık anlamsız — kaldırmak Worker + altın çıktı + testleri değiştirir.
+    * Testler: `tests/test_havuz_yeniden_sunum.py` (14: sorgular, yeniden sunum modelsiz, kapıdan geçmeyen, format karışmaz, uçtan uca), `test_onay_kuyrugu_ve_iade.py`, `test_sozlesme.py`, `test_planli_yayin.py` yeni kurallara uyarlandı;
+      altın çıktı yalnız `ertele_haber/ertele_ilan` mesaj metni için yeniden kaydedildi.
+24. **Depo PUBLIC (doğrulandı 2026-10-13, GitHub API `private:false`).** AKSIYON-PLANI.md §0.1 "PRIVATE" diyor (11 Eylül) ama eskimiş. Sonuç: depoya sır, kişisel veri, jeton, müşteri bilgisi YAZILMAZ (DB ve .md dosyaları herkese açık);
+    `data/edm.db`'de onaylanmamış taslaklar ve Telegram grup kimliği görünür (ARCHITECTURE.md §5). Sırlar yalnız GitHub Secrets / Cloudflare secret'larında durur; sohbette istenmez.
 
-Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:
+## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
-| Alan | Kim | Kod / belge |
+Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.
+Yeni oturum/ajan bu bölümü ve GEMINI.md'yi okuyup ona göre davranır.
+
+| Alan | Kod / belge |
+|---|---|
+| **Paylaşım altyapısı** — kanallara dağıtım, yayın kapısı, zamanlama/tetikleme, yeniden deneme, raporlama, Worker | `src/yayin/`, kanal modülleri (`src/instagram.py`, `facebook.py`, `threads.py`, `tiktok.py`, `youtube.py`, `linkedin.py`, `twitter.py`), `scripts/yayinla.py`, `scripts/hazirla.py`, `worker/`, `.github/workflows/` |
+| **Telegram altyapısı** — onay/yönetim yüzü, menüler, kartlar, albüm teslimi, düğme akışları | `src/telegram/` (cephe: `src/telegram_bot.py`), `worker/index.js`, `tests/test_telegram_altin.py`, `tests/test_buton_sozlesmesi.py` |
+| **Sözlük kartı üretimi** (A12 ve sonrası dalgalar, reddedilen konuların yeniden yazımı, SZ-007, md. 339/2) ve diğer içerik işleri | SOZLUK-KART-URETIMI.md (devir notu en üstte), `data/sozluk_kartlari.yaml`, `data/sozluk_taslak/` |
+
+Kurallar (modelden bağımsız):
+1. Sözlük kartı hattı: yazar → doğrulayıcı → **ayrı** inceleme turu (yazan model kendi kartını incelemez) → birleştirici → tam test + `gorsel_denetim.py`. Doğrulayıcı yeşili doğruluk değildir (dalga 1: %62 kabul).
+2. Paylaşım ve Telegram değişiklikleri **altın çıktı güvencesi altında** yapılır (`tests/test_yayinla_altin.py` 70 senaryo, `tests/test_telegram_altin.py` 219 senaryo) ve ARCHITECTURE.md §2'deki katman/yama kurallarına uyar
+   (kardeş modüller modül üzerinden çağrılır, dosya ≤250 satır, testler gerçek evi yamalar). Davranış bilerek değişiyorsa altın dosya YALNIZ ilgili senaryolar için yeniden kaydedilir ve fark bu belgeye yazılır.
+3. Yeni Telegram butonu: Python'da üret → Worker callback bloğunda `data === "ad"` / `data.startsWith("ad:")` işleyicisi yaz → `tests/test_buton_sozlesmesi.py` yeşil olmalı (madde 22).
+4. Öncelik sırasını kullanıcı belirler; ARCHITECTURE.md §4 "Açık işler ve devir" aday havuzudur.
+
+## 12. 2026-10-13 OTURUM ÖZETİ VE GEMİNİ'YE DEVİR
+
+§10 maddeleri ayrıntıdır; burası tek bakışta özet. Çalışma düzeni, komutlar ve tuzaklar: **GEMINI.md**.
+
+### 12.1 Bu oturumda yapılanlar
+Madde 1–8 `main`'de ve canlıda (PR #1–#5 birleşti; #4'ü kullanıcının "birleştir" talimatıyla Claude birleştirdi, Worker'ı kullanıcı dağıttı). **Madde 8 (hatırlatma/havuz) ve belgeler dalda (`claude/dreamy-wozniak-jsngzw`), PR birleşince canlı olur.**
+1. `scripts/yayinla.py` (1571 satır) → `src/yayin/` paketi, altın çıktı güvencesiyle; "Başka Fotoğraf Bul" çökmesi kendiliğinden düzeldi (madde 14).
+2. `src/telegram_bot.py` (2919 satır) → `src/telegram/` (25 modül + canlı takma ad cephesi); `yayindan_kaldir` üretim hatası düzeltildi (madde 15). Faz 2 tamam.
+3. Mevzuat önbelleği + sözlük pilotu (Kadastro 3402) + dalga 1 (TBK kira, KMK): arşiv 34 → 66 kart; araç hataları giderildi: süre denetimi ("md. 319 ayıp" → "319 ay"), ek maddeler, başlık yerleşim tabanı (madde 16, 17).
+4. Zamanlayıcılar Cloudflare cron'una: günlük içerik ve sözlük (madde 13), rapor / haber önerisi / hatırlatma (madde 18, **Worker dağıtıldı**). GitHub cron'ları gecikmeli yedek; çift çalışmayı `scripts/zamanli_koruma.py` önler.
+5. Elle tetiklenen sözlük onaysız yayına çıkmaz, onay kartıyla düşer (madde 19). Zamanlanmış sözlük iki günde bir (madde 20; hedef kart sayısı 365).
+6. Finans bülteni incelendi: ayrı tasarımı yok, standart carousel; kullanıcı "şimdilik tamam" dedi (madde 21).
+7. Buton sözleşmesi testi + 4 ölü buton düzeltildi (madde 22). Altın çıktıdaki "bugünün tarihi" gizli hatası düzeltildi (`<BUGUN>` normalleştirmesi).
+8. Hatırlatma kapatıldı, onay süresi 1 gün, hazır içerik havuza alınıp modelsiz yeniden sunulur (madde 23).
+9. Belgeler: bu bölüm, ARCHITECTURE.md §4, ICERIK-SISTEMI.md §5.9, README.md, SOZLUK-KART-URETIMI.md, GEMINI.md (yeni).
+
+### 12.2 Canlıda şu an ne çalışıyor (saatler TR)
+| Saat | İş | Nasıl çalışır |
 |---|---|---|
-| **Paylaşım altyapısı** — kanallara dağıtım, yayın kapısı, zamanlama/tetikleme, yeniden deneme, raporlama, Worker | **Claude** | `src/yayin/`, kanal modülleri (`src/instagram.py`, `facebook.py`, `threads.py`, `tiktok.py`, `youtube.py`, `linkedin.py`, `twitter.py`), `scripts/yayinla.py`, `scripts/hazirla.py`, `worker/`, `.github/workflows/` (yayın ve zamanlayıcı olanlar), ARCHITECTURE.md Faz 5 |
-| **Telegram altyapısı** — onay/yönetim yüzü, menüler, kartlar, albüm teslimi, düğme akışları | **Claude** | `src/telegram/` (cephe: `src/telegram_bot.py`), `tests/test_telegram_altin.py` |
-| **Sözlük kartı üretimi** (A12 ve sonrası dalgalar, reddedilen konuların yeniden yazımı, SZ-007 düzeltmesi, md. 339/2) ve diğer içerik/kart işleri | **Gemini** | SOZLUK-KART-URETIMI.md (devir notu en üstte), `data/sozluk_kartlari.yaml`, `data/sozluk_taslak/` |
+| 08:40 | Günlük rapor | Cloudflare → `rapor` → `gunluk-rapor.yml` |
+| 09:17 ve 18:17 | Haber önerisi (en çok 5 başlık/mesaj; seçim insanda) | Cloudflare → `haber_oneri` → `hazirla.py --haber-oneri` |
+| 10:00 | Günün içeriği (döngü: b1 · nedir_dogrusu · net_cevap · b1); önce havuzdaki hazır içerik, yoksa yeni; **onaya düşer** (albüm + düğmeli kart) | Cloudflare → `slot_hazirla` {bilgilendirici} |
+| 12:30 | Sözlük kartı, **iki günde bir**, kapıdan temiz geçerse **onaysız otomatik yayın**; acil fren: GitHub değişkeni `SOZLUK_OTO_YAYIN=0` | Cloudflare → `slot_hazirla` {sozluk} |
+| 13:30 ve 21:30 | Sessiz kuyruk bakımı (**hatırlatma YOK**): 1 günü dolduran içerik havuza/arşive | Cloudflare → `hatirlat` |
+| 10 dk'da bir | "30 dk / 1-4 saat sonra yayınla" çalar saati | Worker `PLANLAR` KV |
+Elle: `/sozluk` `/dogrusu` `/vaka` `/soru` `/reels` `/haber` `/rapor` `/hatirlat` `/panel` ve paneldeki düğmeler; hepsi (finans hariç) albüm + düğmeli onay kartı olarak düşer. Her zamanlanmış işin GitHub `schedule` yedeği duruyor (6–10 saat gecikmeli; aynı gün ikinci kez çalışmaz).
 
-Kurallar:
-1. **Claude yeni sözlük dalgası BAŞLATMAZ** ve arşive kart eklemez; kullanıcı açıkça isterse yapar. Sözlük araçlarında (`kanun_oku`, doğrulayıcı, birleştirici, `mevzuat._SURE`) **hata** bulursa düzeltmesi serbesttir — araçlar model bağımsızdır, Gemini de bunları kullanır.
-2. Gemini'nin yazdığı kart da aynı hattan geçer: doğrulayıcı → **ayrı** inceleme turu → birleştirici → tam test + `gorsel_denetim.py`. Yazan model kendi kartını incelemez; doğrulayıcı yeşili doğruluk değildir (dalga 1: %62 kabul).
-3. Paylaşım ve Telegram değişiklikleri **altın çıktı güvencesi altında** yapılır (`tests/test_yayinla_altin.py` 70 senaryo, `tests/test_telegram_altin.py` 219 senaryo) ve ARCHITECTURE.md §2'deki katman/yama kurallarına uyar (kardeş modüller modül üzerinden çağrılır, dosya ≤250 satır, testler gerçek evi yamalar). Davranış bilerek değişiyorsa altın dosya yeniden kaydedilir ve fark bu belgeye yazılır.
-4. İş öncelik sırası (paylaşım + Telegram) ve bilinen açık maddeler: ARCHITECTURE.md §4 "Claude'un önceliği". Öncelik sırasını kullanıcı belirler; buradaki liste aday havuzudur, sırayla başlamak onay yerine geçmez.
+### 12.3 Değişmeyen kullanıcı kararları
+Sözlük otomatik yayın kalır (iki günde bir); finans elle de onaysız yayın (şimdilik); X (Twitter) kanalı seçilmez (kalsın); piyasa verisi KAPALI; saatlik site kuyruğu yoklaması KAPALI (site 401); EİDS nedeniyle doğrudan ilan paylaşımı donduruldu;
+kullanıcı PR'ları kendisi birleştirir (Claude/ajan "birleştir" denmedikçe birleştirmez); Worker'ı kullanıcı dağıtır (Actions → Worker Dağıt, dal main); sır istenmez; web sitesi (edmyapigayrimenkul.com) bu işin dışında.
+
+### 12.4 Açık işler
+ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlük A12 + reddedilen kira/fesih konuları + SZ-007 md. 353 + md. 339/2, `threads.py` `json` içe aktarması.
+

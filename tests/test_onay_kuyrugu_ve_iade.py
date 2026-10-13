@@ -2,8 +2,9 @@
 tests/test_onay_kuyrugu_ve_iade.py — onay kuyruğu zaman aşımı ve konunun havuza iadesi (2026-10-12 denetimi)
 
 Bulgular:
-  · hatirlat.py yalnızca en yeni 5 bekleyen içeriğe bakıyordu; daha eskiler 5 günlük zaman aşımına hiç girmiyordu
+  · hatirlat.py yalnızca en yeni 5 bekleyen içeriğe bakıyordu; daha eskiler zaman aşımına hiç girmiyordu
     (üretimde 14 içerik, en eskisi 27 Eylül'den beri bekliyordu).
+  · 2026-10-13: süre 5 günden 1 güne indi, otomatik hatırlatma kaldırıldı, hazır içerik havuza alınır (ayrıntı: tests/test_havuz_yeniden_sunum.py).
   · "Pas geç / Çöpe at" mesajı "konu havuza iade edildi" diyordu ama konu üretim anında tüketilmişti ve geri
     verilmiyordu; üstelik her durumda yeni bir B1 üretiliyordu (sözlük kartı reddi de karusel doğuruyordu).
 """
@@ -126,33 +127,69 @@ class TestZamanAsimiTumKuyruk(unittest.TestCase):
         self.idler.append(hid)
         return hid
 
-    def test_bes_gunu_dolduran_hepsi_arsive_alinir_sadece_yeniler_hatirlatilir(self):
-        eskiler = [self._ekle(yas_gun=6 + i) for i in range(7)]       # 7 eski: eskiden 5. sıradan sonrası hiç görülmüyordu
-        yeniler = [self._ekle(yas_gun=0.2), self._ekle(yas_gun=0.1)]  # 1 saatten genç değil, ama taze
+    def test_bir_gunu_dolduran_hepsi_islenir_sessizce_yeniler_dokunulmaz(self):
+        """Eski kuyruk (7 içerik) TEK turda işlenir; mesaj YOK (özet de, hatırlatma da); taze içerik onayda kalır."""
+        eskiler = [self._ekle(yas_gun=1.2 + i) for i in range(7)]   # 7 eski: eskiden 5. sıradan sonrası hiç görülmüyordu
+        yeniler = [self._ekle(yas_gun=0.2), self._ekle(yas_gun=0.1)]
         for hid in eskiler:
-            _gecmis_ekle("S1-903", hid)
+            _gecmis_ekle("S1-903", hid)                              # detay_metni yok → havuza uygun değil → arşiv + konu iadesi
         with mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
-             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle") as temizle, \
              mock.patch("src.telegram.istemci._bot_bilgileri", return_value=("t", "1")), \
              mock.patch.object(hatirlat.db, "wal_bosalt"):
             hatirlat.main(argv=[])
         for hid in eskiler:
             self.assertEqual(db.haber_getir(hid)["durum"], "zaman_asimi", hid)
-            self.assertEqual(_gecmis_sonuc(hid), ["hata"], "zaman aşımına düşenin konusu havuza dönmeli")
+            self.assertEqual(_gecmis_sonuc(hid), ["hata"], "arşive giden içeriğin konusu havuza dönmeli")
         for hid in yeniler:
             self.assertEqual(db.haber_getir(hid)["durum"], "onay_bekliyor", hid)
-        # Yedi zaman aşımı TEK özet mesajdır (eskiden her biri ayrı mesajdı)
-        ozetler = [c.args[0] for c in mesaj.call_args_list if "ZAMAN AŞIMINA UĞRADI" in c.args[0]]
-        self.assertEqual(len(ozetler), 1)
-        self.assertIn("7 içerik", ozetler[0])
+        mesaj.assert_not_called()                                    # özet yok, hatırlatma yok
+        temizlenen = {(c.args[0], c.args[1]) for c in temizle.call_args_list}
+        self.assertEqual(temizlenen, {(t, hid) for hid in eskiler for t in ("haber", "haber_album")}, "ölü kartlar gruptan silinmeli")
 
-    def test_tek_icerik_eski_mesaj_bicimini_korur(self):
+    def test_hazir_icerik_havuza_alinir_konusu_iade_edilmez(self):
+        """Modelle yazılmış hazır içerik (detay_metni var, format b1) havuza girer: konu 'kullanıldı' kalır, yeniden ÜRETİLMEZ."""
+        hid = self._ekle(yas_gun=1.5, detay_metni='{"manset_vurgu": "x"}')
+        _gecmis_ekle("S1-904", hid, sonuc="uretildi:b1")
+        with mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
+             mock.patch.object(hatirlat.db, "wal_bosalt"):
+            hatirlat.main(argv=[])
+        self.assertEqual(db.haber_getir(hid)["durum"], "havuzda")
+        self.assertEqual(_gecmis_sonuc(hid), ["uretildi:b1"], "konu iade EDİLMEMELİ: hazır içerik havuzun kendisi, yoksa konu yeniden seçilir ve model ikinci kez çağrılır")
+        mesaj.assert_not_called()
+
+    def test_otomatik_kosu_hatirlatma_yollamaz(self):
+        hid = self._ekle(yas_gun=0.3)
+        with mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             mock.patch.object(hatirlat.db, "hatirlatma_arttir") as arttir, \
+             mock.patch.object(hatirlat.db, "wal_bosalt"):
+            hatirlat.main(argv=[])
+        mesaj.assert_not_called()
+        arttir.assert_not_called()
+        self.assertEqual(db.haber_getir(hid)["durum"], "onay_bekliyor")
+
+    def test_elle_zorla_hala_hatirlatir(self):
+        hid = self._ekle(yas_gun=0.3)
+        with mock.patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 5}) as mesaj, \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
+             mock.patch("src.telegram.istemci._bot_bilgileri", return_value=("t", "1")), \
+             mock.patch.object(hatirlat.db, "wal_bosalt"):
+            hatirlat.main(argv=["--zorla"])
+        self.assertTrue(any("Hatırlatma" in c.args[0] for c in mesaj.call_args_list), "elle hatırlatma çalışmalı")
+        self.assertEqual(db.haber_getir(hid)["durum"], "onay_bekliyor")
+
+    def test_zaman_asimi_bir_gun(self):
+        self.assertEqual(hatirlat.ZAMAN_ASIMI_DAKIKA, 24 * 60)
+
+    def test_tek_icerik_arsivlenir_ve_sessizdir(self):
         hid = self._ekle(yas_gun=8)
         with mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
              mock.patch.object(hatirlat.db, "wal_bosalt"):
             hatirlat.main(argv=[])
         self.assertEqual(db.haber_getir(hid)["durum"], "zaman_asimi")
-        self.assertIn("Başlık:", mesaj.call_args_list[0].args[0])
+        mesaj.assert_not_called()
 
     def test_plan_penceresindeki_icerik_zaman_asimina_girmez(self):
         plan = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()

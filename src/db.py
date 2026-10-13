@@ -381,6 +381,21 @@ def durum_zaman_asimi_yap(haber_id: int) -> None:
         conn.commit()
 
 
+def durum_havuza_al(haber_id: int) -> None:
+    """Onaylanmayan (1 günü doldurmuş) ama HAZIR içeriği havuza alır: satır silinmez, `durum='havuzda'`.
+
+    Havuzdaki içerik aynı formatın bir sonraki turunda model çağrılmadan yeniden onaya sunulur
+    (`konu_bankasi.havuzdaki_hazir_icerik` → `uretim._havuzdan_sun`). Onay isteği satırı da kapatılır."""
+    simdi = datetime.now(timezone.utc).isoformat()
+    with _baglanti_al() as conn:
+        conn.execute("UPDATE haberler SET durum = 'havuzda' WHERE id = ?", (haber_id,))
+        conn.execute(
+            "UPDATE onay_istekleri SET durum = 'havuzda', yanit_tarihi = ? WHERE tur = 'haber' AND referans_id = ?",
+            (simdi, str(haber_id)),
+        )
+        conn.commit()
+
+
 # --- HATA KAYITLARI (2026-10-12) ---
 # Hata günlüğü eskiden data/hata_kayitlari.jsonl'ye yazılıyordu; dosya .gitignore'da ve Actions makinesi
 # iş bitince siliniyor: kayıt hiçbir zaman ertesi güne ulaşmıyordu. DB git'e commit edildiği için kalıcı olur.

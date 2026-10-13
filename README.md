@@ -1,6 +1,6 @@
 # EDM Yapı & Gayrimenkul — Sosyal Medya Botu (`postedm`)
 
-EDM Yapı & Gayrimenkul (`edmyapigayrimenkul.com`) markasının kurumsal kimliğine, diline ve portföyüne tam uyumlu; **Instagram**, **Threads**, **YouTube Shorts** ve **TikTok** platformlarında paylaşım yapan otomatik ve Telegram onaylı sosyal medya botudur.
+EDM Yapı & Gayrimenkul (`edmyapigayrimenkul.com`) markasının kurumsal kimliğine, diline ve portföyüne tam uyumlu; **Instagram**, **Facebook**, **Threads**, **YouTube Shorts** ve **TikTok** platformlarında paylaşım yapan otomatik ve Telegram onaylı sosyal medya botudur.
 
 ---
 
@@ -134,6 +134,45 @@ python -c "from src.telegram_bot import ilan_postunu_hazirla_ve_sor; ilan_postun
 ```
 
 ---
+
+---
+
+## 🗓 Günlük Çalışma Düzeni (2026-10-13'ten beri; saatler TR)
+
+Zamanlayıcı **Cloudflare Worker cron'udur** (GitHub `schedule` 6–10 saat gecikiyordu; aynı saatli GitHub cron'ları gecikmeli yedek olarak durur, aynı iş günde iki kez çalışmaz).
+
+| Saat | İş |
+|---|---|
+| 08:40 | Günlük rapor (kota, jetonlar, son çalışmalar) |
+| 09:17 ve 18:17 | Haber önerisi: tek mesajda en çok 5 başlık; hangisinin içeriğe çevrileceğine insan karar verir |
+| **10:00** | **Günün içeriği** (b1 · Nedir Doğrusu · Net Cevap · b1 döngüsü): albüm + düğmeli onay kartı. Havuzda hazır içerik varsa model çağrılmadan o yeniden sunulur |
+| **12:30** | **Emlak Sözlüğü kartı, iki günde bir**, kapıdan temiz geçerse onaysız otomatik yayın (acil fren: GitHub değişkeni `SOZLUK_OTO_YAYIN=0`) |
+| 13:30 ve 21:30 | Sessiz kuyruk bakımı (**hatırlatma yok**): 1 gün içinde yayınlanmayan içerik havuza döner |
+
+Telegram komutları: `/sozluk /dogrusu /vaka /soru /reels /haber /rapor /hatirlat /panel`. Elle tetiklenen her içerik (finans hariç) albüm + düğmeli onay kartı olarak düşer; yayınlamak size kalır.
+
+## 🧪 Test ve Dağıtım
+
+```bash
+pip install -r requirements.txt
+POSTEDM_TEST_MODU=1 python -m unittest discover tests     # ~6 dk; gerçek DB'ye ve ağa dokunmaz
+node --test tests/*.test.mjs                              # Worker testleri
+```
+- **Python değişikliği** `main`'e birleşince GitHub Actions'ta kendiliğinden canlıdır.
+- **Worker (`worker/`) değişikliği** için: GitHub → Actions → **Worker Dağıt** → Run workflow (Branch: `main`). İş testleri koşar, dağıtır, Cloudflare'de cron'ların yazıldığını doğrular, gruba "✅ Worker dağıtıldı" yazar.
+- Yerelde gerçek tur (`hazirla.py`, `yayinla.py`) çalıştırmayın: veritabanının sahibi GitHub'dır (bkz. `MEMORY.md` §6).
+
+## 📚 Belge Haritası
+
+| Belge | Ne için |
+|---|---|
+| [`GEMINI.md`](GEMINI.md) | Yeni ajan/oturum için kısa giriş: kurallar, komutlar, tuzaklar, süreç |
+| [`GEMINI-BASLANGIC-PROMPTU.md`](GEMINI-BASLANGIC-PROMPTU.md) | Gemini'ye ilk mesaj olarak yapıştırılacak başlangıç promptu (önce yönelim + temel çizgi, sonra ilk iş) |
+| [`MEMORY.md`](MEMORY.md) | Kalıcı hafıza: hesaplar, tasarım dili, numaralı karar/hata defteri (§10), iş bölümü ve oturum özeti (§11–12) |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Katmanlar, kurallar, fazlar, **açık işler ve devir** (§4), veritabanı kararı |
+| [`ICERIK-SISTEMI.md`](ICERIK-SISTEMI.md) | Ne paylaşılır: sütunlar, biçimler, bütçeler, sözlük (§5.5.2), onay kuyruğu/havuz (§5.9) |
+| [`SOZLUK-KART-URETIMI.md`](SOZLUK-KART-URETIMI.md) | Sözlük kartı üretim hattı ve devir notu |
+| [`AKSIYON-PLANI.md`](AKSIYON-PLANI.md) | 11 Eylül denetimi (tarihsel; eskiyen yerleri başındaki nottadır) |
 
 ## 📱 Telegram Bot & Onay Akışı Kurulumu
 
