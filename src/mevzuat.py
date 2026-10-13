@@ -129,7 +129,7 @@ _ADLAR: List[Tuple[str, int]] = [
 def atiflari_coz(atif: Optional[str], aralik_azami: int = 3) -> Tuple[List[Tuple[int, List[str]]], List[str]]:
     """'Harçlar Kanunu md. 63 ve VUK md. 359' → [(492, ['63']), (213, ['359'])].
 
-    Madde anahtarları metin: '63', 'geçici 16'. Aralıklar (794-822) varsayılan olarak en fazla 4
+    Madde anahtarları metin: '63', 'geçici 16', 'ek 6'. Aralıklar (794-822) varsayılan olarak en fazla 4
     maddeye açılır (`aralik_azami`=3: ilk madde + 3; geniş aralık sonuna kadar uzayıp modele yığın metin
     vermesin). `scripts/kanun_oku.py` aralığı tam okumak için büyük değer geçer.
     Çözülemeyen atıflar (yönetmelik, tebliğ, kurul kararı) ayrı döner.
@@ -155,8 +155,8 @@ def atiflari_coz(atif: Optional[str], aralik_azami: int = 3) -> Tuple[List[Tuple
         son = bulunan[i + 1][0] if i + 1 < len(bulunan) else len(kucuk)
         parca = kucuk[bit:son]
         maddeler: List[str] = []
-        for m in re.finditer(r"(ge[çc]ici\s+)?(?:md\.?|madde|m\.)\s*(\d+)(?:\s*[-–]\s*(\d+))?((?:\s*(?:ve|,)\s*\d+)*)", parca):
-            gecici = "geçici " if m.group(1) else ""
+        for m in re.finditer(r"((?:ge[çc]ici|ek)\s+)?(?:md\.?|madde|m\.)\s*(\d+)(?:\s*[-–]\s*(\d+))?((?:\s*(?:ve|,)\s*\d+)*)", parca):
+            gecici = ("ek " if m.group(1).strip() == "ek" else "geçici ") if m.group(1) else ""
             ilk = int(m.group(2))
             if m.group(3):
                 son_no = int(m.group(3))
@@ -269,19 +269,22 @@ def tertip_kesfet(no: int, aday_araligi: Iterable[int] = range(1, 9)) -> Optiona
 
 
 def madde_metni(no: int, madde: str, azami: int = 12000) -> Optional[str]:
-    """Tek bir maddenin güncel metni. madde: '733' ya da 'geçici 2'."""
+    """Tek bir maddenin güncel metni. madde: '733', 'geçici 2' ya da 'ek 6'."""
     metin = kanun_metni(no)
     if not metin:
         return None
     gecici = madde.startswith("geçici")
+    ek = madde.startswith("ek")
     n = madde.split()[-1]
     if gecici:
         bas = re.search(rf"GE[ÇC][İI]C[İI]\s+MADDE\s*{n}\s*[-–]", metin, re.I)
+    elif ek:
+        bas = re.search(rf"(?<![A-Za-zÇĞİÖŞÜçğıöşü])EK\s+MADDE\s*{n}\s*[-–]", metin, re.I)
     else:
-        bas = re.search(rf"(?<![A-Za-zÇĞİÖŞÜçğıöşü])(?<!GEÇİCİ )(?<!Geçici )(?:MADDE|Madde)\s*{n}\s*[-–]", metin)
+        bas = re.search(rf"(?<![A-Za-zÇĞİÖŞÜçğıöşü])(?<!GEÇİCİ )(?<!Geçici )(?<!EK )(?<!Ek )(?:MADDE|Madde)\s*{n}\s*[-–]", metin)
     if not bas:
         return None
-    sonraki = re.search(r"(?:GE[ÇC][İI]C[İI]\s+)?(?:MADDE|Madde)\s*\d+\s*[-–]", metin[bas.end():])
+    sonraki = re.search(r"(?:GE[ÇC][İI]C[İI]\s+|EK\s+|Ek\s+)?(?:MADDE|Madde)\s*\d+\s*[-–]", metin[bas.end():])
     bitis = bas.end() + (sonraki.start() if sonraki else azami)
     return metin[bas.start():min(bitis, bas.start() + azami)].strip()
 

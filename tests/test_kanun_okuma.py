@@ -60,6 +60,65 @@ class TestMaddelereBolme(unittest.TestCase):
         self.assertEqual([x["etiket"] for x in kanun_okuma.maddelere_bol(metin)], ["md. 1", "md. 2"])
 
 
+# Ek maddeler normal maddeyle aynı numarayı taşır (3402'de Madde 6 ve Ek Madde 6).
+EKLI = ("MADDE 5 - Beşinci madde: kira bedeli. MADDE 6 - Altıncı madde: askı ilanı. Ek Madde 6 - Genel mahkemeler görevlidir. "
+        "EK MADDE 7 - Yedinci ek madde: ipotek. GEÇİCİ MADDE 1 - Geçici.")
+
+
+def _ekli(no):
+    return EKLI if no == 4721 else None
+
+
+class TestEkMaddeler(unittest.TestCase):
+    def test_ek_madde_ayri_tur_ve_etiket(self):
+        m = kanun_okuma.maddelere_bol(EKLI)
+        self.assertEqual([x["etiket"] for x in m], ["md. 5", "md. 6", "ek md. 6", "ek md. 7", "geçici md. 1"])
+        self.assertEqual([x["ek"] for x in m], [False, False, True, True, False])
+
+    def test_normal_madde_ek_maddeyle_karismaz(self):
+        okunan, yok = kanun_okuma.maddeleri_oku("4721 sayılı Kanun md. 6", kanun_metni=_ekli)
+        self.assertEqual(yok, [])
+        self.assertIn("askı ilanı", okunan[0]["metin"])
+        self.assertNotIn("Genel mahkemeler", okunan[0]["metin"])
+        self.assertEqual(okunan[0]["etiket"], "md. 6")
+
+    def test_ek_madde_atifla_okunur(self):
+        okunan, yok = kanun_okuma.maddeleri_oku("4721 sayılı Kanun ek md. 6", kanun_metni=_ekli)
+        self.assertEqual(yok, [])
+        self.assertEqual(okunan[0]["etiket"], "ek md. 6")
+        self.assertIn("Genel mahkemeler görevlidir", okunan[0]["metin"])
+        self.assertNotIn("askı ilanı", okunan[0]["metin"])
+        # Madde metninin sonu bir sonraki EK maddenin başlığında biter ("Ek" sözcüğü bu maddeye sızmaz)
+        self.assertFalse(okunan[0]["metin"].rstrip().endswith("EK"))
+
+    def test_olmayan_ek_madde_bulunamayan_listesinde_ek_etiketiyle(self):
+        okunan, yok = kanun_okuma.maddeleri_oku("4721 sayılı Kanun ek md. 9", kanun_metni=_ekli)
+        self.assertEqual(okunan, [])
+        self.assertTrue(any("ek md. 9" in x for x in yok), yok)
+
+    def test_arama_ek_maddedeki_gecisi_ek_etiketiyle_verir(self):
+        sonuc, hata = kanun_okuma.ara(4721, ["genel mahkemeler"], kanun_metni=_ekli)
+        self.assertIsNone(hata)
+        self.assertEqual([x["etiket"] for x in sonuc[0]["sonuclar"]], ["ek md. 6"])
+
+    def test_atif_cozumu_ek_ve_gecici_anahtarlari(self):
+        atiflar, _ = mevzuat.atiflari_coz("4721 sayılı Kanun md. 5, ek md. 6 ve geçici md. 1")
+        self.assertEqual(atiflar, [(4721, ["5", "ek 6", "geçici 1"])])
+        atiflar, _ = mevzuat.atiflari_coz("3402 sayılı Kanun ek madde 6 ve 7")
+        self.assertEqual(atiflar, [(3402, ["ek 6", "ek 7"])])
+
+    def test_madde_metni_ek_madde_ve_normal_madde(self):
+        with patch.object(mevzuat, "kanun_metni", _ekli):
+            self.assertIn("askı ilanı", mevzuat.madde_metni(4721, "6"))
+            self.assertNotIn("Genel mahkemeler", mevzuat.madde_metni(4721, "6"))
+            ek = mevzuat.madde_metni(4721, "ek 6")
+            self.assertIn("Genel mahkemeler", ek)
+            self.assertTrue(ek.startswith("Ek Madde 6"))
+            self.assertNotIn("EK MADDE 7", ek)
+            self.assertIn("ipotek", mevzuat.madde_metni(4721, "ek 7"))
+            self.assertIsNone(mevzuat.madde_metni(4721, "7"))      # 7 yalnız EK madde olarak var; normal madde 7 yok
+
+
 class TestMaddeOkuma(unittest.TestCase):
     def test_atiftaki_maddeler_tam_okunur(self):
         okunan, yok = kanun_okuma.maddeleri_oku("4721 sayılı Kanun md. 2 ve 3", kanun_metni=_sahte)

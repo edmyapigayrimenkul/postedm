@@ -42,8 +42,9 @@ Maliyet: iki inceleme ≈ 250 bin ajan tokeni (≈ 9 + 5 dk). Dalga planı bu or
 artık çizim denetiminde bu da sınanır (testi: `TestBaslikYerlesimTabani`). Yazar kuralı: terim ≤ ~20 karakter, tek sözcük ≤ ~10 harf; sınır durumlarında doğrulayıcıyı çalıştırarak seç.
 Kapıda **tam test paketi** şarttır (yalnız doğrulayıcı yetmez).
 
-**Araç gözlemi (düzeltilecek):** `kanun_oku.py ara` ek maddelerdeki ("Ek Madde 6") geçişleri "md. 6" diye etiketliyor; `maddelere_bol` ek maddeyi normal madde sayıyor ve atıf biçimi "ek md." tanımıyor. Normal madde her zaman önce geldiği için `madde "md. 6"` doğru maddeyi getiriyor,
-ama ek maddeye atıf yapılamıyor ve aramada yanlış etiket çıkıyor.
+**Araç düzeltmesi (aynı gün):** `kanun_oku.py ara` ek maddelerdeki ("Ek Madde 6") geçişleri "md. 6" diye etiketliyordu ve `maddelere_bol`/`mevzuat.madde_metni` ek maddeyi normal madde sayıyordu: ek madde atıfı ("ek md. 6") yoktu, ve normal maddesi bulunmayan
+numaralar sessizce Ek Madde'nin metnine çözülüyordu (2985 Toplu Konut Kanunu md. 11–17 gibi; mevcut hiçbir atıf etkilenmiyordu). Ayrıca 21 normal maddenin sonuna bir sonraki Ek Madde başlığının "Ek" sözcüğü sızıyordu. Artık ek maddeler ayrı tür:
+etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler: `TestEkMaddeler`). Eski ve yeni `madde_metni`, 32 kanunun 4375 normal maddesinde karşılaştırıldı: yalnız bu iki fark.
 
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
