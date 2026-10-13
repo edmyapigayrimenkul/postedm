@@ -13,6 +13,38 @@ buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.
   önce `mcp__ccd_session_mgmt__get_usage` ile bak: haftalık ve 5 saatlik pencerede en az %50 boşluk yoksa BAŞLATMA; yarıda
   kalan dalga hem kartları hem oturumu kilitler. 12 Kasım'a kadar vakit var, sıfırlanmayı beklemek güvenli.
 
+## Pilot sonucu (2026-10-13, A07 Kadastro 3402)
+
+**Kanun metinleri:** Actions → Mevzuat Önbelleği ile 32 kanunun TAMAMI çekildi (14 yeni kanunun tahmini tertipleri de tuttu; hiçbir `KANUNLAR` düzeltmesi gerekmedi).
+Dosyalar `mevzuat-onbellek` dalında; oturumda `git fetch origin mevzuat-onbellek` + `git archive FETCH_HEAD | tar -x -C data/mevzuat_onbellek` ile alınır (dizin .gitignore'da).
+Her dosya başlığında kanun no geçiyor, boyutlar makul (6217: 5,7 KB … 2004: 418 KB).
+
+**Kartlar:** 8 kart yazıldı (6 + reddedilen 2'nin yerine yeni 2), **4'ü arşive girdi (SZ-035…038)**. Doğrulayıcı ilk taslakta 6/6 yeşildi; bağımsız inceleme (opus) yine de 4 kartı düzeltti, 2'sini reddetti;
+yerine yazılan 2 kart da ikinci bağımsız incelemede reddedildi. **Doğrulayıcının yeşili doğruluk değildir**: yapıyı, alıntının birebirliğini ve sayıları sınar; kapsamı, istisnayı ve anlamı yalnız inceleme yakalar.
+Maliyet: iki inceleme ≈ 250 bin ajan tokeni (≈ 9 + 5 dk). Dalga planı bu orana göre kurulmalı: ~%50 ret/düzeltme payı + her dalgada ikinci inceleme turu.
+
+| Arşive girdi | Kod | Not |
+|---|---|---|
+| ASKI İLANI (md. 11) | SZ-035 | düzeltildi: tanımdaki dava cümlesi puf'la aynıydı, "Kanuna göre" → "Kadastro Kanunu gereğince", gerçek + tüzel kişi |
+| TESPİTE İTİRAZ (md. 9 ve 11) | SZ-036 | düzeltildi: dava hakkı her itiraz eden için ayrı madde; "askı ilanı" md. 11'den geldiği için atıfa md. 11 eklendi. Terim inceleme sırasında "KADASTRO TESPİTİNE İTİRAZ"dı; başlık tabanına sığmadığı için kısaltıldı (aşağıda) |
+| KADASTRO KOMİSYONU (md. 10) | SZ-037 | düzeltildi: sürenin başlangıcı ("geldiği tarihten"), "kanunla mahkemeye bırakılan" kaydı, "intikal" (miras sanılır) kaldırıldı |
+| KESİNLEŞME (md. 12) | SZ-038 | düzeltildi: "kesinleşmeden" çift anlamlıydı; on yıl kuralı tek maddede. Terim "KADASTRO KESİNLEŞMESİ"ydi (112 pt); kısaltıldı |
+
+**Reddedilenler ve dersler** (bir sonraki yazar/inceleme talimatına işlendi, aşağıda 8–10):
+- *TAPUSUZ TAŞINMAZ (md. 14)*: tapusuz her taşınmazın 20 yıllık zilyetlikle zilyet adına tespit edildiği izlenimini veriyordu; md. 16/17/18 (orta malları, hizmet malları, ormanlar, kamu hizmetine tahsisli yerler, imar planı alanı) bu yoldan çıkarılmış.
+- *KAMU MALI VE ZAMANAŞIMI (md. 18)*: "gibi" kapalı listeyi örnek listesine çevirdi; puf'lar tanımı tekrarladı; terim kavram değil konu başlığıydı.
+- *TAPU SINIRININ TESPİTİ (md. 20)*: terim kanundaki başlığa uymuyordu ("Kayıt ve belgelerin kapsamını tayin"); "haritasız kayıt" kısaltması kapsamı bozdu ("harita, plan ve krokiye dayanmayan"); D bendi ve sonundaki md. 14/17 yollaması eksikti.
+- *İHYA EDİLEN TAŞINMAZ (md. 14 ve 17)*: md. 14'ün asıl şartları (tapusuzluk, 20 yıl zilyetlik, 40/100 dönüm sınırı, belge) kartta yoktu; "Devlet arazisi" gündelik dilde tapulu Hazine arazisini de kapsar; "bu hüküm" yanlış okunabiliyordu.
+  → Başka maddelere yollama yapan, kapsam/istisna zinciri taşıyan maddeler (3402 md. 14, 16, 17, 18, 20 gibi) tek kartla doğru anlatılamıyor; bu alanlarda daha basit, tek kuralı olan maddeler seçilmeli.
+
+**Başlık yerleşim tabanı (pilotta kaçan hata):** iki kart doğrulayıcıdan ve incelemeden geçti, ama tam testte düştü: başlık (terim) tek satırda 116-160 pt ya da iki satırda 112-144 pt aralığında yerleşip ≥114 pt olmalı
+(`tests/test_sozluk_stres_sabotaj.py`); "KADASTRO TESPİTİNE İTİRAZ" iki satıra bile sığmadı, "KADASTRO KESİNLEŞMESİ" 112 pt'ye düştü. Sorun uzun TEK sözcüktür (KESİNLEŞMESİ 12 harf). Doğrulayıcıya `baslik_sigma_sorunu` eklendi;
+artık çizim denetiminde bu da sınanır (testi: `TestBaslikYerlesimTabani`). Yazar kuralı: terim ≤ ~20 karakter, tek sözcük ≤ ~10 harf; sınır durumlarında doğrulayıcıyı çalıştırarak seç.
+Kapıda **tam test paketi** şarttır (yalnız doğrulayıcı yetmez).
+
+**Araç gözlemi (düzeltilecek):** `kanun_oku.py ara` ek maddelerdeki ("Ek Madde 6") geçişleri "md. 6" diye etiketliyor; `maddelere_bol` ek maddeyi normal madde sayıyor ve atıf biçimi "ek md." tanımıyor. Normal madde her zaman önce geldiği için `madde "md. 6"` doğru maddeyi getiriyor,
+ama ek maddeye atıf yapılamıyor ve aramada yanlış etiket çıkıyor.
+
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
 1. **Pilot:** tek yazar ajan, küçük bir alan (ör. A07 Kadastro, 6 kart). Araçlar ve talimat uçtan uca doğrulanır.
@@ -24,7 +56,7 @@ buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.
 
 Hakem (Gemini) geçişi yalnız orkestratörde, ücretsiz kotayı gözeterek; yazarlar `--hakem` kullanmaz.
 
-## Araçlar (YAZILDI 2026-10-12; testli, ama canlı kanun metniyle HENÜZ denenmedi)
+## Araçlar (YAZILDI 2026-10-12; 2026-10-13'te canlı kanun metniyle uçtan uca DENENDİ — bkz. Pilot sonucu)
 
 Yazıldıkları ortamda `www.mevzuat.gov.tr` ağ politikasıyla kapalıydı: tüm testler sahte kanun metniyle çalışıyor. **Pilottan önce, ağı açık
 bir ortamda (yerel ya da ağ erişimi verilmiş bulut oturumu):**
@@ -120,6 +152,10 @@ Kurallar:
 6. Yalnız kendi taslak dosyana yaz. Başka dosyayı değiştirme, git kullanma, tüm test paketini koşma, `--hakem` kullanma.
 7. `scripts/sozluk_kart_dogrula.py` tamamen yeşil olana kadar düzelt. Sonra her kartı kendin yeniden oku ve kanun metniyle iddia iddia karşılaştır.
    Emin olmadığın kartı at ve başka terim yaz.
+8. Kapsam/istisna zinciri olan maddeyi kartlaştırma: madde "ancak", "saklıdır", "hükümleri dışında kalan" ile başka maddelere yolluyorsa ya da kuralın kapsamı başka bir maddede daralıyorsa (pilotta 3402 md. 14, 16, 17, 18, 20), kural tek kartla doğru anlatılamaz. Tek kuralı olan, kendi içinde tamam maddeler seç.
+9. Terim kanundaki kavramın ya da madde başlığının kendisi olsun; kısaltma/özel ad uydurma ("haritasız kayıt"). Kanundaki kapalı listeyi "gibi" ile açma. "İntikal", "ihya", "tespit" gibi sözcük gündelik dilde başka anlama geliyorsa tanımda açıkça söyle ya da kullanma.
+10. Puf maddesi tanımın bir yarısını tekrar etmez; iki puf aynı cümlenin iki yarısı olmaz. Her puf tek başına doğru ve kapsamı belli olmalı ("kesinleşmeden" gibi çift anlamlı sözcük yok).
+11. Başlık (terim) yerleşim tabanına uymalı: en çok iki satır, ≥114 pt. Uzun tek sözcükten ("KESİNLEŞMESİ") ve ~22 karakteri aşan terimden kaçın; doğrulayıcı `çizim (başlık)` uyarısı verirse terimi kısalt.
 
 Çıktı: taslak dosyası ve kısa rapor (yazılan/atılan sayı, değiştirilen terimler, kuşkulu kartlar).
 

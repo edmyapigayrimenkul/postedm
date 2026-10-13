@@ -403,6 +403,34 @@ class TestBetikDByeDokunmaz(unittest.TestCase):
                     self.assertNotIn("Traceback", cikti.stderr)
 
 
+class TestBaslikYerlesimTabani(unittest.TestCase):
+    """2026-10-13 pilotu: iki kart çizim hatası vermeden ama başlık ≥114 pt tabanının altında yerleşerek incelemeden
+    geçti ve arşiv tipografi testinde düştü. Doğrulayıcı artık aynı ölçütü uygular."""
+
+    def test_kisa_ve_sigan_basliklar_sorunsuz(self):
+        for terim in ("ASKI İLANI", "KESİNLEŞME", "TESPİTE İTİRAZ", "KADASTRO KOMİSYONU", "KAT İRTİFAKI"):
+            self.assertIsNone(sd.baslik_sigma_sorunu(terim), terim)
+
+    def test_iki_satira_bile_sigmayan_baslik_sorun(self):
+        sorun = sd.baslik_sigma_sorunu("KADASTRO TESPİTİNE İTİRAZ")
+        self.assertIsNotNone(sorun)
+        self.assertIn("sığmıyor", sorun)
+
+    def test_tabanin_altina_dusen_baslik_sorun(self):
+        sorun = sd.baslik_sigma_sorunu("KADASTRO KESİNLEŞMESİ")
+        self.assertIsNotNone(sorun)
+        self.assertIn("taban", sorun)
+
+    def test_cizim_sorunlari_basligi_da_denetler(self):
+        kart = _arsiv_karti("SZ-900", "KADASTRO TESPİTİNE İTİRAZ")
+        self.assertTrue(any("başlık" in x for x in sd.cizim_sorunlari(kart)))
+
+    def test_arsivdeki_tum_basliklar_tabana_uyar(self):
+        from src import sozluk_arsivi
+        sorunlu = [(k["kod"], k["terim"]) for k in sozluk_arsivi.kartlari_yukle(tazele=True) if sd.baslik_sigma_sorunu(k["terim"])]
+        self.assertEqual(sorunlu, [])
+
+
 class TestTemsilciKartlar(unittest.TestCase):
     def _kartlar(self, n):
         return [_arsiv_karti(f"SZ-{i:03d}", f"TERİM {i}") for i in range(1, n + 1)]

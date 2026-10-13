@@ -383,3 +383,46 @@ kartlar:
   mevzuat: İmar Kanunu geçici madde 16
   dayanak_alintisi: Afet risklerine hazırlık kapsamında ruhsatsız veya ruhsat ve eklerine aykırı yapıların kayıt altına alınması ve imar barışının sağlanması amacıyla, 31/12/2017 tarihinden önce yapılmış yapılar için Çevre ve Şehircilik Bakanlığı ve yetkilendireceği kurum ve kuruluşlara 31/10/2018 tarihine kadar başvurulması, bu maddedeki şartların yerine getirilmesi ve 31/12/2018 tarihine kadar kayıt bedelinin ödenmesi halinde Yapı Kayıt Belgesi verilebilir.
   kontrol: '2026-10-08'
+- kod: SZ-035
+  terim: ASKI İLANI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kadastro tespitlerine dayanılarak düzenlenen askı cetvellerinin ve pafta örneklerinin, kadastro müdürlüğünde ve muhtarın çalışma yerinde 30 gün süreyle ilan edilmesidir.
+  puf:
+  - Kadastro müdürü, kadastro ekibinin işini bitirdiği tarihten itibaren en geç üç ay içinde ilanı yapmak zorundadır.
+  - İtirazı olanlar, ilan süresi içinde kadastro mahkemesinde dava açabilir.
+  - Kadastro Kanunu gereğince yapılan ilanlar, ilgili gerçek ve tüzel kişilere şahsen tebliğ edilmiş sayılır.
+  mevzuat: 3402 sayılı Kanun md. 11
+  dayanak_alintisi: Kadastro müdürü, kadastro tutanaklarına göre yapılan tespitlere dayanarak, askı cetvellerini düzenler; bu cetvelleri ve pafta örneklerini, müdüriyette ve ayrıca muhtarın çalışma yerinde 30 gün süre ile ilan ettirir; itirazı olanların ilan süresi içinde kadastro mahkemesinde dava açabileceklerini belirtir.
+  kontrol: '2026-10-13'
+- kod: SZ-036
+  terim: TESPİTE İTİRAZ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kadastro tutanağı düzenlendikten sonra, kadastro ekibi çalışma alanındaki işini bitirinceye kadar tespite karşı kadastro teknisyenliğine veya kadastro müdürlüğüne yapılan itirazdır.
+  puf:
+  - İtiraz yalnızca uygulanan belgelerin geçerliliği hakkında yapılabilir; belgeye dayanmayan itiraz incelenmez.
+  - İtirazla ilgili tutanak veya ekleri en geç on gün içinde kadastro komisyonuna gönderilir.
+  - İtiraz edenin askı ilanı süresi içinde dava açma hakkı saklıdır.
+  mevzuat: 3402 sayılı Kanun md. 9 ve 11
+  dayanak_alintisi: İtiraz sadece uygulanan belgelerin geçerliliği hakkında yapılabilir.
+  kontrol: '2026-10-13'
+- kod: SZ-037
+  terim: KADASTRO KOMİSYONU
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kadastroda kendisine gönderilen işleri ve itiraz edilen tutanakları inceleyen, tam üye sayısıyla toplanıp oy çokluğuyla tespit yapan ve sonucu askı ilanıyla duyuran kuruldur.
+  puf:
+  - İşleri geldiği tarihten en geç bir ay içinde ya da gerekçe göstererek kadastro ekibi işini bitirene kadar inceler.
+  - İnceleme sonunda eski tutanağın yerine hak sahibini belirleyen yeni bir tutanak düzenlenir.
+  - Eşdeğer belgelerle sonuca varılamayan ya da kanunla mahkemeye bırakılan konular kadastro mahkemesine devredilir.
+  mevzuat: 3402 sayılı Kanun md. 10
+  dayanak_alintisi: Komisyon, tam üye sayısı ile toplanarak oy çokluğu ile tespit yapar, sonuç askı ilanı ile ilgililere duyurur.
+  kontrol: '2026-10-13'
+- kod: SZ-038
+  terim: KESİNLEŞME
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: 30 günlük ilan süresi geçtikten sonra, hakkında dava açılmamış kadastro tutanaklarındaki sınırlandırma ve tespitlerin kesinleşmesidir.
+  puf:
+  - Kesinleşen tutanaklar en geç 3 ay içinde tapuya kaydedilir; tescil tarihi olarak kesinleşme tarihi gösterilir.
+  - Kesinleşme tarihinden on yıl sonra, kadastrodan önceki hukuki sebeplere dayanarak itiraz edilemez ve dava açılamaz.
+  mevzuat: 3402 sayılı Kanun md. 12
+  dayanak_alintisi: 30 günlük ilan süresi geçtikten sonra, dava açılmayan kadastro tutanaklarına ait sınırlandırma ve tespitler kesinleşir.
+  kontrol: '2026-10-13'
