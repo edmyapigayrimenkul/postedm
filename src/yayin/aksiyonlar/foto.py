@@ -63,7 +63,7 @@ def _adaylari_sun(haber: Dict[str, Any], ref_id: str) -> bool:
             {"text": "3️⃣", "callback_data": f"gorsel_sec:3:{ref_id}"},
         ],
         [
-            {"text": "🔄 Başka adaylar", "callback_data": f"foto_degistir:{ref_id}"},
+            {"text": "🔄 Başka adaylar", "callback_data": f"foto_adaylar:{ref_id}"},   # Worker `foto_degistir:<id>` işlemez
             {"text": "↩️ Mevcut Görsel Kalsın", "callback_data": "kurtar_menu:2"},
         ],
     ]

@@ -39,7 +39,7 @@ GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 #     "40 5 * * *"   08:40 TR  günlük rapor            → rapor
 #     "17 6 * * *"   09:17 TR  haber önerisi (sabah)   → haber_oneri
 #     "0 7 * * *"    10:00 TR  günlük bilgilendirici   → slot_hazirla
-#     "30 9 * * *"   12:30 TR  günlük sözlük kartı     → slot_hazirla
+#     "30 9 * * *"   12:30 TR  sözlük kartı (2 günde 1) → slot_hazirla
 #     "30 10 * * *"  13:30 TR  onay hatırlatıcı (öğle) → hatirlat
 #     "17 15 * * *"  18:17 TR  haber önerisi (akşam)   → haber_oneri
 #     "30 18 * * *"  21:30 TR  onay hatırlatıcı (akşam)→ hatirlat

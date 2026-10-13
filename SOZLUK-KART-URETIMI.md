@@ -1,4 +1,4 @@
-# Sözlük kart üretimi: 34 → 730 (en az 2 yıl tekrarsız)
+# Sözlük kart üretimi: 34 → 365 (iki günde bir kartla en az 2 yıl tekrarsız; ilk plan 730'du)
 
 Bu dosya, sözlük kart arşivini alt ajanlarla büyütme işinin planıdır. Oturum kapansa ya da bağlam dolsa bile iş
 buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.md` §5.5.2, arşiv: `data/sozluk_kartlari.yaml`.
@@ -20,7 +20,8 @@ Aşağıdaki "Claude alt ajan" ve `mcp__ccd_session_mgmt__get_usage` anlatımlar
 
 ## Durum (2026-10-09; güncel arşiv sayısı için Dalga 1 sonucuna bak: 66 kart)
 
-- Arşivde 34 kart var; günde bir kartla 34 gün yeter (12 Kasım'da biter). Hedef 730 (2 yıl × günde 1): **696 eksik**.
+- **2026-10-13 güncellemesi:** zamanlanmış sözlük artık İKİ GÜNDE BİR çıkıyor (MEMORY.md §10 madde 20); iki günde bir kartla 2 yıl tekrarsız için **hedef 365 kart** (`HEDEF_KART`; aşağıdaki 730 hedefi eski, günde bir kart içindi). 66 kart ≈132 gün yeter.
+- (Eski, 2026-10-09) Arşivde 34 kart var; günde bir kartla 34 gün yeter (12 Kasım'da biter). Hedef 730 (2 yıl × günde 1): **696 eksik**.
 - `sozluk_arsivi.BEKLEME_GUN = 730` (aynı kart 2 yıl dolmadan tekrar gelmez), `HEDEF_KART = 730`; hiç yayınlanmamış kart 14'e
   inince Telegram'a hatırlatma gider. Kart bitince sözlük modelle üretilip onaya düşer (otomatik yayın YOK).
 - Kullanıcı kararı (2026-10-09): kartları Claude alt ajanlarla üretmek. **2026-10-13'te değişti: Gemini ile** (yukarıdaki "Sahiplik" bölümü).

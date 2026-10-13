@@ -656,7 +656,7 @@
  },
  "foto_adaylar": {
   "cagrilar": [
-   "{\"args\": [\"🎨 <b>3 Alternatif Kapak Görseli (#752)</b>\\n\\n1️⃣ Basın / Kardeş Haber Görseli\\n2️⃣ Mimari Stok Fotoğraf (Pexels)\\n3️⃣ EDM Kurumsal Pafta Tasarımı\\n\\nBeğendiğin numaraya basarak tek tıkla uygulayabilirsin.\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {\"butonlar\": [[{\"callback_data\": \"gorsel_sec:1:752\", \"text\": \"1️⃣\"}, {\"callback_data\": \"gorsel_sec:2:752\", \"text\": \"2️⃣\"}, {\"callback_data\": \"gorsel_sec:3:752\", \"text\": \"3️⃣\"}], [{\"callback_data\": \"foto_degistir:752\", \"text\": \"🔄 Başka adaylar\"}, {\"callback_data\": \"kurtar_menu:2\", \"text\": \"↩️ Mevcut Görsel Kalsın\"}]]}}",
+   "{\"args\": [\"🎨 <b>3 Alternatif Kapak Görseli (#752)</b>\\n\\n1️⃣ Basın / Kardeş Haber Görseli\\n2️⃣ Mimari Stok Fotoğraf (Pexels)\\n3️⃣ EDM Kurumsal Pafta Tasarımı\\n\\nBeğendiğin numaraya basarak tek tıkla uygulayabilirsin.\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {\"butonlar\": [[{\"callback_data\": \"gorsel_sec:1:752\", \"text\": \"1️⃣\"}, {\"callback_data\": \"gorsel_sec:2:752\", \"text\": \"2️⃣\"}, {\"callback_data\": \"gorsel_sec:3:752\", \"text\": \"3️⃣\"}], [{\"callback_data\": \"foto_adaylar:752\", \"text\": \"🔄 Başka adaylar\"}, {\"callback_data\": \"kurtar_menu:2\", \"text\": \"↩️ Mevcut Görsel Kalsın\"}]]}}",
    "{\"args\": [[\"P:aday_752_1.jpg\", \"P:aday_752_2.jpg\", \"P:aday_752_3.jpg\"], [\"1️⃣ Basın / Kardeş Haber Görseli\", \"2️⃣ Mimari Stok Fotoğraf\", \"3️⃣ EDM Kurumsal Pafta Tasarımı\"]], \"islev\": \"telegram_bot.slaytlari_gonder\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"make_image.haber_dailybrief_slayti_ciz\", \"kwargs\": {\"cikti_yolu\": \"P:aday_752_1.jpg\", \"foto_kaynak\": \"gercek\", \"saf_editoryal\": null, \"sayfa_no\": \"1/3\"}}",
    "{\"args\": [], \"islev\": \"make_image.haber_dailybrief_slayti_ciz\", \"kwargs\": {\"cikti_yolu\": \"P:aday_752_2.jpg\", \"foto_kaynak\": \"stok\", \"saf_editoryal\": null, \"sayfa_no\": \"2/3\"}}",
@@ -728,7 +728,7 @@
       ],
       [
        {
-        "callback_data": "foto_degistir:752",
+        "callback_data": "foto_adaylar:752",
         "text": "🔄 Başka adaylar"
        },
        {

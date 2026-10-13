@@ -66,7 +66,7 @@ def icerik_incele_karti(ref_id: int) -> Tuple[str, Dict[str, Any]]:
     butonlar = {
         "inline_keyboard": [
             [
-                {"text": "▶️ Şimdi Yayınla", "callback_data": f"yayinla:{ref_id}"},
+                {"text": "▶️ Şimdi Yayınla", "callback_data": f"onayla:haber:hepsi:{ref_id}"},   # Worker `yayinla:<id>` işlemez
                 {"text": "🔄 Yeniden Üret", "callback_data": f"yenile:{ref_id}"},
             ],
             [

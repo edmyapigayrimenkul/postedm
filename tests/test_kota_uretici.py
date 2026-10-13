@@ -124,7 +124,7 @@ class TestKotaUretici(unittest.TestCase):
         tous = [btn["callback_data"] for row in butonlar["inline_keyboard"] for btn in row]
         self.assertIn("kota_kat:1", tous)
         self.assertIn("kota_kat:2", tous)
-        self.assertIn("yonetim_panel", tous)
+        self.assertIn("panel", tous)   # Worker "yonetim_panel" adını işlemez (tests/test_buton_sozlesmesi.py)
 
     def test_kota_metni_uret_kategori_1(self):
         metin = kota_uretici.kota_metni_uret(kategori=1)

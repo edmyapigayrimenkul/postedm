@@ -360,7 +360,7 @@ class TestStokVeBekleme(unittest.TestCase):
 
     def test_bekleme_iki_yil_ve_hedef_730(self):
         self.assertGreaterEqual(sa.BEKLEME_GUN, 730)
-        self.assertEqual(sa.HEDEF_KART, 730)
+        self.assertEqual(sa.HEDEF_KART, sa.BEKLEME_GUN // sa.YAYIN_ARALIK_GUN)  # iki günde bir kart × 2 yıl = 365
 
     def test_kart_iki_yil_dolmadan_tekrar_secilmez(self):
         gecmis = {k["kod"]: self._gun(sa.BEKLEME_GUN - 1) for k in self.kartlar}

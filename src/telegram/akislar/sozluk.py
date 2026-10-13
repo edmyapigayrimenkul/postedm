@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 from ... import db, generate_text, konu_bankasi
@@ -46,6 +46,28 @@ def sozluk_oto_yayin_kapatildi_mi() -> bool:
         if deger.strip().lower() in _OTO_YAYIN_KAPALI_DEGERLER:
             return True
     return False
+
+
+def sozluk_zamanli_gunu_mu() -> bool:
+    """Zamanlanmış (12:30, onaysız yayına yetkili) sözlük turu bugün çalışmalı mı: en çok `YAYIN_ARALIK_GUN` günde bir.
+
+    Son TESLİM edilen zamanlanmış turdan (`sozluk_zamanli_son_gun`; kart yayınlandı ya da onaya düştü) beri aralık dolmadıysa tur
+    sessizce atlanır. Başarısız tur işaretlenmez, yani ertesi gün yeniden denenir (sabit "tek/çift gün" kuralı kaçan bir turu
+    iki gün geciktirirdi). Elle tetiklenen sözlük bu kurala girmez."""
+    from ... import sozluk_arsivi
+    son = db.ayar_oku("sozluk_zamanli_son_gun")
+    if not son:
+        return True
+    try:
+        gecen = (date.fromisoformat(zamanli._tr_bugun()) - date.fromisoformat(str(son))).days
+    except ValueError:
+        return True
+    return gecen < 0 or gecen >= sozluk_arsivi.YAYIN_ARALIK_GUN
+
+
+def sozluk_zamanli_isaretle() -> None:
+    """Zamanlanmış sözlük turunun bugün teslim edildiğini kaydeder (bkz. `sozluk_zamanli_gunu_mu`)."""
+    db.ayar_yaz("sozluk_zamanli_son_gun", zamanli._tr_bugun())
 
 
 def _sozluk_karti_sec() -> Tuple[Optional[Dict[str, Any]], Optional[bool]]:
@@ -107,7 +129,8 @@ def sozluk_karti_hazirla_ve_sun(oto_yayin: Optional[bool] = None) -> Optional[bo
     if kalan <= sozluk_arsivi.STOK_UYARI_ESIGI:
         istemci.mesaj_gonder(
             f"📉 <b>Sözlük kartı stoğu azalıyor</b>: bu karttan sonra yayınlanmamış {kalan} kart kaldı "
-            f"(günde bir kartla ≈{kalan} gün). Kartlar bitince sözlük her gün modelle üretilip onayınıza düşer; "
+            f"({sozluk_arsivi.YAYIN_ARALIK_GUN} günde bir kartla ≈{kalan * sozluk_arsivi.YAYIN_ARALIK_GUN} gün). "
+            f"Kartlar bitince sözlük modelle üretilip onayınıza düşer; "
             f"tekrarsız {sozluk_arsivi.BEKLEME_GUN // 365} yıl için {sozluk_arsivi.HEDEF_KART} kart gerekir. Yeni kart yazılmalı."
         )
     veri = sozluk_arsivi.karttan_veri(kart)
