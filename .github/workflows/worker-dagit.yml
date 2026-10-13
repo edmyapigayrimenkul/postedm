@@ -1,0 +1,117 @@
+# =========================================================
+#  WORKER DAĞIT (Cloudflare)
+#
+#  worker/index.js ve worker/wrangler.toml değişince Worker'ı Cloudflare'e dağıtır. ELLE çalıştırılır:
+#  GitHub → Actions → "Worker Dağıt" → Run workflow (dal: main).
+#
+#  Neden Actions: Worker'ı kendi bilgisayarından `wrangler deploy` ile dağıtmak yerine
+#  Cloudflare kimlik bilgileri GitHub'ın şifreli sırlarında durur; dağıtım tek tıkla ve loglu olur.
+#
+#  Gerekli GitHub sırları (Settings → Secrets and variables → Actions → Repository secrets):
+#    CLOUDFLARE_API_TOKEN   "Edit Cloudflare Workers" şablonuyla üretilmiş token
+#    CLOUDFLARE_ACCOUNT_ID  Cloudflare › Workers & Pages sayfasındaki Account ID
+#
+#  Güvenlik: yalnızca workflow_dispatch (depoya yazma yetkisi gerekir); fork'lardan ya da pull request'ten
+#  tetiklenmez, yani sırlara dışarıdan erişilemez. Yalnız main dalında çalışır. Sırlar sadece ilgili adımlara geçer.
+#
+#  Dağıtımdan sonra Cloudflare API'sinden cron kayıtları okunur: sınıra takılan bir dağıtım kodu yükleyip
+#  cron'u sessizce yazmayabiliyordu (Instabot, 5 Eyl 2026). Beklenen üç cron yoksa iş kırmızı biter.
+# =========================================================
+
+name: Worker Dağıt
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Veritabanına dokunmuyor; günlük işlerle sıraya girmez.
+concurrency:
+  group: worker-dagit
+  cancel-in-progress: false
+
+jobs:
+  dagit:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: GitHub sırları tanımlı mı
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          eksik=0
+          for ad in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!ad}" ]; then
+              echo "::error::GitHub sırrı eksik ya da boş: $ad (Settings → Secrets and variables → Actions)"
+              eksik=1
+            fi
+          done
+          exit $eksik
+
+      # Bozuk kodu canlıya göndermeyelim: Worker'ı gerçekten çağıran testler.
+      - name: Worker sözdizimi ve testleri
+        run: |
+          node --check worker/index.js
+          node --test tests/*.test.mjs
+
+      - name: Cloudflare'e dağıt
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy
+
+      - name: Cron kayıtlarını doğrula
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          curl -sS --fail-with-body -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/edm-telegram-dispatcher/schedules" \
+            -o cron.json
+          python3 - <<'PY'
+          import json, sys
+          beklenen = {"*/10 * * * *", "0 7 * * *", "30 9 * * *"}
+          kayitli = {s["cron"] for s in json.load(open("cron.json"))["result"]["schedules"]}
+          print("Cloudflare'deki cron'lar:", sorted(kayitli))
+          eksik = beklenen - kayitli
+          if eksik:
+              print(f"::error::Cloudflare'de şu cron'lar YAZILMAMIŞ: {sorted(eksik)}")
+              sys.exit(1)
+          print("Üç cron da kayıtlı ✓")
+          PY
+
+      - name: Telegram'a bildir
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SONUC: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          t, c = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+          if not (t and c):
+              raise SystemExit(0)
+          url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if os.environ.get("SONUC") == "success":
+              metin = ("✅ <b>Worker dağıtıldı</b>\nCloudflare cron'ları doğrulandı: 10 dakikada bir planlı yayın, "
+                       "10:00 günlük içerik, 12:30 sözlük.\n" f'<a href="{url}">Log</a>')
+          else:
+              metin = f'🔴 <b>Worker dağıtımı BAŞARISIZ</b>\n\n<a href="{url}">Log</a>'
+          istek = urllib.request.Request(
+              f"https://api.telegram.org/bot{t}/sendMessage",
+              data=json.dumps({"chat_id": c, "parse_mode": "HTML", "text": metin}).encode(),
+              headers={"Content-Type": "application/json"},
+          )
+          urllib.request.urlopen(istek, timeout=20)
+          PY

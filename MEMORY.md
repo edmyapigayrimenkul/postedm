@@ -347,7 +347,7 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     `ZAMANLANMIS` artık dispatch'te de `client_payload.zamanli` ile true (duraklatma ve günlük koruma uygulanır) ve `hazirla.py` bir slotu zamanlanmış koşuda
     **o Türkiye gününde bir kez** çalıştırır (`ayarlar › zamanli_slot_son_gun:<slot>`, yalnız başarılı turda yazılır; elle tetiklenenler korumaya takılmaz, işaret de bırakmaz).
     Neden yedek bırakıldı: Worker dağıtılmadan GitHub cron'u kaldırılırsa HİÇ içerik çıkmaz; ikisi korumasız açık kalırsa günde iki içerik çıkar. Koruma ikisini güvenle birlikte açık tutar;
-    `tests/test_sozlesme.py › test_tek_tetikleyici_kurali` bunu zorunlu kılar. **Dağıtım gerekir:** `cd worker && npx --yes wrangler deploy`, sonra Cloudflare panelinde
+    `tests/test_sozlesme.py › test_tek_tetikleyici_kurali` bunu zorunlu kılar. **Dağıtım gerekir:** GitHub → Actions → **Worker Dağıt** → Run workflow (dal: main; `.github/workflows/worker-dagit.yml`; GitHub sırları `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`; iş Worker testlerini koşar, `wrangler deploy` eder, Cloudflare API'sinden üç cron'un yazıldığını doğrular ve Telegram'a sonucu yazar). Elle: `cd worker && npx --yes wrangler deploy`. Sonra Cloudflare panelinde
     Workers › Cron Triggers'ta ÜÇ satır (`*/10 * * * *`, `0 7 * * *`, `30 9 * * *`) görünmeli (sınıra takılan dağıtım cron'u sessizce yazmıyordu — Instabot). Cloudflare cron'u
     bir hafta sorunsuz çalışırsa GitHub cron'ları `hazirla.yml`'den kaldırılabilir (o zaman test kuralı ve `test_cron_takvimle_uyumlu` birlikte güncellenir). Worker'ın durum menüsündeki
     eski takvim (13:30 / 18:30) de düzeltildi.
