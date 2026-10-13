@@ -42,7 +42,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         mock_resp.status_code = 200
         mock_post.return_value = mock_resp
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("fake_token", "-100123")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("fake_token", "-100123")):
             res = telegram_bot.mesaji_guncelle(123, "Test Güncelleme", reply_markup=None)
 
         self.assertTrue(res)
@@ -215,7 +215,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         db.onay_istegi_kaydet("haber_album", str(h_id), 8881, 1001)
         db.onay_istegi_kaydet("haber", str(h_id), 8882, 1001)
 
-        with patch("src.telegram_bot.mesaji_sil", return_value=True) as mock_sil:
+        with patch("src.telegram.istemci.mesaji_sil", return_value=True) as mock_sil:
             silinen = telegram_bot.icerik_onceki_mesajlarini_temizle("haber", h_id)
 
         # Yalnızca kart silinmeli, albüm silinmemeli
@@ -260,7 +260,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         mock_resp_tg.status_code = 200
         mock_resp_tg.json.return_value = {"ok": True, "result": {"message_id": 777}}
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("fake_tok", "fake_chat")), \
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("fake_tok", "fake_chat")), \
              patch("requests.get", return_value=mock_resp_img) as mock_get, \
              patch("requests.post", return_value=mock_resp_tg) as mock_post:
             res = telegram_bot.fotograf_gonder("https://cdn.example.com/haber.jpg", caption="Haber")

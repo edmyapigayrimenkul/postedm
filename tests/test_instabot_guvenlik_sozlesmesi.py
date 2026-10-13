@@ -82,7 +82,7 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
             yakalanan_payload.update(kwargs)
             return {"message_id": 9999}
 
-        with patch("src.telegram_bot._istek", side_effect=sahte_istek):
+        with patch("src.telegram.istemci._istek", side_effect=sahte_istek):
             sonuc = telegram_bot.mesaj_gonder(dev_metin)
             self.assertEqual(sonuc, {"message_id": 9999})
             self.assertIn("text", yakalanan_payload)
@@ -110,7 +110,7 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
             return resp
 
         with patch("requests.post", side_effect=sahte_post), \
-             patch("src.telegram_bot._bot_bilgileri", return_value=("fake_token", "fake_chat")):
+             patch("src.telegram.istemci._bot_bilgileri", return_value=("fake_token", "fake_chat")):
             sonuc = telegram_bot.mesaj_gonder(hatali_html, html=True)
             self.assertEqual(sonuc, {"message_id": 8888})
             self.assertEqual(cagri_sayisi, 2, "İlk istek parse hatası alıp ikinci istek düz metinle kurtarmalıdır.")
@@ -316,7 +316,7 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
             return FakeResponse(True, "")
 
         with patch("requests.post", side_effect=sahte_post), \
-             patch("src.telegram_bot._bot_bilgileri", return_value=("token123", "chat123")), \
+             patch("src.telegram.istemci._bot_bilgileri", return_value=("token123", "chat123")), \
              patch("pathlib.Path.exists", return_value=True), \
              patch("pathlib.Path.is_file", return_value=True), \
              patch("builtins.open", MagicMock()):

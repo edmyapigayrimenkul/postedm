@@ -38,11 +38,11 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.db_patcher.stop()
         self.tmpdir.cleanup()
 
-    @patch("src.telegram_bot.fotograf_gonder")
+    @patch("src.telegram.medya_istek.fotograf_gonder")
     def test_medya_grubu_tekil_gorselde_fotograf_gonderir(self, mock_foto):
         """Telegram sendMediaGroup min 2 istediği için tekil slayt (sözlük) fotograf_gonder'e yönlendirilmeli."""
         mock_foto.return_value = {"message_id": 777}
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("token123", "-100123")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("token123", "-100123")):
             res = telegram_bot.medya_grubu_gonder(["/tmp/tek_slayt.jpg"], caption="Test Caption")
             self.assertEqual(res, [777])
             mock_foto.assert_called_once_with("/tmp/tek_slayt.jpg", caption="Test Caption")

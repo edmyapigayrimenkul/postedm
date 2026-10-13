@@ -25,6 +25,7 @@ if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
 from src import db, telegram_bot
+from src.telegram import album as album_modulu
 
 
 def cevap(durum: int, govde: dict) -> MagicMock:
@@ -57,13 +58,16 @@ class MedyaTeslimiTesti(unittest.TestCase):
             y.write_bytes(b"\xff\xd8fake-jpeg" + bytes([i]))
             self.slaytlar.append(str(y))
         self.urller = [f"https://i.ibb.co/x{i}/slayt_{i}.jpg" for i in range(1, 4)]
-        self.bot = patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100"))
+        self.bot = patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100"))  # akışlar (telegram_bot) bunu çağırır
         self.bot.start()
+        self.bot_istemci = patch("src.telegram.istemci._bot_bilgileri", return_value=("tok", "-100"))  # albüm/foto bunu çağırır
+        self.bot_istemci.start()
         self.uyku = patch("src.telegram_bot.time.sleep")
         self.uyku_mock = self.uyku.start()
 
     def tearDown(self):
         self.uyku.stop()
+        self.bot_istemci.stop()
         self.bot.stop()
         self.dbp.stop()
         self.tmp.cleanup()
@@ -144,7 +148,7 @@ class MedyaTeslimiTesti(unittest.TestCase):
         self.assertTrue(any("eksik" in k["ham_hata"] and "2/3" in k["ham_hata"] for k in kayitlar), kayitlar)
 
     def test_hicbir_yol_tutmazsa_false_doner_hata_kaydi_yazar_ve_eski_idler_sizmaz(self):
-        telegram_bot._son_medya_grubu_mesaj_idleri = [901, 902]  # önceki içeriğin albümü
+        album_modulu._son_medya_grubu_mesaj_idleri = [901, 902]  # önceki içeriğin albümü
         with patch("requests.post", side_effect=requests.exceptions.ConnectionError("ağ yok")):
             sonuc = telegram_bot.medya_grubu_gonder(self.slaytlar, caption="x", yedek_urller=self.urller)
         self.assertIs(sonuc, False)
@@ -218,7 +222,7 @@ class MedyaTeslimiTesti(unittest.TestCase):
 
     def test_haber_karti_albüm_gelmese_de_gider_notlu_ve_eski_idleri_kaydetmez(self):
         haber_id = self._haber_ekle("A & B <C>")
-        telegram_bot._son_medya_grubu_mesaj_idleri = [999]
+        album_modulu._son_medya_grubu_mesaj_idleri = [999]
         with patch("src.yeni_formatlar.slaytlari_uret", return_value=[Path(s) for s in self.slaytlar]), \
              patch("src.upload_image.coklu_gorsel_yukle", return_value=self.urller), \
              patch("src.telegram_bot.yayin_kapisi", return_value=(True, [])), \
