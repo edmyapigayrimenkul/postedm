@@ -73,7 +73,7 @@ class TestYayinKipleri(unittest.TestCase):
         self.anlatimli = self.gecici / "reels_1_anlatim_sesli.mp4"
         for p in (self.sessiz, self.muzikli, self.anlatimli):
             p.write_bytes(b"video")
-        self._kapi = patch("src.telegram_bot.yayin_kapisi", return_value=(True, []))
+        self._kapi = patch("src.telegram.akislar.kapi.yayin_kapisi", return_value=(True, []))
         self._kapi.start()
 
     def tearDown(self):
@@ -113,9 +113,9 @@ class TestYayinKipleri(unittest.TestCase):
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/x"}) as yt,
             patch.object(yayinla.tiktok, "video_yukle", return_value={"durum": True}) as tt_video,
             patch.object(yayinla.tiktok, "foto_yayinla", return_value={"durum": True}) as tt_foto,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "video_gonder") as tg_video,
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.medya_istek.video_gonder") as tg_video,
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
             contextlib.redirect_stdout(cikti),
         ):
             yayinla.main()
@@ -213,17 +213,17 @@ class TestOneriListesi(unittest.TestCase):
 
     def test_incele_haber_onerisine_haber_ayrintisi_icerige_icerik_karti(self):
         """🔍 / /incele_272 mevcut inceleme yolundan gider; ham habere "Şimdi Yayınla" sunulmaz."""
-        with patch.object(telegram_bot.db, "haber_getir", return_value=_haber(1, durum="onerildi")):
+        with patch("src.db.haber_getir", return_value=_haber(1, durum="onerildi")):
             metin, klavye = telegram_bot.icerik_incele_karti(301)
         self.assertIn("🔍 <b>Haber #301</b>", metin)
         self.assertEqual(_callbackler(klavye), ["haber_uret:301"])
 
         icerik = _haber(1, durum="onay_bekliyor", detay_metni=json.dumps({"spot": "s"}), manset="Manşet")
-        with patch.object(telegram_bot.db, "haber_getir", return_value=icerik):
+        with patch("src.db.haber_getir", return_value=icerik):
             metin, klavye = telegram_bot.icerik_incele_karti(301)
         self.assertIn("İÇERİK İNCELEME", metin)
 
-        with patch.object(telegram_bot.db, "haber_getir", return_value=_haber(1, durum="yayinlandi")):
+        with patch("src.db.haber_getir", return_value=_haber(1, durum="yayinlandi")):
             _, klavye = telegram_bot.icerik_incele_karti(301)
         self.assertNotIn("haber_uret:301", _callbackler(klavye))
 

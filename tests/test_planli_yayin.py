@@ -30,7 +30,7 @@ class TestPlanIsareti(unittest.TestCase):
     def _yayinla(self, *arg):
         with patch.object(yayinla.sys, "argv", ["yayinla.py", *arg]), \
              patch.object(yayinla.db, "haber_guncelle") as guncelle, \
-             patch.object(yayinla.telegram_bot, "mesaj_gonder") as mesaj:
+             patch("src.telegram.istemci.mesaj_gonder") as mesaj:
             yayinla.main()
         return guncelle, mesaj
 
@@ -52,7 +52,8 @@ class TestPlanIsareti(unittest.TestCase):
         guncelle.assert_not_called()  # ilan kimlikleri başka tabloda
 
     def test_yayin_plani_temizler(self):
-        kaynak = (KOK / "scripts" / "yayinla.py").read_text(encoding="utf-8")
+        from tests.yayin_kaynak import yayin_kaynagi
+        kaynak = yayin_kaynagi()
         self.assertIn('"planlanan_yayin": None', kaynak)
 
     def test_sutun_semada(self):
@@ -79,8 +80,8 @@ class TestHatirlaticiPlaniBekler(unittest.TestCase):
                      "durum": "onay_bekliyor", "planlanan_yayin": None}]
         with patch.object(hatirlat.db, "onay_bekleyen_haberleri_getir", return_value=bekleyen), \
              patch.object(hatirlat.db, "hatirlatma_arttir", return_value=1) as arttir, \
-             patch.object(hatirlat.telegram_bot, "icerik_onceki_mesajlarini_temizle") as temizle, \
-             patch.object(hatirlat.telegram_bot, "mesaj_gonder"), \
+             patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle") as temizle, \
+             patch("src.telegram.istemci.mesaj_gonder"), \
              patch.object(hatirlat.db, "wal_bosalt"):
             hatirlat.main(argv=[])
         self.assertEqual([c.args[0] for c in arttir.call_args_list], [52])

@@ -147,7 +147,7 @@ class TestHamHataDugmesi(unittest.TestCase):
 
     def test_kayitli_hata_html_kacirilarak_gonderilir(self):
         db.hata_kaydi_ekle("Yayınla", "Yayınla", "", "", "", False, "KeyError: '<b>x</b> & y' access_token=EAAB1234567890abcdefghijklmn")
-        with patch.object(hata_bildir.telegram_bot, "mesaj_gonder", return_value={"message_id": 1}) as gonder:
+        with patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 1}) as gonder:
             self.assertTrue(hata_bildir.son_hatayi_gonder())
         metin = gonder.call_args.args[0]
         self.assertIn("HAM HATA METNİ", metin)
@@ -155,13 +155,13 @@ class TestHamHataDugmesi(unittest.TestCase):
         self.assertNotIn("EAAB1234567890", metin)               # DB'ye maskeli girdi
 
     def test_kayit_yoksa_bulunamadi_der(self):
-        with patch.object(hata_bildir.telegram_bot, "mesaj_gonder", return_value={"message_id": 1}) as gonder:
+        with patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 1}) as gonder:
             hata_bildir.son_hatayi_gonder()
         self.assertIn("bulunamadı", gonder.call_args.args[0])
 
     def test_uzun_hata_telegram_sinirina_kirpilir(self):
         db.hata_kaydi_ekle("A", "A", "", "", "", False, "x" * 5000)
-        with patch.object(hata_bildir.telegram_bot, "mesaj_gonder", return_value=True) as gonder:
+        with patch("src.telegram.istemci.mesaj_gonder", return_value=True) as gonder:
             hata_bildir.son_hatayi_gonder()
         self.assertLess(len(gonder.call_args.args[0]), 4096)
 

@@ -112,7 +112,7 @@ class TestReplyVeHataButonlari(unittest.TestCase):
         mids = db.son_onay_istegi_mesajlarini_getir(adet=1)
         self.assertEqual(mids, [501, 502, 503])
 
-        with patch("src.telegram_bot.mesaji_sil", return_value=True) as mock_sil:
+        with patch("src.telegram.istemci.mesaji_sil", return_value=True) as mock_sil:
             silinen = telegram_bot.son_mesajlari_sil(adet=1)
             self.assertEqual(silinen, 3)
             self.assertEqual(mock_sil.call_count, 3)

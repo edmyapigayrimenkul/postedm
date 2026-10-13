@@ -38,17 +38,17 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.db_patcher.stop()
         self.tmpdir.cleanup()
 
-    @patch("src.telegram_bot.fotograf_gonder")
+    @patch("src.telegram.medya_istek.fotograf_gonder")
     def test_medya_grubu_tekil_gorselde_fotograf_gonderir(self, mock_foto):
         """Telegram sendMediaGroup min 2 istediği için tekil slayt (sözlük) fotograf_gonder'e yönlendirilmeli."""
         mock_foto.return_value = {"message_id": 777}
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("token123", "-100123")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("token123", "-100123")):
             res = telegram_bot.medya_grubu_gonder(["/tmp/tek_slayt.jpg"], caption="Test Caption")
             self.assertEqual(res, [777])
             mock_foto.assert_called_once_with("/tmp/tek_slayt.jpg", caption="Test Caption")
 
-    @patch("src.telegram_bot.mesaj_gonder")
-    @patch("src.telegram_bot.medya_grubu_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
+    @patch("src.telegram.album.medya_grubu_gonder")
     @patch("src.yeni_formatlar.slaytlari_uret")
     def test_sozluk_onay_karti_ve_buton_paritesi(self, mock_slaytlar, mock_medya, mock_mesaj):
         """Sözlük içeriği görsel üretip haberle birebir aynı metin ve buton yapısıyla onaya sunulmalı."""
@@ -76,7 +76,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
             haber_id = cur.lastrowid
             conn.commit()
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("tok", "-100")):
             ok = telegram_bot._haber_onayina_sun(haber_id)
             self.assertTrue(ok)
 
@@ -110,8 +110,8 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.assertIn("iptal", btn_callbacks)
         self.assertIn("cope_at", btn_callbacks)
 
-    @patch("src.telegram_bot.mesaj_gonder")
-    @patch("src.telegram_bot.medya_grubu_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
+    @patch("src.telegram.album.medya_grubu_gonder")
     @patch("src.yeni_formatlar.slaytlari_uret")
     def test_nedir_dogrusu_onay_karti_paritesi(self, mock_slaytlar, mock_medya, mock_mesaj):
         """Nedir Doğrusu formatı görsel üretip standart onay kartı ve buton yapısını kullanmalı."""
@@ -138,7 +138,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
             haber_id = cur.lastrowid
             conn.commit()
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("tok", "-100")):
             ok = telegram_bot._haber_onayina_sun(haber_id)
             self.assertTrue(ok)
 
@@ -148,8 +148,8 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.assertIn("<b>Dayanak:</b> 4721 sayılı TMK md. 732", msg_text)
         self.assertIn("<b>Önem Puanı:</b> 9/10", msg_text)
 
-    @patch("src.telegram_bot.mesaj_gonder")
-    @patch("src.telegram_bot.medya_grubu_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
+    @patch("src.telegram.album.medya_grubu_gonder")
     @patch("src.yeni_formatlar.slaytlari_uret")
     def test_vaka_analizi_onay_karti_paritesi(self, mock_slaytlar, mock_medya, mock_mesaj):
         """Vaka analizi formatı görsel üretip standart onay kartı ve buton yapısını kullanmalı."""
@@ -173,7 +173,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
             haber_id = cur.lastrowid
             conn.commit()
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("tok", "-100")):
             ok = telegram_bot._haber_onayina_sun(haber_id)
             self.assertTrue(ok)
 
@@ -181,8 +181,8 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.assertIn("📂 <b>VAKA ANALİZİ ONAY BEKLİYOR (#", msg_text)
         self.assertIn("<b>Kategori:</b> HUKUKİ VAKA ANALİZİ", msg_text)
 
-    @patch("src.telegram_bot.mesaj_gonder")
-    @patch("src.telegram_bot.medya_grubu_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
+    @patch("src.telegram.album.medya_grubu_gonder")
     @patch("src.yeni_formatlar.slaytlari_uret")
     def test_reels_onay_karti_ve_buton_paritesi(self, mock_slaytlar, mock_medya, mock_mesaj):
         """Reels 9:16 formatı görsel slayt üretip haberle birebir aynı yapıda onay kartı ve reels kanallarıyla sunulmalı."""
@@ -206,7 +206,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
             haber_id = cur.lastrowid
             conn.commit()
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("tok", "-100")):
             ok = telegram_bot._haber_onayina_sun(haber_id)
             self.assertTrue(ok)
 
@@ -227,8 +227,8 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.assertTrue(any("Reels" in t and "✅" in t for t in btn_texts))  # Reels seçili
         self.assertTrue(any("IG" in t and "⬜" in t for t in btn_texts))  # IG besleme kapalı
 
-    @patch("src.telegram_bot.mesaj_gonder")
-    @patch("src.telegram_bot.medya_grubu_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
+    @patch("src.telegram.album.medya_grubu_gonder")
     @patch("src.make_image.ilan_kapak_slayti_ciz")
     @patch("src.make_image.ilan_detay_slayti_ciz")
     @patch("src.make_image.ilan_kapanis_slayti_ciz")
@@ -247,7 +247,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
             )
             conn.commit()
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("tok", "-100")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("tok", "-100")):
             ok = telegram_bot.ilan_postunu_hazirla_ve_sor("101")
             self.assertTrue(ok)
 

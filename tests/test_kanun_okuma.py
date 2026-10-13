@@ -211,6 +211,34 @@ def _betik():
     return modul
 
 
+class TestTertipKesfi(unittest.TestCase):
+    def _cevap(self, durum, govde=""):
+        from unittest.mock import MagicMock
+        r = MagicMock()
+        r.status_code = durum
+        r.text = govde
+        r.content = govde.encode()
+        return r
+
+    def test_ilk_calisan_tertip_doner_yanlis_tertip_302(self):
+        tam = "<html>" + "x" * 6000 + " MADDE 1 - Amaç. </html>"
+        cevaplar = {1: self._cevap(302), 2: self._cevap(302), 3: self._cevap(200, tam)}
+        with patch.object(mevzuat.requests, "get", side_effect=lambda url, params, **kw: cevaplar[params["MevzuatTertip"]]):
+            self.assertEqual(mevzuat.tertip_kesfet(2942), 3)
+
+    def test_hicbiri_tutmazsa_none(self):
+        with patch.object(mevzuat.requests, "get", return_value=self._cevap(302)):
+            self.assertIsNone(mevzuat.tertip_kesfet(2942))
+
+    def test_ag_hatasinda_none(self):
+        with patch.object(mevzuat.requests, "get", side_effect=mevzuat.requests.ConnectionError("yok")):
+            self.assertIsNone(mevzuat.tertip_kesfet(2942))
+
+    def test_kisa_ya_da_madde_icermeyen_sayfa_tertip_sayilmaz(self):
+        with patch.object(mevzuat.requests, "get", return_value=self._cevap(200, "<html>kisa</html>")):
+            self.assertIsNone(mevzuat.tertip_kesfet(2942))
+
+
 class TestBetik(unittest.TestCase):
     def setUp(self):
         self.betik = _betik()
@@ -239,6 +267,20 @@ class TestBetik(unittest.TestCase):
         self.assertIn("md. 3", cikti)
         kod, cikti, _ = self._calistir(["--json", "ara", "4721", "rehin"])
         self.assertEqual(json.loads(cikti)[0]["sonuclar"][0]["etiket"], "md. 3")
+
+    def test_dene_basarisiz_kanun_icin_dogru_tertibi_onerir(self):
+        """KANUNLAR'daki tertip adayı tutmazsa `--dene` sitede çalışan tertibi bulup yazar (yeni 14 kanunun tertipleri tahmindi)."""
+        def metin(no):
+            return None if no == 2942 else SAHTE
+
+        with patch.object(mevzuat, "kanun_metni", side_effect=metin), \
+             patch.object(mevzuat, "tertip_kesfet", return_value=3) as kesif:
+            cikti, hata = io.StringIO(), io.StringIO()
+            with redirect_stdout(cikti), redirect_stderr(hata):
+                kod = self.betik.main(["kanunlar", "--dene"])
+        self.assertEqual(kod, 1)
+        kesif.assert_called_once_with(2942)
+        self.assertIn("sitede çalışan tertip: 3", cikti.getvalue())
 
     def test_kanunlar_listesi(self):
         kod, cikti, _ = self._calistir(["kanunlar"])

@@ -33,7 +33,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         self.db_patcher.stop()
         self.tmpdir.cleanup()
 
-    @patch("src.telegram_bot.requests.post")
+    @patch("requests.post")
     def test_mesaji_guncelle_null_reply_markup_gondermez(self, mock_post):
         """mesaji_guncelle reply_markup=None olduğunda Telegram'a null reply_markup göndermemelidir."""
         mock_resp = MagicMock()
@@ -42,7 +42,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         mock_resp.status_code = 200
         mock_post.return_value = mock_resp
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("fake_token", "-100123")):
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("fake_token", "-100123")):
             res = telegram_bot.mesaji_guncelle(123, "Test Güncelleme", reply_markup=None)
 
         self.assertTrue(res)
@@ -64,10 +64,10 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         db.haber_guncelle(h_id, manset="Hisseli Tapu Satış Rehberi", durum="onay_bekliyor")
 
         with (
-            patch("src.telegram_bot.medya_grubu_gonder"),
-            patch("src.telegram_bot.mesaj_gonder") as mock_mesaj,
-            patch("src.telegram_bot.upload_image.coklu_gorsel_yukle", return_value=[]),
-            patch("src.telegram_bot.make_image.otorite_gonderi_slaytlari_uret", return_value=[]),
+            patch("src.telegram.album.medya_grubu_gonder"),
+            patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj,
+            patch("src.upload_image.coklu_gorsel_yukle", return_value=[]),
+            patch("src.make_image.otorite_gonderi_slaytlari_uret", return_value=[]),
             patch("src.db_senkron.hemen_kaydet"),
         ):
             mock_mesaj.return_value = {"message_id": 444}
@@ -135,7 +135,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         mock_uret.assert_not_called()
         mock_video_yukle.assert_called_once_with(fake_video, baslik="Test Başlık", etiketler=None)
 
-    @patch("src.telegram_bot.mesaj_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
     def test_hata_bildir_son_hata_txt_fallback_ve_id_tamamlama(self, mock_gonder):
         """hata_bildir boş hata ve ID durumunda son_hata.txt ve veritabanından teşhis koymalıdır."""
         h_id = db.haber_kaydet(
@@ -215,7 +215,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         db.onay_istegi_kaydet("haber_album", str(h_id), 8881, 1001)
         db.onay_istegi_kaydet("haber", str(h_id), 8882, 1001)
 
-        with patch("src.telegram_bot.mesaji_sil", return_value=True) as mock_sil:
+        with patch("src.telegram.istemci.mesaji_sil", return_value=True) as mock_sil:
             silinen = telegram_bot.icerik_onceki_mesajlarini_temizle("haber", h_id)
 
         # Yalnızca kart silinmeli, albüm silinmemeli
@@ -234,7 +234,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
             kategori="S2", onem_puani=9
         )
         db.haber_guncelle(h_id, gorsel_url="https://cdn.example.com/foto.jpg")
-        with patch("src.telegram_bot.fotograf_gonder", return_value={"message_id": 999}) as mock_foto:
+        with patch("src.telegram.medya_istek.fotograf_gonder", return_value={"message_id": 999}) as mock_foto:
             res = telegram_bot.icerik_incele_gonder(h_id)
         self.assertTrue(res)
         mock_foto.assert_called_once()
@@ -260,7 +260,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         mock_resp_tg.status_code = 200
         mock_resp_tg.json.return_value = {"ok": True, "result": {"message_id": 777}}
 
-        with patch("src.telegram_bot._bot_bilgileri", return_value=("fake_tok", "fake_chat")), \
+        with patch("src.telegram.istemci._bot_bilgileri", return_value=("fake_tok", "fake_chat")), \
              patch("requests.get", return_value=mock_resp_img) as mock_get, \
              patch("requests.post", return_value=mock_resp_tg) as mock_post:
             res = telegram_bot.fotograf_gonder("https://cdn.example.com/haber.jpg", caption="Haber")

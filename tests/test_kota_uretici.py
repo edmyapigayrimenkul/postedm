@@ -163,8 +163,8 @@ class TestKotaUretici(unittest.TestCase):
                 f"Kart satırı {idx} tam 35 karakter olmalı, {len(s)} bulundu: '{s}'"
             )
 
-    @patch("src.telegram_bot.mesaj_gonder")
-    @patch("src.telegram_bot.mesaji_guncelle")
+    @patch("src.telegram.istemci.mesaj_gonder")
+    @patch("src.telegram.istemci.mesaji_guncelle")
     def test_kota_gonder(self, mock_guncelle, mock_gonder):
         mock_gonder.return_value = 999
         mock_guncelle.return_value = 888

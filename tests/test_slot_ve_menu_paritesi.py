@@ -62,7 +62,7 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         db.ayar_yaz("son_bilgilendirici_format", "net_cevap")
         self.assertEqual(konu_bankasi.siradaki_bilgilendirici_format(), "b1")
 
-    @patch("src.telegram_bot.hizli_icerik_uret")
+    @patch("src.telegram.akislar.uretim.hizli_icerik_uret")
     def test_slot_bilgilendirici_rotasyonu_calisir(self, mock_hizli):
         """Günün içeriği döngüdeki formatı üretmeli ve sırayı kaydetmeli."""
         mock_hizli.return_value = True
@@ -73,9 +73,9 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         mock_hizli.assert_called_once_with(format_turu="nedir_dogrusu")
         self.assertEqual(db.ayar_oku("son_bilgilendirici_format"), "nedir_dogrusu")
 
-    @patch("src.telegram_bot.mesaj_gonder", return_value={"message_id": 1})
-    @patch("src.telegram_bot.sozluk_karti_hazirla_ve_sun", return_value=None)
-    @patch("src.telegram_bot.hizli_icerik_uret")
+    @patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 1})
+    @patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=None)
+    @patch("src.telegram.akislar.uretim.hizli_icerik_uret")
     def test_slot_sozluk_calisir(self, mock_hizli, mock_kart, mock_mesaj):
         """Slot 2: hazır kart kalmadıysa sozluk formatı modelle üretilip onaya sunulmalı."""
         mock_hizli.return_value = True
@@ -84,8 +84,8 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         mock_kart.assert_called_once_with()
         mock_hizli.assert_called_once_with(format_turu="sozluk")
 
-    @patch("src.telegram_bot.sozluk_karti_hazirla_ve_sun", return_value=True)
-    @patch("src.telegram_bot.hizli_icerik_uret")
+    @patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True)
+    @patch("src.telegram.akislar.uretim.hizli_icerik_uret")
     def test_slot_sozluk_once_hazir_karti_dener(self, mock_hizli, mock_kart):
         """Hazır kart varken model hiç çağrılmaz (kota ve doğruluk: kart önceden doğrulanmıştır)."""
         res = telegram_bot.slot_icerigi_hazirla_ve_sun(slot="sozluk")
@@ -93,9 +93,9 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         mock_kart.assert_called_once_with()
         mock_hizli.assert_not_called()
 
-    @patch("src.telegram_bot.mesaj_gonder", return_value={"message_id": 1})
+    @patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 1})
     @patch("src.fetch_news.rss_tara", return_value=[])
-    @patch("src.telegram_bot.hizli_icerik_uret")
+    @patch("src.telegram.akislar.uretim.hizli_icerik_uret")
     def test_slot_haber_icerik_uretmez_oneri_duser(self, mock_hizli, mock_rss, mock_mesaj):
         """Haber slotu içerik üretmez (içerik günde bir); taze haberi tarihiyle öneri olarak düşürür."""
         from datetime import datetime, timedelta, timezone

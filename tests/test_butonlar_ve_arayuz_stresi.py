@@ -118,7 +118,7 @@ class TestButonlarVeArayuzStresi(unittest.TestCase):
                 raise RuntimeError("Telegram network timeout")
             return True
 
-        with patch.object(telegram_bot, "mesaji_sil", side_effect=sahte_sil):
+        with patch("src.telegram.istemci.mesaji_sil", side_effect=sahte_sil):
             silinen = telegram_bot.icerik_onceki_mesajlarini_temizle("haber", "777", haric_mesaj_id=1050)
             # 50 mesajdan 1'i hariç tutuldu (1050). Kalan 49 mesajdan %5'e bölünenler hariç hepsi silindi.
             self.assertGreater(silinen, 35)

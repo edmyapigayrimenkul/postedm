@@ -69,8 +69,8 @@ class TestYayinlaKorumasi(unittest.TestCase):
 
     def _calistir(self, hedef):
         with mock.patch.object(sys, "argv", ["yayinla.py", "--tur", "haber", "--id", str(self.haber_id), "--hedef", hedef]), \
-             mock.patch.object(self.yayinla.telegram_bot, "mesaj_gonder") as mesaj, \
-             mock.patch.object(self.yayinla.telegram_bot, "konu_bankasindan_hazirla") as yeni_uret, \
+             mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             mock.patch("src.telegram.akislar.uretim.konu_bankasindan_hazirla") as yeni_uret, \
              mock.patch.object(self.yayinla.instagram, "carousel_yayinla") as ig_c, \
              mock.patch.object(self.yayinla.instagram, "tekil_gorsel_yayinla") as ig_t:
             self.yayinla.main()

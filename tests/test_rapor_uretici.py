@@ -176,8 +176,8 @@ class TestRaporUretici(unittest.TestCase):
                 self.assertEqual(len(satir), 35, f"Kategori 2 satırı 35 karakter değil ({len(satir)}): {satir}")
 
     def test_kota_gonder(self):
-        with patch("src.telegram_bot.mesaj_gonder") as mock_gonder, \
-             patch("src.telegram_bot.mesaji_guncelle") as mock_guncelle:
+        with patch("src.telegram.istemci.mesaj_gonder") as mock_gonder, \
+             patch("src.telegram.istemci.mesaji_guncelle") as mock_guncelle:
 
             # 1. Menü gönderimi (varsayılan)
             rapor_uretici.kota_gonder(mesaj_id=None, kategori="menu")

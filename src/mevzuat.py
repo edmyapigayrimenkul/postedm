@@ -30,7 +30,7 @@ import threading
 import time
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Iterable
 
 import certifi
 import requests
@@ -246,6 +246,26 @@ def kanun_metni(no: int) -> Optional[str]:
                 return metin
     log.warning("Kanun metni bulunamadı: %s (tertipler %s)", no, tertipler)
     return dosya.read_text(encoding="utf-8") if dosya.exists() else None
+
+
+def tertip_kesfet(no: int, aday_araligi: Iterable[int] = range(1, 9)) -> Optional[int]:
+    """Kanunun sitedeki tertip numarasını arar (`KANUNLAR`taki adaylar tutmadığında). Metin döndüren ilk tertip.
+
+    Yalnız bakım aracıdır (`kanun_oku.py kanunlar --dene`): yanlış tertip 302 döndüğü için 1-8 sırayla denenir ve
+    bulunan numara `KANUNLAR`a elle yazılır. Önbelleğe yazmaz."""
+    for tertip in aday_araligi:
+        try:
+            r = requests.get(
+                TABAN, params={"MevzuatTur": 1, "MevzuatNo": no, "MevzuatTertip": tertip},
+                headers={"User-Agent": "Mozilla/5.0 (EDM postedm mevzuat denetimi)"},
+                timeout=40, verify=_ca_paketi(), allow_redirects=False,
+            )
+        except requests.RequestException as e:
+            log.warning("mevzuat.gov.tr erişilemedi (%s, tertip %s): %s", no, tertip, e)
+            return None
+        if r.status_code == 200 and len(r.content) > 5000 and re.search(r"(MADDE|Madde)\s*1\s*[-–]", _html_metne(r.text)):
+            return tertip
+    return None
 
 
 def madde_metni(no: int, madde: str, azami: int = 12000) -> Optional[str]:

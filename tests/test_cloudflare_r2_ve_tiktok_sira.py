@@ -33,7 +33,7 @@ class TestCloudflareR2VeTikTokSira(unittest.TestCase):
         self.dummy_vid.write_bytes(b"dummy video data")
 
         # Kanal yönlendirmesi testi; yayın kapısının kendisi test_sifir_tolerans'ta
-        self._kapi = patch("src.telegram_bot.yayin_kapisi", return_value=(True, []))
+        self._kapi = patch("src.telegram.akislar.kapi.yayin_kapisi", return_value=(True, []))
         self._kapi.start()
 
     def tearDown(self):
@@ -140,7 +140,8 @@ class TestCloudflareR2VeTikTokSira(unittest.TestCase):
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
             patch.object(yayinla.tiktok, "foto_yayinla", side_effect=sahte_tt),
             patch.object(yayinla.instagram, "carousel_yayinla", side_effect=sahte_ig),
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.istemci._istek"),  # canlı durum/sonuç mesajları da istemciden geçer: ağ kapısı kapalı
         ):
             yayinla.main()
 

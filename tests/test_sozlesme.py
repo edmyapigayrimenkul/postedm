@@ -45,7 +45,8 @@ class TestSozlesme(unittest.TestCase):
 
     def test_01_worker_python_buton_uyumu(self):
         """Telegram'da üretilen tüm callback_data'lar Cloudflare Worker tarafından tanınmalı."""
-        tg_kodu = (KOK / "src" / "telegram_bot.py").read_text(encoding="utf-8")
+        from tests.telegram_kaynak import telegram_kaynagi
+        tg_kodu = telegram_kaynagi()
         worker_kodu = (KOK / "worker" / "index.js").read_text(encoding="utf-8")
 
         # callback_data kalıplarını ayıkla
@@ -648,7 +649,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
 
         # 1. manuel_paket testi
         with patch.object(yayinla_mod.db, "haber_getir", return_value=sahte_haber), \
-             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "88", "--hedef", "manuel_paket"]):
             yayinla_mod.main()
             mock_mesaj.assert_called_once()
@@ -661,7 +662,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         # 2. tamamla testi (haber)
         with patch.object(yayinla_mod.db, "haber_guncelle") as mock_hguncelle, \
              patch.object(yayinla_mod.db, "onay_istegi_sonuclandir") as mock_osonuc, \
-             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "88", "--hedef", "tamamla"]):
             yayinla_mod.main()
             self.assertEqual(mock_hguncelle.call_args[0][0], 88)
@@ -673,7 +674,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         # 3. tamamla testi (reels)
         with patch.object(yayinla_mod.db, "haber_guncelle") as mock_hguncelle, \
              patch.object(yayinla_mod.db, "onay_istegi_sonuclandir") as mock_osonuc, \
-             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "reels", "--id", "99", "--hedef", "tamamla"]):
             yayinla_mod.main()
             self.assertEqual(mock_hguncelle.call_args[0][0], 99)
@@ -742,7 +743,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         }
         with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[eski_haber]), \
              patch.object(hatirlat_mod.db, "durum_zaman_asimi_yap") as mock_za, \
-             patch.object(hatirlat_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(hatirlat_mod.db, "wal_bosalt"):
             hatirlat_mod.main(argv=[])
             mock_za.assert_called_once_with(101)
@@ -758,7 +759,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         }
         with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[taze_haber]), \
              patch.object(hatirlat_mod.db, "hatirlatma_arttir", return_value=1) as mock_arttir, \
-             patch.object(hatirlat_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(hatirlat_mod.db, "wal_bosalt"):
             hatirlat_mod.main(argv=[])
             mock_arttir.assert_called_once_with(102)
@@ -774,7 +775,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         }
         with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[orta_haber]), \
              patch.object(hatirlat_mod.db, "durum_zaman_asimi_yap") as mock_za_orta, \
-             patch.object(hatirlat_mod.telegram_bot, "mesaj_gonder") as mock_mesaj_orta, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj_orta, \
              patch.object(hatirlat_mod.db, "wal_bosalt"):
             hatirlat_mod.main(argv=[])
             mock_za_orta.assert_not_called()
@@ -795,7 +796,7 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         yayinla_mod = importlib.import_module("scripts.yayinla")
 
         with patch.object(yayinla_mod.db, "onay_istegi_ertele") as mock_ertele, \
-             patch.object(yayinla_mod.telegram_bot, "mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(yayinla_mod.db, "wal_bosalt"), \
              patch.object(yayinla_mod.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", "55", "--hedef", "ertele"]):
             yayinla_mod.main()

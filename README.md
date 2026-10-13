@@ -7,6 +7,7 @@ EDM Yapı & Gayrimenkul (`edmyapigayrimenkul.com`) markasının kurumsal kimliğ
 ## 🏗 Mimari ve Çalışma Mantığı
 
 **İçerik kararlarının kaynağı [`ICERIK-SISTEMI.md`](ICERIK-SISTEMI.md).**
+**Kod yapısı, katman kuralları ve yol haritası: [`ARCHITECTURE.md`](ARCHITECTURE.md).**
 Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu tanımlar.
 
 ```
@@ -27,7 +28,7 @@ Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu t
                [make_image.py]     karma planlayıcı: 4 ↔ 7 slayt
                                    kutusuz dizgi, 3 zemin varyantı
                         ▼
-              [telegram_bot.py]    @PostEdmBot önizleme + onay
+              [src/telegram/]      @PostEdmBot önizleme + onay
                         │
                         ├── [✅ Yayına Al]   └── [❌ Pas Geç]
                         ▼

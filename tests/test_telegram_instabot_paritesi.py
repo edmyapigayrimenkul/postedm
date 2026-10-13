@@ -64,7 +64,7 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         self.assertIn("ig", secili_sonra_2)
         self.assertNotIn("reels", secili_sonra_2)
 
-    @patch("src.telegram_bot._istek")
+    @patch("src.telegram.istemci._istek")
     def test_menuyu_degistir(self, mock_istek):
         """editMessageReplyMarkup çağrısının metne dokunmadan menüyü değiştirdiği doğrulanır."""
         mock_istek.return_value = {"message_id": 12345}
@@ -100,7 +100,7 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         self.assertIn("• <b>Facebook (Gönderi):</b> ⏱️ Sırada", metin)
         self.assertIn("• <b>Instagram Reels (9:16):</b> ⏱️ Sırada", metin)
 
-    @patch("src.telegram_bot.mesaji_guncelle")
+    @patch("src.telegram.istemci.mesaji_guncelle")
     def test_canli_yayin_durumu_guncelle(self, mock_guncelle):
         """canli_yayin_durumu_guncelle fonksiyonunun onay mesajını anında güncellediği doğrulanır."""
         mock_guncelle.return_value = True
@@ -118,8 +118,8 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         self.assertIn("[▰▰] %100 (2/2)", guncellenen_metin)
         self.assertIn("✅ <b>TÜM PLATFORMLARA AKTARIM TAMAMLANDI!</b>", guncellenen_metin)
 
-    @patch("src.telegram_bot.mesaji_guncelle")
-    @patch("src.telegram_bot.mesaj_gonder")
+    @patch("src.telegram.istemci.mesaji_guncelle")
+    @patch("src.telegram.istemci.mesaj_gonder")
     def test_sonucu_yaz(self, mock_gonder, mock_guncelle):
         """Yayın sonucu yazılırken hem onay mesajının güncellendiği hem de bildir=True ise yeni mesaj atıldığı test edilir."""
         mock_guncelle.return_value = True
@@ -202,7 +202,7 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         kayitli = db.onay_mesajlarini_getir("haber", "999")
         self.assertEqual(kayitli, [101, 102])
 
-        with patch.object(telegram_bot, "mesaji_sil", return_value=True) as mock_sil:
+        with patch("src.telegram.istemci.mesaji_sil", return_value=True) as mock_sil:
             # 102 hariç silinsin (örneğin güncellenen mesaj hariç)
             silinen = telegram_bot.icerik_onceki_mesajlarini_temizle("haber", "999", haric_mesaj_id=102)
             self.assertEqual(silinen, 1)

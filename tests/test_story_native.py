@@ -25,6 +25,7 @@ if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
 from scripts import yayinla
+from src.yayin.kanallar import story as story_modulu
 from src import haber_tasarim
 
 REF = "99901"
@@ -129,7 +130,7 @@ class TestStoryAkisi(_Temizlik):
         Image.new("RGB", (1080, 1350), "blue").save(self.dummy, "JPEG")
         self.native = KOK / f"data/output/test_story_native_{REF}.jpg"
         Image.new("RGB", (1080, 1920), (200, 20, 30)).save(self.native, "JPEG")
-        self._kapi = patch("src.telegram_bot.yayin_kapisi", return_value=(True, []))
+        self._kapi = patch("src.telegram.akislar.kapi.yayin_kapisi", return_value=(True, []))
         self._kapi.start()
 
     def tearDown(self):
@@ -158,13 +159,13 @@ class TestStoryAkisi(_Temizlik):
             patch.object(yayinla.db, "haber_getir", return_value=haber),
             patch.object(yayinla.db, "haber_guncelle"),
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
-            patch.object(yayinla, "story_kapagi_uret", return_value=story_kapagi) as native,
+            patch.object(story_modulu, "story_kapagi_uret", return_value=story_kapagi) as native,
             patch.object(yayinla.video, "_cercevele_9_16", cerceve),
             patch.object(yayinla.upload_image, "gorsel_yukle", side_effect=yukle),
             patch.object(yayinla.instagram, "story_yayinla", return_value="ig-s") as ig_story,
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s") as fb_story,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
             patch("requests.get", return_value=MagicMock(status_code=200, content=self.dummy.read_bytes())),
         ):
             yayinla.main()

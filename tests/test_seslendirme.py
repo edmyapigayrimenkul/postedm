@@ -231,12 +231,13 @@ class TestKaristirma(unittest.TestCase):
 class TestOnayAkisi(unittest.TestCase):
     def test_onay_akisi_instabot_paritesi_sadece_gorsel_ve_aciklama(self):
         """Kullanıcı talebi 2026-09-29: Onay akışında video derlenmez/gönderilmez; yalnızca slayt albümü ve menü iletilir."""
-        kaynak = (Path(__file__).resolve().parent.parent / "src" / "telegram_bot.py").read_text(encoding="utf-8")
-        govde = kaynak[kaynak.index("def _haber_onayina_sun("):]
-        govde = govde[:govde.index("\ndef ")]
-        self.assertIn("medya_grubu_gonder(", govde)
-        self.assertNotIn("ses.anlatimli_video_uret(", govde)
-        self.assertNotIn("video_gonder(", govde)
+        akis = Path(__file__).resolve().parent.parent / "src" / "telegram" / "akislar"
+        self.assertIn("medya_grubu_gonder(", (akis / "onay.py").read_text(encoding="utf-8"))
+        # onay akışının TÜM parçaları (sıra, slayt, kart): video üretmez, video göndermez
+        for dosya in ("onay.py", "onay_slayt.py", "onay_karti.py"):
+            govde = (akis / dosya).read_text(encoding="utf-8")
+            self.assertNotIn("ses.anlatimli_video_uret(", govde, dosya)
+            self.assertNotIn("video_gonder(", govde, dosya)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,70 @@
+# =========================================================
+#  MEVZUAT ÖNBELLEĞİ — kanun metinlerini çek, `mevzuat-onbellek` dalına yaz
+#
+#  NİYE (2026-10-13): sözlük kartı üretimi (SOZLUK-KART-URETIMI.md) kanun metnini kendi hafızasından değil
+#  `scripts/kanun_oku.py` ile okuyup yazmalı. `www.mevzuat.gov.tr` bulut geliştirme oturumlarının ağ politikasıyla
+#  kapalı; GitHub Actions'tan açık. Bu iş her kanunu çeker (14 yeni kanunun tertip adayları da sınanır; tutmayan
+#  için sitede çalışan tertip önerilir) ve metinleri tek commit'lik `mevzuat-onbellek` dalına yazar. Oturum bu dalı
+#  `git fetch` ile alıp `data/mevzuat_onbellek/` içine koyar. Kanun metni kamuya açıktır.
+#
+#  ELLE çalıştırılır: Actions → "Mevzuat Önbelleği" → Run workflow. Veritabanına ve `main`'e dokunmaz.
+# =========================================================
+
+name: Mevzuat Önbelleği
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mevzuat-onbellek
+  cancel-in-progress: true
+
+jobs:
+  indir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Her kanunu çek (tertip doğrulaması)
+        id: cek
+        run: |
+          set +e
+          python scripts/kanun_oku.py kanunlar --dene | tee kanunlar.txt
+          echo "kod=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          echo "### Kanun çekme sonucu" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat kanunlar.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      - name: Metinleri mevzuat-onbellek dalına yaz
+        run: |
+          mkdir -p "$RUNNER_TEMP/onbellek"
+          cp data/mevzuat_onbellek/*.txt "$RUNNER_TEMP/onbellek/" 2>/dev/null || true
+          cp kanunlar.txt "$RUNNER_TEMP/onbellek/DURUM.md"
+          ls -la "$RUNNER_TEMP/onbellek"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan mevzuat-onbellek
+          git rm -rf --quiet . || true
+          cp "$RUNNER_TEMP"/onbellek/* .
+          git add -f -- *.txt DURUM.md
+          git commit --quiet -m "mevzuat önbelleği $(date -u +%Y-%m-%d)"
+          git push --force origin mevzuat-onbellek
+
+      # Hiç kanun çekilemediyse ya da bazıları çekilemediyse iş kırmızı biter ama metinler yine dala yazılmış olur.
+      - name: Sonuç
+        run: |
+          if [ "${{ steps.cek.outputs.kod }}" != "0" ]; then
+            echo "::error::Bazı kanunlar çekilemedi; ayrıntı için 'Her kanunu çek' adımının çıktısına bak."
+            exit 1
+          fi

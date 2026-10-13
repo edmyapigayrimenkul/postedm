@@ -63,7 +63,7 @@ class TestSozlukOtoYayin(unittest.TestCase):
         }
         slaytlar = ["/tmp/sozluk_slayt_1.jpg"]
 
-        with patch.object(telegram_bot, "medya_grubu_gonder") as mock_medya, \
+        with patch("src.telegram.album.medya_grubu_gonder") as mock_medya, \
              patch("subprocess.run") as mock_run:
             mock_proc = MagicMock()
             mock_proc.returncode = 0
@@ -104,13 +104,13 @@ class TestSozlukOtoYayin(unittest.TestCase):
             "dayanak_alintisi": "zilyetlik",
         }
 
-        with patch("src.telegram_bot._sozluk_karti_sec", return_value=(sahte_kart, True)), \
-             patch("src.telegram_bot.bot_duraklatildi_mi", return_value=(False, "")), \
-             patch("src.telegram_bot.db.ayar_oku", return_value="2020-01-01"), \
-             patch("src.telegram_bot.db._baglanti_al") as mock_conn, \
-             patch("src.telegram_bot.konu_bankasi.kullanildi_isaretle"), \
-             patch("src.telegram_bot.mesaj_gonder"), \
-             patch("src.telegram_bot.haber_onayina_sun", return_value=True) as mock_onay:
+        with patch("src.telegram.akislar.sozluk._sozluk_karti_sec", return_value=(sahte_kart, True)), \
+             patch("src.telegram.ayarlar.bot_duraklatildi_mi", return_value=(False, "")), \
+             patch("src.db.ayar_oku", return_value="2020-01-01"), \
+             patch("src.db._baglanti_al") as mock_conn, \
+             patch("src.konu_bankasi.kullanildi_isaretle"), \
+             patch("src.telegram.istemci.mesaj_gonder"), \
+             patch("src.telegram.akislar.onay.haber_onayina_sun", return_value=True) as mock_onay:
 
             # Cursor mock
             cursor = MagicMock()
