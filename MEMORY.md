@@ -371,3 +371,7 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Hata düzeltildi:** `yayindan_kaldir("haber", …)` (✕ Yayından Kaldır düğmesi) 2026-10-07'den beri **çöküyordu**: `haberler` tablosunda olmayan `atlanma_zamani` sütununu yazıyordu
       (`OperationalError: no such column`). Facebook/Threads gönderisi silindikten SONRA çöktüğü için gönderi gidiyor, kayıt "yayında" kalıyor, Telegram'a rapor gelmiyordu.
       İlan yolu (`ilan_kaldirildi_isaretle`) etkilenmiyordu. Zaman damgası kaldırıldı; `aday.py` "atlanma_zamani" sütununu zaten yoksa tolere ediyor.
+    * **Faz 2 aşama 1–3 (aynı gün):** `telegram_bot.py` 2919 → 1219 satır. `src/telegram/` paketi: `istemci` (tek HTTP kapısı `_istek`), `medya_istek` (foto/video + yeniden deneme), `album`, `temizlik`, `ayarlar` (duraklatma/kanal),
+      `menuler` + `menuler_panel` (düğme setleri), `durum_metni` + `sonuc_mesaji` + `kaldir`, `kartlar`, `paneller`. Davranış 219 senaryoda birebir aynı; kuralları `tests/test_telegram_paketi.py` zorlar
+      (≤250 satır, `telegram_bot`'a yukarı bağımlılık yok, kardeş işlevler modül üzerinden). **Yeni bir testte Telegram yamalarken:** ağ kapısı `src.telegram.istemci._istek` / `_bot_bilgileri`;
+      `telegram_bot.mesaj_gonder` yaması yalnız hâlâ `telegram_bot.py`'de duran akışları sessizleştirir, `sonucu_yaz`/`canli_yayin_durumu_guncelle`/`panel_gonder` gibi taşınmış işlevleri sessizleştirmez.

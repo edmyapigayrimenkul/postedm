@@ -54,7 +54,7 @@ Düzensiz (boyut = satır, 2026-10-13):
 | Dosya | Satır | Sorun |
 |---|---|---|
 | `src/make_image.py` | 4107 | 15 görsel biçimi + yardımcılar + tuval yönetimi tek dosyada; `yeni_formatlar.py` (1993) ve `haber_tasarim.py` (2009) ile çizim mantığı üçe bölünmüş, sınırları belirsiz |
-| `src/telegram_bot.py` | 2919 | Beş ayrı iş: (a) Telegram API istemcisi, (b) menü/düğme üretimi, (c) durum kartları, (d) içerik akışları (haber, sözlük, finans, reels, ilan, slot), (e) duraklatma/kanal ayarı. 22 kaynak dosyası (src + scripts) ve 31 test dosyası ona bağlı |
+| `src/telegram_bot.py` | 1219 (2919'dan) | Yaprak kümeler `src/telegram/` paketine taşındı (API istemcisi, medya, menüler, kartlar, paneller, ayarlar). Kalan: içerik **akışları** (haber onayı, sözlük, slot, hızlı üretim, reels, ilan, finans) ve eski adların yeniden dışa aktarımı. 22 kaynak dosyası (src + scripts) ve 31 test dosyası hâlâ `telegram_bot.X` adıyla ona bağlı |
 | `src/generate_text.py` | 1515 | Model zinciri, istem metinleri, caption süsleme, bütçe |
 | `src/db.py` | 777 | Tablolar + tüm sorgular tek yerde; `konu_bankasi`/`sozluk_arsivi` kendi tablolarını ayrıca kuruyor (`tabloyu_kur`) |
 
@@ -65,12 +65,16 @@ Her fazın değişmez sırası: **(1) altın çıktı testi yaz ve ESKİ kodla k
 | Faz | İş | Durum |
 |---|---|---|
 | 1 | `scripts/yayinla.py` → `src/yayin/` | **Yapıldı** (bu PR) |
-| 2 | `src/telegram_bot.py` → `src/telegram/` (`api`, `menuler`, `kartlar`, `akislar/`) | Sıradaki. Önce onay akışı için altın çıktı testi (`haber_onayina_sun`, `sozluk_karti_hazirla_ve_sun`, `slot_icerigi_hazirla_ve_sun`, ilan, reels) |
+| 2 | `src/telegram_bot.py` → `src/telegram/` | **Aşama 1–3 yapıldı** (2026-10-13): `istemci`, `medya_istek`, `album`, `temizlik`, `ayarlar`, `menuler`, `menuler_panel`, `durum_metni`, `sonuc_mesaji`, `kaldir`, `kartlar`, `paneller`. Altın çıktı: `tests/test_telegram_altin.py` (219 senaryo). **Aşama 4 (akışlar → `telegram/akislar/`) sırada**: önce 253 satırlık `_haber_onayina_sun` adımlara bölünür (yayin/ bölmesindeki `main()` gibi), sonra sözlük/slot/reels/ilan/finans akışları onu modül üzerinden çağıracak biçimde taşınır |
 | 3 | Çizim: `make_image` / `yeni_formatlar` / `haber_tasarim` ortak çizim çekirdeği + biçim başına dosya | Piksel karşılaştırmalı altın görseller (`scripts/gorsel_denetim.py` zaten 164 vaka ölçüyor) |
 | 4 | `db.py` → depo başına modül (haber, ilan, onay, ayar, hata) | Küçük; şema değişmez |
 | 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | GitHub cron'u 6–10 saat gecikiyor; yalnız günlük tur taşındı |
 
-**Faz 2'nin tuzağı:** testler `src.telegram_bot.mesaj_gonder` gibi adları yamalıyor (31 dosya). Fonksiyonlar yeni modüllere taşınırsa, eski adı yeniden dışa aktaran bir "kabuk" yetmez: kod yeni modüldeki işlevi çağırır, yama kabuktaki adı değiştirir, yama etkisiz kalır. Doğru yol: taşınan kodun **diğer modüllerdeki işlevleri `telegram_bot.mesaj_gonder()` gibi modül öznitelik erişimiyle çağırması** ya da testleri yeni konuma taşımak. Bu yüzden Faz 2 ayrı, dikkatli bir PR'dır.
+**Faz 2'nin tuzağı ve uygulanan çözüm:** testler `src.telegram_bot.mesaj_gonder` gibi adları yamalıyor (31 dosya). Eski adı yeniden dışa aktaran bir "kabuk" tek başına yetmez: taşınan kod yeni modüldeki işlevi çağırır, yama kabuktaki adı değiştirir, yama etkisiz kalır. Uygulanan kural:
+1. Yeni modüller kardeşlerini **modül üzerinden** çağırır (`istemci.mesaj_gonder()`, `from .istemci import mesaj_gonder` değil) — `tests/test_telegram_paketi.py` zorlar; paket `telegram_bot`'u içe aktaramaz.
+2. `telegram_bot` taşınan her adı yeniden dışa aktarır; hâlâ `telegram_bot`'ta duran akışlar çıplak adla çağırdığı için onların testlerinin yaması aynen çalışır.
+3. İşlev **bir taşınan işlevin içinden** çağrılıyorsa, o testin yaması işlevin yeni evine taşınır (`src.telegram.istemci._bot_bilgileri` gibi). Aşama 1–3'te 19+5 test böyle taşındı; kırılanlar anında görüldü. Sessiz geçenleri bulmak için `_bot_bilgileri`'ni sarıp boş jetonla çağrılan testleri listeleyen bir tarama yapıldı (yeni sessiz geçiş yok).
+4. Yapısal durum (`_son_medya_grubu_mesaj_idleri`) yeniden atandığı modülde yaşar; dışarıdan kopya alınmaz.
 
 ## 5. Veritabanı kararı: git'te KALIYOR
 
