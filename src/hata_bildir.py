@@ -14,17 +14,22 @@ import json
 import logging
 import os
 import re
+import sys
 import traceback
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from . import telegram_bot
+from . import config, gizlilik, telegram_bot
 
 log = logging.getLogger(__name__)
 
-HATA_LOG_YOLU = Path("data") / "hata_kayitlari.jsonl"
-SON_HATA_YOLU = Path("data") / "son_hata.txt"
+# Yerel/oturum içi kopyalar (Actions makinesi iş bitince silinir). KALICI kayıt DB'dedir
+# (`db.hata_kayitlari`); dosyalar yalnız aynı iş içindeki sonraki adımlar (yayinla.yml "Hata bildir") içindir.
+# Test modunda geçici dizine gider (config.veri_yolu).
+HATA_LOG_YOLU = config.veri_yolu("hata_kayitlari.jsonl")
+SON_HATA_YOLU = config.veri_yolu("son_hata.txt")
+RAPOR_ISARET_YOLU = config.veri_yolu("son_rapor_gonderildi.txt")
 
 # ----------------------------------------------------------------------
 # Kapsamlı Hata Kataloğu (RegEx Desenleri, Teşhisler ve Kurtarma Eylemleri)
@@ -179,7 +184,16 @@ def _sadelestir(metin: str) -> str:
 
 
 def hata_kaydet(nerede: str, baslik: str, ham_hata: str, teshis: Dict[str, Any]) -> None:
-    """Her hatayı kalıcı olarak data/hata_kayitlari.jsonl ve data/son_hata.txt dosyalarına yazar."""
+    """Hatayı KALICI olarak DB'ye (`hata_kayitlari`), aynı iş içindeki adımlar için de yerel dosyalara yazar.
+
+    Gizli değerler (access_token, Bearer, bot adresi, API anahtarı) kayıttan önce maskelenir: DB git'e gidiyor."""
+    ham_hata = gizlilik.maskele(ham_hata)
+    try:
+        from . import db
+        db.hata_kaydi_ekle(nerede, baslik, teshis.get("ne_oldu", ""), teshis.get("neden", ""),
+                           teshis.get("eylem", ""), bool(teshis.get("tanindi", False)), ham_hata)
+    except Exception as e:  # noqa: BLE001 — hata kaydı hata bildirimini düşürmesin
+        log.warning("Hata DB'ye yazılamadı: %s", e)
     try:
         HATA_LOG_YOLU.parent.mkdir(parents=True, exist_ok=True)
         simdi = datetime.now(timezone.utc)
@@ -205,32 +219,16 @@ def hata_kaydet(nerede: str, baslik: str, ham_hata: str, teshis: Dict[str, Any])
 
 
 def son_hatalari_ozetle(saat: int = 24) -> List[Dict[str, Any]]:
-    """Son belirtilen saat içindeki hata kayıtlarını döner."""
-    if not HATA_LOG_YOLU.exists():
-        return []
+    """Son belirtilen saat içindeki hata kayıtlarını döner (kaynak: DB).
 
-    sonuc = []
-    esik = datetime.now(timezone.utc) - timedelta(hours=saat)
-
+    Önceki sürüm yalnız yerel jsonl'yi okuyordu ve kayıt anahtarını `tarih_iso` diye arıyordu; yazıcı `tarih`
+    yazdığı için dosya var olsa bile hiçbir kayıt eşleşmiyordu."""
     try:
-        with open(HATA_LOG_YOLU, "r", encoding="utf-8") as f:
-            for satir in f:
-                satir = satir.strip()
-                if not satir:
-                    continue
-                try:
-                    kayit = json.loads(satir)
-                    t_str = kayit.get("tarih_iso")
-                    if t_str:
-                        t = datetime.fromisoformat(t_str)
-                        if t >= esik:
-                            sonuc.append(kayit)
-                except Exception:
-                    continue
-    except Exception as e:
-        log.warning("Hata logları okunamadı: %s", e)
-
-    return sonuc
+        from . import db
+        return db.son_hata_kayitlari(saat=saat)
+    except Exception as e:  # noqa: BLE001
+        log.warning("Hata kayıtları DB'den okunamadı: %s", e)
+        return []
 
 
 def hatayi_analiz_et(hata_metni: str) -> Dict[str, Any]:
@@ -399,12 +397,31 @@ def bildir(baslik: str, hata: Any, nerede: str = "", mesaj_id: Optional[str] = N
     )
 
 
+def son_hatayi_gonder() -> bool:
+    """"🔍 Ham Hata Göster" düğmesi: en son kaydedilen ham hata metnini (DB, maskeli) Telegram'a gönderir.
+
+    Worker bu düğmede önceden repodaki data/son_hata.txt'yi GitHub'dan okuyordu; dosya .gitignore'da olduğu için
+    hiçbir zaman bulunamıyordu. Metin HTML'e kaçırılır (ham hata `<` ve `&` taşıyabilir; kaçırılmayan metin Telegram'da
+    mesajı hiç göndermiyordu)."""
+    try:
+        from . import db
+        ham = db.son_hata_metni()
+    except Exception as e:  # noqa: BLE001
+        log.warning("Son hata okunamadı: %s", e)
+        ham = None
+    if not ham:
+        return bool(telegram_bot.mesaj_gonder("ℹ️ Kayıtlı ham hata metni bulunamadı."))
+    return bool(telegram_bot.mesaj_gonder(
+        f"🔍 <b>HAM HATA METNİ</b>\n\n<pre>{html_lib.escape(ham[:3500])}</pre>"
+    ))
+
+
 def son_ham_hata_kaydet(metin: str) -> None:
     """Ham hatayı anlık olarak son_hata.txt'ye yazar."""
     try:
         SON_HATA_YOLU.parent.mkdir(parents=True, exist_ok=True)
         with open(SON_HATA_YOLU, "w", encoding="utf-8") as f:
-            f.write(_sadelestir(metin)[:3000])
+            f.write(gizlilik.maskele(_sadelestir(metin))[:3000])
     except Exception as e:
         log.warning("Ham hata kaydedilemedi: %s", e)
 
@@ -444,7 +461,7 @@ if __name__ == "__main__":
 
     # Eğer bu içerik için zaten Telegram'a özet sonuç raporu ve telafi butonları ("🔄 Threads'i Tekrar Gönder" vb.)
     # iletildiyse, gruba ikinci bir mükerrer teknik hata kartı atıp grubu kirletme ve kullanıcıyı yanıltma.
-    rapor_sentinel = Path("data/son_rapor_gonderildi.txt")
+    rapor_sentinel = RAPOR_ISARET_YOLU
     if args.islem == "Yayınla" and rapor_sentinel.exists():
         try:
             kayitli_ref = rapor_sentinel.read_text(encoding="utf-8").strip()

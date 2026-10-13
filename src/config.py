@@ -92,3 +92,15 @@ def db_yolu() -> Path:
     if not kopya.exists() and gercek.exists():
         shutil.copy2(gercek, kopya)
     return kopya
+
+
+def veri_yolu(ad: str) -> Path:
+    """`data/<ad>` yolu; test modunda süreç başına geçici dizin.
+
+    Hata günlüğü ve yayın raporu işareti eskiden göreli `Path("data")` ile yazılıyordu: testler depodaki
+    `data/` klasörüne dosya sızdırıyordu (test izolasyonu, MEMORY §7.3). DB ve .env zaten böyle ayrılıyordu."""
+    if test_modu():
+        klasor = _test_calisma_dizini() / "data"
+        klasor.mkdir(parents=True, exist_ok=True)
+        return klasor / ad
+    return yol_al("data") / ad

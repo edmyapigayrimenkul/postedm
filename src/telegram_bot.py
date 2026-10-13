@@ -146,74 +146,154 @@ def mesaj_gonder(
     return _istek("sendMessage", **payload)
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# MEDYA GÖNDERİMİ (tekil fotoğraf ve albüm)
+#
+# NİYE (2026-10-12): günlük içeriğin albüm yüklemesi 60 sn okuma zaman aşımına uğradı (Actions logu: "Yerel medya grubu
+# istisnası ... Read timed out"). Eski yedek yol yerel dosya yollarını Telegram'a "URL" diye gönderip sessizce 400 aldı;
+# albüm hiç gelmedi, kimseye haber verilmedi. Artık: her istek sınırlı süreyle ve yeniden denenerek yapılır
+# (429'da retry_after, 5xx/ağ hatasında artan bekleme), yerel albüm → URL albüm → indirip yükle → tek tek gönderim
+# sırasıyla düşülür ve hiçbiri tutmazsa hata günlüğüne yazılır.
+# ---------------------------------------------------------------------------------------------------------------
+MEDYA_ZAMAN_ASIMI = (10, 40)   # (bağlanma, okuma) saniye — eskiden tek parça 60 sn'ydi, bir kez denenip bırakılıyordu
+MEDYA_DENEME = 2               # tek istek için deneme sayısı
+MEDYA_TOPLAM_SURE = 240        # albüm stratejileri için toplam bütçe (sn); tek tek gönderim ek 120 sn daha alabilir
+_MEDYA_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+
+
+def _cevap_json(r: Any) -> Dict[str, Any]:
+    try:
+        veri = r.json()
+    except Exception:  # noqa: BLE001 — JSON olmayan cevap (HTML hata sayfası vb.)
+        return {}
+    return veri if isinstance(veri, dict) else {}
+
+
+def _cevap_ayrintisi(r: Any) -> str:
+    """Telegram'ın hata cevabından kısa, kayda geçecek metin: '[400] Bad Request: ...'."""
+    aciklama = _cevap_json(r).get("description")
+    if not isinstance(aciklama, str) or not aciklama:
+        metin = getattr(r, "text", "")
+        aciklama = metin if isinstance(metin, str) else ""
+    return f"[{getattr(r, 'status_code', '?')}] {aciklama[:200]}"
+
+
+def _duz_metin(metin: str) -> str:
+    return html.unescape(re.sub(r"<[^>]+>", "", metin or ""))
+
+
+def _medya_post(url: str, hazirla: Any, *, etiket: str, bitis: Optional[float] = None,
+                deneme: int = MEDYA_DENEME) -> Tuple[Optional[Any], str]:
+    """sendPhoto / sendMediaGroup isteğini yeniden deneyerek yapar. Döner: (cevap | None, hata_metni).
+
+    `hazirla(duz_metin)` her denemede yeniden çağrılır ve (requests.post argümanları, kapat) döner: dosya tutamaçları
+    her denemede baştan açılır (eski kod aynı tutamaçları geri sarıyordu). Başlık HTML'i Telegram'ca ayrıştırılamazsa
+    bir sonraki deneme düz metinle yapılır ve deneme hakkı harcamaz.
+    Kalıcı hatada (400 vb.) yeniden denemez: aynı istek aynı cevabı alır.
+    """
+    duz = False
+    son_hata = ""
+    n = 0
+    while n < deneme:
+        if n > 0 and bitis is not None and time.monotonic() > bitis:
+            son_hata = son_hata or "süre bütçesi doldu"
+            break
+        n += 1
+        try:
+            argumanlar, kapat = hazirla(duz)
+        except OSError as e:
+            return None, f"dosya açılamadı: {e}"
+        bekle = 3 * n
+        try:
+            r = requests.post(url, timeout=MEDYA_ZAMAN_ASIMI, **argumanlar)
+        except requests.RequestException as e:
+            son_hata = f"{type(e).__name__}: {e}"
+            log.warning("Telegram %s ağ hatası (deneme %d/%d): %s", etiket, n, deneme, son_hata)
+        else:
+            if r.status_code == 200:
+                return r, ""
+            son_hata = _cevap_ayrintisi(r)
+            if "can't parse entities" in son_hata.lower() and not duz:
+                duz = True
+                n -= 1
+                continue
+            if r.status_code == 429:
+                retry_after = (_cevap_json(r).get("parameters") or {}).get("retry_after")
+                bekle = min(int(retry_after) + 1, 30) if isinstance(retry_after, (int, float)) else bekle
+                log.warning("Telegram %s hız sınırı (429), %d sn beklenecek (deneme %d/%d)", etiket, bekle, n, deneme)
+            elif r.status_code >= 500:
+                log.warning("Telegram %s sunucu hatası %s (deneme %d/%d)", etiket, son_hata, n, deneme)
+            else:
+                log.warning("Telegram %s reddedildi: %s", etiket, son_hata)
+                return None, son_hata
+        finally:
+            try:
+                kapat()
+            except Exception:  # noqa: BLE001
+                pass
+        if n < deneme:
+            time.sleep(bekle)
+    return None, son_hata
+
+
+def _bos() -> None:
+    return None
+
+
+def _foto_baytlari(kaynak: str) -> Optional[bytes]:
+    """Yerel dosyanın ya da URL'nin baytları; alınamazsa None (çağıran URL'yi Telegram'a doğrudan verir)."""
+    p = Path(kaynak)
+    if p.exists() and p.is_file():
+        try:
+            return p.read_bytes()
+        except OSError as e:
+            log.warning("Yerel görsel dosyası okunamadı: %s", e)
+            return None
+    if kaynak.startswith(("http://", "https://")):
+        try:
+            r = requests.get(kaynak, headers=_MEDYA_UA, timeout=(10, 20))
+            if r.status_code == 200 and r.content:
+                return r.content
+        except Exception as e:  # noqa: BLE001
+            log.warning("Görsel URL indirilemedi (%s), Telegram'a doğrudan URL denenecek: %s", kaynak[:60], e)
+    return None
+
+
 def fotograf_gonder(
     foto_yolu_veya_url: Path | str,
     caption: str = "",
     reply_markup: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Tekil fotoğrafı Telegram'a gönderir (yerel dosya veya URL desteğiyle)."""
+    """Tekil fotoğrafı Telegram'a gönderir (yerel dosya veya URL; zaman aşımı/429/5xx'te yeniden dener)."""
     token, chat_id = _bot_bilgileri()
     if not token or not chat_id:
         return None
 
     url = TELEGRAM_API_URL.format(token=token, method="sendPhoto")
-    data: Dict[str, Any] = {
-        "chat_id": chat_id,
-        "caption": caption[:1024],
-        "parse_mode": "HTML",
-    }
-    if reply_markup:
-        data["reply_markup"] = json.dumps(reply_markup)
-
     url_str = str(foto_yolu_veya_url)
-    p = Path(url_str)
-    foto_bytes: Optional[bytes] = None
-    if p.exists() and p.is_file():
-        try:
-            with open(p, "rb") as f:
-                foto_bytes = f.read()
-        except Exception as e:
-            log.warning("Yerel görsel dosyası okunamadı: %s", e)
-    elif url_str.startswith(("http://", "https://")):
-        try:
-            r_down = requests.get(
-                url_str,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
-                timeout=15,
-            )
-            if r_down.status_code == 200 and r_down.content:
-                foto_bytes = r_down.content
-        except Exception as e:
-            log.warning("Görsel URL indirilemedi (%s), Telegram'a doğrudan URL denenecek: %s", url_str[:60], e)
+    foto_bytes = _foto_baytlari(url_str)
 
-    try:
-        if foto_bytes:
-            files = {"photo": ("image.jpg", foto_bytes, "image/jpeg")}
-            r = requests.post(url, data=data, files=files, timeout=35)
-        else:
-            data["photo"] = url_str
-            r = requests.post(url, data=data, timeout=35)
+    def hazirla_fabrikasi(bayt: Optional[bytes]) -> Any:
+        def hazirla(duz: bool) -> Tuple[Dict[str, Any], Any]:
+            veri: Dict[str, Any] = {"chat_id": chat_id, "caption": _duz_metin(caption)[:1024] if duz else caption[:1024]}
+            if not duz:
+                veri["parse_mode"] = "HTML"
+            if reply_markup:
+                veri["reply_markup"] = json.dumps(reply_markup)
+            if bayt:
+                return {"data": veri, "files": {"photo": ("image.jpg", bayt, "image/jpeg")}}, _bos
+            veri["photo"] = url_str
+            return {"data": veri}, _bos
+        return hazirla
 
-        if r.status_code == 200:
-            return r.json().get("result")
-
-        # HTML entity parse hatası durumunda düz metinle kurtar
-        resp_json = r.json() if r.content else {}
-        if "can't parse entities" in (resp_json.get("description") or "").lower():
-            data.pop("parse_mode", None)
-            data["caption"] = re.sub(r"<[^>]+>", "", caption[:1024])
-            if foto_bytes:
-                files = {"photo": ("image.jpg", foto_bytes, "image/jpeg")}
-                r2 = requests.post(url, data=data, files=files, timeout=35)
-            else:
-                r2 = requests.post(url, data=data, timeout=35)
-            if r2.status_code == 200:
-                return r2.json().get("result")
-
-        log.error("Telegram fotoğraf hatası [%d]: %s", r.status_code, r.text)
-    except Exception as e:
-        log.error("Telegram fotoğraf gönderme hatası: %s", e)
-    return None
+    r, hata = _medya_post(url, hazirla_fabrikasi(foto_bytes), etiket="sendPhoto")
+    if r is None and foto_bytes and url_str.startswith(("http://", "https://")):
+        # İndirilen baytlar reddedildi (ör. boyut/biçim); Telegram'ın kendisi URL'den çekmeyi bir kez denesin
+        r, hata = _medya_post(url, hazirla_fabrikasi(None), etiket="sendPhoto(url)", deneme=1)
+    if r is None:
+        log.error("Telegram fotoğraf gönderilemedi (%s): %s", url_str[:80], hata)
+        return None
+    return _cevap_json(r).get("result")
 
 
 def video_gonder(
@@ -274,8 +354,7 @@ _son_medya_grubu_mesaj_idleri: List[int] = []
 
 
 def son_medya_grubu_mesaj_idleri() -> List[int]:
-    """Son başarılı sendMediaGroup çağrısında dönen telegram message_id listesini döner."""
-    global _son_medya_grubu_mesaj_idleri
+    """Son BAŞARILI sendMediaGroup çağrısında dönen telegram message_id listesi (her çağrının başında sıfırlanır)."""
     return list(_son_medya_grubu_mesaj_idleri)
 
 
@@ -293,159 +372,202 @@ def _ayikla_medya_mesaj_idleri(resp: requests.Response) -> List[int]:
     return []
 
 
-def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "") -> List[int] | bool:
-    """Carousel önizlemesi için albüm (medya grubu) gönderir.
+def _yerel_dosya_bul(f_yol: Path | str) -> Optional[Path]:
+    """Görselin bu makinedeki dosyası: doğrudan yol, yüklenen URL'nin yerel karşılığı ya da çıktı klasörlerinde ad eşleşmesi."""
+    p = Path(str(f_yol))
+    if p.exists() and p.is_file():
+        return p
+    try:
+        yerel = upload_image.yerel_karsiligi(str(f_yol))
+        if yerel and yerel.exists() and yerel.is_file():
+            return yerel
+    except Exception:  # noqa: BLE001
+        pass
+    temiz_ad = Path(str(f_yol).split("?")[0]).name
+    for klasor in [Path("data/output"), Path("output")]:
+        olasi = klasor / temiz_ad
+        if olasi.exists() and olasi.is_file():
+            return olasi
+    return None
 
-    WEBPAGE_CURL_FAILED ve ağ zaman aşımına karşı instabot koruması içerir:
-    1. Yerel dosya varsa doğrudan yerel dosyadan açıp multipart/form-data ile gönderir (sıfır ağ gecikmesi).
-    2. Uzak URL verilmişse ve yerelde kopyası yoksa, URL ile dener; Telegram WEBPAGE_CURL_FAILED verirse
-       arka planda indirip BytesIO üzerinden multipart stream ile anında kurtarır.
+
+def _indir(url: str) -> Optional[bytes]:
+    try:
+        r = requests.get(url, headers=_MEDYA_UA, timeout=(10, 25))
+        if r.status_code == 200 and r.content:
+            return r.content
+    except Exception as e:  # noqa: BLE001
+        log.warning("Görsel indirilemedi (%s): %s", url[:60], e)
+    return None
+
+
+def _album_istegi(url: str, chat_id: str, ogeler: List[Tuple[str, Any]], caption: str, *,
+                  etiket: str, bitis: float, deneme: int = MEDYA_DENEME) -> Tuple[Optional[Any], str]:
+    """Bir sendMediaGroup isteği. `ogeler`: ('dosya', Path) | ('bayt', bytes) | ('url', str) çiftleri.
+    Dosya ve bayt öğeleri multipart ile yüklenir (attach://), URL öğeleri Telegram'a çektirilir; ikisi karışabilir."""
+    import io
+
+    def hazirla(duz: bool) -> Tuple[Dict[str, Any], Any]:
+        media: List[Dict[str, Any]] = []
+        files: Dict[str, Any] = {}
+        tutamaclar: List[Any] = []
+
+        def kapat() -> None:
+            for fh in tutamaclar:
+                try:
+                    fh.close()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        try:
+            for idx, (tur, deger) in enumerate(ogeler):
+                oge: Dict[str, Any] = {"type": "photo"}
+                if tur == "url":
+                    oge["media"] = str(deger)
+                else:
+                    ad = f"photo_{idx}"
+                    oge["media"] = f"attach://{ad}"
+                    if tur == "dosya":
+                        fh = open(deger, "rb")
+                        tutamaclar.append(fh)
+                        files[ad] = (Path(deger).name, fh, "image/jpeg")
+                    else:
+                        files[ad] = (f"foto_{idx}.jpg", io.BytesIO(deger), "image/jpeg")
+                if idx == 0 and caption:
+                    oge["caption"] = _duz_metin(caption)[:1024] if duz else caption[:1024]
+                    if not duz:
+                        oge["parse_mode"] = "HTML"
+                media.append(oge)
+        except OSError:
+            kapat()
+            raise
+        if files:
+            return {"data": {"chat_id": chat_id, "media": json.dumps(media)}, "files": files}, kapat
+        return {"json": {"chat_id": chat_id, "media": media}}, kapat
+
+    return _medya_post(url, hazirla, etiket=etiket, bitis=bitis, deneme=deneme)
+
+
+def medya_grubu_gonder(foto_yollari: List[Path | str], caption: str = "",
+                       yedek_urller: Optional[List[str]] = None) -> List[int] | bool:
+    """Carousel önizlemesi için albüm (medya grubu) gönderir. Döner: mesaj kimlikleri (başarı) ya da False.
+
+    `yedek_urller`: aynı görsellerin herkese açık adresleri (ImgBB/R2), `foto_yollari` ile aynı sırada. Yerel yükleme
+    tutmazsa Telegram bu adreslerden çeker; sayı eşleşmiyorsa (kısmi yükleme) güvenilmez, kullanılmaz.
+
+    Sırayla denenir, biri tutunca durulur:
+      1. Yerel dosyalar multipart ile (yeniden denemeli)
+      2. URL albümü (Telegram görselleri kendisi çeker)
+      3. URL'lerden indirip multipart yükleme (WEBPAGE_CURL_FAILED kurtarma)
+      4. Fotoğrafları TEK TEK gönderme (başlık ilk giden fotoğrafta). Hepsi gitmezse gidenlerin kimlikleri döner;
+         çağıran `len(sonuc) < len(foto_yollari)` ile eksik teslimi anlar.
+    Zaman aşımı belirsizdir (Telegram isteği işlemiş ama cevap gelmemiş olabilir), bu yüzden nadiren aynı albüm iki kez
+    düşebilir; albüm kaybolmasından iyidir. Hiçbiri tutmazsa hata günlüğüne yazılır ve False döner.
     """
+    global _son_medya_grubu_mesaj_idleri
+    _son_medya_grubu_mesaj_idleri = []  # eski çağrının kimlikleri bu içeriğe karışmasın
     token, chat_id = _bot_bilgileri()
     if not token or not chat_id or not foto_yollari:
         return False
+    foto_yollari = list(foto_yollari)[:10]
+    yedek = [str(u) for u in (yedek_urller or [])][:10]
+    if len(yedek) != len(foto_yollari):
+        yedek = []
 
-    # Telegram sendMediaGroup minimum 2 medya gerektirir.
-    # Tekil görsel (örneğin tek kare Sözlük slaytı) durumunda sendPhoto kullanılır.
+    # Telegram sendMediaGroup minimum 2 medya gerektirir; tekil görsel (ör. sözlük kartı) sendPhoto ile gider.
     if len(foto_yollari) == 1:
         res = fotograf_gonder(foto_yollari[0], caption=caption)
+        if not res and yedek:
+            res = fotograf_gonder(yedek[0], caption=caption)
         if res and isinstance(res, dict) and "message_id" in res:
+            _son_medya_grubu_mesaj_idleri = [res["message_id"]]
             return [res["message_id"]]
+        if not res:
+            _medya_hatasi_kaydet("tekil fotoğraf gönderilemedi")
         return bool(res)
 
-    import io
     url = TELEGRAM_API_URL.format(token=token, method="sendMediaGroup")
-    foto_yollari = foto_yollari[:10]
-
-    def _yerel_dosya_bul(f_yol: Path | str) -> Optional[Path]:
-        p = Path(str(f_yol))
-        if p.exists() and p.is_file():
-            return p
-        # upload_image önbelleğinden bak
-        try:
-            yerel = upload_image.yerel_karsiligi(str(f_yol))
-            if yerel and yerel.exists() and yerel.is_file():
-                return yerel
-        except Exception:
-            pass
-        # data/output veya output altında isim eşleşmesi ara
-        temiz_ad = Path(str(f_yol).split("?")[0]).name
-        for klasor in [Path("data/output"), Path("output")]:
-            olasi = klasor / temiz_ad
-            if olasi.exists() and olasi.is_file():
-                return olasi
-        return None
-
-    # Strateji 1: Tüm görseller yerelde var mı veya yerel karşılıkları bulunabiliyor mu?
+    bitis = time.monotonic() + MEDYA_TOPLAM_SURE
     yereller = [_yerel_dosya_bul(fy) for fy in foto_yollari]
     hepsi_yerel = all(y is not None for y in yereller)
+    hatalar: List[str] = []
 
+    def basari(r: Any) -> List[int] | bool:
+        mids = _ayikla_medya_mesaj_idleri(r)
+        return mids if mids else True
+
+    # 1. Yerel dosyalar. Yedek adres varsa tek deneme yeter: yükleme zaman aşımı çoğunlukla çıkış hattının yavaşlığıdır,
+    # ikinci deneme de aynı hatta takılır; Telegram'ın görselleri kendi çekeceği URL yolu (2.) çoğu zaman anında tutar.
     if hepsi_yerel:
-        files = {}
-        handles = []
-        media = []
-        try:
-            for idx, yerel_p in enumerate(yereller):
-                attach_name = f"photo_{idx}"
-                m_item: Dict[str, Any] = {"type": "photo", "media": f"attach://{attach_name}"}
-                if idx == 0 and caption:
-                    m_item["caption"] = caption[:1024]
-                    m_item["parse_mode"] = "HTML"
-                media.append(m_item)
-                fh = open(yerel_p, "rb")
-                handles.append(fh)
-                files[attach_name] = (yerel_p.name, fh, "image/jpeg")
+        r, hata = _album_istegi(url, chat_id, [("dosya", y) for y in yereller], caption, etiket="albüm(yerel)", bitis=bitis,
+                                deneme=1 if yedek else MEDYA_DENEME)
+        if r is not None:
+            return basari(r)
+        hatalar.append(f"yerel albüm: {hata}")
 
-            r = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=60)
-            if r.status_code == 200:
-                mids = _ayikla_medya_mesaj_idleri(r)
-                return mids if mids else True
+    # 2. URL albümü: girdinin kendisi URL ise o, değilse yedek adresler
+    girdi_url_mi = all(str(f).startswith(("http://", "https://")) for f in foto_yollari)
+    urller = [str(f) for f in foto_yollari] if girdi_url_mi else yedek
+    if urller and time.monotonic() < bitis:
+        r, hata = _album_istegi(url, chat_id, [("url", u) for u in urller], caption, etiket="albüm(url)", bitis=bitis)
+        if r is not None:
+            return basari(r)
+        hatalar.append(f"url albümü: {hata}")
 
-            # Caption parse hatası varsa parse_mode kaldırıp tekrar dene
-            if "can't parse entities" in r.text.lower() and caption:
-                for m in media:
-                    m.pop("parse_mode", None)
-                    if "caption" in m:
-                        m["caption"] = re.sub(r"<[^>]+>", "", m["caption"])
-                for fh in handles:
-                    fh.seek(0)
-                r_fallback = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(media)}, files=files, timeout=60)
-                if r_fallback.status_code == 200:
-                    mids = _ayikla_medya_mesaj_idleri(r_fallback)
-                    return mids if mids else True
+    # 3. URL'lerden indirip yükle (yerel dosya eksikse; hepsi yerelse 1. adım zaten aynı şeyi denedi)
+    if urller and not hepsi_yerel and time.monotonic() < bitis:
+        ogeler: List[Tuple[str, Any]] = []
+        for yerel, u in zip(yereller, urller):
+            if yerel is not None:
+                ogeler.append(("dosya", yerel))
+                continue
+            bayt = _indir(u)
+            if bayt is None:
+                break
+            ogeler.append(("bayt", bayt))
+        if len(ogeler) == len(urller):
+            r, hata = _album_istegi(url, chat_id, ogeler, caption, etiket="albüm(indir-yükle)", bitis=bitis)
+            if r is not None:
+                log.info("Albüm URL yerine indirilip yüklenerek iletildi.")
+                return basari(r)
+            hatalar.append(f"indir-yükle: {hata}")
+        else:
+            hatalar.append("indir-yükle: görseller indirilemedi")
 
-            log.warning("Yerel multipart medya grubu gönderimi başarısız [%d]: %s", r.status_code, r.text[:200])
-        except Exception as e:
-            log.warning("Yerel medya grubu istisnası: %s", e)
-        finally:
-            for fh in handles:
-                try:
-                    fh.close()
-                except Exception:
-                    pass
+    # 4. Tek tek
+    teslim: List[int] = []
+    ilk_basliksiz = True
+    for i, yerel in enumerate(yereller):
+        if time.monotonic() > bitis + 120:
+            hatalar.append("tek tek: süre bütçesi doldu")
+            break
+        kaynak = yerel if yerel is not None else (urller[i] if urller else None)
+        if kaynak is None:
+            continue
+        res = fotograf_gonder(kaynak, caption=caption if ilk_basliksiz else "")
+        if res and isinstance(res, dict) and "message_id" in res:
+            teslim.append(res["message_id"])
+            ilk_basliksiz = False
+    if teslim:
+        _son_medya_grubu_mesaj_idleri = teslim
+        if len(teslim) < len(foto_yollari):
+            _medya_hatasi_kaydet(f"albüm eksik iletildi ({len(teslim)}/{len(foto_yollari)} fotoğraf): " + " | ".join(hatalar))
+        else:
+            log.warning("Albüm toplu gönderilemedi; fotoğraflar tek tek iletildi (%s)", " | ".join(hatalar))
+        return teslim
 
-    # Strateji 2: URL tabanlı gönderim dene
-    media_url = []
-    for idx, f_yol in enumerate(foto_yollari):
-        m_item = {"type": "photo", "media": str(f_yol)}
-        if idx == 0 and caption:
-            m_item["caption"] = caption[:1024]
-            m_item["parse_mode"] = "HTML"
-        media_url.append(m_item)
-
-    try:
-        r = requests.post(url, json={"chat_id": chat_id, "media": media_url}, timeout=30)
-        if r.status_code == 200:
-            mids = _ayikla_medya_mesaj_idleri(r)
-            return mids if mids else True
-
-        hata_aciklama = r.text.lower()
-        if "can't parse entities" in hata_aciklama and caption:
-            for m in media_url:
-                m.pop("parse_mode", None)
-                if "caption" in m:
-                    m["caption"] = re.sub(r"<[^>]+>", "", m["caption"])
-            r_fb = requests.post(url, json={"chat_id": chat_id, "media": media_url}, timeout=30)
-            if r_fb.status_code == 200:
-                mids = _ayikla_medya_mesaj_idleri(r_fb)
-                return mids if mids else True
-
-        # Telegram WEBPAGE_CURL_FAILED veya indirme zaman aşımı verdiyse:
-        if "webpage_curl_failed" in hata_aciklama or "failed to send message" in hata_aciklama:
-            log.warning("Telegram URL'den indiremedi (WEBPAGE_CURL_FAILED), acil indirme ve stream yüklemeye geçiliyor...")
-            stream_files = {}
-            stream_media = []
-            headers_dl = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-
-            for idx, f_yol in enumerate(foto_yollari):
-                attach_name = f"photo_{idx}"
-                s_item = {"type": "photo", "media": f"attach://{attach_name}"}
-                if idx == 0 and caption:
-                    s_item["caption"] = re.sub(r"<[^>]+>", "", caption[:1024])
-                stream_media.append(s_item)
-
-                yerel_var = _yerel_dosya_bul(f_yol)
-                if yerel_var:
-                    stream_files[attach_name] = (yerel_var.name, open(yerel_var, "rb"), "image/jpeg")
-                else:
-                    dl_resp = requests.get(str(f_yol), headers=headers_dl, timeout=25)
-                    if dl_resp.status_code == 200:
-                        stream_files[attach_name] = (f"foto_{idx}.jpg", io.BytesIO(dl_resp.content), "image/jpeg")
-
-            if len(stream_files) == len(foto_yollari):
-                r_dl = requests.post(url, data={"chat_id": chat_id, "media": json.dumps(stream_media)}, files=stream_files, timeout=60)
-                for f_tuple in stream_files.values():
-                    if hasattr(f_tuple[1], "close"):
-                        f_tuple[1].close()
-                if r_dl.status_code == 200:
-                    log.info("WEBPAGE_CURL_FAILED hatası stream multipart ile başarıyla kurtarıldı.")
-                    mids = _ayikla_medya_mesaj_idleri(r_dl)
-                    return mids if mids else True
-    except Exception as e:
-        log.error("Telegram medya grubu gönderme hatası: %s", e)
-
+    _medya_hatasi_kaydet("albüm hiçbir yolla iletilemedi: " + " | ".join(hatalar))
     return False
 
+
+def _medya_hatasi_kaydet(ayrinti: str) -> None:
+    """Teslim edilemeyen/eksik görseli kalıcı hata günlüğüne yazar (günlük rapor ve 'Ham Hata' düğmesi görsün)."""
+    log.error("Telegram medya teslimi: %s", ayrinti)
+    try:
+        db.hata_kaydi_ekle("telegram.medya", "Görseller Telegram'a iletilemedi", "Slayt görselleri Telegram'a ulaşmadı.",
+                           "Telegram yükleme/URL isteği zaman aşımı ya da reddedilme.", "yeniden_yayinla", False, ayrinti)
+    except Exception as e:  # noqa: BLE001 — günlük yazılamasa da gönderim akışı sürsün
+        log.warning("Medya hatası DB'ye yazılamadı: %s", e)
 
 
 def slaytlari_gonder(foto_yollari: List[Path | str], basliklar: Optional[List[str]] = None) -> bool:
@@ -1710,6 +1832,46 @@ def haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool =
         return False
 
 
+def _album_teslim_notu(album_res: Any, adet: int, slayt_urlleri: Optional[List[str]]) -> str:
+    """Albüm Telegram'a tam ulaşmadıysa onay kartının başına konacak uyarı (boş metin = sorun yok).
+
+    Görseller gelmediyse kullanıcı kartı kör onaylamasın; ImgBB bağlantıları varsa oradan açabilsin."""
+    if album_res is True or (isinstance(album_res, list) and len(album_res) >= adet):
+        return ""
+    if isinstance(album_res, list) and album_res:
+        satirlar = [f"⚠️ <b>Slaytların yalnız {len(album_res)}/{adet} tanesi iletilebildi.</b>"]
+    else:
+        satirlar = ["⚠️ <b>Slayt görselleri Telegram'a iletilemedi.</b>"]
+    linkler = [f'<a href="{html.escape(str(u), quote=True)}">{i}. slayt</a>' for i, u in enumerate(slayt_urlleri or [], 1)]
+    if linkler:
+        satirlar.append("Görselleri buradan açabilirsiniz: " + " · ".join(linkler))
+    satirlar.append("<i>Yayınlamadan önce görselleri kontrol edin; sorun varsa “🔄 Sıfırdan Yeniden Üret”.</i>")
+    return "\n".join(satirlar) + "\n\n"
+
+
+def _onay_kartini_gonder(kimlik: int | str, metin: str, butonlar: Dict[str, Any], manset_h: str,
+                         tur: str) -> Optional[Dict[str, Any]]:
+    """Düğmeli onay kartını gönderir. Uzun/bozuk metin yüzünden gitmezse kısa karta düşer: düğmeler HİÇBİR durumda
+    kaybolmaz (kullanıcı kartı görmeden içerik onay kuyruğunda beklerdi). Yine de gitmezse hata günlüğüne yazar."""
+    res = mesaj_gonder(metin, reply_markup=butonlar)
+    if res:
+        return res
+    log.warning("Onay kartı gönderilemedi (%s #%s); kısa kart deneniyor", tur, kimlik)
+    kisa = (f"📝 <b>İçerik #{kimlik} onay bekliyor</b>\n<b>Manşet:</b> {manset_h}\n\n"
+            "<i>Ayrıntılı kart gönderilemedi; düğmeler aşağıda.</i>")
+    res = mesaj_gonder(kisa, reply_markup=butonlar)
+    if res:
+        return res
+    log.error("Onay kartı (%s #%s) Telegram'a iletilemedi", tur, kimlik)
+    try:
+        db.hata_kaydi_ekle("telegram.onay_karti", f"Onay kartı iletilemedi ({tur} #{kimlik})",
+                           "Düğmeli onay kartı Telegram'a ulaşmadı.", "Telegram API cevap vermedi ya da kartı reddetti.",
+                           "tur_tekrar", False, f"{tur} #{kimlik}")
+    except Exception as e:  # noqa: BLE001
+        log.warning("Kart hatası DB'ye yazılamadı: %s", e)
+    return None
+
+
 def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool = False) -> bool:
     haber = db.haber_getir(haber_id)
     if not haber:
@@ -1841,7 +2003,7 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool 
     )
 
     if oto_yayin:
-        if _oto_yayinla(haber_id, slayt_yollari, haber):
+        if _oto_yayinla(haber_id, slayt_yollari, haber, slayt_urlleri):
             return True
         mesaj_gonder(f"⚠️ #{haber_id} otomatik yayınlanamadı; içerik onayınıza sunuluyor.")
 
@@ -1850,6 +2012,7 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool 
     icerik_onceki_mesajlarini_temizle("haber", haber_id)
 
     # 3. Format bazlı başlık ve rozet belirleme (Haberle Birebir Aynı Standart)
+    manset_h = html.escape(str(haber.get("manset") or ""), quote=False)
     rozet = "HUKUK & YATIRIM REHBERİ"
     dayanak = haber.get("kaynak", "EDM Yapı & Gayrimenkul")
     if otorite_verisi and isinstance(otorite_verisi, dict):
@@ -1859,41 +2022,44 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool 
     if is_reels:
         rozet = "REELS & VİDEO (9:16)"
         dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Video Prodüksiyon")
-        album_caption = f"🎬 <b>EDM 9:16 REELS SLAYTLARI</b>\n📌 {haber['manset']}"
+        album_caption = f"🎬 <b>EDM 9:16 REELS SLAYTLARI</b>\n📌 {manset_h}"
         kart_baslik = f"🎬 <b>GÜNCEL REELS İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif format_turu == "sozluk":
         rozet = "GAYRİMENKUL SÖZLÜĞÜ"
         dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Gayrimenkul Terminolojisi")
-        album_caption = f"📖 <b>EDM GAYRİMENKUL SÖZLÜĞÜ (4:5)</b>\n📌 {haber['manset']}"
+        album_caption = f"📖 <b>EDM GAYRİMENKUL SÖZLÜĞÜ (4:5)</b>\n📌 {manset_h}"
         kart_baslik = f"📖 <b>GAYRİMENKUL SÖZLÜĞÜ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif format_turu == "nedir_dogrusu":
         rozet = "NEDİR DOĞRUSU?"
         dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Hukuk & Doğrulama")
-        album_caption = f"⚖️ <b>EDM NEDİR DOĞRUSU? (4:5)</b>\n📌 {haber['manset']}"
+        album_caption = f"⚖️ <b>EDM NEDİR DOĞRUSU? (4:5)</b>\n📌 {manset_h}"
         kart_baslik = f"⚖️ <b>NEDİR DOĞRUSU İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif format_turu == "vaka":
         rozet = "HUKUKİ VAKA ANALİZİ"
         dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "Emsal Karar & Yargıtay İçtihadı")
-        album_caption = f"📂 <b>EDM HUKUKİ VAKA ANALİZİ (4:5)</b>\n📌 {haber['manset']}"
+        album_caption = f"📂 <b>EDM HUKUKİ VAKA ANALİZİ (4:5)</b>\n📌 {manset_h}"
         kart_baslik = f"📂 <b>VAKA ANALİZİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif format_turu == "net_cevap":
         rozet = "NET CEVAP REHBERİ"
         dayanak = (otorite_verisi.get("yasal_dayanak") if (otorite_verisi and isinstance(otorite_verisi, dict) and otorite_verisi.get("yasal_dayanak")) else None) or (haber.get("kaynak") or "EDM Danışmanlık Masası")
-        album_caption = f"❓ <b>EDM NET CEVAP REHBERİ (4:5)</b>\n📌 {haber['manset']}"
+        album_caption = f"❓ <b>EDM NET CEVAP REHBERİ (4:5)</b>\n📌 {manset_h}"
         kart_baslik = f"❓ <b>NET CEVAP REHBERİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     elif is_haber:
         rozet = rozet if rozet != "HUKUK & YATIRIM REHBERİ" else "GÜNCEL HABER & GÜNDEM"
-        album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {haber['manset']}"
+        album_caption = f"📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 {manset_h}"
         kart_baslik = f"📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
     else:
-        album_caption = f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {haber['manset']}"
+        album_caption = f"🏛 <b>EDM OTORİTE CAROUSEL (4:5)</b>\n📌 {manset_h}"
         kart_baslik = f"🏛 <b>YENİ OTORİTE İÇERİĞİ ONAY BEKLİYOR (#{haber_id})</b>\n\n"
 
     # 3.1 Slayt görsellerini albüm (veya tek görsel) olarak gönder
-    album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption, yedek_urller=slayt_urlleri)
     _, chat_id = _bot_bilgileri()
     cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
-    album_mids = album_res if isinstance(album_res, list) else son_medya_grubu_mesaj_idleri()
+    # Başarısız çağrıda "son albümün" kimliklerine bakılmaz: önceki içeriğin mesajları bu içeriğe yazılıp
+    # sonraki temizlikte yanlışlıkla silinirdi.
+    album_mids = album_res if isinstance(album_res, list) else []
+    gorsel_notu = _album_teslim_notu(album_res, min(len(slayt_yollari), 10), slayt_urlleri)
     for mid in album_mids:
         try:
             db.onay_istegi_kaydet("haber_album", str(haber_id), mid, cid)
@@ -1908,21 +2074,26 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool 
 
     import html as html_lib
     ham_caption = (haber.get("ig_caption") or haber.get("manset") or "").strip()
-    caption_metin = generate_text.caption_zenginlestir(
-        ham_caption,
-        kategori_kodu=haber.get("kategori"),
-        platform="instagram",
-        manset=haber.get("manset"),
-    )
+    try:
+        caption_metin = generate_text.caption_zenginlestir(
+            ham_caption,
+            kategori_kodu=haber.get("kategori"),
+            platform="instagram",
+            manset=haber.get("manset"),
+        )
+    except Exception as e:  # noqa: BLE001 — caption süsü yüzünden onay kartı (düğmeler) hiç gitmesin
+        log.warning("Caption zenginleştirilemedi (#%d), ham metin kullanılıyor: %s", haber_id, e)
+        caption_metin = ham_caption
     temiz_caption = html_lib.escape(caption_metin) if caption_metin else ""
 
     puan_degeri = min(10, int(haber.get("onem_puani", 8))) if str(haber.get("onem_puani", "")).isdigit() else 8
     mesaj_metni = (
-        denetim_basligi
+        gorsel_notu
+        + denetim_basligi
         + kart_baslik
-        + f"<b>Kategori:</b> {rozet}\n"
-        f"<b>Dayanak:</b> {dayanak}\n"
-        f"<b>Manşet:</b> {haber['manset']}\n"
+        + f"<b>Kategori:</b> {html.escape(str(rozet), quote=False)}\n"
+        f"<b>Dayanak:</b> {html.escape(str(dayanak), quote=False)}\n"
+        f"<b>Manşet:</b> {manset_h}\n"
         f"<b>Önem Puanı:</b> {puan_degeri}/10\n"
         f"<b>İçerik No:</b> #{haber_id}\n\n"
     )
@@ -1938,7 +2109,7 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool 
         # Otorite, sözlük, rehber carousel içeriklerinde varsayılan: IG Besleme AÇIK, Reels KAPALI
         ig_kanallari = {"ig": True, "reels": False, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
         butonlar = ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2, kanallar=ig_kanallari)
-    res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
+    res = _onay_kartini_gonder(haber_id, mesaj_metni, butonlar, manset_h, "haber")
     if res and isinstance(res, dict) and "message_id" in res:
         try:
             db.onay_istegi_kaydet("haber", str(haber_id), res["message_id"], cid)
@@ -1961,7 +2132,8 @@ def _haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool 
 OTO_YAYIN_HEDEFLERI = "ig,threads,story,tiktok,facebook,youtube"
 
 
-def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any]) -> bool:
+def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any],
+                 slayt_urlleri: Optional[List[str]] = None) -> bool:
     """Onay beklemeden `scripts/yayinla.py` ile yayınlar. Yayın betiği kanal kanal sonucu Telegram'a kendisi
     raporlar ve durumu günceller. Betik hiç sonuç üretmeden çökerse False döner: çağıran içeriği onaya düşürür.
     """
@@ -1980,6 +2152,7 @@ def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any])
         medya_grubu_gonder(
             slayt_yollari,
             caption=f"{baslik_etiket} (#{haber_id})\n📌 <b>{manset}</b>\n⏳ <i>Kanallara dağıtılıyor, canlı yayın durumu birazdan iletilecek...</i>",
+            yedek_urller=slayt_urlleri,
         )
     except Exception as e:  # noqa: BLE001 — görünürlük için; yayını durdurmaz
         log.warning("Otomatik yayın görseli Telegram'a iletilemedi: %s", e)
@@ -2001,6 +2174,29 @@ def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any])
 
 def _tr_bugun() -> str:
     return (datetime.now(timezone.utc) + timedelta(hours=3)).date().isoformat()
+
+
+# Zamanlanmış günlük turu iki yerden tetiklenebilir: Cloudflare cron'u (asıl yol, dakikasında çalışır) ve GitHub cron'u
+# (yedek; 6-10 saat gecikebiliyor). Aynı slot aynı Türkiye gününde ikinci kez ÜRETİLMEZ: aksi halde geç gelen GitHub
+# koşusu ikinci içerik, ikinci konu tüketimi ve (sözlükte) onay kuyruğuna ikinci kart demek olurdu.
+ZAMANLI_GUNLUK_SLOTLAR = ("bilgilendirici", "sozluk")
+
+
+def _zamanli_slot_anahtari(slot: str) -> str:
+    return f"zamanli_slot_son_gun:{slot}"
+
+
+def zamanli_slot_bugun_yapildi(slot: str) -> bool:
+    """Bu slotun zamanlanmış turu bugün (TR) zaten başarıyla çalıştı mı?"""
+    if slot not in ZAMANLI_GUNLUK_SLOTLAR:
+        return False
+    return db.ayar_oku(_zamanli_slot_anahtari(slot)) == _tr_bugun()
+
+
+def zamanli_slot_isaretle(slot: str) -> None:
+    """Zamanlanmış turun bugün başarıyla çalıştığını kaydeder (başarısız tur işaretlenmez: yedek tetik yeniden dener)."""
+    if slot in ZAMANLI_GUNLUK_SLOTLAR:
+        db.ayar_yaz(_zamanli_slot_anahtari(slot), _tr_bugun())
 
 
 def sozluk_oto_yayin_acik_mi() -> bool:
@@ -2525,11 +2721,12 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
     icerik_onceki_mesajlarini_temizle("ilan", ilan_id)
 
     # 3. Slayt görsellerini albüm olarak gönder
-    album_caption = f"🏡 <b>EDM PORTFÖY // İLAN CAROUSEL (4:5)</b>\n📌 {ilan.get('baslik')}"
-    album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption)
+    album_caption = f"🏡 <b>EDM PORTFÖY // İLAN CAROUSEL (4:5)</b>\n📌 {html.escape(str(ilan.get('baslik') or ''), quote=False)}"
+    album_res = medya_grubu_gonder(slayt_yollari, caption=album_caption, yedek_urller=slayt_urlleri)
     _, chat_id = _bot_bilgileri()
     cid = int(str(chat_id).strip()) if str(chat_id).lstrip("-").isdigit() else None
-    album_mids = album_res if isinstance(album_res, list) else son_medya_grubu_mesaj_idleri()
+    album_mids = album_res if isinstance(album_res, list) else []
+    gorsel_notu = _album_teslim_notu(album_res, min(len(slayt_yollari), 10), slayt_urlleri)
     for mid in album_mids:
         try:
             db.onay_istegi_kaydet("ilan_album", str(ilan_id), mid, cid)
@@ -2545,10 +2742,11 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
 
     kart_baslik = f"🏡 <b>PORTFÖY İLANI ONAY BEKLİYOR (#{ilan_id})</b>\n\n"
     mesaj_metni = (
-        kart_baslik
+        gorsel_notu
+        + kart_baslik
         + f"<b>Kategori:</b> {rozet}\n"
-        f"<b>Dayanak:</b> {dayanak} · {fiyat_str}\n"
-        f"<b>Manşet:</b> {ilan.get('baslik')}\n"
+        f"<b>Dayanak:</b> {html_lib.escape(dayanak, quote=False)} · {fiyat_str}\n"
+        f"<b>Manşet:</b> {html_lib.escape(str(ilan.get('baslik') or ''), quote=False)}\n"
         f"<b>Önem Puanı:</b> 10/10\n"
         f"<b>İçerik No:</b> #{ilan_id}\n\n"
     )
@@ -2558,7 +2756,7 @@ def ilan_postunu_hazirla_ve_sor(ilan_id: str) -> bool:
 
     ilan_kanallari = {"ig": True, "reels": False, "story": True, "threads": True, "facebook": True, "youtube": False, "tiktok": False, "linkedin": True}
     butonlar = ana_menu(adet=len(slayt_yollari), kanallar=ilan_kanallari)
-    res = mesaj_gonder(mesaj_metni, reply_markup=butonlar)
+    res = _onay_kartini_gonder(ilan_id, mesaj_metni, butonlar, html_lib.escape(str(ilan.get("baslik") or ""), quote=False), "ilan")
     if res and isinstance(res, dict) and "message_id" in res:
         try:
             db.onay_istegi_kaydet("ilan", str(ilan_id), res["message_id"], cid)
@@ -2667,15 +2865,20 @@ def finans_icerigi_hazirla_ve_yayinla(oto_yayin: bool = True) -> bool:
     # denetim uyarısında (doğrulanmamış madde numarası, kaynaksız faiz/oran,
     # abartı) yayın DURUR ve içerik onaya düşer. Finansta "dayanaksız rakam"
     # da kritiktir: faiz ve kredi koşulları okuyanın parasını etkiler.
+    # Model yazdığı için kapı iki ayaklıdır (dogrula.otomatik_yayina_uygun_mu): hiç uyarı olmamalı VE anlam
+    # hakemi (ikinci model) gerçekten çalışıp temiz demiş olmalı. Hakem kota/kaynak yüzünden çalışamadıysa
+    # "temiz" varsayılmaz; içerik onaya düşer.
     from . import dogrula
-    uyarilar = dogrula.icerigi_denetle(veri)
-    if oto_yayin and uyarilar:
-        log.warning("Finans #%d otomatik yayını durduruldu: %s", haber_id, "; ".join(uyarilar))
-        mesaj_gonder(
-            f"🛑 <b>Otomatik yayın durduruldu (#{haber_id})</b> — {len(uyarilar)} denetim uyarısı.\n"
-            "<i>İçerik onayına sunuluyor; uyarıları kontrol edip elle yayınla.</i>"
-        )
-        oto_yayin = False
+    if oto_yayin:
+        uygun, uyarilar = dogrula.otomatik_yayina_uygun_mu(veri)
+        if not uygun:
+            log.warning("Finans #%d otomatik yayını durduruldu: %s", haber_id, "; ".join(uyarilar))
+            mesaj_gonder(
+                f"🛑 <b>Otomatik yayın durduruldu (#{haber_id})</b> — {len(uyarilar)} denetim bulgusu.\n"
+                + "\n".join(html.escape(u) for u in uyarilar[:3])
+                + "\n<i>İçerik onayına sunuluyor; uyarıları kontrol edip elle yayınla.</i>"
+            )
+            oto_yayin = False
 
     if not oto_yayin:
         return haber_onayina_sun(haber_id)

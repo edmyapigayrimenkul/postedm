@@ -11,7 +11,7 @@ Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu t
 
 ```
    [data/konu_bankasi.yaml]          [RSS]              [Site D1 yayın kuyruğu]
-    61 evergreen konu brief'i      haber akışı           güncel aktif portföy
+    120 evergreen konu brief'i     haber akışı           güncel aktif portföy
             │                          │                          │
             ▼                          ▼                          ▼
     [konu_bankasi.py]           [fetch_news.py]       [site_kuyrugunu_isle.py]
@@ -97,6 +97,7 @@ python scripts/hazirla.py
 ```bash
 python scripts/hazirla.py --konu
 ```
+_Bot duraklatılmışken **zamanlanmış** koşular çalışmaz; elle tetiklenenler (Telegram butonu, `workflow_dispatch`) duraklatmayı aşar. Zamanlanmış koşuyu `hazirla.yml` `ZAMANLANMIS=true` ile işaretler._
 
 ### Konu Bankası Doluluk Durumu:
 ```bash

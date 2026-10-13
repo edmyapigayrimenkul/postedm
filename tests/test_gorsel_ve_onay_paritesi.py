@@ -217,7 +217,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         # Kart metni haber standartlarında
         msg_text = mock_mesaj.call_args[0][0]
         self.assertIn("🎬 <b>GÜNCEL REELS İÇERİĞİ ONAY BEKLİYOR (#", msg_text)
-        self.assertIn("<b>Kategori:</b> REELS & VİDEO (9:16)", msg_text)
+        self.assertIn("<b>Kategori:</b> REELS &amp; VİDEO (9:16)", msg_text)
         self.assertIn("<b>Manşet:</b> TAPU ALIRKEN BUNU YAPMAYIN", msg_text)
         self.assertIn(f"<b>İçerik No:</b> #{haber_id}", msg_text)
 

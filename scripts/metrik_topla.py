@@ -72,7 +72,11 @@ def metrikleri_topla(haber_id_filtre: int | None = None) -> int:
             shares = metrikler.get("shares")
             comments = metrikler.get("comments")
             likes = metrikler.get("likes")
+            # `impressions` Meta'da kaldırıldı, yerine `views` geldi; DB sütun adı eski kaldı (şema değişmesin diye).
+            # İkisi de ham_veri'de ayrı ayrı durur.
             impressions = metrikler.get("impressions")
+            if impressions is None:
+                impressions = metrikler.get("views")
 
             db.metrik_kaydet(
                 haber_id=hid,

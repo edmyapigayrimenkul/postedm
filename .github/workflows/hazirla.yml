@@ -3,6 +3,10 @@ name: Paylaşım Hazırla (EDM)
 on:
   schedule:
     # GÜNDE TEK İÇERİK (2026-09-24 kararı; önceden 10:00 / 13:30 / 18:30 üç slot vardı).
+    # ⚠️ ASIL TETİKLEYİCİ CLOUDFLARE CRON'U (2026-10-12): GitHub `schedule` koşuları 6-10 saat gecikiyordu
+    # (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı). Worker aynı saatlerde `slot_hazirla`
+    # (payload: slot, zamanli) yollar. Aşağıdaki iki cron GECİKMELİ YEDEKTİR: Worker o gün çalışmışsa
+    # hazirla.py aynı slotu ikinci kez üretmez (ayarlar › zamanli_slot_son_gun:<slot>), çalışmamışsa içerik geç de olsa çıkar.
     # 10:00 TR (UTC 07:00): format dört günlük döngüde döner — B1, Nedir Doğrusu,
     # Net Cevap, B1 (sözlük döngüde YOK: aşağıda 12:30'da ayrı). Haberler içerikten bağımsız: haber-oneri.yml.
     - cron: '0 7 * * *'
@@ -35,6 +39,9 @@ concurrency:
 jobs:
   hazirla:
     runs-on: ubuntu-latest
+    # Takılan tek iş `edm-veritabani` grubunu varsayılan 360 dakika kilitlemesin
+    # (en uzun yol: üretim + seslendirme + otomatik yayın alt süreci 15 dk).
+    timeout-minutes: 45
     permissions:
       contents: write
     steps:
@@ -160,6 +167,10 @@ jobs:
           FORMAT: ${{ github.event.client_payload.format_turu }}
           HEDEF: ${{ inputs.hedef }}
           ZAMANLAMA: ${{ github.event.schedule }}
+          # Zamanlanmış koşu = GitHub cron'u (yedek) YA DA Cloudflare cron'unun yolladığı slot_hazirla (asıl; payload.zamanli).
+          # Zamanlanmış koşu bot duraklatılmışsa çalışmaz ve aynı slot aynı günde ikinci kez üretilmez (hazirla.py);
+          # elle tetiklenenler (Telegram butonu, workflow_dispatch) duraklatmayı da günlük korumayı da aşar.
+          ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
           # Sözlük kartı: her gün 12:30 çalıştırması `--oto-yayin` ile ONAYSIZ yayınlar (değişken tanımsız/boşken de AÇIK).
           # ACİL FREN: GitHub → Settings → Secrets and variables → Actions → Variables → SOZLUK_OTO_YAYIN = 0
           # (kart o gün Telegram'da onaya düşer). Tekrar açmak için değişkeni sil. Koşullar: ICERIK-SISTEMI.md §5.5.2.
@@ -211,6 +222,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_YEDEK: ${{ secrets.GEMINI_API_KEY_YEDEK }}
           GEMINI_API_KEY_YEDEK2: ${{ secrets.GEMINI_API_KEY_YEDEK2 }}
+          ZAMANLANMIS: ${{ github.event_name == 'schedule' }}
         run: |
           python scripts/hazirla.py --konu-madenle
 

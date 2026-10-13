@@ -145,7 +145,8 @@ class TestTelegramHataCozumleri(unittest.TestCase):
             onem_puani=8,
         )
         db.haber_guncelle(h_id, manset="Hata Test Başlığı", durum="onay_bekliyor")
-        son_hata_dosyasi = Path("data") / "son_hata.txt"
+        # Modülün kendi yolu: test modunda geçici dizin (config.veri_yolu); depodaki data/ klasörüne yazılmaz.
+        son_hata_dosyasi = hata_bildir.SON_HATA_YOLU
         son_hata_dosyasi.parent.mkdir(parents=True, exist_ok=True)
         son_hata_dosyasi.write_text("TikTok API token invalid: access_token_invalid", encoding="utf-8")
 

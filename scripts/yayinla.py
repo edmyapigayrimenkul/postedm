@@ -22,7 +22,7 @@ KOK = Path(__file__).resolve().parent.parent
 if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
-from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, linkedin, make_image, ses, telegram_bot, threads, tiktok, twitter, upload_image, video, youtube
+from src import db, durum_kurali, facebook, generate_text, hata_bildir, instagram, konu_bankasi, linkedin, make_image, ses, telegram_bot, threads, tiktok, twitter, upload_image, video, youtube
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -49,6 +49,36 @@ def _haber_yukle(ref_id: str):
         db_senkron.uzaktan_tazele()
         haber = db.haber_getir(int(ref_id))
     return haber
+
+def _taslagi_at(tur: str, ref_id: str, mevcut: dict | None, fiil: str, simge: str) -> None:
+    """Atla / çöpe at: taslağı kapatır, konuyu havuza geri verir, gerekirse yerine yenisini üretir.
+
+    Önceki sürüm iki şeyi yanlış yapıyordu: (1) "konu havuza iade edildi" diyordu ama konu üretim anında
+    tüketilmişti ve geri verilmiyordu; (2) içeriğin ne olduğuna bakmadan HER durumda yeni bir B1 üretiyordu
+    (reddedilen sözlük kartı ya da haber öneri taslağı da karusel doğuruyordu).
+
+    Yenisi yalnız `EDM Konu Bankası` içeriklerinde (ve Reels'te) üretilir: sözlük 12:30'da, haber önerisi
+    09:17/18:17'de kendi saatinde gelir."""
+    db.haber_guncelle(int(ref_id), durum="iptal")
+    db.onay_istegi_sonuclandir(tur, str(ref_id), "iptal")
+    iade = konu_bankasi.konuyu_havuza_iade_et(int(ref_id))
+    kaynak = str((mevcut or {}).get("kaynak") or "")
+    yenisi_uretilsin = tur == "reels" or kaynak.startswith("EDM Konu Bankası")
+    tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
+    notlar = []
+    if iade:
+        notlar.append(f"Konu {konu_bankasi.HATA_BEKLEME_GUNU} gün sonra yeniden sıraya girer.")
+    if yenisi_uretilsin:
+        notlar.append("Sıradaki içerik hazırlanıyor...")
+    log.info("%s #%s %s (konu iadesi: %d, yenisi üretilecek: %s).", tur_adi, ref_id, fiil, iade, yenisi_uretilsin)
+    telegram_bot.mesaj_gonder(
+        f"{simge} <b>{tur_adi} #{ref_id} {fiil}.</b>" + (f"\n<i>{' '.join(notlar)}</i>" if notlar else "")
+    )
+    if yenisi_uretilsin:
+        if tur == "reels":
+            telegram_bot.reels_hazirla_ve_sun()
+        else:
+            telegram_bot.konu_bankasindan_hazirla()
 
 
 def _site_taslagi_aktar(haber: dict | None) -> str:
@@ -288,18 +318,10 @@ def main() -> None:
                     db.wal_bosalt()
                     return
 
-    # 0. Reddet / İptal Aksiyonu (Havuza döner)
+    # 0. Reddet / İptal Aksiyonu (konu havuza döner, yerine yenisi yalnız konu bankası içeriğinde üretilir)
     if hedef in ("reddet", "iptal"):
         if tur in ("haber", "reels"):
-            db.haber_guncelle(int(ref_id), durum="iptal")
-            db.onay_istegi_sonuclandir(tur, str(ref_id), "iptal")
-            tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
-            log.info("%s #%s atlandı, konu havuza iade edildi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"❌ <b>{tur_adi} #{ref_id} atlandı.</b>\n<i>Konu havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>")
-            if tur == "reels":
-                telegram_bot.reels_hazirla_ve_sun()
-            else:
-                telegram_bot.konu_bankasindan_hazirla()
+            _taslagi_at(tur, ref_id, mevcut, "atlandı", "❌")
         elif tur == "ilan":
             db.ilan_reddedildi_isaretle(ref_id)
             db.onay_istegi_sonuclandir(tur, str(ref_id), "reddedildi")
@@ -311,15 +333,7 @@ def main() -> None:
     # 0.1 Çöpe At Aksiyonu (Taslak atılır, kullanıcı isteğiyle KONU ASLA KİLİTLENMEZ, havuza iade edilir)
     if hedef == "cope_at":
         if tur in ("haber", "reels"):
-            db.haber_guncelle(int(ref_id), durum="iptal")
-            db.onay_istegi_sonuclandir(tur, str(ref_id), "iptal")
-            tur_adi = "Reels Videosu" if tur == "reels" else "İçerik"
-            log.info("%s #%s taslağı çöpe atıldı, konu havuza iade edildi.", tur_adi, ref_id)
-            telegram_bot.mesaj_gonder(f"🗑️ <b>{tur_adi} #{ref_id} taslağı çöpe atıldı.</b>\n<i>Konu kilitlenmedi, havuza iade edildi. Sıradaki içerik hazırlanıyor...</i>")
-            if tur == "reels":
-                telegram_bot.reels_hazirla_ve_sun()
-            else:
-                telegram_bot.konu_bankasindan_hazirla()
+            _taslagi_at(tur, ref_id, mevcut, "taslağı çöpe atıldı", "🗑️")
         elif tur == "ilan":
             db.ilan_reddedildi_isaretle(ref_id)
             db.onay_istegi_sonuclandir(tur, str(ref_id), "engellendi")
@@ -1493,7 +1507,7 @@ def main() -> None:
         # Sonucu yazdığımız mesaj hariç diğer eski mesajları temizle (chat kaosunu sıfırla)
         telegram_bot.icerik_onceki_mesajlarini_temizle(tur, ref_id, haric_mesaj_id=args.mesaj_id)
         try:
-            Path("data/son_rapor_gonderildi.txt").write_text(str(ref_id), encoding="utf-8")
+            hata_bildir.RAPOR_ISARET_YOLU.write_text(str(ref_id), encoding="utf-8")
         except Exception:
             pass
         if temiz_caption:

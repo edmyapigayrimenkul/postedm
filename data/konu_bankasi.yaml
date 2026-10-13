@@ -637,6 +637,7 @@ konular:
     mevzuat: null
     yerel: "Doğrudan Silivri"
     veri_blogu: silivri_daire_mahalle
+    engel: "Kullanıcı kararı (2026-10-12): postedm'de piyasa verisi (Emlakjet/Endeksa) gönderisi istenmiyor; rakamlı fiyat analizi web sitesi için istenmişti. Veri toplama ve içerik bloğu kodu duruyor; yeniden açmak için bu satırı silin ve piyasa-verisi.yml cron'unu açın."
 
   - kod: S4-002
     sutun: S4
@@ -671,6 +672,7 @@ konular:
     mevzuat: null
     yerel: "Silivri ilçe ortalaması"
     veri_blogu: silivri_kira_carpani
+    engel: "Kullanıcı kararı (2026-10-12): postedm'de piyasa verisi (Emlakjet/Endeksa) gönderisi istenmiyor; rakamlı fiyat analizi web sitesi için istenmişti. Veri toplama ve içerik bloğu kodu duruyor; yeniden açmak için bu satırı silin ve piyasa-verisi.yml cron'unu açın."
 
   - kod: S4-005
     sutun: S4
@@ -1011,6 +1013,7 @@ konular:
     mevzuat: null
     yerel: "Silivri arsa ve tarla piyasası"
     veri_blogu: silivri_arsa_tarla_daire
+    engel: "Kullanıcı kararı (2026-10-12): postedm'de piyasa verisi (Emlakjet/Endeksa) gönderisi istenmiyor; rakamlı fiyat analizi web sitesi için istenmişti. Veri toplama ve içerik bloğu kodu duruyor; yeniden açmak için bu satırı silin ve piyasa-verisi.yml cron'unu açın."
 
   - kod: S4-014
     sutun: S4

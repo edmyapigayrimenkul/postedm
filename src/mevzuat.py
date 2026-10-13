@@ -23,8 +23,10 @@ from __future__ import annotations
 import html
 import json
 import logging
+import os
 import re
 import tempfile
+import threading
 import time
 from datetime import date
 from pathlib import Path
@@ -67,6 +69,24 @@ KANUNLAR: Dict[int, Tuple[Tuple[int, ...], str]] = {
     7464: ((5,), "Konutların Turizm Amaçlı Kiralanması Hakkında Kanun"),
     2863: ((5,), "Kültür ve Tabiat Varlıklarını Koruma Kanunu"),
     7338: ((3, 4, 5), "Veraset ve İntikal Vergisi Kanunu"),
+    # --- 2026-10-12: sözlük kart üretimi (SOZLUK-KART-URETIMI.md) için eklendi.
+    # ⚠️ Tertip adayları DOĞRULANMADI: bu ortamda mevzuat.gov.tr ağ politikasıyla kapalıydı. Yanlış tertip
+    # sitede 302 döndüğü için adaylar sırayla denenir; ilk canlı koşuda `scripts/kanun_oku.py kanunlar --dene`
+    # ile her biri sınanmalı, tutmayan tertip buradan düzeltilmeli.
+    2942: ((5,), "Kamulaştırma Kanunu"),
+    3621: ((5,), "Kıyı Kanunu"),
+    4342: ((5,), "Mera Kanunu"),
+    6831: ((3, 4, 5), "Orman Kanunu"),
+    4708: ((5,), "Yapı Denetimi Hakkında Kanun"),
+    488: ((5, 4, 3), "Damga Vergisi Kanunu"),
+    193: ((5, 4, 3), "Gelir Vergisi Kanunu"),
+    3065: ((5,), "Katma Değer Vergisi Kanunu"),
+    6100: ((5,), "Hukuk Muhakemeleri Kanunu"),
+    6325: ((5,), "Hukuk Uyuşmazlıklarında Arabuluculuk Kanunu"),
+    2985: ((5,), "Toplu Konut Kanunu"),
+    1163: ((5, 4, 3), "Kooperatifler Kanunu"),
+    2886: ((5,), "Devlet İhale Kanunu"),
+    5393: ((5,), "Belediye Kanunu"),
 }
 
 # Adla anılan kanunlar (brief'ler çoğunlukla numara yerine ad kullanıyor)
@@ -85,6 +105,20 @@ _ADLAR: List[Tuple[str, int]] = [
     (r"kadastro\s+kanunu", 3402),
     (r"k[üu]lt[üu]r\s+ve\s+tabiat\s+varl[ıi]klar[ıi]n[ıi]\s+koruma", 2863),
     (r"veraset\s+ve\s+intikal\s+vergisi\s+kanunu", 7338),
+    (r"kamula[şs]t[ıi]rma\s+kanunu", 2942),
+    (r"k[ıi]y[ıi]\s+kanunu", 3621),
+    (r"mera\s+kanunu", 4342),
+    (r"orman\s+kanunu", 6831),
+    (r"yap[ıi]\s+denetimi\s+(?:hakk[ıi]nda\s+)?kanun", 4708),
+    (r"damga\s+vergisi\s+kanunu", 488),
+    (r"gelir\s+vergisi\s+kanunu|\bgvk\b", 193),
+    (r"katma\s+de[ğg]er\s+vergisi\s+kanunu|\bkdvk\b", 3065),
+    (r"hukuk\s+muhakemeleri\s+kanunu|\bhmk\b", 6100),
+    (r"arabuluculuk\s+kanunu", 6325),
+    (r"toplu\s+konut\s+kanunu", 2985),
+    (r"kooperatifler\s+kanunu", 1163),
+    (r"devlet\s+ihale\s+kanunu", 2886),
+    (r"belediye\s+kanunu", 5393),
 ]
 
 
@@ -92,11 +126,13 @@ _ADLAR: List[Tuple[str, int]] = [
 # Atıf çözümleme
 # ---------------------------------------------------------------------------
 
-def atiflari_coz(atif: Optional[str]) -> Tuple[List[Tuple[int, List[str]]], List[str]]:
+def atiflari_coz(atif: Optional[str], aralik_azami: int = 3) -> Tuple[List[Tuple[int, List[str]]], List[str]]:
     """'Harçlar Kanunu md. 63 ve VUK md. 359' → [(492, ['63']), (213, ['359'])].
 
-    Madde anahtarları metin: '63', 'geçici 16'. Aralıklar (794-822) en fazla 4
-    maddeye açılır. Çözülemeyen atıflar (yönetmelik, tebliğ, kurul kararı) ayrı döner.
+    Madde anahtarları metin: '63', 'geçici 16'. Aralıklar (794-822) varsayılan olarak en fazla 4
+    maddeye açılır (`aralik_azami`=3: ilk madde + 3; geniş aralık sonuna kadar uzayıp modele yığın metin
+    vermesin). `scripts/kanun_oku.py` aralığı tam okumak için büyük değer geçer.
+    Çözülemeyen atıflar (yönetmelik, tebliğ, kurul kararı) ayrı döner.
     """
     metin = str(atif or "")
     if not metin.strip():
@@ -124,9 +160,9 @@ def atiflari_coz(atif: Optional[str]) -> Tuple[List[Tuple[int, List[str]]], List
             ilk = int(m.group(2))
             if m.group(3):
                 son_no = int(m.group(3))
-                for n in range(ilk, min(son_no, ilk + 3) + 1):
+                for n in range(ilk, min(son_no, ilk + aralik_azami) + 1):
                     maddeler.append(f"{gecici}{n}")
-                if son_no > ilk + 3:
+                if son_no > ilk + aralik_azami:
                     maddeler.append(f"{gecici}{son_no}")
             else:
                 maddeler.append(f"{gecici}{ilk}")
@@ -174,6 +210,17 @@ def _html_metne(ham: str) -> str:
     return re.sub(r"\s*\n\s*", " ", t)
 
 
+def _atomik_yaz(dosya: Path, metin: str) -> None:
+    """Önbelleğe atomik yazım: geçici dosya + os.replace. Paralel ajanlar (sözlük kartı üretimi) aynı kanun
+    dosyasını aynı anda yazarken bir okuyucu YARIM metin görmesin; yarım metin "madde bulunamadı" demek olur."""
+    gecici = dosya.with_name(f".{dosya.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    try:
+        gecici.write_text(metin, encoding="utf-8")
+        os.replace(gecici, dosya)
+    finally:
+        gecici.unlink(missing_ok=True)
+
+
 def kanun_metni(no: int) -> Optional[str]:
     """Kanunun tam metni (düz yazı). 7 gün önbellekte tutulur."""
     ONBELLEK.mkdir(parents=True, exist_ok=True)
@@ -195,7 +242,7 @@ def kanun_metni(no: int) -> Optional[str]:
         if r.status_code == 200 and len(r.content) > 5000:
             metin = _html_metne(r.text)
             if re.search(r"(MADDE|Madde)\s*1\s*[-–]", metin):
-                dosya.write_text(metin, encoding="utf-8")
+                _atomik_yaz(dosya, metin)
                 return metin
     log.warning("Kanun metni bulunamadı: %s (tertipler %s)", no, tertipler)
     return dosya.read_text(encoding="utf-8") if dosya.exists() else None

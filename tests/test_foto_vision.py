@@ -55,8 +55,8 @@ class TestVisionModulu(unittest.TestCase):
         with patch.dict(os.environ, {"GEMINI_API_KEY": "gizli"}):
             self.assertEqual(gd._anahtarlar(), [])
         with patch.dict(os.environ, {"GEMINI_API_KEY": "gizli", "POSTEDM_TEST_MODU": "0"}):
-            # Tam liste değil: başka testlerin sızdırdığı anahtarlar da gelebilir (src/twitter.py ve
-            # src/otomatik_onay.py içe aktarılırken gerçek .env'i yüklüyor)
+            # Tam liste değil: başka testlerin sızdırdığı anahtarlar da gelebilir (src/twitter.py
+            # içe aktarılırken gerçek .env'i yüklüyor)
             self.assertIn("gizli", gd._anahtarlar())  # koruma yalnız test moduna bağlı
         with patch.object(gd.requests, "post") as post:
             self.assertIsNone(gd.gorseli_denetle(_foto(), "Başlık"))

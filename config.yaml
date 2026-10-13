@@ -191,7 +191,7 @@ seslendirme:
     style: 0.0
     use_speaker_boost: true
     speed: 1.15
-  hedef_lufs: -14          # telefon hoparlöründe cılız kalmasın; sosyal medya standardı (-12 LUFS)
+  hedef_lufs: -14          # telefon hoparlöründe cılız kalmasın; sosyal medya standardı (-14 LUFS)
   # Son slaytta okunur. Önce gerekçe, sonra çağrı ("…istemiyorsanız"): emir değil
   # öneri gibi duyulsun. "Beğenin" bilerek yok: yalvarır gibi duruyor ve Reels'te
   # beğeniden çok kaydetme/paylaşma öne çıkarıyor.

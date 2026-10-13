@@ -505,13 +505,15 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         )
 
     def test_tek_tetikleyici_kurali(self) -> None:
-        """Günlük tur yalnızca TEK yerden tetiklenmeli.
+        """Günlük tur iki yerden tetiklenebilir ANCAK yalnız "günde bir kez" koruması varsa.
 
-        Worker'ın scheduled() işleyicisi eskiden her cron'da "sabah_hazirla"
-        gönderiyordu; hazirla.yml'nin kendi cron'u da var. İkisi birden açıksa aynı
-        gün iki tur çalışır: iki önizleme, iki konu tüketimi, iki paylaşım.
-        2026-09-26'dan beri Cloudflare cron'u yalnızca planlı yayın çalar saati;
-        kural artık "cron açık mı" değil, "scheduled() günlük turu tetikliyor mu".
+        Eskiden Worker'ın scheduled() işleyicisi her cron'da "sabah_hazirla" gönderiyordu ve hazirla.yml'nin kendi cron'u
+        da vardı: ikisi birden açıkken aynı gün iki tur çalışır — iki önizleme, iki konu tüketimi, iki paylaşım.
+        2026-09-26'da Cloudflare cron'u yalnız planlı yayın çalar saatine indirildi. 2026-10-12'de GitHub `schedule`
+        koşularının 6-10 saat geciktiği görüldü (07:00 UTC içeriği 16:37'de çalıştı), günlük tur Cloudflare cron'una
+        taşındı ve GitHub cron'ları gecikmeli YEDEK olarak bırakıldı. Kural artık "yalnız biri açık" değil:
+        ikisi açıksa hazirla.py aynı slotu aynı Türkiye gününde ikinci kez üretmemeli ve Worker'ın yolladığı dispatch
+        "zamanlanmış koşu" sayılmalı (yoksa koruma ve duraklatma atlanırdı).
         """
         import re as _re
         import yaml as _yaml
@@ -522,20 +524,27 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         kaynak = (KOK / "worker/index.js").read_text(encoding="utf-8")
         govde = kaynak[kaynak.index("async scheduled("):]
         govde = govde[:govde.index("\n  },")]
-        cf_gunluk_tur = bool(cronlar) and "sabah_hazirla" in govde
+        cf_gunluk_tur = {"0 7 * * *", "30 9 * * *"} <= set(cronlar) and "gunlukTuruTetikle" in govde
 
         w = _yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         gh_cron_acik = bool((w.get(True) or {}).get("schedule"))
 
-        self.assertFalse(
-            cf_gunluk_tur and gh_cron_acik,
-            "Hem Cloudflare cron'u hem GitHub cron'u günlük turu tetikliyor. Günlük tur "
-            "iki kez çalışır ve iki konu birden tüketilir. Birini kapat.",
-        )
         self.assertTrue(
             cf_gunluk_tur or gh_cron_acik,
             "Hiçbir tetikleyici açık değil — günlük tur hiç çalışmaz.",
         )
+        if cf_gunluk_tur and gh_cron_acik:
+            hazirla = (KOK / "scripts/hazirla.py").read_text(encoding="utf-8")
+            self.assertIn(
+                "zamanli_slot_bugun_yapildi", hazirla,
+                "Hem Cloudflare hem GitHub cron'u günlük turu tetikliyor ama hazirla.py'de günde-bir-kez koruması yok: "
+                "geç gelen yedek ikinci içerik üretir ve ikinci konuyu tüketir.",
+            )
+            adim = next(a for a in w["jobs"]["hazirla"]["steps"] if a.get("name") == "Günlük İçerik Hazırla ve Paylaş")
+            self.assertIn(
+                "client_payload.zamanli", str(adim["env"]["ZAMANLANMIS"]),
+                "Worker'ın yolladığı slot_hazirla zamanlanmış koşu sayılmıyor: duraklatma ve günlük koruma atlanır.",
+            )
         # Açık her Cloudflare cron'u scheduled() içinde karşılanmalı; yoksa sessizce boşa çalışır
         for cron in cronlar:
             self.assertIn(cron, kaynak, f"wrangler.toml'daki '{cron}' cron'unu Worker hiçbir yerde işlemiyor")

@@ -17,13 +17,58 @@ from pathlib import Path
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 
-from src import db, telegram_bot
+from src import db, konu_bankasi, telegram_bot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
 
 import argparse
+
+
+# Kullanıcı kuralı: 5 gün = 120 saat = 7200 dakika. Gündüz gelen haberler unutulsa dahi 5 güne kadar
+# onay kuyruğunda korunur; süre dolunca arşive alınır (silinmez).
+ZAMAN_ASIMI_DAKIKA = 5 * 24 * 60
+HATIRLATMA_PENCERESI = 5      # tek turda hatırlatılacak en çok içerik (mesaj yağmurunu önler)
+TUM_BEKLEYEN_SINIRI = 500
+
+
+def _zaman_asimlarini_isle(bekleyenler: list[dict]) -> list[dict]:
+    """5 günü dolduran bekleyenleri arşive alır, konularını havuza iade eder; kalanları döner.
+
+    Birden çok içerik aynı turda düşerse tek özet mesaj gider (eski birikim ilk turda dokuz mesaj atardı).
+    Planlı yayını bekleyen içerik, plan penceresi bitene dek zaman aşımına girmez."""
+    kalan: list[dict] = []
+    dusenler: list[dict] = []
+    for haber in bekleyenler:
+        dakika = bekleme_suresi_dakika(haber)
+        if planli_yayin_bekliyor(haber) or dakika is None or dakika < ZAMAN_ASIMI_DAKIKA:
+            kalan.append(haber)
+            continue
+        log.info("Haber #%d zaman aşımına uğradı (%d dakika, %d hatırlatma).",
+                 haber["id"], int(dakika), haber.get("hatirlatma_sayisi") or 0)
+        db.durum_zaman_asimi_yap(haber["id"])
+        try:
+            konu_bankasi.konuyu_havuza_iade_et(haber["id"])
+        except Exception as e:  # noqa: BLE001 — iade başarısızsa arşivleme yine de tamamlanır
+            log.warning("Haber #%d konu iadesi yapılamadı: %s", haber["id"], e)
+        dusenler.append(haber)
+    if dusenler:
+        basliklar = [str(h.get("manset") or h.get("orijinal_baslik") or "İçerik") for h in dusenler]
+        if len(dusenler) == 1:
+            ayrinti = f"📌 <b>Başlık:</b> {basliklar[0]}\n\n"
+        else:
+            ayrinti = (f"📌 <b>{len(dusenler)} içerik:</b>\n"
+                       + "\n".join(f"• #{h['id']} {b[:70]}" for h, b in list(zip(dusenler, basliklar))[:10])
+                       + (f"\n• … ve {len(dusenler) - 10} içerik daha" if len(dusenler) > 10 else "") + "\n\n")
+        telegram_bot.mesaj_gonder(
+            f"📁 <b>İÇERİK ZAMAN AŞIMINA UĞRADI (Arşiv Bilgisi)</b>\n\n"
+            f"{ayrinti}"
+            f"<i>Değerli EDM Ekibi; bu taslak(lar) 5 günlük bekleme süresinin ardından yayın akışımızın güncelliğini "
+            f"korumak amacıyla arşive kaldırılmıştır. Konuları havuza geri döndü; ihtiyaç halinde dilediğiniz zaman "
+            f"yeniden üretebilirsiniz.</i>"
+        )
+    return kalan
 
 
 def bekleme_suresi_dakika(haber: dict) -> float | None:
@@ -54,7 +99,11 @@ def main(argv: list[str] | None = None):
     parser.add_argument("--zorla", "-z", action="store_true", help="60 dakika bekleme sınırını yok say ve hemen hatırlat")
     args = parser.parse_args(argv)
 
-    bekleyenler = db.onay_bekleyen_haberleri_getir(limit=5)
+    # Zaman aşımı TÜM bekleyenlere uygulanır; hatırlatma yalnız en yeni HATIRLATMA_PENCERESI içeriğe gider.
+    # Önceden tek sorgu `LIMIT 5` idi: altıncı ve daha eski içerikler 5 günlük zaman aşımına hiç girmiyor,
+    # kuyruk büyüyordu (2026-10-12 ölçümü: 14 içerik, en eskisi 27 Eylül'den beri bekliyordu).
+    tum_bekleyenler = db.onay_bekleyen_haberleri_getir(limit=TUM_BEKLEYEN_SINIRI)
+    bekleyenler = _zaman_asimlarini_isle(tum_bekleyenler)[:HATIRLATMA_PENCERESI]
     if not bekleyenler:
         log.info("Onay bekleyen içerik yok.")
         if args.zorla:
@@ -73,19 +122,6 @@ def main(argv: list[str] | None = None):
         # saatten fazla geçmişse (cron çalışmadıysa) hatırlatma yeniden devreye girer.
         if planli_yayin_bekliyor(haber):
             log.info("Haber #%d planlı yayını bekliyor (%s); hatırlatılmadı.", haber_id, haber.get("planlanan_yayin"))
-            continue
-
-        # 1. Zaman aşımı kontrolü (Kullanıcı kuralı: 5 gün = 120 saat = 7200 dakika)
-        # Gündüz gelen haberler unutulsa dahi 5 güne kadar onay kuyruğunda korunur, silinmez/arşivlenmez.
-        ZAMAN_ASIMI_DAKIKA = 5 * 24 * 60
-        if dakika is not None and dakika >= ZAMAN_ASIMI_DAKIKA:
-            log.info("Haber #%d zaman aşımına uğradı (%d dakika, %d hatırlatma).", haber_id, int(dakika), mevcut_hatirlatma)
-            db.durum_zaman_asimi_yap(haber_id)
-            telegram_bot.mesaj_gonder(
-                f"📁 <b>İÇERİK ZAMAN AŞIMINA UĞRADI (Arşiv Bilgisi)</b>\n\n"
-                f"📌 <b>Başlık:</b> {baslik}\n\n"
-                f"<i>Değerli EDM Ekibi; bu içerik taslağı 5 günlük bekleme süresinin ardından yayın akışımızın güncelliğini korumak amacıyla arşive kaldırılmıştır. İhtiyaç halinde dilediğiniz zaman yeniden üretebilirsiniz.</i>"
-            )
             continue
 
         if not args.zorla and dakika is not None and dakika < 60:

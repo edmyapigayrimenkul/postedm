@@ -75,10 +75,10 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 ## 4. TEKNİK MİMARİ & ÇALIŞMA AKIŞI
 
 1. **İçerik Hazırlığı & Cron (günde BİR içerik, 10:00 TR — bkz. §8.5):**
-   * Günlük turun tetikleyicisi GitHub cron'udur (`.github/workflows/hazirla.yml`).
-     Worker'ın `[triggers]` bölümü 2026-09-26'dan beri YALNIZCA planlı yayın çalar
-     saatiyle (`*/10`) açık; `scheduled()` günlük tur (`sabah_hazirla`) GÖNDERMEZ —
-     ikisi birden günlük turu tetiklerse aynı gün iki tur çalışır (bkz. §9.5).
+   * **Günlük turun ASIL tetikleyicisi Cloudflare cron'udur (2026-10-12, bkz. §10 madde 13):** Worker `scheduled()` 07:00 UTC'de
+     `slot_hazirla {slot: bilgilendirici, zamanli: true}`, 09:30 UTC'de `{slot: sozluk}` yollar (`worker/wrangler.toml` `[triggers]`).
+     `.github/workflows/hazirla.yml`'deki aynı saatli GitHub cron'ları GECİKMELİ YEDEKTİR (6-10 saat gecikiyorlar); `hazirla.py`
+     zamanlanmış bir slotu aynı Türkiye gününde ikinci kez üretmez. Eskiden ikisi birden açıkken günde iki tur çalışırdı (bkz. §9.5).
    * RSS taranır, Gemini kanca başlıklı 3 slaytlık analiz üretir ve görseller `src/make_image.py` ile çizilir.
    * Telegram grubuna `@PostEdmBot` üzerinden önizleme ve onay butonları (`✅ Yayına Al (IG + FB + Threads)`) iletilir.
 2. **Onay ve Yayınlama:**
@@ -233,7 +233,11 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    dışındaki HER açılış gerçek DB'ye göç yazar ve CI kırmızı olur.
 
 ### 9.3 Seslendirme (ElevenLabs) — kullanıcı kararları
-1. **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** Sıla Özalp
+1. > ✅ **KARAR (kullanıcı, 2026-10-12): seslendirme sesi ALEX'tir.** Güncel ayar `config.yaml › seslendirme`: Alex (`KediIz7pebzt5TaDHiiZ`, Instabot ana sesi),
+   > yedek Adam, hız 1.15, stability 0.55, style 0.0, **-14 LUFS**. Aşağıdaki Sıla Özalp / 1.05 / -12 LUFS değerleri 2026-09-26'nın TARİHSEL kararıdır, geçersiz.
+   > Sıla'ya dönülmek istenirse yalnız `config.yaml` değişir (`ELEVENLABS_VOICE_ID` ortam değişkeni okunmaz).
+
+   **Ses ve ayarlar tek kaynak: `config.yaml › seslendirme`.** (ESKİ karar, geçersiz:) Sıla Özalp
    (`r3deco0KTo6o0Kb5inro`, haber sunucusu), yedek Adam; hız 1.05, stability 0.40,
    style 0.30; -12 LUFS. `ELEVENLABS_VOICE_ID` ortam değişkeni OKUNMAZ (yereldeki eski
    değer seçimi sessizce geri çeviriyordu). Anahtar: `ELEVENLABS_API_KEY` (GitHub
@@ -296,3 +300,54 @@ Commit'ler: `6243ae6` `fc6217f` (tasarım) · `a321e32` (test izolasyonu) · `0a
 `8346378` (glif) · `51071a4` (seslendirme) · `74e1b84` (öneri + sesli yayın) ·
 `75427e4` (planlı yayın) · `7bcda6c` (okunuş ölçümü).
 
+## 10. 2026-10-12 DENETİMİ — KURALLAR VE DÜZELTMELER
+
+Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunlugu.py`, `test_zamanlanmis_duraklatma.py`, `test_otomatik_yayin_kapisi.py`).
+
+1. **Onay zaman aşımı TÜM kuyruğa uygulanır** (`hatirlat.py`). Eskiden `LIMIT 5` yüzünden altıncı ve eski içerikler 5 güne hiç girmiyordu (14 içerik, en eskisi
+   27 Eylül'den beri bekliyordu). Hatırlatma yine yalnız en yeni 5'e gider; aynı turda düşenler tek özet mesajdır.
+2. **Duraklatma zamanlanmış koşuları da durdurur.** `hazirla.yml` zamanlanmış koşuyu `ZAMANLANMIS=true` ile işaretler; `--slot`/`--format` bayrağı artık
+   duraklatmayı aşmaz (cron'lar bu bayraklarla çalışıyor). Elle tetiklenenler (Telegram, `workflow_dispatch`) aşar.
+3. **Konu yalnız yayınlanırsa tüketilir.** Atla / çöpe at / zaman aşımı → `konu_bankasi.konuyu_havuza_iade_et`: kayıt silinmez, `sonuc='hata'` yapılır (3 gün
+   sonra yeniden sıraya girer; birleştirme sürücüsü satır güncellemesini güvenle taşır). Yeni içerik yalnız `EDM Konu Bankası` ve Reels'te üretilir;
+   sözlük kartı ya da haber önerisi reddi karusel doğurmaz. `konu_gecmisi.sonuc='cope_at'` kalıcı engel olarak ayrılmış kalır (kimse yazmıyor).
+4. **Hata günlüğü DB'dedir** (`hata_kayitlari`, 30 gün). `data/hata_kayitlari.jsonl` ve `son_hata.txt` .gitignore'da ve Actions makinesiyle silinir; yalnız aynı iş
+   içindeki sonraki adımlar içindir. **Hata metni kaydedilmeden önce `src/gizlilik.maskele` ile maskelenir** (requests istisnası URL'deki `access_token`'ı taşır;
+   DB git'e gider). Yeni hata kayıt noktası eklenirse `hata_bildir.hata_kaydet` üzerinden geçmeli. `yayinla.yml`'de "Hata bildir" adımı "Veritabanını Kaydet"ten
+   ÖNCE olmalı (kayıt makineyle gitmesin). "🔍 Ham Hata Göster" düğmesi artık `bot_yonetim/hata_ayrinti` ile Actions'a gider ve metni DB'den okur (`hata_bildir.son_hatayi_gonder`); eski Worker
+   dosyayı repodan okumaya çalışıp hiç bulamıyordu. **Worker değişti: `cd worker && npx --yes wrangler deploy` ile dağıtılmalı** (dağıtılana dek düğme eskisi gibi "bulunamadı" der).
+5. **Onaysız yayında anlam hakemi gerçekten çalışmış olmalı** (`dogrula.otomatik_yayina_uygun_mu`, ICERIK-SISTEMI §5.5.2). Şu an yalnız finans bülteni modelle üretilip
+   onaysız yayına gidebilen yol.
+6. **Ölçülemeyen değer rapora "0 hata ✓" diye girmez.** Günlük kota raporunda "HATA GUNLUGU": uygulamanın kaydı + GitHub'ın bildirdiği başarısız koşu sayısı
+   (`rapor_uretici.basarisiz_is_akislari`; jeton/API yoksa "ölçülemedi").
+7. **Site kuyruğu 401 (açık sorun):** `site-kuyrugu.yml` saatlik güvenlik ağı, 11 Ekim 2026 00:55 UTC'den beri `https://edmyapigayrimenkul.com/api/postedm/kuyruk`
+   adresinden **401 Unauthorized** alıyor (kod 9 Ekim'den beri değişmedi). Workflow `EDM_SITE_API_ANAHTARI` geçirmiyor, OIDC'ye düşüyor: site tarafındaki anahtar/OIDC
+   doğrulaması kontrol edilmeli. Sözleşme gereği (§7.9) 401 arızadır; her saat Telegram'a "BAŞARISIZ" düşer.
+   **2026-10-12 kullanıcı kararı: saatlik yoklama (`schedule`) geçici olarak kapatıldı** (`site-kuyrugu.yml`; site düzelince yorum işaretlerini kaldırın).
+   Anlık tetikleme (`repository_dispatch`) ve elle çalıştırma açık; site düzelene dek panelden paylaşım 401 ile düşer.
+8. **Piyasa verisi (Emlakjet/Endeksa) KAPALI — kullanıcı kararı.** postedm'de bu tür gönderi istenmiyor (rakamlı fiyat analizi web sitesi içindi; özellik 9 Ekim'de
+   başka bir oturumda, talep atfı olmadan eklenmişti). S4-001/004/013 `engel` altında, aylık cron yorum satırı; kod, testler ve toplanan 111 satır durur.
+   Yeniden açma: ICERIK-SISTEMI §5.5.3 başındaki not.
+9. **Silinen ölü modüller:** `fetch_photo`, `haftalik_bulten`, `makro_kart`, `otomatik_onay`, `sparkline` (hiçbir yerden çağrılmıyordu, testleri yoktu). Git geçmişinde duruyor.
+10. **Sözlük kart üretim araçları yazıldı** (`kanun_oku.py`, `sozluk_kart_dogrula.py`, `sozluk_kart_birlestir.py`; SOZLUK-KART-URETIMI.md). Sahte kanun metniyle
+    testli; **canlı kanunla denenmedi** (mevzuat.gov.tr geliştirme ortamında kapalıydı). 14 yeni kanunun tertipleri tahmin: ilk açık ağda `kanun_oku.py kanunlar --dene`.
+    Araçlar `src.db` göçünden `data/edm.db`'yi korumak için test modunda başlar (`--hakem` hariç).
+11. **Testler `data/` klasörüne dosya sızdırmaz:** hata günlüğü ve yayın raporu işareti `config.veri_yolu()` ile test modunda geçici dizine gider.
+12. **Telegram teslimi (albüm + düğmeli onay kartı) — 2026-10-12.** Günlük içeriğin albümü 60 sn okuma zaman aşımına uğradı (Actions logu: "Yerel medya grubu
+    istisnası … Read timed out"); eski yedek yol **yerel dosya yolunu Telegram'a "URL" diye gönderip** sessizce 400 aldı → albüm hiç gelmedi, hata günlüğüne de yazılmadı.
+    Ayrıca başarısız çağrıdan sonra `son_medya_grubu_mesaj_idleri()` ÖNCEKİ içeriğin kimliklerini veriyordu (yanlış mesajlar bu içeriğe bağlanıp sonra silinirdi).
+    Düzeltme (`telegram_bot.py`, testler `tests/test_telegram_medya_teslimi.py`): `medya_grubu_gonder` sırayla yerel albüm → URL albümü (`yedek_urller=` ImgBB) →
+    indirip yükleme → TEK TEK `sendPhoto` dener; her istek (10 sn bağlanma, 40 sn okuma) 429'da `retry_after`, 5xx/ağ hatasında bekleyip yeniden denenir, başlık HTML hatasında
+    düz metne düşer; hiçbiri tutmazsa `hata_kayitlari`'na `telegram.medya` yazılır. Onay kartı albüm gelmese de gider ve başına uyarı + ImgBB bağlantıları konur;
+    kart gitmezse kısa kartla (aynı düğmelerle) tekrar denenir (`_onay_kartini_gonder`); manşet/kategori/dayanak HTML'e kaçırılır. **Zaman aşımı belirsizdir** (Telegram isteği
+    işleyip cevabı geciktirmiş olabilir): nadiren aynı albüm iki kez düşebilir — albümün kaybolmasından iyidir.
+    GitHub `schedule` koşularının 6–10 saat geciktiği görüldü (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı) → madde 13.
+13. **Günlük tur Cloudflare cron'una taşındı — 2026-10-12.** Worker `scheduled()`: `0 7 * * *` → `slot_hazirla {slot: bilgilendirici, zamanli: true}`, `30 9 * * *` →
+    `{slot: sozluk, zamanli: true}`; GitHub'a ulaşamazsa 3 kez dener, olmazsa gruba "Günlük içerik tetiklenemedi" yazar. `hazirla.yml` cron'ları SİLİNMEDİ, gecikmeli yedek:
+    `ZAMANLANMIS` artık dispatch'te de `client_payload.zamanli` ile true (duraklatma ve günlük koruma uygulanır) ve `hazirla.py` bir slotu zamanlanmış koşuda
+    **o Türkiye gününde bir kez** çalıştırır (`ayarlar › zamanli_slot_son_gun:<slot>`, yalnız başarılı turda yazılır; elle tetiklenenler korumaya takılmaz, işaret de bırakmaz).
+    Neden yedek bırakıldı: Worker dağıtılmadan GitHub cron'u kaldırılırsa HİÇ içerik çıkmaz; ikisi korumasız açık kalırsa günde iki içerik çıkar. Koruma ikisini güvenle birlikte açık tutar;
+    `tests/test_sozlesme.py › test_tek_tetikleyici_kurali` bunu zorunlu kılar. **Dağıtım gerekir:** `cd worker && npx --yes wrangler deploy`, sonra Cloudflare panelinde
+    Workers › Cron Triggers'ta ÜÇ satır (`*/10 * * * *`, `0 7 * * *`, `30 9 * * *`) görünmeli (sınıra takılan dağıtım cron'u sessizce yazmıyordu — Instabot). Cloudflare cron'u
+    bir hafta sorunsuz çalışırsa GitHub cron'ları `hazirla.yml`'den kaldırılabilir (o zaman test kuralı ve `test_cron_takvimle_uyumlu` birlikte güncellenir). Worker'ın durum menüsündeki
+    eski takvim (13:30 / 18:30) de düzeltildi.

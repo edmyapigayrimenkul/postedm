@@ -24,6 +24,8 @@ concurrency:
 jobs:
   yayinla:
     runs-on: ubuntu-latest
+    # Takılan tek yayın işi sonraki yayın butonlarını varsayılan 360 dakika boyunca kuyrukta tutmasın.
+    timeout-minutes: 40
     permissions:
       contents: write
       id-token: write
@@ -55,6 +57,7 @@ jobs:
           ICERIK_ID: ${{ github.event.client_payload.id }}
           ANAHTAR: ${{ github.event.client_payload.anahtar }}
           DEGER: ${{ github.event.client_payload.deger }}
+          ADET: ${{ github.event.client_payload.adet }}
         run: |
           if [ "$EYLEM" = "duraklat" ]; then
             python -c "import os; from src.telegram_bot import bot_duraklat; s = os.environ.get('SAAT', ''); bot_duraklat(saat=int(s) if s.isdigit() else 24)"
@@ -72,6 +75,8 @@ jobs:
             python -c "from src import telegram_bot; m, b = telegram_bot.son_postlar_raporu(); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           elif [ "$EYLEM" = "havuz" ]; then
             python -c "from src import telegram_bot; telegram_bot.mesaj_gonder(telegram_bot.havuz_mesaji())"
+          elif [ "$EYLEM" = "hata_ayrinti" ]; then
+            python -c "from src import hata_bildir; hata_bildir.son_hatayi_gonder()"
           elif [ "$EYLEM" = "yayin_kontrol" ]; then
             python -c "import os; from src import telegram_bot; m, b = telegram_bot.yayin_kontrol_karti(int(os.environ.get('ICERIK_ID', '0'))); telegram_bot.mesaj_gonder(m, reply_markup=b)"
           elif [ "$EYLEM" = "son_mesaji_sil" ] || [ "$EYLEM" = "mesaj_sil" ]; then
@@ -184,11 +189,8 @@ jobs:
         run: |
           python scripts/slayt_islem.py --eylem "$EYLEM" --sira "$SIRA" ${MESAJ_ID:+--mesaj-id "$MESAJ_ID"}
 
-      - name: Veritabanını Kaydet
-        if: always()
-        run: |
-          python scripts/db_kaydet.py "db: yayin durumlari guncellendi"
-
+      # SIRA ÖNEMLİ: "Hata bildir" hata kaydını DB'ye (hata_kayitlari) yazar; kayıt gitmeden önce
+      # "Veritabanını Kaydet" çalışmalıdır. Aksi hâlde kayıt Actions makinesiyle birlikte kaybolur.
       # Job patlarsa sessiz kalmasın; akıllı hata analizi ve interaktif kurtarma butonları üret
       - name: Hata bildir
         if: failure()
@@ -202,6 +204,11 @@ jobs:
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -m src.hata_bildir --islem "Yayınla" --tur "$TUR" --id "$ID" --hedef "$HEDEF" --mesaj-id "$MESAJ_ID" --run-url "$RUN_URL"
+
+      - name: Veritabanını Kaydet
+        if: always()
+        run: |
+          python scripts/db_kaydet.py "db: yayin durumlari guncellendi"
 
       - name: İptal Bildirimi
         if: cancelled()

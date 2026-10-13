@@ -155,6 +155,10 @@ bunu dinliyor; `hazirla.yml`'nin kendi cron'u da var. İkisi birden açık olsay
 aynı gün **iki tur** çalışırdı: iki önizleme, iki konu tüketimi, iki paylaşım.
 Cloudflare cron'u bilerek kapalı dağıtıldı, kural sözleşme testine bağlandı.
 
+**Güncelleme (2026-10-12):** GitHub cron'u 6–10 saat geciktiği için günlük tur Cloudflare cron'una taşındı (`slot_hazirla`, `zamanli: true`).
+GitHub cron'ları gecikmeli yedek olarak kaldı; çift içerik riski artık "yalnız biri açık" kuralıyla değil, `hazirla.py`'deki günde-bir-kez
+koruması (`zamanli_slot_bugun_yapildi`) ve onu zorunlu kılan sözleşme testiyle önleniyor. Ayrıntı: MEMORY.md §10 madde 13.
+
 ---
 
 # P1 — Sessizce ölecek şeyler
@@ -317,8 +321,8 @@ Yine de yakalama kodu konmalı; başka bir gruba taşınırsa aynı sorun.
 
 instabot ölçtü: ~1290/2000 dakika (%65). Bizde hiç ölçülmedi.
 
-**GÜNCELLEME:** depo public kalıyor (§0.1) → GitHub Actions dakikası
-**sınırsız**. Bu madde büyük ölçüde düştü.
+**GÜNCELLEME (ESKİ — geçersiz):** burada depo public kalıyor sanılıyordu; §0.1'de depo **private**'a çevrildi, yani Actions
+dakikası **sınırlı** (2000 dk/ay). Kota izleme gerekli: `rapor_uretici.github_actions_kullanimi` ölçer.
 
 Geriye kalan tek darboğaz **Gemini kotası**: `gemini-3.5-flash` zaten 429
 veriyor ve 11 Eylül'de dört model birden 503 verdi.

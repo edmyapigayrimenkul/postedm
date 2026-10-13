@@ -17,8 +17,11 @@
 name: Piyasa Verisi
 
 on:
-  schedule:
-    - cron: "0 6 1 * *"     # her ayın 1'i 09:00 TR
+  # ⏸ KAPALI (2026-10-12, kullanıcı kararı): postedm'de piyasa verisi gönderisi istenmiyor (rakamlı fiyat analizi web
+  # sitesi için istenmişti). İlgili üç S4 konusu konu_bankasi.yaml'da `engel` altında. Yeniden açmak için bu iki satırın
+  # başındaki '#' işaretini kaldırın ve konulardaki `engel` satırlarını silin. Elle çalıştırma (workflow_dispatch) açık.
+  # schedule:
+  #   - cron: "0 6 1 * *"     # her ayın 1'i 09:00 TR
   workflow_dispatch:
 
 concurrency:

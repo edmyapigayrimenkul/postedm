@@ -508,18 +508,12 @@ export default {
           return new Response("OK");
         }
 
+        // Ham hata metni artık repodaki dosyadan değil DB'den (hata_kayitlari) okunur: eski yol data/son_hata.txt'yi
+        // GitHub'dan çekiyordu, dosya .gitignore'da olduğu için HİÇ bulunamıyordu (2026-10-12). DB'ye Actions erişir,
+        // Worker erişmez; bu yüzden diğer yönetim düğmeleri gibi bot_yonetim üzerinden gider (birkaç sn gecikir).
         if (data === "hata_ayrinti" || data === "hata:ayrinti") {
           await cevapVer("Hata detayı getiriliyor...");
-          const ham = await hamHataOku(env);
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: ham ? `🔍 <b>HAM HATA METNİ</b>\n\n<pre><code>${ham.slice(0, 3500)}</code></pre>` : "ℹ️ Kayıtlı ham hata metni bulunamadı.",
-              parse_mode: "HTML",
-            }),
-          });
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "hata_ayrinti" });
           return new Response("OK");
         }
 
@@ -1499,13 +1493,20 @@ export default {
     }
   },
 
-  // Zamanlanmış Cron (Sabah 10:00 TR)
-  // YALNIZCA planlı yayın çalar saati. Eskiden her cron "sabah_hazirla" gönderiyordu;
-  // günlük tur GitHub cron'unda (hazirla.yml) olduğu için cron açılınca aynı gün İKİ
-  // tur çalışırdı (bkz. tests/test_sozlesme.py › test_tek_tetikleyici_kurali).
+  // Zamanlanmış cron'lar (wrangler.toml › triggers):
+  //  • */10 * * * *   planlı yayın çalar saati
+  //  • 0 7 * * *      10:00 TR günlük bilgilendirici içerik   → slot_hazirla {slot: bilgilendirici}
+  //  • 30 9 * * *     12:30 TR günlük sözlük kartı            → slot_hazirla {slot: sozluk}
+  // Günlük tur ASIL olarak buradan tetiklenir (2026-10-12): GitHub `schedule` koşuları 6-10 saat gecikiyordu.
+  // hazirla.yml'deki aynı saatli cron'lar gecikmeli YEDEKTİR; `zamanli: true` yükü hazirla.py'ye "zamanlanmış koşu"
+  // der (duraklatma uyulur) ve aynı slot aynı günde ikinci kez üretilmez (bkz. test_tek_tetikleyici_kurali).
   async scheduled(event, env, ctx) {
-    if (event.cron !== PLAN_CRON || !env.PLANLAR) return;
-    await planlariIsle(env);
+    if (event.cron === PLAN_CRON) {
+      if (env.PLANLAR) await planlariIsle(env);
+      return;
+    }
+    const slot = GUNLUK_TURLAR[event.cron];
+    if (slot) await gunlukTuruTetikle(env, slot, event.cron);
   },
 };
 
@@ -1864,26 +1865,6 @@ async function tetikleGitHub(env, eventType, clientPayload) {
   return resp.status === 204;
 }
 
-async function hamHataOku(env) {
-  const repo = env.GITHUB_REPOSITORY || "edmyapigayrimenkul/postedm";
-  const url = `https://api.github.com/repos/${repo}/contents/data/son_hata.txt`;
-  try {
-    const cevap = await fetch(url, {
-      headers: {
-        authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        accept: "application/vnd.github+json",
-        "user-agent": "EDM-Cloudflare-Worker",
-      },
-    });
-    if (!cevap.ok) return null;
-    const veri = await cevap.json();
-    return decodeURIComponent(escape(atob((veri.content || "").replace(/\n/g, ""))));
-  } catch (e) {
-    return null;
-  }
-}
-
-
 // =====================================================================
 // GÜVENLİK VE BİLDİRİM YARDIMCILARI
 // =====================================================================
@@ -1939,6 +1920,35 @@ async function sohbeteGonder(env, sohbetId, metin, replyMarkup = null) {
       });
     }
   } catch (_) {}
+}
+
+// Günlük tur cron'ları (worker/wrangler.toml › triggers). Anahtar cron ifadesidir, UTC.
+const GUNLUK_TURLAR = {
+  "0 7 * * *": "bilgilendirici",   // 10:00 TR
+  "30 9 * * *": "sozluk",          // 12:30 TR (hazirla.py --slot sozluk --oto-yayin)
+};
+const GUNLUK_TETIK_DENEME = 3;
+
+// Günlük turu GitHub'a yollar. GitHub 5xx/ağ hatası verirse kısa beklemelerle yeniden dener (Cloudflare cron'u
+// başarısız çalıştırmayı kendisi yeniden denemez); yine olmazsa gruba haber verir: sessizce gün kaybolmasın.
+// GitHub cron'u zaten gecikmeli yedek olarak açık olduğundan içerik geç de olsa çıkar.
+async function gunlukTuruTetikle(env, slot, cron) {
+  const bekleme = Number(env.TETIK_BEKLEME_MS ?? 3000);
+  for (let deneme = 1; deneme <= GUNLUK_TETIK_DENEME; deneme++) {
+    try {
+      if (await tetikleGitHub(env, "slot_hazirla", { slot, zamanli: true, kaynak: "cloudflare_cron", cron })) return true;
+    } catch (e) {
+      console.error(`Günlük tur (${slot}) tetiklenemedi (deneme ${deneme}):`, e);
+    }
+    if (deneme < GUNLUK_TETIK_DENEME && bekleme > 0) await new Promise((r) => setTimeout(r, bekleme * deneme));
+  }
+  await bildirimGonder(
+    env,
+    `⚠️ <b>Günlük içerik tetiklenemedi</b> (<code>${htmlKacis(slot)}</code>, Cloudflare cron).\n` +
+      "<i>GitHub Actions'a ulaşılamadı — Worker'daki GITHUB_TOKEN süresi dolmuş veya yetkisi eksik olabilir. " +
+      "GitHub'ın kendi cron'u yedek olarak içeriği geç de olsa üretir; kalıcı çözüm için token'ı yenileyin.</i>"
+  );
+  return false;
 }
 
 // Planlı yayın (worker/wrangler.toml › triggers ve PLANLAR KV'si)
@@ -2119,10 +2129,9 @@ function kaldirmaOnayMenusu(tur, refId) {
 function durumMetni() {
   return (
     "📊 <b>EDM YAYIN TAKVİMİ</b>\n\n" +
-    "• <b>10:00</b> — Bilgilendirici (rotasyon: Nedir Doğrusu · Net Cevap · Sözlük · B1)\n" +
-    "• <b>13:30</b> — Emlak Sözlüğü\n" +
-    "• <b>18:30</b> — Haber & Gündem (uygun haber yoksa bilgilendirici)\n\n" +
-    "Her içerik önce bu gruba onaya gelir.\n\n" +
+    "• <b>10:00</b> — Bilgilendirici (rotasyon: B1 · Nedir Doğrusu · Net Cevap · B1) — önce bu gruba <b>onaya</b> gelir\n" +
+    "• <b>12:30</b> — Emlak Sözlüğü kartı — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez)\n\n" +
+    "Haber önerileri ayrıca düşer; hangisinin içeriğe çevrileceğine siz karar verirsiniz.\n\n" +
     "<i>Bu mesaj takvimi gösterir, sistemin sağlığını değil. Gerçek durum için " +
     "“Canlı Sağlık Raporu”na bas — kanallar, jetonlar ve son çalışmalar gerçekten denetlenir.</i>"
   );

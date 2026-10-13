@@ -199,6 +199,49 @@ def github_actions_kullanimi(
     }
 
 
+def basarisiz_is_akislari(saat: int = 24, token: Optional[str] = None,
+                          repo: str = "edmyapigayrimenkul/postedm") -> Optional[int]:
+    """Son `saat` saatte BAŞARISIZ biten GitHub Actions koşusu sayısı; ölçülemezse None (0 DEĞİL).
+
+    Hata günlüğü yalnız uygulamanın kendi yakaladığı hataları görür; kurulum adımında, bağımlılıkta ya da
+    zaman aşımında patlayan iş (lxml olayı: 3 gün fark edilmedi) günlüğe hiç girmez. Gerçeği GitHub bilir."""
+    sec_token = _github_token_al(token)
+    if not sec_token:
+        return None
+    baslangic = (datetime.now(timezone.utc) - timedelta(hours=saat)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        r = requests.get(
+            f"https://api.github.com/repos/{repo}/actions/runs",
+            params={"status": "failure", "created": f">={baslangic}", "per_page": 1},
+            headers={"Authorization": f"Bearer {sec_token}", "Accept": "application/vnd.github+json",
+                     "User-Agent": "postedm-reporter"},
+            timeout=12,
+        )
+        if r.status_code != 200:
+            log.warning("Başarısız koşu sayısı okunamadı [%d]: %s", r.status_code, r.text[:120])
+            return None
+        return int(r.json().get("total_count"))
+    except Exception as e:  # noqa: BLE001
+        log.warning("Başarısız koşu sayısı alınamadı: %s", e)
+        return None
+
+
+def hata_gunlugu_satirlari(saat: int = 24) -> List[Tuple[str, str]]:
+    """Rapor satırları: uygulamanın kaydettiği teknik hata ve GitHub'ın bildirdiği başarısız koşu sayısı.
+    Ölçülemeyen değer \"ölçülemedi\" yazılır; \"0 hata ✓\" ASLA basılmaz (MEMORY §7.8)."""
+    try:
+        from . import hata_bildir
+        kayitlar = hata_bildir.son_hatalari_ozetle(saat=saat)
+        teknik = f"{len(kayitlar)} kayıt" + (" [!]" if kayitlar else " ✓")
+    except Exception:  # noqa: BLE001
+        teknik = "ölçülemedi"
+    basarisiz = basarisiz_is_akislari(saat=saat)
+    return [
+        ("Hata kaydi", teknik),
+        ("Basarisiz is", "ölçülemedi" if basarisiz is None else f"{basarisiz}" + (" [!]" if basarisiz else " ✓")),
+    ]
+
+
 def yapay_zeka_kullanimi() -> Dict[str, Any]:
     """Gemini API üzerinden bu ayki içerik üretimi ve token tüketimini analiz eder."""
     now = datetime.now(timezone.utc)
@@ -542,6 +585,7 @@ def kota_metni_uret(kategori: int | str = 1) -> str:
         ("YOUTUBE DATA API", yt_satirlar),
         ("TOKEN & SERVIS GUVENCESI", token_satirlar),
         ("DEPOLAMA & VERITABANI", depo_satirlar),
+        ("HATA GUNLUGU (SON 24 SAAT)", hata_gunlugu_satirlari()),
         ("YAYIN HAVUZU & REZERV", ic_satirlar),
     ]
 
