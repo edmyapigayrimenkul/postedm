@@ -100,7 +100,7 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         self.assertIn("• <b>Facebook (Gönderi):</b> ⏱️ Sırada", metin)
         self.assertIn("• <b>Instagram Reels (9:16):</b> ⏱️ Sırada", metin)
 
-    @patch("src.telegram_bot.mesaji_guncelle")
+    @patch("src.telegram.istemci.mesaji_guncelle")
     def test_canli_yayin_durumu_guncelle(self, mock_guncelle):
         """canli_yayin_durumu_guncelle fonksiyonunun onay mesajını anında güncellediği doğrulanır."""
         mock_guncelle.return_value = True
@@ -118,8 +118,8 @@ class TestTelegramInstabotParitesi(unittest.TestCase):
         self.assertIn("[▰▰] %100 (2/2)", guncellenen_metin)
         self.assertIn("✅ <b>TÜM PLATFORMLARA AKTARIM TAMAMLANDI!</b>", guncellenen_metin)
 
-    @patch("src.telegram_bot.mesaji_guncelle")
-    @patch("src.telegram_bot.mesaj_gonder")
+    @patch("src.telegram.istemci.mesaji_guncelle")
+    @patch("src.telegram.istemci.mesaj_gonder")
     def test_sonucu_yaz(self, mock_gonder, mock_guncelle):
         """Yayın sonucu yazılırken hem onay mesajının güncellendiği hem de bildir=True ise yeni mesaj atıldığı test edilir."""
         mock_guncelle.return_value = True

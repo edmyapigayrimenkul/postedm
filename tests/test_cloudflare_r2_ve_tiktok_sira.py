@@ -141,6 +141,7 @@ class TestCloudflareR2VeTikTokSira(unittest.TestCase):
             patch.object(yayinla.tiktok, "foto_yayinla", side_effect=sahte_tt),
             patch.object(yayinla.instagram, "carousel_yayinla", side_effect=sahte_ig),
             patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+            patch("src.telegram.istemci._istek"),  # canlı durum/sonuç mesajları da istemciden geçer: ağ kapısı kapalı
         ):
             yayinla.main()
 

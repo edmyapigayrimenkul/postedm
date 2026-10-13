@@ -198,6 +198,7 @@ class TestSiteKuyrugu(unittest.TestCase):
                 patch.object(yayinla.ses, "sesli_video_hazirla", return_value=dummy_video),
                 patch.object(yayinla.facebook, "paylas", return_value="fb-123") as facebook_paylas,
                 patch.object(yayinla.telegram_bot, "mesaj_gonder"),
+                patch("src.telegram.istemci._istek"),  # canlı durum/sonuç mesajları da istemciden geçer: ağ kapısı kapalı
                 patch.object(yayinla.db, "ilan_paylasildi_isaretle") as isaretle,
             ):
                 with self.assertRaisesRegex(RuntimeError, "Bir veya daha fazla"):

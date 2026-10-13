@@ -33,7 +33,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         self.db_patcher.stop()
         self.tmpdir.cleanup()
 
-    @patch("src.telegram_bot.requests.post")
+    @patch("requests.post")
     def test_mesaji_guncelle_null_reply_markup_gondermez(self, mock_post):
         """mesaji_guncelle reply_markup=None olduğunda Telegram'a null reply_markup göndermemelidir."""
         mock_resp = MagicMock()
@@ -234,7 +234,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
             kategori="S2", onem_puani=9
         )
         db.haber_guncelle(h_id, gorsel_url="https://cdn.example.com/foto.jpg")
-        with patch("src.telegram_bot.fotograf_gonder", return_value={"message_id": 999}) as mock_foto:
+        with patch("src.telegram.medya_istek.fotograf_gonder", return_value={"message_id": 999}) as mock_foto:
             res = telegram_bot.icerik_incele_gonder(h_id)
         self.assertTrue(res)
         mock_foto.assert_called_once()
