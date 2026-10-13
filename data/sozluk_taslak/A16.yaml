@@ -1,0 +1,144 @@
+# A16 — TBK (6098) kira sözleşmesi, konut ve çatılı işyeri kiralarına özel hükümler (md. 339-356) ile ürün kirası (md. 357-378). Yazar: Claude (alt ajan). Kanun metni: scripts/kanun_oku.py (2026-10-13 önbelleği).
+kartlar:
+- terim: KİRA UZAMASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında belirli süreli sözleşmenin, kiracı süre bitiminden en az on beş gün önce bildirimde bulunmadıkça aynı koşullarla bir yıl için uzatılmış sayılmasıdır.
+  puf:
+  - Kiraya veren, sözleşme süresinin bitimine dayanarak sözleşmeyi sona erdiremez.
+  - On yıllık uzama süresi sonunda kiraya veren, sonraki her uzama yılının bitiminden en az üç ay önce bildirerek sebepsiz son verebilir.
+  mevzuat: 6098 sayılı Kanun md. 347
+  dayanak_alintisi: Konut ve çatılı işyeri kiralarında kiracı, belirli süreli sözleşmelerin süresinin bitiminden en az onbeş gün önce bildirimde bulunmadıkça, sözleşme aynı koşullarla bir yıl için uzatılmış sayılır.
+  kontrol: '2026-10-13'
+- terim: BELİRSİZ SÜRELİ KİRA
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kararlaştırılan sürenin geçmesiyle bildirim olmaksızın sona ermeyen kira sözleşmesidir; kanun bunları belirli olmayan bir süre için yapılmış sayar.
+  puf:
+  - Konut ve çatılı işyerinde kiracı, genel hükümlere göre fesih bildirimiyle sözleşmeyi her zaman sona erdirebilir.
+  - Aynı kiralarda kiraya veren, kiranın başlangıcından on yıl geçtikten sonra genel hükümlere göre fesihle sona erdirebilir.
+  - Konut ve çatılı işyeri kiralarında fesih bildiriminin geçerli olması yazılı yapılmasına bağlıdır.
+  mevzuat: 6098 sayılı Kanun md. 300, 347 ve 348
+  dayanak_alintisi: Kararlaştırılan sürenin geçmesiyle herhangi bir bildirim olmaksızın sona erecek kira sözleşmesi belirli sürelidir; diğer kira sözleşmeleri belirli olmayan bir süre için yapılmış sayılır.
+  kontrol: '2026-10-13'
+- terim: KULLANMA GİDERLERİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında ısıtma, aydınlatma ve su gibi giderleri kapsayan kanuni kavramdır.
+  puf:
+  - Sözleşmede aksi öngörülmemişse veya aksine yerel âdet yoksa kiracı bu giderlere katlanmakla yükümlüdür.
+  - Giderlere katlanan taraf, ispat edici belgelerin birer örneğini istem üzerine diğer tarafa vermek zorundadır.
+  mevzuat: 6098 sayılı Kanun md. 341
+  dayanak_alintisi: Kiracı, konut ve çatılı işyeri kiralarında, sözleşmede aksi öngörülmemişse veya aksine yerel âdet yoksa, ısıtma, aydınlatma ve su gibi kullanma giderlerine katlanmakla yükümlüdür.
+  kontrol: '2026-10-13'
+- terim: KİRACI ALEYHİNE DÜZENLEME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında kiracıya, kira bedeli ve yan giderler dışında başka bir ödeme yükümlülüğü getirilememesi kuralıdır.
+  puf:
+  - Kira zamanında ödenmezse ceza koşulu ödeneceğine veya sonraki kiraların muaccel olacağına dair anlaşmalar geçersizdir.
+  - Kiranın sürdürülmesi, kiracıya yararı olmayan ve kullanımla doğrudan ilgisiz bir borca bağlanırsa, bağlantılı sözleşme geçersizdir.
+  - Dava yoluyla sona erdirmeye ilişkin hükümler kiracı aleyhine değiştirilemez.
+  mevzuat: 6098 sayılı Kanun md. 340, 346 ve 354
+  dayanak_alintisi: Kiracıya, kira bedeli ve yan giderler dışında başka bir ödeme yükümlülüğü getirilemez.
+  kontrol: '2026-10-13'
+- terim: AİLE KONUTU KİRASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Aile konutu olarak kullanılmak üzere kiralanan taşınmazda kiracının, eşinin açık rızası olmadıkça kira sözleşmesini feshedememesi kuralıdır.
+  puf:
+  - Rıza alınamazsa ya da eş haklı sebep olmaksızın kaçınırsa kiracı, hâkimden bu konuda karar vermesini isteyebilir.
+  - Eş kiraya verene bildirimle sözleşmenin tarafı olursa kiraya veren, fesih bildirimini ve ödeme süresini ikisine ayrı ayrı bildirir.
+  mevzuat: 6098 sayılı Kanun md. 349
+  dayanak_alintisi: Aile konutu olarak kullanılmak üzere kiralanan taşınmazlarda kiracı, eşinin açık rızası olmadıkça kira sözleşmesini feshedemez.
+  kontrol: '2026-10-13'
+- terim: YENİDEN İNŞA TAHLİYESİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiralananın yeniden inşası veya imarı amacıyla esaslı onarımı, genişletilmesi ya da değiştirilmesi gerekli ve bu işler sırasında kullanımı imkânsızsa, kiraya verenin sözleşmeyi dava ile sona erdirebilmesidir.
+  puf:
+  - Belirli süreli sözleşmede dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır.
+  - Bu amaçla boşaltılan taşınmaz eski hâliyle, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz.
+  mevzuat: 6098 sayılı Kanun md. 350 ve 355
+  dayanak_alintisi: Yeniden inşa ve imar amacıyla boşaltılması sağlanan taşınmazlar, eski hâli ile, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz.
+  kontrol: '2026-10-13'
+- terim: YENİ MALİKİN GEREKSİNİMİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiralananı sonradan edinen kişinin, kendisi, eşi, altsoyu, üstsoyu veya kanun gereği bakmakla yükümlü olduğu kişiler için konut ya da işyeri gereksinimi sebebiyle kullanma zorunluluğu varsa sözleşmeyi dava ile sona erdirebilmesidir.
+  puf:
+  - Edinme tarihinden başlayarak bir ay içinde durum kiracıya yazılı olarak bildirilmelidir.
+  - Bu bildirim koşuluyla sözleşme, altı ay sonra açılacak bir davayla sona erdirilebilir.
+  - Sözleşme süresinin bitiminden başlayarak bir ay içinde açılacak dava yoluyla da bu hak kullanılabilir.
+  mevzuat: 6098 sayılı Kanun md. 351
+  dayanak_alintisi: Kiralananı sonradan edinen kişi, dilerse gereksinim sebebiyle sözleşmeyi sona erdirme hakkını, sözleşme süresinin bitiminden başlayarak bir ay içinde açacağı dava yoluyla da kullanabilir.
+  kontrol: '2026-10-13'
+- terim: İKİ HAKLI İHTAR
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının kira bedelini ödememesi nedeniyle kendisine yazılı olarak iki haklı ihtarda bulunulmasına sebep olması hâlinde, kiraya verenin sözleşmeyi dava yoluyla sona erdirebilmesidir.
+  puf:
+  - Bir yıldan kısa süreli kirada iki ihtar, kira süresi içinde yapılmış olmalıdır.
+  - Bir yıl ve daha uzun süreli kirada iki ihtar, bir kira yılı veya bir kira yılını aşan süre içinde yapılmış olmalıdır.
+  - Dava, kira süresinin; bir yıldan uzun kirada ihtarların yapıldığı kira yılının bitiminden başlayarak bir ay içinde açılır.
+  mevzuat: 6098 sayılı Kanun md. 352
+  dayanak_alintisi: Kiracı, bir yıldan kısa süreli kira sözleşmelerinde kira süresi içinde; bir yıl ve daha uzun süreli kira sözleşmelerinde ise bir kira yılı veya bir kira yılını aşan süre içinde kira bedelini ödemediği için kendisine yazılı olarak iki haklı ihtarda bulunulmasına sebep olmuşsa kiraya veren, kira süresinin ve bir yıldan uzun süreli kiralarda ihtarların yapıldığı kira yılının bitiminden başlayarak bir ay içinde, dava yoluyla kira sözleşmesini sona erdirebilir.
+  kontrol: '2026-10-13'
+- terim: KİRACININ BAŞKA KONUTU
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu varsa, kiraya verenin sözleşmeyi dava yoluyla sona erdirebilmesidir.
+  puf:
+  - Kiraya veren bu yola, sözleşmenin kurulması sırasında söz konusu konutu bilmiyorsa başvurabilir.
+  - Dava, sözleşmenin bitiminden başlayarak bir ay içinde açılmalıdır.
+  mevzuat: 6098 sayılı Kanun md. 352
+  dayanak_alintisi: Kiracının veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu bulunması durumunda kiraya veren, kira sözleşmesinin kurulması sırasında bunu bilmiyorsa, sözleşmenin bitiminden başlayarak bir ay içinde sözleşmeyi dava yoluyla sona erdirebilir.
+  kontrol: '2026-10-13'
+- terim: KİRACININ ÖNCELİK HAKKI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Yeniden inşa ve imarı gerçekleştirilen taşınmazı, eski kiracının yeni durumu ve yeni kira bedeliyle kiralamada sahip olduğu önceliktir.
+  puf:
+  - Hak, kiraya verenin yapacağı yazılı bildirimi izleyen bir ay içinde kullanılmalıdır.
+  - Kanuna aykırılıkta eski kiracıya, son kira yılında ödenmiş bir yıllık kira bedelinden az olmamak üzere tazminat ödenir.
+  mevzuat: 6098 sayılı Kanun md. 355
+  dayanak_alintisi: Eski kiracının, yeniden inşa ve imarı gerçekleştirilen taşınmazları, yeni durumu ve yeni kira bedeli ile kiralama konusunda öncelik hakkı vardır.
+  kontrol: '2026-10-13'
+- terim: ÖLÜMDE KİRAYI SÜRDÜRME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında kiracı ölünce, kanunda sayılan kişilerin kira sözleşmesini taraf olarak sürdürebilmesidir.
+  puf:
+  - Bunlardan biri ölen kiracının ortaklarıdır; ortakların aynı meslek ve sanatı yürüten mirasçıları da sayılır.
+  - Bir diğeri, ölen kiracıyla birlikte aynı konutta oturanlardır.
+  - Sürdürme hakkı, sözleşmeye ve kanun hükümlerine uyulduğu sürece kullanılabilir.
+  mevzuat: 6098 sayılı Kanun md. 356
+  dayanak_alintisi: Ölen kiracının ortakları veya bu ortakların aynı meslek ve sanatı yürüten mirasçıları ve ölen kiracı ile birlikte aynı konutta oturanlar, sözleşmeye ve kanun hükümlerine uydukları sürece, taraf olarak kira sözleşmesini sürdürebilirler.
+  kontrol: '2026-10-13'
+- terim: KONUT KİRASI KAPSAMI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarına ilişkin hükümlerin hangi kira sözleşmelerine uygulanacağını belirleyen kuraldır.
+  puf:
+  - Hükümler, kiralananla birlikte kullanımı kiracıya bırakılan eşya hakkında da uygulanır.
+  - Kamu kurum ve kuruluşlarının hangi usul ve esaslarla yaptığına bakılmaksızın bütün kira sözleşmelerine de uygulanır.
+  - Niteliği gereği geçici kullanıma özgülenmiş taşınmazların altı ay ve daha kısa süreyle kiralanmasında uygulanmaz.
+  mevzuat: 6098 sayılı Kanun md. 339
+  dayanak_alintisi: Konut ve çatılı işyeri kiralarına ilişkin hükümler, bunlarla birlikte kullanımı kiracıya bırakılan eşya hakkında da uygulanır.
+  kontrol: '2026-10-13'
+- terim: ÜRÜN KİRASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiraya verenin, kiracıya ürün veren bir şeyin veya hakkın kullanılmasını ve ürünlerin devşirilmesini (toplanmasını) bedel karşılığında bırakmayı üstlendiği sözleşmedir.
+  puf:
+  - Ürüne katılmalı kira, bedelin devşirilecek ürünün belli bir oranı olarak kararlaştırıldığı ürün kirasıdır.
+  - Bu oran sözleşmeyle kararlaştırılmamışsa yerel âdete göre belirlenir.
+  - Ürün kirasına ilişkin özel hüküm yoksa kira sözleşmesinin genel hükümleri uygulanır.
+  mevzuat: 6098 sayılı Kanun md. 357 ve 358
+  dayanak_alintisi: Ürün kirası kiraya verenin, kiracıya, ürün veren bir şeyin veya hakkın kullanılmasını ve ürünlerin devşirilmesini bedel karşılığında bırakmayı üstlendiği sözleşmedir.
+  kontrol: '2026-10-13'
+- terim: OLAĞANÜSTÜ KİRA İNDİRİMİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Tarımsal bir taşınmazın verimi olağanüstü felaket veya doğal olaylar yüzünden önemli ölçüde azalırsa kiracının kira bedelinde indirim isteyebilmesidir.
+  puf:
+  - Kiracı, kira bedelinden orantılı bir miktarın indirilmesini isteyebilir.
+  - Haktan başlangıçta feragat, yalnızca bu olasılık kira bedelinde gözetilmişse veya zarar sigortayla karşılanmışsa geçerlidir.
+  mevzuat: 6098 sayılı Kanun md. 363
+  dayanak_alintisi: Tarımsal bir taşınmazın her zamanki verimi, olağanüstü felaket veya doğal olaylar yüzünden önemli ölçüde azalırsa kiracı, kira bedelinden orantılı bir miktarın indirilmesini isteyebilir.
+  kontrol: '2026-10-13'
+- terim: ÜRÜN VE YETİŞME GİDERLERİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Tarımsal bir taşınmazın kiracısının, kira sona erdiğinde henüz devşirilmemiş ürün için yaptığı tarım giderlerini kiraya verenden tazminat olarak isteyebilmesidir.
+  puf:
+  - Kiracı, kira sona erdiği anda henüz devşirilmemiş ürünler üzerinde bir hak ileri süremez.
+  - İstenebilecek miktarı hâkim belirler; tazminat işlemiş kiralardan indirilir.
+  mevzuat: 6098 sayılı Kanun md. 374
+  dayanak_alintisi: Ancak kiracı, ürünün yetişmesi için yapmış olduğu tarım giderlerinin hâkim tarafından belirlenecek miktarını, kiraya verenden tazminat olarak isteyebilir ve bu tazminat işlemiş kiralardan indirilir.
+  kontrol: '2026-10-13'

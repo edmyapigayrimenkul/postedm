@@ -1,0 +1,104 @@
+# A15b — Türk Borçlar Kanunu (6098) kira sözleşmesi, GENEL hükümler (md. 299-338). Yazar: Claude (alt ajan). Kanun metni: scripts/kanun_oku.py (2026-10-13 önbelleği).
+kartlar:
+- terim: RIZAYLA DEĞİŞİKLİK
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilmesidir."
+  puf:
+  - "Rıza gösteren kiraya veren, yazılı olarak kararlaştırılmadıkça kiralananın eski durumuyla geri verilmesini isteyemez."
+  - "Aksine yazılı anlaşma yoksa kiracı, rızayla yapılan değişikliklerin yol açtığı değer artışının karşılığını isteyemez."
+  mevzuat: 6098 sayılı Kanun md. 321
+  dayanak_alintisi: "Kiracı, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilir."
+  kontrol: '2026-10-13'
+- terim: ALT KİRA
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının kiralananı tamamen veya kısmen başkasına kiraya vermesidir; konut ve çatılı işyeri kiralarında bunun için kiraya verenin yazılı rızası gerekir."
+  puf:
+  - "Alt kira ve kullanım hakkının devri, kiraya verene zarar verecek bir değişikliğe yol açılmamasına bağlıdır."
+  - "Alt kiracı kiralananı kiracıya tanınandan başka biçimde kullanırsa, kiracı kiraya verene karşı sorumlu olur."
+  - "Kiracıya tanınandan başka biçimde kullanan alt kiracıya karşı kiraya veren, kiracıya karşı haklarını da kullanabilir."
+  mevzuat: 6098 sayılı Kanun md. 322
+  dayanak_alintisi: "Kiracı, kiraya verene zarar verecek bir değişikliğe yol açmamak koşuluyla, kiralananı tamamen veya kısmen başkasına kiraya verebileceği gibi, kullanım hakkını da başkasına devredebilir."
+  kontrol: '2026-10-13'
+- terim: KİRA DEVRİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının, kiraya verenin yazılı rızasını alarak kira ilişkisini başkasına devretmesi ve devralanın kira sözleşmesinde kiracının yerine geçmesidir."
+  puf:
+  - "Kiraya veren, işyeri kiralarında haklı sebep olmadıkça bu rızayı vermekten kaçınamaz."
+  - "Devreden kiracı kiraya verene karşı borçlarından kurtulur; işyeri kiralarında sınırlı bir istisna vardır."
+  - "İşyeri kiralarında devreden kiracı, sözleşmenin bitimine kadar ve en fazla iki yıl devralanla müteselsilen sorumlu olur."
+  mevzuat: 6098 sayılı Kanun md. 323
+  dayanak_alintisi: "Kiracı, kiraya verenin yazılı rızasını almadıkça, kira ilişkisini başkasına devredemez."
+  kontrol: '2026-10-13'
+- terim: KİRALANANI KULLANMAMA
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının kendisinden kaynaklanan bir sebeple kiralananı hiç ya da sınırlı kullanmasının kira borcuna etkisini belirleyen kuraldır."
+  puf:
+  - "Kiralanan kullanıma elverişli bulundurulduğu sürece kiracı, kira bedelini ödemekle yükümlüdür."
+  - "Kiraya verenin yapmaktan kurtulduğu giderler kira bedelinden indirilir."
+  mevzuat: 6098 sayılı Kanun md. 324
+  dayanak_alintisi: "Kullanıma elverişli bulundurulduğu sürece kiralanan, kiracının kendisinden kaynaklanan bir sebeple kullanılmasa veya sınırlı olarak kullanılsa bile kiracı, kira bedelini ödemekle yükümlüdür."
+  kontrol: '2026-10-13'
+- terim: ERKEN GERİ VERME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının sözleşme süresine veya fesih dönemine uymadan kiralananı geri vermesidir; borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre devam eder."
+  puf:
+  - "Bu süre dolmadan kabul edilmesi beklenebilecek, ödeme gücü olan ve devralmaya hazır yeni kiracı bulunursa borçlar sona erer."
+  - "Kiraya veren, kurtulduğu giderleri ve başka kullanımdan elde ettiği veya kasten kaçındığı yararı kira bedelinden indirir."
+  mevzuat: 6098 sayılı Kanun md. 325
+  dayanak_alintisi: "Kiracı, sözleşme süresine veya fesih dönemine uymaksızın kiralananı geri verdiği takdirde, kira sözleşmesinden doğan borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder."
+  kontrol: '2026-10-13'
+- terim: ÖNEMLİ SEBEP FESHİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Taraflardan birinin, kira ilişkisinin devamını kendisi için çekilmez hâle getiren önemli sebepler nedeniyle sözleşmeyi feshetmesidir."
+  puf:
+  - "Taraflardan her biri bu fesih için yasal fesih bildirim süresine uyarak sözleşmeyi her zaman feshedebilir."
+  - "Hâkim, durum ve koşulları göz önünde tutarak olağanüstü fesih bildiriminin parasal sonuçlarını karara bağlar."
+  mevzuat: 6098 sayılı Kanun md. 331
+  dayanak_alintisi: "Taraflardan her biri, kira ilişkisinin devamını kendisi için çekilmez hâle getiren önemli sebeplerin varlığı durumunda, sözleşmeyi yasal fesih bildirim süresine uyarak her zaman feshedebilir."
+  kontrol: '2026-10-13'
+- terim: KİRACININ İFLASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının kiralananın tesliminden sonra iflas etmesi hâlinde kiraya verenin, işleyecek kira bedelleri için güvence verilmesini isteyebilmesidir."
+  puf:
+  - "Kiraya veren, güvence verilmesi için kiracıya ve iflas masasına yazılı olarak uygun bir süre verir."
+  - "Bu sürede güvence verilmezse kiraya veren, sözleşmeyi herhangi bir fesih bildirim süresine uymaksızın hemen feshedebilir."
+  mevzuat: 6098 sayılı Kanun md. 332
+  dayanak_alintisi: "Kiracı, kiralananın tesliminden sonra iflas ederse kiraya veren, işleyecek kira bedelleri için güvence verilmesini isteyebilir."
+  kontrol: '2026-10-13'
+- terim: KİRACININ ÖLÜMÜ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının ölmesi durumunda mirasçılarının, kira sözleşmesini feshedebilmesidir."
+  puf:
+  - "Fesih, yasal fesih bildirim süresine uyularak yapılır."
+  - "Fesih, en yakın fesih dönemi sonu için yapılabilir."
+  mevzuat: 6098 sayılı Kanun md. 333
+  dayanak_alintisi: "Kiracının ölmesi durumunda mirasçıları, yasal fesih bildirim süresine uyarak en yakın fesih dönemi sonu için sözleşmeyi feshedebilirler."
+  kontrol: '2026-10-13'
+- terim: KİRALANANI GERİ VERME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiracının kiralananı ne durumda teslim almışsa, kira sözleşmesinin bitiminde o durumda geri verme yükümlülüğüdür."
+  puf:
+  - "Kiracı, sözleşmeye uygun kullanma dolayısıyla kiralananda meydana gelen eskimelerden ve bozulmalardan sorumlu değildir."
+  - "Sözleşmeye aykırı kullanımdan doğan zarar dışında tazminat ödeneceğine ilişkin önceden verilen taahhütler geçersizdir."
+  mevzuat: 6098 sayılı Kanun md. 334
+  dayanak_alintisi: "Kiracı kiralananı ne durumda teslim almışsa, kira sözleşmesinin bitiminde o durumda geri vermekle yükümlüdür."
+  kontrol: '2026-10-13'
+- terim: GERİ VERME İNCELEMESİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Kiraya verenin, geri verme sırasında kiralananın durumunu gözden geçirip kiracının sorumlu olduğu eksiklik ve ayıpları ona hemen yazılı olarak bildirme zorunluluğudur."
+  puf:
+  - "Bildirim yapılmazsa kiracı, olağan incelemeyle belirlenemeyen eksiklik ve ayıplar dışında her türlü sorumluluktan kurtulur."
+  - "Olağan incelemeyle belirlenemeyen eksiklik ve ayıpları belirleyen kiraya veren de kiracıya hemen yazılı bildirmelidir."
+  mevzuat: 6098 sayılı Kanun md. 335
+  dayanak_alintisi: "Kiraya veren, geri verme sırasında kiralananın durumunu gözden geçirmek ve kiracının sorumlu olduğu eksiklikleri ve ayıpları ona hemen yazılı olarak bildirmek zorundadır."
+  kontrol: '2026-10-13'
+- terim: HAPİS HAKKI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: "Taşınmaz kiralarında kiraya verenin, işlemiş bir yıllık ve işlemekte olan altı aylık kira bedelinin güvencesi olarak, kiralananda bulunan ve kiralananın döşenmesine veya kullanılmasına yarayan taşınırlar üzerindeki hakkıdır."
+  puf:
+  - "Hapis hakkı kişiye değil, kiralananda bulunan taşınırlara ilişkindir."
+  - "Hapis hakkı, kiracının haczedilemeyen malları üzerinde kullanılamaz."
+  - "Kiracıya ait olmadığı bilinen ya da bilinmesi gereken eşyada üçüncü kişinin hakkı, hapis hakkından önce gelir."
+  mevzuat: 6098 sayılı Kanun md. 336 ve 337
+  dayanak_alintisi: "Hapis hakkı, kiracının haczedilemeyen malları üzerinde kullanılamaz."
+  kontrol: '2026-10-13'
