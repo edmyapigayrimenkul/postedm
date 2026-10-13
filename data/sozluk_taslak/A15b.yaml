@@ -4,11 +4,13 @@ kartlar:
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilmesidir."
   puf:
-  - "Rıza gösteren kiraya veren, yazılı olarak kararlaştırılmadıkça kiralananın eski durumuyla geri verilmesini isteyemez."
-  - "Aksine yazılı anlaşma yoksa kiracı, rızayla yapılan değişikliklerin yol açtığı değer artışının karşılığını isteyemez."
+  - "Rıza gösteren kiraya veren, yazılı anlaşma yoksa kiralananın eski durumuyla geri verilmesini isteyemez."
+  - "Aksine yazılı anlaşma yoksa kiracı, rızayla yaptığı değişikliklerden doğan değer artışının karşılığını isteyemez."
   mevzuat: 6098 sayılı Kanun md. 321
   dayanak_alintisi: "Kiracı, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilir."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Biçim: iki puf da 117 karakterdi. puf[0] 'yazılı olarak kararlaştırılmadıkça' → 'yazılı anlaşma yoksa' (md. 321: yazılı olarak kararlaştırılmış olmadıkça). puf[1] 'rızayla yapılan değişikliklerin yol açtığı değer artışının' → 'rızayla yaptığı değişikliklerden doğan değer artışının'. Anlam ve koşullar korundu. Terim madde başlığı değil (başlık: 'Kiralananda yenilik ve değişiklik yapılması – Kiracı tarafından'), ancak A15a'da md. 320 (kiraya verenin değişikliği) 'YENİLİK VE DEĞİŞİKLİK' adını kullandığından ayırt edici olarak bırakıldı; tanım ilk cümlede neyin kastedildiğini açıkça söylüyor."
 - terim: ALT KİRA
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının kiralananı tamamen veya kısmen başkasına kiraya vermesidir; konut ve çatılı işyeri kiralarında bunun için kiraya verenin yazılı rızası gerekir."
@@ -19,34 +21,42 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 322
   dayanak_alintisi: "Kiracı, kiraya verene zarar verecek bir değişikliğe yol açmamak koşuluyla, kiralananı tamamen veya kısmen başkasına kiraya verebileceği gibi, kullanım hakkını da başkasına devredebilir."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Kapsam başka maddede daralıyor: md. 366'ya göre ürün kirasında (ürün veren şeyin kiralanması; ör. tarımsal taşınmaz) kiracı, kiraya verenin rızası olmadan kiralananı başkasına kiraya veremez, kullanım ve işletme hakkını devredemez (yalnız bazı yerler için zarar vermeme koşullu istisna var). Kartta tanım 'konut ve çatılı işyerinde yazılı rıza gerekir' diyor, puf[0] tek koşul olarak 'zarar verecek değişikliğe yol açmamayı' sayıyor, dayanak alıntısı da bu genel kural cümlesi; birlikte 'diğer kiralarda rıza gerekmez' izlenimi veriyor, tarla ya da işletme kiralayan okuru yanıltır. (2) puf[2] çift anlamlı: 'kiraya veren, kiracıya karşı haklarını da kullanabilir' kiraya verenin ayrıca kiracıya karşı hak kullanacağı diye okunuyor; maddede kiraya veren, kiracısına karşı sahip olduğu hakları alt kiracıya veya kullanım hakkını devralana karşı da kullanır ('kullanım hakkını devralan' düşmüş). (3) puf[2] 117 karakter. Kurtarmak için kart konut ve çatılı işyeriyle sınırlanmalı (dayanak md. 322'nin 2. cümlesi), ürün kirası için md. 366 atfı ve istisnası eklenmeli, puf[0] ve puf[2] yeniden yazılmalı; küçük düzeltme değil."
 - terim: KİRA DEVRİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının, kiraya verenin yazılı rızasını alarak kira ilişkisini başkasına devretmesi ve devralanın kira sözleşmesinde kiracının yerine geçmesidir."
   puf:
   - "Kiraya veren, işyeri kiralarında haklı sebep olmadıkça bu rızayı vermekten kaçınamaz."
   - "Devreden kiracı kiraya verene karşı borçlarından kurtulur; işyeri kiralarında sınırlı bir istisna vardır."
-  - "İşyeri kiralarında devreden kiracı, sözleşmenin bitimine kadar ve en fazla iki yıl devralanla müteselsilen sorumlu olur."
+  - "İşyeri kiralarında devreden kiracı, sözleşme bitimine kadar ve en çok iki yıl devralanla müteselsilen sorumludur."
   mevzuat: 6098 sayılı Kanun md. 323
   dayanak_alintisi: "Kiracı, kiraya verenin yazılı rızasını almadıkça, kira ilişkisini başkasına devredemez."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Biçim: puf[2] 120 karakterdi. 'sözleşmenin bitimine kadar ve en fazla iki yıl devralanla müteselsilen sorumlu olur' → 'sözleşme bitimine kadar ve en çok iki yıl devralanla müteselsilen sorumludur'. Koşullar (işyeri, sözleşme bitimi, iki yıl üst sınırı, müteselsil) korundu. Diğer satırlar md. 323 ile uyumlu; 'işyeri' maddedeki gibi (çatılı işyeriyle sınırlı değil). puf[1]'deki 'sınırlı bir istisna' (doğrulayıcı ipucu: örtüşme %40) puf[2]'deki işyeri kuralını haber veren bağlaç; yanlış değil, 'kurtulur' cümlesinin işyerinde mutlak okunmasını önlediği için bilerek bırakıldı. Not: madde başlığındaki [2] dipnotu 6217 sayılı Kanun geçici md. 2'ye işaret ediyor (kiracısı tacir ya da tüzel kişi olan işyeri kiralarında md. 323, 1/7/2012'den itibaren 8 yıl uygulanmaz); bu süre 1/7/2020'de dolduğundan bugünkü sözleşmeler için kartı etkilemiyor."
 - terim: KİRALANANI KULLANMAMA
   kategori_kodu: KIRA_VE_TAHLIYE
-  tanim: "Kiracının kendisinden kaynaklanan bir sebeple kiralananı hiç ya da sınırlı kullanmasının kira borcuna etkisini belirleyen kuraldır."
+  tanim: "Kiracının kendisinden kaynaklanan bir sebeple kiralananı hiç kullanmaması veya sınırlı kullanmasıdır."
   puf:
   - "Kiralanan kullanıma elverişli bulundurulduğu sürece kiracı, kira bedelini ödemekle yükümlüdür."
-  - "Kiraya verenin yapmaktan kurtulduğu giderler kira bedelinden indirilir."
+  - "Bu durumda, kiraya verenin yapmaktan kurtulduğu giderler kira bedelinden indirilir."
   mevzuat: 6098 sayılı Kanun md. 324
   dayanak_alintisi: "Kullanıma elverişli bulundurulduğu sürece kiralanan, kiracının kendisinden kaynaklanan bir sebeple kullanılmasa veya sınırlı olarak kullanılsa bile kiracı, kira bedelini ödemekle yükümlüdür."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım dil bakımından hatalıydı ('kiralananı hiç ya da sınırlı kullanmasının' = 'hiç kullanmasının') ve terimi değil bir 'kuralı' tanımlıyordu: 'Kiracının kendisinden kaynaklanan bir sebeple kiralananı hiç ya da sınırlı kullanmasının kira borcuna etkisini belirleyen kuraldır.' → 'Kiracının kendisinden kaynaklanan bir sebeple kiralananı hiç kullanmaması veya sınırlı kullanmasıdır.' (md. 324 ve başlığı 'Kiralananın kullanılmaması'). puf[1] maddedeki 'Bu durumda' kaydını düşürmüştü, her kirada giderler kiradan indirilir gibi okunuyordu: başına 'Bu durumda,' eklendi. Kart kullanmamanın serbest olduğunu söylemiyor, yalnız kira borcuna etkisini veriyor (ürün kirasında md. 364 ayrıca işletme borcu getirir; kartla çelişmiyor)."
 - terim: ERKEN GERİ VERME
   kategori_kodu: KIRA_VE_TAHLIYE
-  tanim: "Kiracının sözleşme süresine veya fesih dönemine uymadan kiralananı geri vermesidir; borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre devam eder."
+  tanim: "Kiracının sözleşme süresine veya fesih dönemine uymadan kiralananı geri vermesidir; kira sözleşmesinden doğan borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder."
   puf:
-  - "Bu süre dolmadan kabul edilmesi beklenebilecek, ödeme gücü olan ve devralmaya hazır yeni kiracı bulunursa borçlar sona erer."
-  - "Kiraya veren, kurtulduğu giderleri ve başka kullanımdan elde ettiği veya kasten kaçındığı yararı kira bedelinden indirir."
+  - "Kiracı ödeme gücü olan, devralmaya hazır, kiraya verenin kabulü beklenebilecek yeni kiracı bulursa borçları biter."
+  - "Kiraya veren, kurtulduğu giderleri ve başka kullanımla elde ettiği ya da kasten kaçındığı yararı kiradan indirir."
   mevzuat: 6098 sayılı Kanun md. 325
   dayanak_alintisi: "Kiracı, sözleşme süresine veya fesih dönemine uymaksızın kiralananı geri verdiği takdirde, kira sözleşmesinden doğan borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "puf[0] 124 karakterdi ve yeni kiracıyı kimin bulacağını söylemiyordu ('... yeni kiracı bulunursa borçlar sona erer'; md. 325: kiracının ... bulması hâlinde): → 'Kiracı ödeme gücü olan, devralmaya hazır, kiraya verenin kabulü beklenebilecek yeni kiracı bulursa borçları biter.' 'Bu süre dolmadan' kaydı yer için çıkarıldı; makul süre dolunca borçlar zaten sona erdiğinden (tanım) kural daralmıyor. puf[1] 121 karakterdi: 'başka kullanımdan elde ettiği veya kasten kaçındığı yararı kira bedelinden indirir' → 'başka kullanımla elde ettiği ya da kasten kaçındığı yararı kiradan indirir'. Tanımda 'borçları ... makul bir süre devam eder' → 'kira sözleşmesinden doğan borçları ... makul bir süre için devam eder' (maddedeki gibi). Terim madde başlığının ('Kiralananın sözleşmenin bitiminden önce geri verilmesi') kısaltması. Not: md. 325 de 6217 sayılı Kanun geçici md. 2 kapsamındaydı; 8 yıllık süre 1/7/2020'de doldu."
 - terim: ÖNEMLİ SEBEP FESHİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Taraflardan birinin, kira ilişkisinin devamını kendisi için çekilmez hâle getiren önemli sebepler nedeniyle sözleşmeyi feshetmesidir."
@@ -56,6 +66,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 331
   dayanak_alintisi: "Taraflardan her biri, kira ilişkisinin devamını kendisi için çekilmez hâle getiren önemli sebeplerin varlığı durumunda, sözleşmeyi yasal fesih bildirim süresine uyarak her zaman feshedebilir."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Kartın kilit kavramı 'yasal fesih bildirim süresi' kartta açıklanmıyor; süreler başka maddelerde: md. 329 (taşınmaz: yerel âdetteki ya da altı aylık kira dönemi sonu için üç aylık bildirim), md. 330 (taşınır: üç gün). Okur ne kadar önceden bildirim yapacağını bilemez; 'her zaman' ile md. 329'daki dönem sonu kuralının ilişkisi de yorum gerektiriyor (kapsam/istisna zinciri). (2) Konut ve çatılı işyeri kiralarında fesih bildirimi ancak yazılıysa geçerli (md. 348), aile konutunda kiracı eşinin açık rızası olmadan feshedemez (md. 349); kart bunları vermeden 'her zaman feshedebilir' diyor. (3) puf[0] tanımın ve dayanak alıntısının tekrarı. (4) Terim kanunda yok ve Türkçesi sorunlu ('önemli sebep feshi'; doğrusu 'önemli sebeple fesih'); madde başlığı 'Olağanüstü fesih – Önemli sebepler', puf[1]'deki 'olağanüstü fesih' ifadesi kartta açıklanmadan geçiyor. Not: md. 347'nin son cümlesi genel hükümlere göre fesih hakkının konut ve çatılı işyerinde de kullanılabileceğini söylüyor; ürün kirasında md. 369 aynı kural."
 - terim: KİRACININ İFLASI
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının kiralananın tesliminden sonra iflas etmesi hâlinde kiraya verenin, işleyecek kira bedelleri için güvence verilmesini isteyebilmesidir."
@@ -65,6 +77,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 332
   dayanak_alintisi: "Kiracı, kiralananın tesliminden sonra iflas ederse kiraya veren, işleyecek kira bedelleri için güvence verilmesini isteyebilir."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Kapsam başka maddede değişiyor: ürün kirasında kiracının iflasıyla sözleşme iflasın açıldığı anda kendiliğinden sona erer; kiraya veren ancak işlemekte olan kira ve tutanaktaki eşya için yeterli güvence verilirse sözleşmeyi kira yılı sonuna kadar sürdürmekle yükümlüdür (md. 370). Kart md. 332'yi her kira için genel kural gibi sunuyor; ürün kirasında (ör. işletme ya da tarımsal taşınmaz kirası) sonuç tersine döner. (2) Konut ve çatılı işyeri kiralarında fesih bildirimi yazılı olmazsa geçersiz (md. 348); kart 'hemen feshedebilir' derken bu şekil koşulunu vermiyor. (3) puf[1] 121 karakter; 'iflas masası' gündelik okur için açıklamasız teknik terim. Kurtarmak için tanım 'ürün kirası dışında' diye sınırlanmalı (md. 370 atfıyla) ve md. 348 eklenmeli; bunlar yeni atıf ve madde gerektirdiğinden inceleme sırasında yapılmadı."
 - terim: KİRACININ ÖLÜMÜ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının ölmesi durumunda mirasçılarının, kira sözleşmesini feshedebilmesidir."
@@ -74,24 +88,30 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 333
   dayanak_alintisi: "Kiracının ölmesi durumunda mirasçıları, yasal fesih bildirim süresine uyarak en yakın fesih dönemi sonu için sözleşmeyi feshedebilirler."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Konut ve çatılı işyeri kiralarında md. 356: ölen kiracının ortakları, bu ortakların aynı meslek ve sanatı yürüten mirasçıları ve kiracıyla aynı konutta oturanlar, sözleşmeye ve kanuna uydukları sürece taraf olarak sözleşmeyi sürdürebilir; kart bunu vermiyor, okur sözleşmenin yalnız mirasçıların elinde olduğunu sanabilir. (2) Ürün kirasında md. 371: mirasçılar ve kiraya veren altı aylık yasal bildirim süresiyle feshedebilir; kart fesih hakkını yalnız mirasçılara tanıyor. (3) 'Yasal fesih bildirim süresi' ve 'en yakın fesih dönemi sonu' md. 328-330'da düzenleniyor (taşınmazda üç aylık bildirim, yerel âdetteki ya da altı aylık kira dönemi sonu); kartta açıklanmadığı için okur fesih tarihini bulamaz. (4) Konut ve çatılı işyerinde fesih bildirimi yazılı olmalı (md. 348), aile konutunda md. 349 ayrıca uygulanır. (5) İki puf tek cümlenin iki parçası ve dayanak alıntısının tekrarı; yeni bilgi vermiyor."
 - terim: KİRALANANI GERİ VERME
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının kiralananı ne durumda teslim almışsa, kira sözleşmesinin bitiminde o durumda geri verme yükümlülüğüdür."
   puf:
-  - "Kiracı, sözleşmeye uygun kullanma dolayısıyla kiralananda meydana gelen eskimelerden ve bozulmalardan sorumlu değildir."
-  - "Sözleşmeye aykırı kullanımdan doğan zarar dışında tazminat ödeneceğine ilişkin önceden verilen taahhütler geçersizdir."
+  - "Kiracı, sözleşmeye uygun kullanımdan doğan eskime ve bozulmalardan sorumlu değildir."
+  - "Kiracının, sözleşme bitince aykırı kullanım zararı dışında tazminat ödemeyi önceden üstlendiği anlaşma geçersizdir."
   mevzuat: 6098 sayılı Kanun md. 334
   dayanak_alintisi: "Kiracı kiralananı ne durumda teslim almışsa, kira sözleşmesinin bitiminde o durumda geri vermekle yükümlüdür."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "puf[0] 119 karakterdi: 'sözleşmeye uygun kullanma dolayısıyla kiralananda meydana gelen eskimelerden ve bozulmalardan' → 'sözleşmeye uygun kullanımdan doğan eskime ve bozulmalardan' ('kullanmadan' çift anlamlı olacağı için 'kullanımdan' seçildi). puf[1] 118 karakterdi ve maddedeki iki kaydı düşürmüştü: taahhüdü verenin kiracı olduğu ve tazminatın 'sözleşmenin sona ermesi hâlinde' ödeneceği (eski hâli sözleşme süresince yapılan her tazminat anlaşmasını geçersiz gösteriyordu): → 'Kiracının, sözleşme bitince aykırı kullanım zararı dışında tazminat ödemeyi önceden üstlendiği anlaşma geçersizdir.' Not: ürün kirasında geri verme md. 372'de ayrıca düzenleniyor (kiralanan bulunduğu durumda geri verilir, iyi işletmeyle kaçınılabilecek değer eksiklikleri tazmin edilir); sonuç kartla çelişmediği için ret nedeni sayılmadı."
 - terim: GERİ VERME İNCELEMESİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiraya verenin, geri verme sırasında kiralananın durumunu gözden geçirip kiracının sorumlu olduğu eksiklik ve ayıpları ona hemen yazılı olarak bildirme zorunluluğudur."
   puf:
-  - "Bildirim yapılmazsa kiracı, olağan incelemeyle belirlenemeyen eksiklik ve ayıplar dışında her türlü sorumluluktan kurtulur."
-  - "Olağan incelemeyle belirlenemeyen eksiklik ve ayıpları belirleyen kiraya veren de kiracıya hemen yazılı bildirmelidir."
+  - "Bildirim yoksa kiracı, teslimde olağan incelemeyle belirlenemeyecek eksik ve ayıp dışında sorumluluktan kurtulur."
+  - "Kiraya veren, olağan incelemeyle belirlenemeyen eksik ve ayıpları belirleyince kiracıya hemen yazılı bildirmelidir."
   mevzuat: 6098 sayılı Kanun md. 335
   dayanak_alintisi: "Kiraya veren, geri verme sırasında kiralananın durumunu gözden geçirmek ve kiracının sorumlu olduğu eksiklikleri ve ayıpları ona hemen yazılı olarak bildirmek zorundadır."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "puf[0] 123 karakterdi: 'Bildirim yapılmazsa kiracı, olağan incelemeyle belirlenemeyen eksiklik ve ayıplar dışında her türlü sorumluluktan kurtulur.' → 'Bildirim yoksa kiracı, teslimde olağan incelemeyle belirlenemeyecek eksik ve ayıp dışında sorumluluktan kurtulur.' (maddedeki 'teslim alma sırasında' kaydı eklendi). puf[1] 118 karakterdi: 'Olağan incelemeyle belirlenemeyen eksiklik ve ayıpları belirleyen kiraya veren de kiracıya hemen yazılı bildirmelidir.' → 'Kiraya veren, olağan incelemeyle belirlenemeyen eksik ve ayıpları belirleyince kiracıya hemen yazılı bildirmelidir.' 'Belirlenemeyecek' bilerek korundu ('görülemeyecek' yazılsaydı ölçüt yalnız göze görünene daralırdı). Terim madde başlığı değil ('Kiralananın gözden geçirilmesi ve kiracıya bildirme') ama maddedeki 'olağan inceleme' ile uyumlu, yanıltıcı değil."
 - terim: HAPİS HAKKI
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Taşınmaz kiralarında kiraya verenin, işlemiş bir yıllık ve işlemekte olan altı aylık kira bedelinin güvencesi olarak, kiralananda bulunan ve kiralananın döşenmesine veya kullanılmasına yarayan taşınırlar üzerindeki hakkıdır."
@@ -102,3 +122,5 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 336 ve 337
   dayanak_alintisi: "Hapis hakkı, kiracının haczedilemeyen malları üzerinde kullanılamaz."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) puf[0] ('Hapis hakkı kişiye değil, taşınırlara ilişkindir') md. 336-337'de yok; yazarın eklemesi. (2) Hakkın nasıl kullanılacağı md. 338'de: kiracı taşınmak ya da eşyayı başka yere götürmek isterse kiraya veren, alacağını güvenceye alacak kadar taşınırı ancak sulh hâkiminin veya icra müdürünün kararıyla alıkoyabilir. Kart bunu vermediği ve tanım hakkın ne sağladığını söylemediği ('... taşınırlar üzerindeki hakkıdır', 'hapis' sözcüğü de açıklanmıyor) için okur kiraya verenin eşyayı kendiliğinden tutabileceğini sanabilir; eksik bırakarak yanıltma, kapsam zinciri. (3) Dayanak alıntısı (haczedilemeyen mallar cümlesi) tanımdaki asıl iddiayı (güvence konusu, bir yıllık ve altı aylık kira) desteklemiyor; destekleyen cümle md. 336'nın ilk cümlesi. (4) puf[2] md. 337'yi daraltıyor: çalınmış, kaybolmuş ya da malikinin elinden iradesi dışında çıkmış eşya düşmüş; 'bilinen' edilgen kaldığı için bilmesi gerekenin kiraya veren olduğu kaybolmuş. Alt kiracının eşyasına uzanma (md. 336, 2. cümle) ve üçüncü kişi eşyasını öğrenip en yakın fesih dönemi sonu için feshetmeyen kiraya verenin hakkını kaybetmesi (md. 337, 2. cümle) de yok. Kurtarmak tanımın, alıntının ve pufların yeniden yazılmasını ve md. 338 atfını gerektiriyor; küçük düzeltme değil."

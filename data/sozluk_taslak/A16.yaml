@@ -5,10 +5,13 @@ kartlar:
   tanim: Konut ve çatılı işyeri kiralarında belirli süreli sözleşmenin, kiracı süre bitiminden en az on beş gün önce bildirimde bulunmadıkça aynı koşullarla bir yıl için uzatılmış sayılmasıdır.
   puf:
   - Kiraya veren, sözleşme süresinin bitimine dayanarak sözleşmeyi sona erdiremez.
-  - On yıllık uzama süresi sonunda kiraya veren, sonraki her uzama yılının bitiminden en az üç ay önce bildirerek sebepsiz son verebilir.
-  mevzuat: 6098 sayılı Kanun md. 347
+  - Ancak on yıllık uzama süresi sonunda, her uzama yılı bitiminden en az üç ay önce bildirip sebepsiz son verebilir.
+  - Konut ve çatılı işyeri kiralarında fesih bildirimi ancak yazılı yapılırsa geçerlidir.
+  mevzuat: 6098 sayılı Kanun md. 347 ve 348
   dayanak_alintisi: Konut ve çatılı işyeri kiralarında kiracı, belirli süreli sözleşmelerin süresinin bitiminden en az onbeş gün önce bildirimde bulunmadıkça, sözleşme aynı koşullarla bir yıl için uzatılmış sayılır.
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım ve puf[0] md. 347 ile birebir uyumlu. puf[1] 133 karakterdi, kısaltıldı: 'On yıllık uzama süresi sonunda kiraya veren, sonraki her uzama yılının bitiminden en az üç ay önce bildirerek sebepsiz son verebilir.' → 'Ancak on yıllık uzama süresi sonunda, her uzama yılı bitiminden en az üç ay önce bildirip sebepsiz son verebilir.' (özne puf[0]'daki kiraya veren; 'Ancak' maddedeki bağlacı koruyor; 'en az' ve 'her' korundu). Eksik bırakarak yanıltma giderildi: kart kiracının on beş gün önceki bildirimini ve kiraya verenin üç ay önceki bildirimini anlatıyor ama bildirimin yazılı olması gerektiğini söylemiyordu; okur sözlü bildirimin yeteceğini sanabilirdi. md. 348 (kanunda md. 347 ile aynı 'Bildirim yoluyla' başlığı altında, 'Bildirimin geçerliliği / Şekil') mevzuata eklendi, puf[2] olarak maddedeki kural yazıldı."
 - terim: BELİRSİZ SÜRELİ KİRA
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Kararlaştırılan sürenin geçmesiyle bildirim olmaksızın sona ermeyen kira sözleşmesidir; kanun bunları belirli olmayan bir süre için yapılmış sayar.
@@ -19,6 +22,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 300, 347 ve 348
   dayanak_alintisi: Kararlaştırılan sürenin geçmesiyle herhangi bir bildirim olmaksızın sona erecek kira sözleşmesi belirli sürelidir; diğer kira sözleşmeleri belirli olmayan bir süre için yapılmış sayılır.
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Tanım konut okurunu yanıltıyor: 'Kararlaştırılan sürenin geçmesiyle bildirim olmaksızın sona ermeyen kira sözleşmesi' tanımına göre, md. 347 gereği süre bitiminde kendiliğinden bir yıl uzayan (yani bildirimsiz sona ermeyen) belirli süreli konut kirası da 'belirsiz süreli' sayılır. md. 300 'sona erecek' (sözleşmenin kurgusu) diyor, kart bunu 'sona ermeyen' (fiilî sonuç) yapmış; puf maddelerinin hepsi konut ve çatılı işyerine ilişkin olduğu için karışıklık doğrudan okura geçiyor. Ayrıca tanım her belirsiz süreli kirada 'kararlaştırılan bir süre' varmış gibi kurulmuş. (2) Kapsam/yollama zinciri: puf[0] ve puf[1] md. 347'deki 'genel hükümlere göre fesih bildirimiyle' yollamasını açıklamadan aktarıyor. Bu genel hükümler md. 328-329 (fesih dönemi; taşınmazda yerel âdetteki dönem ya da altı aylık dönem sonu, üç aylık bildirim süresi) kartta yok; 'kiracı ... her zaman sona erdirebilir' gündelik okura 'istediği an çıkabilir' diye okunuyor. (3) md. 327 (belirli süreli sözleşmenin açık anlaşma olmadan sürdürülünce belirsiz süreliye dönüşmesi) ile md. 347 (konutta bir yıl uzama) arasındaki ilişki kartta yok; konut okuru hangisinin uygulanacağını karttan çıkaramaz. (4) puf[1] 121 karakter. Kurtarmak tanımın yeniden yazılmasını ve md. 328-329'un karta alınmasını gerektiriyor; küçük düzeltme değil."
 - terim: KULLANMA GİDERLERİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Konut ve çatılı işyeri kiralarında ısıtma, aydınlatma ve su gibi giderleri kapsayan kanuni kavramdır.
@@ -28,6 +33,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 341
   dayanak_alintisi: Kiracı, konut ve çatılı işyeri kiralarında, sözleşmede aksi öngörülmemişse veya aksine yerel âdet yoksa, ısıtma, aydınlatma ve su gibi kullanma giderlerine katlanmakla yükümlüdür.
   kontrol: '2026-10-13'
+  inceleme: onay
+  inceleme_notu: "md. 341'in iki cümlesi eksiksiz: kapsam (konut ve çatılı işyeri), 'gibi' maddenin kendisinde de açık liste, iki istisna ('sözleşmede aksi öngörülmemişse veya aksine yerel âdet yoksa') korunmuş, belge verme yükümlülüğü 'istem üzerine' koşuluyla aktarılmış. Tanım ile puf maddeleri birbirini tekrar etmiyor; dayanak alıntısı puf[0]'ın kuralını birebir destekliyor. Arşivde karşılığı yok."
 - terim: KİRACI ALEYHİNE DÜZENLEME
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Konut ve çatılı işyeri kiralarında kiracıya, kira bedeli ve yan giderler dışında başka bir ödeme yükümlülüğü getirilememesi kuralıdır.
@@ -38,24 +45,31 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 340, 346 ve 354
   dayanak_alintisi: Kiracıya, kira bedeli ve yan giderler dışında başka bir ödeme yükümlülüğü getirilemez.
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Kart üç ayrı kanuni kavramı tek terim altında topluyor: md. 346 (kanundaki başlığı 'Kiracı aleyhine düzenleme yasağı'), md. 340 ('Bağlantılı sözleşme') ve md. 354 ('Dava sebeplerinin sınırlılığı'). Terim maddedeki 'yasağı' sözcüğünü düşürmüş: 'kiracı aleyhine düzenleme' yasaklanan şeyin kendisi, tanım ise yasağı anlatıyor. (2) puf[1] md. 340'ı eksik aktarıyor: maddede 'sözleşmenin kurulması ya da sürdürülmesi' var, kartta yalnız 'sürdürülmesi'; kira kurulurken dayatılan ilgisiz borç (en sık görülen durum) kapsam dışı gibi okunuyor. Ayrıca 131 karakter. (3) puf[2] md. 354'ü yollamayla aktarıyor: 'dava yoluyla sona erdirmeye ilişkin hükümler' md. 350-353'tür, kartta hiçbiri yok; okur hangi hükümlerin kastedildiğini bilemez. (4) puf[0]'daki 'muaccel' gündelik okurun bilmediği teknik sözcük (sonraki kiraların hemen istenebilir hâle gelmesi); 118 karakter. Ayrıca maddedeki 'Özellikle' kaydı (iki örnek, genel yasağın örnekleridir) düşmüş. Kurtarmak kartı md. 346'ya indirip terimi, iki puf'u ve dayanak seçimini yeniden yazmayı gerektiriyor; küçük düzeltme değil."
 - terim: AİLE KONUTU KİRASI
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Aile konutu olarak kullanılmak üzere kiralanan taşınmazda kiracının, eşinin açık rızası olmadıkça kira sözleşmesini feshedememesi kuralıdır.
   puf:
-  - Rıza alınamazsa ya da eş haklı sebep olmaksızın kaçınırsa kiracı, hâkimden bu konuda karar vermesini isteyebilir.
-  - Eş kiraya verene bildirimle sözleşmenin tarafı olursa kiraya veren, fesih bildirimini ve ödeme süresini ikisine ayrı ayrı bildirir.
+  - Rızanın alınması mümkün değilse ya da eş haklı sebep olmadan rıza vermezse kiracı, hâkimden karar isteyebilir.
+  - Eş, kiraya verene bildirimle taraf olursa fesih bildirimi ve ihtardaki ödeme süresi ikisine ayrı ayrı bildirilir.
   mevzuat: 6098 sayılı Kanun md. 349
   dayanak_alintisi: Aile konutu olarak kullanılmak üzere kiralanan taşınmazlarda kiracı, eşinin açık rızası olmadıkça kira sözleşmesini feshedemez.
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım md. 349/1 ile birebir. Arşivdeki AİLE KONUTU ŞERHİ (TMK 194) tapu şerhini, devri ve hak sınırlamayı anlatıyor; kira feshi orada yalnız dayanak alıntısında geçiyor, bu kart anlamca tekrar değil. puf[0]: 'Rıza alınamazsa' maddedeki iki ayrı durumu karıştırıyordu ('alınamazsa' eşin haklı sebeple reddini de kapsar gibi okunuyor, oysa maddede ilk durum rızanın alınmasının mümkün olmaması); 'kaçınırsa' nesnesizdi → 'Rızanın alınması mümkün değilse ya da eş haklı sebep olmadan rıza vermezse kiracı, hâkimden karar isteyebilir.' puf[1] 131 karakterdi ve 'ödeme süresi' maddedeki 'fesih ihtarına bağlı ödeme süresi'nden kopuktu → 'Eş, kiraya verene bildirimle taraf olursa fesih bildirimi ve ihtardaki ödeme süresi ikisine ayrı ayrı bildirilir.' (113 karakter; 'kiraya verene bildirimle' korundu, 'Eş' tanımdaki kiracının eşi)."
 - terim: YENİDEN İNŞA TAHLİYESİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Kiralananın yeniden inşası veya imarı amacıyla esaslı onarımı, genişletilmesi ya da değiştirilmesi gerekli ve bu işler sırasında kullanımı imkânsızsa, kiraya verenin sözleşmeyi dava ile sona erdirebilmesidir.
   puf:
   - Belirli süreli sözleşmede dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır.
+  - Kiraya veren bu sürede dava açacağını kiracıya yazılı bildirmişse, dava süresi bir kira yılı uzar.
   - Bu amaçla boşaltılan taşınmaz eski hâliyle, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz.
-  mevzuat: 6098 sayılı Kanun md. 350 ve 355
+  mevzuat: 6098 sayılı Kanun md. 350, 353 ve 355
   dayanak_alintisi: Yeniden inşa ve imar amacıyla boşaltılması sağlanan taşınmazlar, eski hâli ile, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz.
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım md. 350/2 ile, eski puf[1] (şimdi puf[2]) md. 355/2 ile birebir. Arşivdeki İHTİYAÇTAN TAHLİYE md. 350/1 (gereksinim) ile ilgili; bu kart ayrı tahliye sebebini anlatıyor, anlamca tekrar değil. Eksik bırakarak yanıltma giderildi: puf[0] 'dava ... bir ay içinde açılmalıdır' diyordu; md. 353'e göre kiraya veren bu süre içinde dava açacağını kiracıya yazılı bildirirse dava açma süresi bir kira yılı uzamış sayılır. Kart bu istisnayı vermeyince hem kiraya veren (hakkını kaybettiğini sanır) hem kiracı (süre geçti, dava açılamaz sanır) yanılabiliyordu. md. 353 mevzuata eklendi, yeni puf[1] maddedeki kuralı aktarıyor. Değişmeyen ama bilinçli bırakılan sınırlar: puf[0] açıkça 'belirli süreli' diye sınırlı (belirsiz süreli sözleşmede süre md. 350'nin genel hükümlere yollamasıyla belirlenir, kartta yok ama kart aksini de söylemiyor); yenilenen taşınmazda eski kiracının öncelik hakkı (md. 355/3) ayrı kartta (ESKİ KİRACI ÖNCELİĞİ)."
 - terim: YENİ MALİKİN GEREKSİNİMİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Kiralananı sonradan edinen kişinin, kendisi, eşi, altsoyu, üstsoyu veya kanun gereği bakmakla yükümlü olduğu kişiler için konut ya da işyeri gereksinimi sebebiyle kullanma zorunluluğu varsa sözleşmeyi dava ile sona erdirebilmesidir.
