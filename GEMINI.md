@@ -11,6 +11,8 @@ EDM Yapı & Gayrimenkul (Silivri/Trakya) için otonom sosyal medya botu. İçeri
 
 ## Okuma sırası
 
+> İlk oturumsa kullanıcı `GEMINI-BASLANGIC-PROMPTU.md`'deki başlangıç promptunu yapıştırmış olmalı: önce yönelim ve temel çizgi (değişiklik yok), sonra onayla ilk iş.
+
 1. `MEMORY.md` **§11–12** (iş bölümü, bu oturumun özeti, canlı düzen, değişmeyen kullanıcı kararları) ve §10 (numaralı kural/hata/karar defteri; 1–24).
 2. `ARCHITECTURE.md` §2 (katman kuralları), §4 (**Açık işler ve devir** tablosu).
 3. `ICERIK-SISTEMI.md` (ne paylaşılır: §5.5.2 sözlük, §5.9 onay kuyruğu/havuz) · `SOZLUK-KART-URETIMI.md` (kart üretim hattı, **Gemini devir notu en üstte**) · `README.md` (kurulum, komutlar).

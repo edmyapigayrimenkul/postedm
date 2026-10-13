@@ -167,6 +167,7 @@ node --test tests/*.test.mjs                              # Worker testleri
 | Belge | Ne için |
 |---|---|
 | [`GEMINI.md`](GEMINI.md) | Yeni ajan/oturum için kısa giriş: kurallar, komutlar, tuzaklar, süreç |
+| [`GEMINI-BASLANGIC-PROMPTU.md`](GEMINI-BASLANGIC-PROMPTU.md) | Gemini'ye ilk mesaj olarak yapıştırılacak başlangıç promptu (önce yönelim + temel çizgi, sonra ilk iş) |
 | [`MEMORY.md`](MEMORY.md) | Kalıcı hafıza: hesaplar, tasarım dili, numaralı karar/hata defteri (§10), iş bölümü ve oturum özeti (§11–12) |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Katmanlar, kurallar, fazlar, **açık işler ve devir** (§4), veritabanı kararı |
 | [`ICERIK-SISTEMI.md`](ICERIK-SISTEMI.md) | Ne paylaşılır: sütunlar, biçimler, bütçeler, sözlük (§5.5.2), onay kuyruğu/havuz (§5.9) |
