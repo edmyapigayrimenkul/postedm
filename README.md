@@ -7,6 +7,7 @@ EDM Yapı & Gayrimenkul (`edmyapigayrimenkul.com`) markasının kurumsal kimliğ
 ## 🏗 Mimari ve Çalışma Mantığı
 
 **İçerik kararlarının kaynağı [`ICERIK-SISTEMI.md`](ICERIK-SISTEMI.md).**
+**Kod yapısı, katman kuralları ve yol haritası: [`ARCHITECTURE.md`](ARCHITECTURE.md).**
 Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu tanımlar.
 
 ```
