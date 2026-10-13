@@ -38,6 +38,7 @@ def _kanunlar(dene: bool, json_cikti: bool) -> int:
             k["denendi"] = bool(metin)
             if not metin:
                 hatali += 1
+                k["onerilen_tertip"] = mevzuat.tertip_kesfet(k["no"])  # KANUNLAR'daki aday tutmadı: sitede hangisi var?
     if json_cikti:
         print(json.dumps(liste, ensure_ascii=False, indent=1))
         return 1 if hatali else 0
@@ -45,6 +46,9 @@ def _kanunlar(dene: bool, json_cikti: bool) -> int:
         durum = "önbellekte" if k["onbellekte"] else "önbellekte yok"
         if dene:
             durum = "ÇEKİLDİ ✓" if k["denendi"] else "ÇEKİLEMEDİ ✗ (tertip ya da ağ)"
+            if not k["denendi"]:
+                oneri = k.get("onerilen_tertip")
+                durum += f" → sitede çalışan tertip: {oneri} (src/mevzuat.py KANUNLAR'a yaz)" if oneri else " → hiçbir tertip (1-8) tutmadı; ağ ya da kanun numarası"
         print(f"{k['no']:>5}  {k['ad']}  [tertip {','.join(map(str, k['tertipler']))}]  {durum}")
     return 1 if hatali else 0
 
