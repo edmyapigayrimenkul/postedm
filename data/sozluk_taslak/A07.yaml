@@ -1,0 +1,62 @@
+# A07 — Kadastro Kanunu 3402 (pilot, 6 kart). Yazar: Claude (orkestratör). Kanun metni: scripts/kanun_oku.py (2026-10-13 önbelleği).
+kartlar:
+- terim: ASKI İLANI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kadastro tespitlerine ait askı cetvellerinin ve pafta örneklerinin, kadastro müdürlüğünde ve muhtarın çalışma yerinde 30 gün boyunca ilan edilmesidir; itirazı olanlar bu süre içinde dava açabilir.
+  puf:
+  - Müdür, ekibin işini bitirdiği tarihten itibaren en geç üç ay içinde ilanı yapmak zorundadır.
+  - İtirazı olanlar, ilan süresi içinde kadastro mahkemesinde dava açabilir.
+  - Kanuna göre yapılan ilanlar, ilgili kişilere şahsen tebliğ edilmiş sayılır.
+  mevzuat: 3402 sayılı Kanun md. 11
+  dayanak_alintisi: Kadastro müdürü, kadastro tutanaklarına göre yapılan tespitlere dayanarak, askı cetvellerini düzenler; bu cetvelleri ve pafta örneklerini, müdüriyette ve ayrıca muhtarın çalışma yerinde 30 gün süre ile ilan ettirir; itirazı olanların ilan süresi içinde kadastro mahkemesinde dava açabileceklerini belirtir.
+  kontrol: '2026-10-13'
+- terim: KADASTRO İTİRAZI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kadastro tutanağı düzenlendikten sonra, ekip çalışma alanında işini bitirinceye kadar tespite karşı kadastro teknisyenliğine veya kadastro müdürlüğüne yapılan itirazdır.
+  puf:
+  - İtiraz yalnızca uygulanan belgelerin geçerliliği hakkında yapılabilir.
+  - Bir belgeye dayanmayan itirazlar incelenmez; ilan süresi içinde dava açma hakkı saklıdır.
+  - İtirazla ilgili tutanak veya ekleri en geç on gün içinde kadastro komisyonuna gönderilir.
+  mevzuat: 3402 sayılı Kanun md. 9
+  dayanak_alintisi: İtiraz sadece uygulanan belgelerin geçerliliği hakkında yapılabilir.
+  kontrol: '2026-10-13'
+- terim: KADASTRO KOMİSYONU
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kendisine intikal eden işleri ve itirazlı tutanakları inceleyen, tam üye sayısıyla toplanıp oy çokluğuyla tespit yapan ve sonucu askı ilanıyla duyuran kuruldur.
+  puf:
+  - İşi en geç bir ay içinde, gerekçe gösterirse ekibin çalışması bitinceye kadar incelemek zorundadır.
+  - İnceleme sonunda eski tutanağın yerine hak sahibini belirleyen yeni bir tutanak düzenlenir.
+  - Çözümü mahkemelerin takdirine bırakılan konular kadastro mahkemesine devredilir.
+  mevzuat: 3402 sayılı Kanun md. 10
+  dayanak_alintisi: Komisyon, tam üye sayısı ile toplanarak oy çokluğu ile tespit yapar, sonuç askı ilanı ile ilgililere duyurur.
+  kontrol: '2026-10-13'
+- terim: KADASTRO KESİNLEŞMESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: 30 günlük ilan süresi içinde dava açılmayan kadastro tutanaklarına ait sınırlandırma ve tespitlerin kesinleşmesidir; kesinleşen tutanaklar tapu kütüklerine kaydedilir.
+  puf:
+  - Kesinleşen tutanaklar, kesinleşme tarihi tescil tarihi gösterilerek en geç 3 ay içinde tapu kütüklerine kaydedilir.
+  - Kesinleşmeden on yıl geçtikten sonra kadastrodan önceki hukuki sebeplere dayanarak itiraz edilemez.
+  - Aynı sebeplere dayanılarak on yıl geçtikten sonra dava da açılamaz.
+  mevzuat: 3402 sayılı Kanun md. 12
+  dayanak_alintisi: 30 günlük ilan süresi geçtikten sonra, dava açılmayan kadastro tutanaklarına ait sınırlandırma ve tespitler kesinleşir.
+  kontrol: '2026-10-13'
+- terim: TAPUSUZ TAŞINMAZ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Tapuda kaydı bulunmayan taşınmazdır; kadastroda, çekişmesiz ve aralıksız en az yirmi yıldır malik sıfatıyla zilyet olduğunu belgeyle, bilirkişi veya tanıkla ispat eden kişi adına tespit edilir.
+  puf:
+  - Bu kural, toplam yüzölçümü sulu toprakta 40, kuru toprakta 100 dönüme kadar olan taşınmazlar içindir.
+  - Bu sınırın dışında kalan kısım için zilyetlik ayrıca kanunda sayılan belgelerden birine dayanmalıdır.
+  - Sulu veya kuru arazi ayrımı Toprak Koruma ve Arazi Kullanımı Kanunu'na göre yapılır.
+  mevzuat: 3402 sayılı Kanun md. 14
+  dayanak_alintisi: Tapuda kayıtlı olmayan ve aynı çalışma alanı içinde bulunan ve toplam yüzölçümü sulu toprakta 40, kuru toprakta 100 dönüme kadar olan (40 ve 100 dönüm dahil) bir veya birden fazla taşınmaz mal, çekişmesiz ve aralıksız en az yirmi yıldan beri malik sıfatıyla zilyetliğini belgelerle veya bilirkişi veyahut tanık beyanlarıyla ispat eden zilyedi adına tespit edilir.
+  kontrol: '2026-10-13'
+- terim: KAMU MALI VE ZAMANAŞIMI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Orta malları, hizmet malları, ormanlar ve kamu hizmetine tahsis edilen devlet yerleri gibi taşınmazlar, tapuda kayıtlı olsun olmasın kazandırıcı zamanaşımı yoluyla edinilemez.
+  puf:
+  - Kanunları uyarınca Devlete kalan taşınmaz mallar da kazandırıcı zamanaşımıyla edinilemez.
+  - Taşınmazın tapuda kayıtlı olup olmaması bu sonucu değiştirmez.
+  - Diğer maddelerin dışında kalan ve tescile tabi taşınmazlar Hazine adına tespit olunur.
+  mevzuat: 3402 sayılı Kanun md. 18
+  dayanak_alintisi: Orta malları, hizmet malları, ormanlar ve Devletin hüküm ve tasarrufu altında olup da bir kamu hizmetine tahsis edilen yerler ile kanunları uyarınca Devlete kalan taşınmaz mallar, tapuda kayıtlı olsun olmasın kazandırıcı zamanaşımı yolu ile iktisap edilemez.
+  kontrol: '2026-10-13'
