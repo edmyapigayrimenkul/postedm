@@ -385,3 +385,19 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
 17. **Sözlük dalga 1 — 2026-10-13.** Arşiv 38 → 66 kart: 45 taslaktan 28'i girdi (SZ-039…066: TBK kira genel/konut-işyeri, KMK md. 1–19), 17 ret (%62 kabul; kabul edilenlerin çoğunu inceleyici yeniden yazdı). Yazarlar oturum kullanım sınırına takılıp yarıda kesildi;
     kural: bir dalgada en çok 4 ajan, limit sıfırlanınca yeni dalga. Süre denetimi (`mevzuat._SURE`) "md. 319 ayıp" → "319 ay" sayıp ayıp kartlarını engelliyordu: düzeltildi. Ayrıntı ve dersler: SOZLUK-KART-URETIMI.md "Dalga 1 sonucu".
     Açık: SZ-007 md. 353 istisnasını söylemiyor; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok; A12 yazılmadı.
+
+## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
+
+Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:
+
+| Alan | Kim | Kod / belge |
+|---|---|---|
+| **Paylaşım altyapısı** — kanallara dağıtım, yayın kapısı, zamanlama/tetikleme, yeniden deneme, raporlama, Worker | **Claude** | `src/yayin/`, kanal modülleri (`src/instagram.py`, `facebook.py`, `threads.py`, `tiktok.py`, `youtube.py`, `linkedin.py`, `twitter.py`), `scripts/yayinla.py`, `scripts/hazirla.py`, `worker/`, `.github/workflows/` (yayın ve zamanlayıcı olanlar), ARCHITECTURE.md Faz 5 |
+| **Telegram altyapısı** — onay/yönetim yüzü, menüler, kartlar, albüm teslimi, düğme akışları | **Claude** | `src/telegram/` (cephe: `src/telegram_bot.py`), `tests/test_telegram_altin.py` |
+| **Sözlük kartı üretimi** (A12 ve sonrası dalgalar, reddedilen konuların yeniden yazımı, SZ-007 düzeltmesi, md. 339/2) ve diğer içerik/kart işleri | **Gemini** | SOZLUK-KART-URETIMI.md (devir notu en üstte), `data/sozluk_kartlari.yaml`, `data/sozluk_taslak/` |
+
+Kurallar:
+1. **Claude yeni sözlük dalgası BAŞLATMAZ** ve arşive kart eklemez; kullanıcı açıkça isterse yapar. Sözlük araçlarında (`kanun_oku`, doğrulayıcı, birleştirici, `mevzuat._SURE`) **hata** bulursa düzeltmesi serbesttir — araçlar model bağımsızdır, Gemini de bunları kullanır.
+2. Gemini'nin yazdığı kart da aynı hattan geçer: doğrulayıcı → **ayrı** inceleme turu → birleştirici → tam test + `gorsel_denetim.py`. Yazan model kendi kartını incelemez; doğrulayıcı yeşili doğruluk değildir (dalga 1: %62 kabul).
+3. Paylaşım ve Telegram değişiklikleri **altın çıktı güvencesi altında** yapılır (`tests/test_yayinla_altin.py` 70 senaryo, `tests/test_telegram_altin.py` 219 senaryo) ve ARCHITECTURE.md §2'deki katman/yama kurallarına uyar (kardeş modüller modül üzerinden çağrılır, dosya ≤250 satır, testler gerçek evi yamalar). Davranış bilerek değişiyorsa altın dosya yeniden kaydedilir ve fark bu belgeye yazılır.
+4. İş öncelik sırası (paylaşım + Telegram) ve bilinen açık maddeler: ARCHITECTURE.md §4 "Claude'un önceliği". Öncelik sırasını kullanıcı belirler; buradaki liste aday havuzudur, sırayla başlamak onay yerine geçmez.

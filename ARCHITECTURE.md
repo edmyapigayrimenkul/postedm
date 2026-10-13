@@ -70,6 +70,22 @@ Her fazın değişmez sırası: **(1) altın çıktı testi yaz ve ESKİ kodla k
 | 4 | `db.py` → depo başına modül (haber, ilan, onay, ayar, hata) | Küçük; şema değişmez |
 | 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | GitHub cron'u 6–10 saat gecikiyor; yalnız günlük tur taşındı |
 
+### Claude'un önceliği: paylaşım + Telegram altyapısı (kullanıcı kararı, 2026-10-13)
+
+Claude'dan istenen iş yalnız **paylaşım (yayın) altyapısı** ve **Telegram altyapısı**; geri kalanı (sözlük kartları vb.) Gemini ile yürür (MEMORY.md §11). Bu yüzden yukarıdaki fazlardan Faz 3 (çizim) ve Faz 4 (`db.py`)
+kullanıcı istemedikçe başlamaz; Faz 5 paylaşım/zamanlama tarafıdır. Aşağıdaki liste, belgelerde zaten kayıtlı açık maddelerin **aday havuzudur**; "(öneri)" işaretliler kayıtlı değil, Claude'un eklediği fikirdir. Sırayı kullanıcı belirler.
+
+| Alan | Aday iş | Kaynak / not |
+|---|---|---|
+| Paylaşım · zamanlama | **Faz 5:** hatırlatma, haber önerisi ve günlük rapor zamanlayıcılarını Cloudflare Worker'a taşı (GitHub cron'u 6–10 saat gecikiyor; yalnız günlük tur taşındı). Cloudflare cron'u bir hafta sorunsuz çalışınca `hazirla.yml` yedek cron'larını sil (`test_tek_tetikleyici_kurali` ve `test_cron_takvimle_uyumlu` birlikte güncellenir) | MEMORY.md §10 madde 13 |
+| Paylaşım · kanallar | `src/threads.py:241` `json` içe aktarılmamış (`metinleri_slaytlara_dagit` NameError'u yutuyor, `detay_metni` hiç ayrıştırılmıyor). Düzeltmek Threads içeriğini değiştirir: önce gözlem, sonra karar | MEMORY.md §10 madde 15 (a) |
+| Paylaşım · kanallar | X (Twitter) işçisi var ama hiçbir hedef onu seçmiyor (`hedef.kanal_listesi`). Kullanıcı kararı: şimdilik olduğu gibi kalır | MEMORY.md §10 madde 14 |
+| Paylaşım · kapı | `gorsel_sec:N` hedefi taslak işlemi sayılmıyor, yayın kapısından (denetim) geçiyor; "zaten yayında" kanal için de "Tekrar dene" düğmesi çıkabiliyor (zararsız) | MEMORY.md §10 madde 14 |
+| Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı. Site tarafı bu işin dışında; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
+| Telegram · teslim | Zaman aşımı belirsizliği: Telegram isteği işleyip cevabı geciktirirse aynı albüm nadiren iki kez düşebilir (bilinçli denge). (öneri) İstenirse `istemci._istek` seviyesinde yinelenen albüm kontrolü | MEMORY.md §10 madde 12 |
+| Telegram · Worker | Worker değişiklikleri yalnız **Worker Dağıt** workflow'uyla yayına çıkar; dağıtım sonrası Cron Triggers'ta üç satır doğrulanır. (öneri) Buton akışlarının Worker↔`src/telegram/` sözleşmesi (`callback_data` adları) testle sabitlenebilir | MEMORY.md §10 madde 4, 13 |
+| Telegram · yapı | `src/telegram/album.py` (247 satır) ve `medya_istek.py` (226) 250 sınırına yakın: büyümeden önce bölünür; `reels.py`'nin Telegram'a video göndermesi katman kuralı 2'nin bilinen istisnasıdır | Bu belge §2 |
+
 **Faz 2'nin tuzağı ve uygulanan çözüm:** testler `src.telegram_bot.mesaj_gonder` gibi adları yamalıyor (31 dosya). Eski adı yeniden dışa aktaran bir "kabuk" yetmez: taşınan kod yeni modüldeki işlevi çağırır, yama kabuktaki adı değiştirir, yama etkisiz kalır. Uygulanan kural:
 1. **Yeni modüller kardeşlerini modül üzerinden çağırır** (`istemci.mesaj_gonder()`; `from .istemci import mesaj_gonder` değil) ve `telegram_bot`'u içe aktaramaz — `tests/test_telegram_paketi.py` zorlar.
 2. **`src/telegram_bot.py` canlı takma ad cephesidir** (PEP 562 `__getattr__`, kod yok): istenen adı gerçek evinden O AN okur. Scriptler, `src/yayin/`, workflow'lardaki `python -c "from src import telegram_bot; ..."` satırları değişmeden çalışır.

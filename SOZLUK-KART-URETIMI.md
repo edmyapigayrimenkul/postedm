@@ -3,15 +3,28 @@
 Bu dosya, sözlük kart arşivini alt ajanlarla büyütme işinin planıdır. Oturum kapansa ya da bağlam dolsa bile iş
 buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.md` §5.5.2, arşiv: `data/sozluk_kartlari.yaml`.
 
-## Durum (2026-10-09)
+## Sahiplik: bu iş GEMİNİ ile yürür (kullanıcı kararı, 2026-10-13)
+
+**Claude bu işi sürdürmez.** Kullanıcı Claude'dan yalnız **paylaşım (yayın) altyapısı** ve **Telegram altyapısı** geliştirmesini istedi (bkz. MEMORY.md §11, ARCHITECTURE.md §4 "Claude'un önceliği");
+sözlük kartlarının geri kalanı (dalga 2 ve sonrası) Gemini ile yazılacak. Bu belge o yüzden iki işe yarar: (1) Gemini'ye verilecek devir notu, (2) Claude'un dalga 1'e kadar yaptığı işin kaydı.
+Aşağıdaki "Claude alt ajan" ve `mcp__ccd_session_mgmt__get_usage` anlatımları geçmiş dönemdir; Gemini için karşılıkları:
+
+- **Araçlar model bağımsızdır** ve olduğu gibi kullanılır: `scripts/kanun_oku.py` (kanun metni), `scripts/sozluk_kart_dogrula.py` (taslak doğrulayıcı), `scripts/sozluk_kart_birlestir.py` (`--kuru` ile deneme),
+  kapıda tam test (`python -m unittest discover tests`) ve `scripts/gorsel_denetim.py`. Kanun metinleri `mevzuat-onbellek` dalındandır (bkz. "Pilot sonucu").
+- **Değişmeyen kural:** yazan model kendi kartını incelemez. Taslak → doğrulayıcı → **ayrı bir inceleme turu** (ayrı oturum/ayrı istem; kartı yazmayan, kanun metnine iddia iddia bakan) → birleştirme. Doğrulayıcı yeşili doğruluk değildir;
+  dalga 1'de yazar çıktısının ancak %62'si, o da çoğunlukla yeniden yazılarak girdi. Modelin yazdığı sözlükte ince yanlışlar çıktığı için (ICERIK-SISTEMI §5.5.2) taslaklar hiçbir koşulda incelemesiz arşive girmez.
+- Yazar ve inceleme talimatları (aşağıdaki "Yazar ajan talimatı", "İnceleme ajanı talimatı" ve "Pilot/Dalga 1 sonucu"ndaki dersler, kural 8–12) model adından bağımsız metindir; Gemini'ye olduğu gibi verilebilir.
+- **Gemini'nin ilk işi (Claude'dan devir):** A12 (TBK sözleşme kurulması) hiç yazılmadı; reddedilen ama içeriği iyi kira/fesih konuları (KONUT KİRASI KAPSAMI, BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ, ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ)
+  md. 347–349, 353, 356 birlikte düşünülerek yeniden yazılacak; SZ-007'ye md. 353 istisnası; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok.
+- Gemini ücretsiz kotası ayrıdır; Claude kullanım limiti (aşağıda "Dalga 1" derslerindeki 4 ajan sınırı) onu bağlamaz.
+
+## Durum (2026-10-09; güncel arşiv sayısı için Dalga 1 sonucuna bak: 66 kart)
 
 - Arşivde 34 kart var; günde bir kartla 34 gün yeter (12 Kasım'da biter). Hedef 730 (2 yıl × günde 1): **696 eksik**.
 - `sozluk_arsivi.BEKLEME_GUN = 730` (aynı kart 2 yıl dolmadan tekrar gelmez), `HEDEF_KART = 730`; hiç yayınlanmamış kart 14'e
   inince Telegram'a hatırlatma gider. Kart bitince sözlük modelle üretilip onaya düşer (otomatik yayın YOK).
-- Kullanıcı kararı (2026-10-09): kartları **Claude alt ajanlarla** üretmek.
-- **ENGEL:** hesap planı Pro; haftalık limit %99 doluydu (sıfırlanma 13 Ekim 2026 06:00 UTC = 09:00 TR). Ajanları başlatmadan
-  önce `mcp__ccd_session_mgmt__get_usage` ile bak: haftalık ve 5 saatlik pencerede en az %50 boşluk yoksa BAŞLATMA; yarıda
-  kalan dalga hem kartları hem oturumu kilitler. 12 Kasım'a kadar vakit var, sıfırlanmayı beklemek güvenli.
+- Kullanıcı kararı (2026-10-09): kartları Claude alt ajanlarla üretmek. **2026-10-13'te değişti: Gemini ile** (yukarıdaki "Sahiplik" bölümü).
+- Eski engel notu (geçmiş): Claude hesabının haftalık limiti dolmuştu; ajan başlatmadan önce kullanım boşluğuna bakmak gerekiyordu. Gemini ile çalışırken geçerli değil.
 
 ## Pilot sonucu (2026-10-13, A07 Kadastro 3402)
 
@@ -192,5 +205,6 @@ tutarlı mı, kategori uygun mu, (5) iki madde aynı şeyi mi söylüyor. Düzel
 
 ## Not: ücretsiz alternatif
 
-Gemini ücretsiz kotası ayrıdır (Claude limitini harcamaz). Taslak üretimi Gemini'ye, yalnız bağımsız inceleme Claude'a bırakılabilir; ama
+Gemini ücretsiz kotası ayrıdır (Claude limitini harcamaz). 2026-10-13 kararıyla taslak üretimi Gemini'dedir; bağımsız inceleme turu da ayrı bir Gemini çalıştırması olmalıdır
+(yazanın kendi kartını incelemesi geçerli sayılmaz). Claude'dan inceleme almak isterseniz kullanıcı ayrıca isteyebilir, ama iş akışı buna bağlı değildir. Ancak
 modelin yazdığı sözlük incelemesinde 12 konunun en az 4'ünde ince yanlış çıktı (bkz. §5.5.2): taslaklar hiçbir koşulda incelemesiz arşive girmez.
