@@ -516,16 +516,14 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         ikisi açıksa hazirla.py aynı slotu aynı Türkiye gününde ikinci kez üretmemeli ve Worker'ın yolladığı dispatch
         "zamanlanmış koşu" sayılmalı (yoksa koruma ve duraklatma atlanırdı).
         """
-        import re as _re
+        import tomllib
         import yaml as _yaml
 
-        toml = (KOK / "worker/wrangler.toml").read_text(encoding="utf-8")
-        cronlar = [c for satir in toml.splitlines() if satir.strip().startswith("crons")
-                   for c in _re.findall(r'"([^"]+)"', satir)]
+        cronlar = tomllib.loads((KOK / "worker/wrangler.toml").read_text(encoding="utf-8"))["triggers"]["crons"]
         kaynak = (KOK / "worker/index.js").read_text(encoding="utf-8")
         govde = kaynak[kaynak.index("async scheduled("):]
         govde = govde[:govde.index("\n  },")]
-        cf_gunluk_tur = {"0 7 * * *", "30 9 * * *"} <= set(cronlar) and "gunlukTuruTetikle" in govde
+        cf_gunluk_tur = {"0 7 * * *", "30 9 * * *"} <= set(cronlar) and "zamanliIsiTetikle" in govde
 
         w = _yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         gh_cron_acik = bool((w.get(True) or {}).get("schedule"))

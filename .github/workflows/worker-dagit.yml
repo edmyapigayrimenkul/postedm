@@ -15,7 +15,7 @@
 #  tetiklenmez, yani sırlara dışarıdan erişilemez. Yalnız main dalında çalışır. Sırlar sadece ilgili adımlara geçer.
 #
 #  Dağıtımdan sonra Cloudflare API'sinden cron kayıtları okunur: sınıra takılan bir dağıtım kodu yükleyip
-#  cron'u sessizce yazmayabiliyordu (Instabot, 5 Eyl 2026). Beklenen üç cron yoksa iş kırmızı biter.
+#  cron'u sessizce yazmayabiliyordu (Instabot, 5 Eyl 2026). Beklenen sekiz cron'dan biri yoksa iş kırmızı biter.
 # =========================================================
 
 name: Worker Dağıt
@@ -80,14 +80,18 @@ jobs:
             -o cron.json
           python3 - <<'PY'
           import json, sys
-          beklenen = {"*/10 * * * *", "0 7 * * *", "30 9 * * *"}
+          beklenen = {
+              "*/10 * * * *",
+              "40 5 * * *", "17 6 * * *", "0 7 * * *", "30 9 * * *",
+              "30 10 * * *", "17 15 * * *", "30 18 * * *",
+          }
           kayitli = {s["cron"] for s in json.load(open("cron.json"))["result"]["schedules"]}
           print("Cloudflare'deki cron'lar:", sorted(kayitli))
           eksik = beklenen - kayitli
           if eksik:
               print(f"::error::Cloudflare'de şu cron'lar YAZILMAMIŞ: {sorted(eksik)}")
               sys.exit(1)
-          print("Üç cron da kayıtlı ✓")
+          print(f"{len(beklenen)} cron da kayıtlı ✓")
           PY
 
       - name: Telegram'a bildir
@@ -104,8 +108,9 @@ jobs:
               raise SystemExit(0)
           url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if os.environ.get("SONUC") == "success":
-              metin = ("✅ <b>Worker dağıtıldı</b>\nCloudflare cron'ları doğrulandı: 10 dakikada bir planlı yayın, "
-                       "10:00 günlük içerik, 12:30 sözlük.\n" f'<a href="{url}">Log</a>')
+              metin = ("✅ <b>Worker dağıtıldı</b>\nCloudflare cron'ları doğrulandı (8): 10 dakikada bir planlı yayın; "
+                       "08:40 rapor, 09:17/18:17 haber önerisi, 10:00 içerik, 12:30 sözlük, 13:30/21:30 hatırlatma.\n"
+                       f'<a href="{url}">Log</a>')
           else:
               metin = f'🔴 <b>Worker dağıtımı BAŞARISIZ</b>\n\n<a href="{url}">Log</a>'
           istek = urllib.request.Request(

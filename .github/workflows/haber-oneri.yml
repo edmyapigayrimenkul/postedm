@@ -17,13 +17,19 @@
 #  yığılıyor ve gecikiyor. Telegram'dan /haber aynı işi hemen yapar.
 #
 #  Kota: 2 koşu/gün × ~2 dk ≈ 120 dk/ay.
+#
+#  2026-10-13: ASIL tetikleyici Cloudflare cron'u (Worker `repository_dispatch` "haber_oneri" + {slot, zamanli: true}, aynı saatlerde):
+#  GitHub `schedule` koşuları 6-10 saat gecikiyor. Aşağıdaki iki cron GECİKMELİ YEDEKTİR; Worker o gün çalıştıysa
+#  "Zamanlı koruma" adımı aynı turu ikinci kez çalıştırmaz (scripts/zamanli_koruma.py). Telegram'ın /haber ve "hızlı üret"
+#  düğmeleri `zamanli` taşımaz: elle istek sayılır, `--slot haber` yoluna gider ve korumaya takılmaz.
 # =========================================================
 
 name: Haber Önerisi
 
 on:
   schedule:
-    - cron: "17 6,15 * * *"
+    - cron: "17 6 * * *"    # 09:17 TR → slot haber_oneri_sabah
+    - cron: "17 15 * * *"   # 18:17 TR → slot haber_oneri_aksam
   repository_dispatch:
     types: [haber_oneri]
   workflow_dispatch:
@@ -39,6 +45,9 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+    env:
+      ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
+      ZAMANLI_SLOT: ${{ github.event.client_payload.slot || (github.event.schedule == '17 15 * * *' && 'haber_oneri_aksam' || 'haber_oneri_sabah') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,17 +56,27 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
+      - name: Zamanlı koruma (günde bir kez)
+        id: koruma
+        run: python scripts/zamanli_koruma.py kontrol
+
       - name: Haberleri tara ve öner
+        if: steps.koruma.outputs.atla != 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ELLE: ${{ github.event_name != 'schedule' }}
+          # Elle = Telegram düğmesi/komutu ya da workflow_dispatch. Zamanlanmış koşu (GitHub cron'u ya da Worker'ın zamanli yükü) elle sayılmaz.
+          ELLE: ${{ github.event_name != 'schedule' && github.event.client_payload.zamanli != true }}
         run: |
           if [ "$ELLE" = "true" ]; then
             python scripts/hazirla.py --slot haber
           else
             python scripts/hazirla.py --haber-oneri
           fi
+
+      - name: Zamanlı işi işaretle
+        if: success() && steps.koruma.outputs.atla != 'true'
+        run: python scripts/zamanli_koruma.py isaretle
 
       - name: Veritabanını Kaydet
         if: always()

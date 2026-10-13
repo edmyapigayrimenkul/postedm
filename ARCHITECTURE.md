@@ -21,7 +21,7 @@ Instagram, Facebook, Threads, YouTube ve TikTok'a yayın yapıyor, yanlış bir 
 
 | Ortam | Dil | Ne yapar | Kod |
 |---|---|---|---|
-| Cloudflare Worker | JS | Telegram'dan gelen butonu yakalar, zamanlayıcıdır (10 dk plan, 10:00 ve 12:30 günlük tur) | `worker/` |
+| Cloudflare Worker | JS | Telegram'dan gelen butonu yakalar, zamanlayıcıdır (10 dk plan çaları + 7 günlük iş: rapor, haber önerisi ×2, içerik, sözlük, hatırlatma ×2) | `worker/` |
 | GitHub Actions | Python | İçerik üretir, yayınlar, hatırlatır, raporlar | `.github/workflows/`, `scripts/`, `src/` |
 | Telegram | — | İnsanın onay/yönetim yüzü | `src/telegram/` (cephe: `src/telegram_bot.py`) |
 
@@ -68,7 +68,7 @@ Her fazın değişmez sırası: **(1) altın çıktı testi yaz ve ESKİ kodla k
 | 2 | `src/telegram_bot.py` → `src/telegram/` | **Yapıldı** (2026-10-13): API (`istemci`, `medya_istek`, `album`, `temizlik`), arayüz (`ayarlar`, `menuler`, `menuler_panel`, `durum_metni`, `sonuc_mesaji`, `kaldir`, `kartlar`, `paneller`), akışlar (`akislar/`: `kapi`, `onay` + `onay_slayt`/`onay_karti`, `otomatik`, `sozluk`, `uretim`, `reels`, `otorite`, `ilan`, `finans`, `zamanli`). 253 satırlık `_haber_onayina_sun` adımlara bölündü. Güvence: `tests/test_telegram_altin.py` (219 senaryo) |
 | 3 | Çizim: `make_image` / `yeni_formatlar` / `haber_tasarim` ortak çizim çekirdeği + biçim başına dosya | Piksel karşılaştırmalı altın görseller (`scripts/gorsel_denetim.py` zaten 164 vaka ölçüyor) |
 | 4 | `db.py` → depo başına modül (haber, ilan, onay, ayar, hata) | Küçük; şema değişmez |
-| 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | GitHub cron'u 6–10 saat gecikiyor; yalnız günlük tur taşındı |
+| 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | **Kod yapıldı (2026-10-13), dağıtım bekliyor:** 7 iş Worker'dan (`ZAMANLI_ISLER`), GitHub cron'ları yedek, "günde bir kez" koruması `scripts/zamanli_koruma.py`. Yedekleri silmek: bir hafta sorunsuz Cloudflare çalışmasından sonra (MEMORY.md §10 madde 18) |
 
 ### Claude'un önceliği: paylaşım + Telegram altyapısı (kullanıcı kararı, 2026-10-13)
 
@@ -77,13 +77,13 @@ kullanıcı istemedikçe başlamaz; Faz 5 paylaşım/zamanlama tarafıdır. Aşa
 
 | Alan | Aday iş | Kaynak / not |
 |---|---|---|
-| Paylaşım · zamanlama | **Faz 5:** hatırlatma, haber önerisi ve günlük rapor zamanlayıcılarını Cloudflare Worker'a taşı (GitHub cron'u 6–10 saat gecikiyor; yalnız günlük tur taşındı). Cloudflare cron'u bir hafta sorunsuz çalışınca `hazirla.yml` yedek cron'larını sil (`test_tek_tetikleyici_kurali` ve `test_cron_takvimle_uyumlu` birlikte güncellenir) | MEMORY.md §10 madde 13 |
+| Paylaşım · zamanlama | ~~**Faz 5**~~ **Yapıldı (kod, 2026-10-13):** rapor, haber önerisi ve hatırlatma Worker'a taşındı (MEMORY.md §10 madde 18). **Kalan:** Worker Dağıt çalıştırılacak; bir hafta sonra `hazirla.yml`, `hatirlat.yml`, `haber-oneri.yml`, `gunluk-rapor.yml` yedek cron'ları silinir (`test_tek_tetikleyici_kurali`, `test_zamanli_isler.py` birlikte güncellenir). Kalan GitHub-cron işleri (jeton yenileme, kaynak sağlığı, mevzuat denetimi, konu madenciliği) haftalık/sessiz; gecikmeleri zarar vermiyor, taşınmadı | MEMORY.md §10 madde 13, 18 |
 | Paylaşım · kanallar | `src/threads.py:241` `json` içe aktarılmamış (`metinleri_slaytlara_dagit` NameError'u yutuyor, `detay_metni` hiç ayrıştırılmıyor). Düzeltmek Threads içeriğini değiştirir: önce gözlem, sonra karar | MEMORY.md §10 madde 15 (a) |
 | Paylaşım · kanallar | X (Twitter) işçisi var ama hiçbir hedef onu seçmiyor (`hedef.kanal_listesi`). Kullanıcı kararı: şimdilik olduğu gibi kalır | MEMORY.md §10 madde 14 |
 | Paylaşım · kapı | `gorsel_sec:N` hedefi taslak işlemi sayılmıyor, yayın kapısından (denetim) geçiyor; "zaten yayında" kanal için de "Tekrar dene" düğmesi çıkabiliyor (zararsız) | MEMORY.md §10 madde 14 |
 | Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı. Site tarafı bu işin dışında; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
 | Telegram · teslim | Zaman aşımı belirsizliği: Telegram isteği işleyip cevabı geciktirirse aynı albüm nadiren iki kez düşebilir (bilinçli denge). (öneri) İstenirse `istemci._istek` seviyesinde yinelenen albüm kontrolü | MEMORY.md §10 madde 12 |
-| Telegram · Worker | Worker değişiklikleri yalnız **Worker Dağıt** workflow'uyla yayına çıkar; dağıtım sonrası Cron Triggers'ta üç satır doğrulanır. (öneri) Buton akışlarının Worker↔`src/telegram/` sözleşmesi (`callback_data` adları) testle sabitlenebilir | MEMORY.md §10 madde 4, 13 |
+| Telegram · Worker | Worker değişiklikleri yalnız **Worker Dağıt** workflow'uyla yayına çıkar; dağıtım sonrası Cron Triggers'ta sekiz satır doğrulanır (workflow API'den kendisi doğrular). (öneri) Buton akışlarının Worker↔`src/telegram/` sözleşmesi (`callback_data` adları) testle sabitlenebilir | MEMORY.md §10 madde 4, 13 |
 | Telegram · yapı | `src/telegram/album.py` (247 satır) ve `medya_istek.py` (226) 250 sınırına yakın: büyümeden önce bölünür; `reels.py`'nin Telegram'a video göndermesi katman kuralı 2'nin bilinen istisnasıdır | Bu belge §2 |
 
 **Faz 2'nin tuzağı ve uygulanan çözüm:** testler `src.telegram_bot.mesaj_gonder` gibi adları yamalıyor (31 dosya). Eski adı yeniden dışa aktaran bir "kabuk" yetmez: taşınan kod yeni modüldeki işlevi çağırır, yama kabuktaki adı değiştirir, yama etkisiz kalır. Uygulanan kural:

@@ -386,6 +386,22 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     kural: bir dalgada en çok 4 ajan, limit sıfırlanınca yeni dalga. Süre denetimi (`mevzuat._SURE`) "md. 319 ayıp" → "319 ay" sayıp ayıp kartlarını engelliyordu: düzeltildi. Ayrıntı ve dersler: SOZLUK-KART-URETIMI.md "Dalga 1 sonucu".
     Açık: SZ-007 md. 353 istisnasını söylemiyor; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok; A12 yazılmadı.
 
+18. **Faz 5 — hatırlatma, haber önerisi ve günlük rapor Cloudflare cron'una taşındı — 2026-10-13.** Madde 13'ün aynısı üç iş daha için: Worker `scheduled()` artık yedi zamanlanmış işi tetikler
+    (`worker/index.js › ZAMANLI_ISLER`: `40 5` rapor, `17 6` ve `17 15` haber önerisi, `0 7` içerik, `30 9` sözlük, `30 10` ve `30 18` hatırlatma; hepsi UTC, TR = +3) ve `wrangler.toml` crons **sekiz** satır
+    (+ `*/10 * * * *` plan çaları). Her iş kendi `repository_dispatch` olayını `{slot, zamanli: true, kaynak: "cloudflare_cron", cron}` yüküyle yollar (`rapor`, `haber_oneri`, `hatirlat`, `slot_hazirla`);
+    3 denemede olmazsa gruba "<iş adı> tetiklenemedi" yazar. Workflow'lardaki aynı saatli GitHub cron'ları **gecikmeli YEDEK olarak duruyor** (`haber-oneri.yml` cron'u slot ayırt edilsin diye ikiye bölündü: `17 6` ve `17 15`).
+    **Çift çalışmayı önleyen:** `scripts/zamanli_koruma.py kontrol|isaretle` — üç workflow'da "Zamanlı koruma (günde bir kez)" adımı (`kontrol`, `atla=true` ise sonraki adımlar atlanır) ve iş başarılıysa
+    "Zamanlı işi işaretle" (`isaretle`); işaret hazirla.py ile aynı: `ayarlar › zamanli_slot_son_gun:<slot>` (TR günü). Slotlar: `hatirlat_ogle`, `hatirlat_aksam`, `haber_oneri_sabah`, `haber_oneri_aksam`, `rapor`
+    (`ZAMANLI_GUNLUK_SLOTLAR`'a eklendi). Başarısız tur işaretlenmez (yedek yeniden dener); **elle istek korumaya takılmaz ve onu tüketmez** (Telegram "Onayları Hatırlat", `/hatirlat`, `/haber`, `/rapor`, `/kota`,
+    `workflow_dispatch`: `ZAMANLANMIS` yalnız schedule ya da `client_payload.zamanli == true`). `haber-oneri.yml`: Worker'ın zamanlı yükü `--haber-oneri` yoluna gider (eskiden schedule dışı her olay `--slot haber`e giderdi);
+    Telegram'ın `haber_oneri` dispatch'i `zamanli` taşımadığı için eskisi gibi `--slot haber`. Bilinen ödünler: (a) bot duraklatılmışken zamanlı haber önerisi atlanır ama o slot "yapıldı" işaretlenir
+    (gün içinde duraklatma kalkarsa o sabahın önerisi yedek tetikle de gelmez; akşam turu etkilenmez); (b) iş sessizce yutulan bir hatayla "başarılı" bitiyorsa (çıkış kodu 0) slot işaretlenir;
+    (c) GitHub aynı `concurrency` grubunda (`edm-veritabani`) en çok BİR bekleyen koşu tutar, yeni bekleyen eskisini iptal eder: yedek koşular hızlı atladığı için risk düşük ama sıfır değil (yeni değil, tüm DB'ye yazan işlerde var).
+    **Dağıtım gerekir:** main'e birleşince Actions → **Worker Dağıt** → Run workflow; Cron Triggers'ta SEKİZ satır görünmeli (iş bunu Cloudflare API'sinden doğrular, eksikse kırmızı biter).
+    Dağıtılana dek her şey eskisi gibi GitHub cron'uyla çalışır (koruma bunu bozmaz: ilk koşu çalışır ve işaretlenir). **GitHub yedek cron'larını bir hafta sorunsuz Cloudflare çalışmasından sonra silin**
+    (4 workflow'da `schedule` bloğu; `test_tek_tetikleyici_kurali`, `test_cron_takvimle_uyumlu`, `test_zamanli_isler.py` birlikte güncellenir). Testler: `tests/test_zamanli_isler.py` (Worker tablosu ↔ toml ↔ workflow ↔ dağıtım doğrulaması,
+    koruma betiği), `tests/worker_gunluk_tur.test.mjs` (her cron'un olayı, yükü, hata bildirimi).
+
 ## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
 
 Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:

@@ -21,7 +21,16 @@ def _tr_bugun() -> str:
 # Zamanlanmış günlük turu iki yerden tetiklenebilir: Cloudflare cron'u (asıl yol, dakikasında çalışır) ve GitHub cron'u
 # (yedek; 6-10 saat gecikebiliyor). Aynı slot aynı Türkiye gününde ikinci kez ÜRETİLMEZ: aksi halde geç gelen GitHub
 # koşusu ikinci içerik, ikinci konu tüketimi ve (sözlükte) onay kuyruğuna ikinci kart demek olurdu.
-ZAMANLI_GUNLUK_SLOTLAR = ("bilgilendirici", "sozluk")
+# İlk ikisi hazirla.py'nin slotlarıdır (hazirla.py doğrudan bu korumayı çağırır). Gerisi hatirlat.yml, haber-oneri.yml ve
+# gunluk-rapor.yml'in adımlarıdır (scripts/zamanli_koruma.py): çift hatırlatma, çift haber önerisi, çift rapor çıkmasın.
+# Yeni slot eklerken Worker'daki ZAMANLI_ISLER tablosu ve ilgili workflow'un ZAMANLI_SLOT ifadesi aynı adı kullanmalı
+# (tests/test_zamanli_isler.py üçünü karşılaştırır).
+ZAMANLI_GUNLUK_SLOTLAR = (
+    "bilgilendirici", "sozluk",
+    "hatirlat_ogle", "hatirlat_aksam",
+    "haber_oneri_sabah", "haber_oneri_aksam",
+    "rapor",
+)
 
 
 def _zamanli_slot_anahtari(slot: str) -> str:
