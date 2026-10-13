@@ -25,6 +25,7 @@ if str(KOK) not in sys.path:
     sys.path.insert(0, str(KOK))
 
 from scripts import yayinla
+from src.yayin.kanallar import story as story_modulu
 from src import haber_tasarim
 
 REF = "99901"
@@ -158,7 +159,7 @@ class TestStoryAkisi(_Temizlik):
             patch.object(yayinla.db, "haber_getir", return_value=haber),
             patch.object(yayinla.db, "haber_guncelle"),
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
-            patch.object(yayinla, "story_kapagi_uret", return_value=story_kapagi) as native,
+            patch.object(story_modulu, "story_kapagi_uret", return_value=story_kapagi) as native,
             patch.object(yayinla.video, "_cercevele_9_16", cerceve),
             patch.object(yayinla.upload_image, "gorsel_yukle", side_effect=yukle),
             patch.object(yayinla.instagram, "story_yayinla", return_value="ig-s") as ig_story,

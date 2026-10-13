@@ -83,7 +83,7 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
    * Telegram grubuna `@PostEdmBot` üzerinden önizleme ve onay butonları (`✅ Yayına Al (IG + FB + Threads)`) iletilir.
 2. **Onay ve Yayınlama:**
    * Grupta butona tıklandığında Cloudflare Worker sinyali yakalar ve GitHub Actions `.github/workflows/yayinla.yml`'ı tetikler.
-   * `scripts/yayinla.py` devreye girer:
+   * `scripts/yayinla.py` (ince giriş) → `src/yayin/` paketi devreye girer (okumaya `src/yayin/akis.py`tan başla, bkz. §10 madde 14):
      * Instagram Carousel basılır.
      * Facebook albüm gönderisi basılır.
      * Threads gönderisi basılır.
@@ -254,8 +254,9 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    kanallarına uygular ve TikTok'u video kipine alır. Onay anında seslendirme YOK.
 5. **Seslendirilmiş video `_sesli` adlıdır ve bir daha karıştırılmaz**
    (`ses.sesli_video_hazirla`): Facebook yolu anlatımı silip yerine yalnız müzik koyardı.
-6. **Rapor satırında ✓/✗ yok**: `yayinla.py` o işaretleri kanal sonucu sayıyor; seslendirme
-   satırı başarılı yayını "başarısız" gösteriyordu.
+6. **Başarı/hata rapor metninden anlaşılmaz** (2026-10-13'te kural değişti): eskiden `yayinla.py` rapor satırında "✓"/"✗" arıyordu, bu yüzden
+   o işaretler yasaktı (seslendirme satırı başarılı yayını "başarısız" gösteriyordu). Artık her satır kendi durumunu taşır
+   (`src/yayin/sonuc.py` › `Satir.durum`: YAYINDA / HATA / BILGI); metin yalnız gösterimdir.
 7. **`src/okunus.py` sese giden metni Türkçe okunuşa çevirir** ("Hz." hezt değil Hazreti,
    "1/5000" beş binde bir, "18.000 TL/m²'den" metrekaresi on sekiz bin liradan, "14.00'e"
    on dörde). **Kısaltma ve tek harf olduğu gibi kalır** — ölçüldü: harf harf yazmak
@@ -351,3 +352,16 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     Workers › Cron Triggers'ta ÜÇ satır (`*/10 * * * *`, `0 7 * * *`, `30 9 * * *`) görünmeli (sınıra takılan dağıtım cron'u sessizce yazmıyordu — Instabot). Cloudflare cron'u
     bir hafta sorunsuz çalışırsa GitHub cron'ları `hazirla.yml`'den kaldırılabilir (o zaman test kuralı ve `test_cron_takvimle_uyumlu` birlikte güncellenir). Worker'ın durum menüsündeki
     eski takvim (13:30 / 18:30) de düzeltildi.
+14. **`scripts/yayinla.py` bölündü — 2026-10-13.** 1571 satırlık dosya (tek `main()` 1339 satır; 9 kanal işçisi `nonlocal` ile ortak değişken değiştiriyordu) →
+    `src/yayin/` paketi (`akis` ana sıra · `hedef` kanal seçimi · `icerik` yükleme/görsel onarımı · `videolar` · `kanallar/` kanal başına işçi · `dagitim` paralel motor ·
+    `kayit` DB · `rapor` Telegram · `koruma` durum koruması+kapı · `aksiyonlar/` reddet/yenile/foto/metin/…). `scripts/yayinla.py` yalnız komut satırı girişi (<80 satır;
+    `tests/test_yayin_paketi.py` büyümesini engeller). **Güvence:** `tests/test_yayinla_altin.py` — 70 senaryo, eski kodun dış dünyaya yaptığı her şeyi (kanal API çağrıları,
+    Telegram metin/düğmeleri, DB, stdout, hata) kaydetti; bölmeden sonra 69'u BİREBİR aynı, tek fark bilinçli düzeltme (aşağıda). Yeniden kayıt YALNIZ davranış bilerek
+    değişince: `YAYIN_ALTIN_KAYDET=1 YAYIN_ALTIN_SENARYO=ad python -m unittest tests.test_yayinla_altin`.
+    **Bölmede bulunanlar:**
+    * **Hata düzeltildi:** "Başka Fotoğraf Bul → 3 aday" (`foto_adaylar`) canlıda hiç çalışmıyordu: `main()` içinde sonradan yapılan `from src import make_image` adı fonksiyon boyunca
+      yerel yapıyor, aday dalı atanmadan erişince `UnboundLocalError`. Bölünce kendiliğinden düzeldi.
+    * **Davranış iyileşti:** bir kanal işçisi yakalanmamış hata atarsa eskiden future sessizce yutuluyor, kanal raporda hiç görünmüyordu; şimdi "Hata (...) ✗" satırı olur.
+      Rapor satırları eskiden tamamlanma sırasıyla (rastgele), şimdi kanal sırasıyla.
+    * **Korundu ama sorulmalı:** (a) X (Twitter) işçisi var ama hiçbir hedef onu SEÇMEZ (`hedef.kanal_listesi`; eskiden de öyleydi). (b) `gorsel_sec:N` hedefi taslak işlemi sayılmıyor,
+      bu yüzden yayın kapısından (denetim) geçiyor. (c) "zaten yayında" olarak atlanan kanal için de "Tekrar dene" düğmesi çıkabiliyor (tıklanınca "zaten yayında" der, zararsız).

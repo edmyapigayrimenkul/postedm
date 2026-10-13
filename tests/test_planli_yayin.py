@@ -52,7 +52,8 @@ class TestPlanIsareti(unittest.TestCase):
         guncelle.assert_not_called()  # ilan kimlikleri başka tabloda
 
     def test_yayin_plani_temizler(self):
-        kaynak = (KOK / "scripts" / "yayinla.py").read_text(encoding="utf-8")
+        from tests.yayin_kaynak import yayin_kaynagi
+        kaynak = yayin_kaynagi()
         self.assertIn('"planlanan_yayin": None', kaynak)
 
     def test_sutun_semada(self):

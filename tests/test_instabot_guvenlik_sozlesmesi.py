@@ -144,8 +144,9 @@ class TestInstabotGuvenlikSozlesmesi(unittest.TestCase):
         98ed129'dan önce TikTok için ayrıca ikinci bir mesaj atılıyordu; aynı metin
         iki kez geliyordu. Niyet korunuyor (kopyalanabilir metin), tekrar yok.
         """
-        yayinla_kod = (KOK / "scripts" / "yayinla.py").read_text(encoding="utf-8")
-        self.assertIn("tt_res.get(\"taslak_mi\")", yayinla_kod)
+        from tests.yayin_kaynak import yayin_kaynagi
+        yayinla_kod = yayin_kaynagi()
+        self.assertIn("res.get(\"taslak_mi\")", yayinla_kod)
         self.assertIn("<pre><code>{temiz_caption}</code></pre>", yayinla_kod)
         self.assertNotIn("TikTok Taslağı Gelen Kutusuna Yüklendi", yayinla_kod)
 

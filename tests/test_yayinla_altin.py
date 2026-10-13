@@ -182,6 +182,7 @@ class Ortam:
         self.tmp = Path(tempfile.mkdtemp(prefix="yayin_altin_"))
         self.kayitci = Kayitci(self.tmp)
         self.donusler = {**self.VARSAYILAN, **(donusler or {})}
+        self.ilan_cagri = 0
         self.temizlenecek: list[Path] = []
         self.yamalar: list = []
 
@@ -226,23 +227,32 @@ class Ortam:
 
         def slaytlari_uret(veri, format_turu=None, cikti_onek="x", olcu="besleme", **k):
             ortam.kayitci.kaydet("yeni_formatlar.slaytlari_uret", (veri,), {"format_turu": format_turu, "cikti_onek": cikti_onek, "olcu": olcu})
+            if ortam.donusler.get("resim.hata") and olcu == "story":
+                raise RuntimeError("çizim hatası")
             boyut = (1080, 1920) if olcu == "story" else (1080, 1350)
             return [_jpeg(ortam.tmp / "cizim" / f"{cikti_onek}_{olcu}_{i}.jpg", boyut) for i in (1, 2, 3, 4)]
 
         def otorite(veri, cikti_onek="x", olcu="besleme", **k):
             ortam.kayitci.kaydet("make_image.otorite_gonderi_slaytlari_uret", (veri,), {"cikti_onek": cikti_onek, "olcu": olcu})
+            if ortam.donusler.get("resim.hata") and olcu == "story":
+                raise RuntimeError("çizim hatası")
             boyut = (1080, 1920) if olcu == "story" else (1080, 1350)
             return [_jpeg(ortam.tmp / "cizim" / f"{cikti_onek}_{olcu}_{i}.jpg", boyut) for i in (1, 2, 3, 4)]
 
         def dailybrief(haber, cikti_yolu=None, sayfa_no="1/1", **k):
             ortam.kayitci.kaydet("make_image.haber_dailybrief_slayti_ciz", (), {"cikti_yolu": cikti_yolu, "sayfa_no": sayfa_no,
                                                                               "foto_kaynak": haber.get("foto_kaynak"), "saf_editoryal": haber.get("saf_editoryal")})
+            if ortam.donusler.get("resim.aday_yok"):
+                return None
             _jpeg(Path(cikti_yolu))
             return cikti_yolu
 
         def ilan_slayti(ad):
             def f(ilan, *a, **k):
                 ortam.kayitci.kaydet(f"make_image.{ad}", (ilan.get("id"),), {})
+                ortam.ilan_cagri += 1
+                if ortam.donusler.get("resim.ilan_hata") and ortam.ilan_cagri > 3:  # ilk 3 çağrı yayın slaytları; sonrası video yolu
+                    raise RuntimeError("ilan çizim hatası")
                 return _jpeg(ortam.tmp / "ilan" / f"{ad}_{ilan.get('id')}.jpg")
             return f
 
@@ -498,6 +508,122 @@ senaryo("kapali_icerikte_taslak_islemi_engellenir", ["--tur", "haber", "--id", "
         lambda o: o.haber_ekle(756, durum="yayinlandi"))
 
 
+def _site_sahte(o: "Ortam", haber):
+    o.kayitci.kaydet("site_icerik.site_taslagi_gonder", (haber.get("id"),), {})
+    if o.donusler.get("site.hata"):
+        raise RuntimeError("site 401")
+    return {"id": 77}
+
+
+
+# --- ikinci dalga: hata/yedek yolları (kapsam ölçümünde altın çıktının görmediği satırlar) -----------------------
+import os as _os  # noqa: E402
+
+
+def _yerel_yok(o, id, adet=3, **kolon):
+    """Slayt dosyaları bu makinede YOK (Actions makinesi yeni açıldı), DB'de yalnız yollar/adresler var."""
+    yollar = [str(o.tmp / "yok" / f"h{id}_{i}.jpg") for i in range(adet)]
+    ek = {"slayt_yollari": json.dumps(yollar)}
+    o.haber_ekle(id, **{**ek, **kolon})
+
+
+DETAY_NEDIR = json.dumps({"format_turu": "nedir_dogrusu", "manset": "Nedir?"}, ensure_ascii=False)
+
+senaryo("haber_url_olmus_yerel_yok_detaydan_cizilir", ["--tur", "haber", "--id", "801", "--hedef", "ig"],
+        lambda o: _yerel_yok(o, 801, detay_metni=DETAY_HABER, slayt_urlleri=json.dumps(["https://uguu.se/eski.jpg"])))
+senaryo("haber_url_olmus_yerel_yok_otorite_cizici", ["--tur", "haber", "--id", "802", "--hedef", "ig"],
+        lambda o: _yerel_yok(o, 802, detay_metni=DETAY_OTORITE.replace('"slayt_4x5_urlleri"', '"_x"'),
+                             slayt_urlleri=json.dumps(["https://uguu.se/eski.jpg"])))
+senaryo("haber_url_olmus_yerel_yukleme_hatasi", ["--tur", "haber", "--id", "803", "--hedef", "ig"],
+        lambda o: o.haber_slaytlariyla(803, 3, detay_metni=DETAY_HABER, slayt_urlleri=json.dumps(["https://uguu.se/eski.jpg"])),
+        donusler={"upload_image.coklu_gorsel_yukle": RuntimeError("imgbb 500")})
+senaryo("haber_urlsiz_yerel_yok_detaydan_cizilir", ["--tur", "haber", "--id", "804", "--hedef", "ig,threads"],
+        lambda o: _yerel_yok(o, 804, detay_metni=DETAY_HABER))
+senaryo("haber_urlsiz_yerel_yok_otorite_cizici", ["--tur", "haber", "--id", "805", "--hedef", "ig"],
+        lambda o: _yerel_yok(o, 805, detay_metni=DETAY_OTORITE.replace('"slayt_4x5_urlleri"', '"_x"')))
+senaryo("haber_slayt_json_bozuk", ["--tur", "haber", "--id", "806", "--hedef", "ig"],
+        lambda o: o.haber_ekle(806, slayt_yollari="[bozuk", slayt_urlleri="bozuk", detay_metni=DETAY_HABER))
+senaryo("haber_detay_json_bozuk_hata", ["--tur", "haber", "--id", "807", "--hedef", "ig"],
+        lambda o: o.haber_slaytlariyla(807, 3, detay_metni="{bozuk"))
+senaryo("ilan_bulunamadi_hata", ["--tur", "ilan", "--id", "yok-ilan", "--hedef", "ig"], lambda o: None)
+senaryo("haber_id_sayi_degil", ["--tur", "haber", "--id", "abc", "--hedef", "ig"], lambda o: None)
+senaryo("story_yukleme_yok_yerel_yedek", ["--tur", "haber", "--id", "808", "--hedef", "story"],
+        lambda o: o.haber_slaytlariyla(808, 3, url_var=False),
+        donusler={"upload_image.coklu_gorsel_yukle": lambda o, ps, *a, **k: []})
+senaryo("reels_kayitli_video_slaytlardan_eski", ["--tur", "reels", "--id", "809", "--hedef", "reels,yt"],
+        lambda o: (_os.utime(o.dosya("kayitli", "eski.mp4"), (1_000_000, 1_000_000)),
+                   o.haber_slaytlariyla(809, 3, kategori="REELS", detay_metni=DETAY_HABER, video_yolu=str(o.tmp / "kayitli" / "eski.mp4"))))
+senaryo("reels_dikey_cizim_hatasi_slayt_yedegi", ["--tur", "reels", "--id", "810", "--hedef", "reels,yt"],
+        lambda o: o.haber_slaytlariyla(810, 5, kategori="REELS", detay_metni=DETAY_HABER), donusler={"resim.hata": True})
+senaryo("reels_dikey_cizim_hatasi_otorite", ["--tur", "reels", "--id", "811", "--hedef", "yt,story"],
+        lambda o: o.haber_slaytlariyla(811, 4, kategori="REELS", detay_metni=DETAY_OTORITE), donusler={"resim.hata": True})
+senaryo("video_nedir_dogrusu_uc_slayt", ["--tur", "haber", "--id", "812", "--hedef", "yt"],
+        lambda o: o.haber_slaytlariyla(812, 4, detay_metni=DETAY_NEDIR))
+senaryo("ilan_video_ilan_yolu_hatasi", ["--tur", "ilan", "--id", "ilan-11", "--hedef", "yt"],
+        lambda o: o.ilan_ekle("ilan-11"), donusler={"resim.ilan_hata": True})
+senaryo("fon_muzigi_mikslenemedi", ["--tur", "haber", "--id", "813", "--hedef", "yt,fb,reels"],
+        lambda o: o.haber_slaytlariyla(813, 3, detay_metni=DETAY_HABER), donusler={"ses.sesli_video_hazirla": RuntimeError("ffmpeg")})
+senaryo("telegram_bildirim_hatalari_yayini_bozmaz", ["--tur", "haber", "--id", "814", "--hedef", "yt,ig"],
+        lambda o: o.haber_slaytlariyla(814, 3, detay_metni=DETAY_HABER),
+        donusler={"telegram_bot.sonucu_yaz": RuntimeError("tg 500")})
+senaryo("telegram_video_ve_caption_hatalari", ["--tur", "haber", "--id", "815", "--hedef", "yt,ig"],
+        lambda o: o.haber_slaytlariyla(815, 3, detay_metni=DETAY_HABER),
+        donusler={"telegram_bot.video_gonder": RuntimeError("video 413"), "telegram_bot.mesaj_gonder": RuntimeError("tg 429")})
+senaryo("threads_tekil_basarisiz", ["--tur", "haber", "--id", "816", "--hedef", "threads"],
+        lambda o: o.haber_slaytlariyla(816, 1, detay_metni=DETAY_HABER), donusler={"threads.paylas": None})
+senaryo("threads_zincir_kok_yok", ["--tur", "haber", "--id", "817", "--hedef", "threads"],
+        lambda o: o.haber_slaytlariyla(817, 3, detay_metni=DETAY_HABER),
+        donusler={"threads.zincir_paylas_sonuc": {"kok_id": None, "yayinlanan": 0, "toplam": 2, "eksik": [1, 2]}})
+senaryo("threads_tek_parca_paylas_hata", ["--tur", "haber", "--id", "818", "--hedef", "threads"],
+        lambda o: o.haber_slaytlariyla(818, 3, detay_metni=DETAY_HABER),
+        donusler={"threads.metinleri_slaytlara_dagit": lambda o, h, u: ["tek"], "threads.paylas": None})
+senaryo("threads_reels_4x5_cizilir", ["--tur", "reels", "--id", "819", "--hedef", "threads"],
+        lambda o: o.haber_slaytlariyla(819, 3, kategori="REELS", detay_metni=DETAY_HABER))
+senaryo("threads_yerel_kirpma_hatasi", ["--tur", "haber", "--id", "820", "--hedef", "threads"],
+        lambda o: o.haber_slaytlariyla(820, 3, detay_metni=DETAY_HABER), donusler={"instagram.gorselleri_4_5_yap": RuntimeError("pillow")})
+senaryo("facebook_reels_basarisiz", ["--tur", "haber", "--id", "821", "--hedef", "reels,fb"],
+        lambda o: o.haber_slaytlariyla(821, 3, detay_metni=DETAY_HABER), donusler={"facebook.video_yayinla": None})
+senaryo("facebook_reels_istisna_ve_video_yok", ["--tur", "haber", "--id", "822", "--hedef", "reels,fb"],
+        lambda o: o.haber_slaytlariyla(822, 3, detay_metni=DETAY_HABER),
+        donusler={"facebook.video_yayinla": RuntimeError("fb 400"), "video.slaytlardan_reels_uret": RuntimeError("ffmpeg")})
+senaryo("tiktok_video_basarisiz_ve_istisna", ["--tur", "haber", "--id", "823", "--hedef", "tt,ses_muzikli"],
+        lambda o: o.haber_slaytlariyla(823, 3, detay_metni=DETAY_HABER),
+        donusler={"tiktok.video_yukle": {"durum": False, "hata": "kota"}})
+senaryo("tiktok_video_istisna", ["--tur", "haber", "--id", "824", "--hedef", "tt,ses_muzikli"],
+        lambda o: o.haber_slaytlariyla(824, 3, detay_metni=DETAY_HABER), donusler={"tiktok.video_yukle": RuntimeError("tt 500")})
+senaryo("tiktok_video_taslak", ["--tur", "haber", "--id", "825", "--hedef", "tt,ses_muzikli"],
+        lambda o: o.haber_slaytlariyla(825, 3, detay_metni=DETAY_HABER),
+        donusler={"tiktok.video_yukle": {"durum": True, "taslak_mi": True, "publish_id": "TTD2"}})
+senaryo("tiktok_video_yok", ["--tur", "haber", "--id", "826", "--hedef", "tt,reels"],
+        lambda o: o.haber_slaytlariyla(826, 3, detay_metni=DETAY_HABER), donusler={"video.slaytlardan_reels_uret": RuntimeError("ffmpeg")})
+senaryo("youtube_istisna", ["--tur", "haber", "--id", "827", "--hedef", "yt"],
+        lambda o: o.haber_slaytlariyla(827, 3, detay_metni=DETAY_HABER), donusler={"youtube.shorts_yukle": RuntimeError("quota")})
+senaryo("instagram_tekil_basarisiz", ["--tur", "haber", "--id", "828", "--hedef", "ig"],
+        lambda o: o.haber_slaytlariyla(828, 1, detay_metni=DETAY_HABER), donusler={"instagram.tekil_gorsel_yayinla": None})
+senaryo("instagram_istisna", ["--tur", "haber", "--id", "829", "--hedef", "ig"],
+        lambda o: o.haber_slaytlariyla(829, 3, detay_metni=DETAY_HABER), donusler={"instagram.carousel_yayinla": RuntimeError("meta 190")})
+senaryo("reels_telegram_video_hatasi", ["--tur", "reels", "--id", "830", "--hedef", "reels"],
+        lambda o: o.haber_slaytlariyla(830, 3, kategori="REELS", detay_metni=DETAY_HABER),
+        donusler={"telegram_bot.video_gonder": RuntimeError("413")})
+senaryo("reels_baslik_yok", ["--tur", "reels", "--id", "831", "--hedef", "reels"],
+        lambda o: o.haber_slaytlariyla(831, 3, kategori="REELS", detay_metni=DETAY_HABER, manset=None, orijinal_baslik="Başlık"))
+senaryo("manuel_paket_detay_bozuk_kapi", ["--tur", "haber", "--id", "832", "--hedef", "manuel_paket"],
+        lambda o: o.haber_ekle(832, detay_metni="{bozuk"))
+senaryo("manuel_paket_ilan_yok", ["--tur", "ilan", "--id", "yok-ilan", "--hedef", "manuel_paket"], lambda o: None)
+senaryo("foto_adaylar_hic_aday_yok", ["--tur", "haber", "--id", "833", "--hedef", "foto_adaylar"],
+        lambda o: o.haber_ekle(833, detay_metni=DETAY_HABER), donusler={"resim.aday_yok": True})
+senaryo("foto_islemi_haber_yok", ["--tur", "haber", "--id", "996", "--hedef", "foto_stok"], lambda o: None)
+senaryo("metin_islemi_haber_yok", ["--tur", "haber", "--id", "995", "--hedef", "metin_ozetle"], lambda o: None)
+senaryo("linkedin_detaysiz_haberden_veri", ["--tur", "haber", "--id", "834", "--hedef", "li"],
+        lambda o: o.haber_slaytlariyla(834, 3), donusler={"linkedin.kullanilabilir_mi": True})
+senaryo("site_taslagi_hatasi", ["--tur", "haber", "--id", "835", "--hedef", "ig"],
+        lambda o: o.haber_slaytlariyla(835, 3, detay_metni=DETAY_HABER), env={"EDM_SITE_ICERIK_AKTARIMI": "1"}, donusler={"site.hata": True})
+senaryo("mesajdan_ilan_bulunur", ["--hedef", "ig", "--mesaj-id", "78"],
+        lambda o: (o.ilan_ekle("ilan-12"), o.onay_ekle("ilan", "ilan-12", 78)))
+senaryo("ilan_zaten_yayinda_filtre_haber_degil", ["--tur", "ilan", "--id", "ilan-13", "--hedef", "ig,fb"],
+        lambda o: o.ilan_ekle("ilan-13"))
+
+
 def calistir(sen: dict) -> dict:
     o = Ortam(sen["donusler"])
     cikti = io.StringIO()
@@ -508,7 +634,7 @@ def calistir(sen: dict) -> dict:
             sen["kur"](o)
         with patch.dict(os.environ, sen["env"], clear=False), \
              patch.object(sys, "argv", ["yayinla.py", *sen["argv"]]), \
-             patch("src.site_icerik.site_taslagi_gonder", side_effect=lambda h: o.kayitci.kaydet("site_icerik.site_taslagi_gonder", (h.get("id"),), {}) or {"id": 77}), \
+             patch("src.site_icerik.site_taslagi_gonder", side_effect=lambda h: _site_sahte(o, h)), \
              contextlib.redirect_stdout(cikti):
             try:
                 yayinla.main()
