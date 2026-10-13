@@ -10,15 +10,19 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 299 ve 300
   dayanak_alintisi: "Kira sözleşmesi, kiraya verenin bir şeyin kullanılmasını veya kullanmayla birlikte ondan yararlanılmasını kiracıya bırakmayı, kiracının da buna karşılık kararlaştırılan kira bedelini ödemeyi üstlendiği sözleşmedir."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "Tanım (md. 299) ve puf 1 doğru. Puf 2 (md. 300: süre geçince bildirim olmaksızın sona erecek sözleşme belirli sürelidir) gündelik okura 'belirli süreli kira süre bitince kendiliğinden biter' dedirtiyor; konut ve çatılı işyerinde md. 347 bunun tersini kurar (kiracı en az on beş gün önce bildirmedikçe sözleşme bir yıl uzar; kiraya veren süre bitimine dayanarak sona erdiremez; ancak on yıllık uzama sonunda istisna). Hem kiracıyı (bildirimsiz çıkabilirim) hem kiraya vereni (süre bitince çıkarırım) yanıltabilir. md. 347'nin 'ancak' zinciri girmeden düzeltilemiyor ve A15b'deki KİRA UZAMASI / BELİRSİZ SÜRELİ KİRA ile örtüşüyor. Puf 3, puf 1'in söylediğini (iki tür vardır) tekrarlıyor. Öneri: tanım + puf 1 korunup süre tanımı puf'u çıkarılarak, konut ayrımı açıkça verilerek yeniden yazılmalı."
 - terim: TESLİM BORCU
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiraya verenin kiralananı kararlaştırılan tarihte, sözleşmede amaçlanan kullanıma elverişli bir durumda teslim etme ve sözleşme süresince bu durumda bulundurma yükümlülüğüdür."
   puf:
   - "Teslim borcuna ilişkin bu hüküm, konut ve çatılı işyeri kiralarında kiracı aleyhine değiştirilemez."
-  - "Diğer kira sözleşmelerinde bu hükme aykırı düzenleme, kiracı aleyhine genel işlem koşullarıyla yapılamaz."
+  - "Konut ve çatılı işyeri dışındaki kiralarda kiracı aleyhine genel işlem koşuluyla bu hükme aykırılık yapılamaz."
   mevzuat: 6098 sayılı Kanun md. 301
   dayanak_alintisi: "Kiraya veren, kiralananı kararlaştırılan tarihte, sözleşmede amaçlanan kullanıma elverişli bir durumda teslim etmek ve sözleşme süresince bu durumda bulundurmakla yükümlüdür."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım ve puf 1 md. 301 ile birebir. Puf 2 'Diğer kira sözleşmelerinde bu hükme aykırı düzenleme, kiracı aleyhine genel işlem koşullarıyla yapılamaz.' tek başına okunduğunda 'diğer' belirsizdi → 'Konut ve çatılı işyeri dışındaki kiralarda kiracı aleyhine genel işlem koşuluyla bu hükme aykırılık yapılamaz.'"
 - terim: SONRADAN AYIPLI HÂL
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiralananın sonradan ayıplı duruma gelmesi hâlinde kiracının, kiraya verenden ayıpların giderilmesini, kira bedelinden ayıpla orantılı indirim yapılmasını ya da zararının giderilmesini isteyebilmesidir."
@@ -28,34 +32,42 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 305
   dayanak_alintisi: "Kiralanan sonradan ayıplı duruma gelirse kiracı, kiraya verenden ayıpların giderilmesini veya kira bedelinden ayıpla orantılı bir indirim yapılmasını ya da zararının giderilmesini isteyebilir."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "Terim bir durumu ('sonradan ayıplı hâl') adlandırıyor, tanım ise kiracının haklarını ('isteyebilmesidir') veriyor: 'X nedir?' sorusunu cevaplamıyor; terim madde başlığına da uymuyor. md. 305 çatı maddedir, her hakkın koşulu sonraki maddelerde: giderme için uygun süre (md. 306), indirimin yalnız ayıbın kiraya verence öğrenilmesinden giderilmesine kadarki süre için istenebilmesi (md. 307), kiraya verenin kusursuzluğunu ispatla zarardan kurtulması (md. 308). Puf 2 'önemli ayıpta fesih hakkı saklıdır' hemen fesih izlenimi veriyor; md. 306 feshi, ayıbın kullanıma elverişliliği ortadan kaldırması ya da önemli ölçüde engellemesi VE verilen sürede giderilmemesi koşuluna bağlar. 'Seçimlik haklar', 'saklıdır' gündelik okura kapalı. Kapsam zinciri: tek kartla doğru anlatılamaz."
 - terim: AYIPTA KİRA İNDİRİMİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiralananın kullanımını etkileyen ayıplar bulunduğunda kiracının, kira bedelinden ayıpla orantılı bir indirim isteyebilmesidir."
   puf:
   - "İndirim, ayıbın kiraya veren tarafından öğrenilmesinden ayıbın giderilmesine kadar geçen süre için istenebilir."
-  - "Kusuru olmadığını ispat etmedikçe kiraya veren, kiralananın ayıplı olmasından doğan zararları da öder."
+  - "Kiraya veren, kusuru olmadığını ispat etmedikçe, kiralananın ayıplı olmasından doğan zararları kiracıya öder."
   mevzuat: 6098 sayılı Kanun md. 307 ve 308
   dayanak_alintisi: "Kiracı, kiralananın kullanımını etkileyen ayıpların varlığı hâlinde, bu ayıpların kiraya veren tarafından öğrenilmesinden ayıbın giderilmesine kadar geçen süre için, kira bedelinden ayıpla orantılı bir indirim yapılmasını isteyebilir."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım ve puf 1 (sürenin başlangıcı: ayıbın kiraya verence öğrenilmesi) md. 307 ile uyumlu. Puf 2 'Kusuru olmadığını ispat etmedikçe kiraya veren, kiralananın ayıplı olmasından doğan zararları da öder.' → 'da' (indirime ek olarak) birikim iddiası md. 305'ten gelir, atıfta yok; md. 308 metnine indirgendi: '... zararları kiracıya öder.'"
 - terim: ZAPTTAN SORUMLULUK
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Üçüncü bir kişinin kiralananda kiracının hakkıyla bağdaşmayan bir hak ileri sürmesi durumunda kiraya verenin kiracıya karşı sorumlu olmasıdır."
   puf:
-  - "Kiraya veren, kiracının bildirimi üzerine davayı üstlenmek zorundadır."
-  - "Kiraya veren, kiracının uğradığı her türlü zararı gidermekle yükümlüdür."
+  - "Kiraya veren, kiracının bildirimi üzerine bu hak iddiasına ilişkin davayı üstlenmek zorundadır."
+  - "Kiraya veren, bu hak iddiası yüzünden kiracının uğradığı her türlü zararı gidermekle yükümlüdür."
   mevzuat: 6098 sayılı Kanun md. 309
   dayanak_alintisi: "Bir üçüncü kişinin kiralananda kiracının hakkıyla bağdaşmayan bir hak ileri sürmesi durumunda kiraya veren, kiracının bildirimi üzerine davayı üstlenmek ve kiracının uğradığı her türlü zararı gidermekle yükümlüdür."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "İki puf md. 309'daki koşullu tek cümlenin iki yarısıydı; puf 2 tek başına 'kiraya veren kiracının uğradığı her türlü zararı gidermekle yükümlüdür' diye mutlak okunuyordu. Her ikisi üçüncü kişinin hak iddiasına bağlandı: 'davayı üstlenmek' → 'bu hak iddiasına ilişkin davayı üstlenmek'; 'her türlü zararı' → 'bu hak iddiası yüzünden ... her türlü zararı'."
 - terim: KİRADA EL DEĞİŞTİRME
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Sözleşmenin kurulmasından sonra kiralananın herhangi bir sebeple el değiştirmesi hâlinde yeni malikin, kira sözleşmesinin tarafı olmasıdır."
   puf:
-  - "Kamulaştırmaya ilişkin hükümler saklıdır."
-  - "Üçüncü kişi sonradan kiracının hakkını etkileyen bir ayni hak kazanırsa, el değiştirme hükümleri kıyas yoluyla uygulanır."
+  - "Kiralanan kamulaştırılırsa kamulaştırmaya ilişkin hükümler saklıdır."
   - "Taşınmaz kiralarında, kiracılık hakkının tapu siciline şerhi sözleşmeyle kararlaştırılabilir."
-  mevzuat: 6098 sayılı Kanun md. 310-312
+  - "Konut ve çatılı işyerinde yeni malik, gereksinim hâlinde md. 351'deki koşullarla dava açıp sözleşmeyi bitirebilir."
+  mevzuat: 6098 sayılı Kanun md. 310, 312 ve 351
   dayanak_alintisi: "Sözleşmenin kurulmasından sonra kiralanan herhangi bir sebeple el değiştirirse, yeni malik kira sözleşmesinin tarafı olur."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "puf[1] (md. 311, 121 karakter) çıkarıldı: sınırı aşıyordu, 'ayni hak' gündelik okurca 'aynı hak' okunur, 'kıyas yoluyla' teknik; atıftan md. 311 düştü. 'Kamulaştırmaya ilişkin hükümler saklıdır.' bağlamsızdı → 'Kiralanan kamulaştırılırsa kamulaştırmaya ilişkin hükümler saklıdır.' 'Yeni malik sözleşmenin tarafı olur' tek başına okura 'yeni malik beni çıkaramaz' dedirtebiliyordu; konut ve çatılı işyerinde yeni malikin gereksinim sebebiyle dava yoluyla sona erdirme hakkı (md. 351) atfa eklendi ve koşullarına yollayan puf yazıldı (ayrıntılı koşullar: bir ay içinde yazılı bildirim + altı ay sonra dava ya da süre bitiminden itibaren bir ay içinde dava; kişiler kapalı listedir)."
 - terim: KİRA ÖDEME ZAMANI
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının, aksine sözleşme ve yerel âdet olmadıkça, kira bedelini her ayın sonunda ve en geç kira süresinin bitiminde ödemekle yükümlü olmasıdır."
@@ -65,33 +77,43 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 313 ve 314
   dayanak_alintisi: "Kiracı, aksine sözleşme ve yerel âdet olmadıkça, kira bedelini ve gerekiyorsa yan giderleri, her ayın sonunda ve en geç kira süresinin bitiminde ödemekle yükümlüdür."
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "Tanım md. 314 ile birebir ve doğru, ama puf 1 (md. 313 'Kiracı, kira bedelini ödemekle yükümlüdür.') tanımın yarısını tekrar ediyor; md. 313-314'te tekrarsız ikinci bir puf'a yetecek içerik yok. Puf 2 'gerekiyorsa yan giderler de' kimin yan gider ödeyeceğini söylemeden kiracının yan gider ödediği izlenimini verebiliyor; buna kimin katlanacağı md. 303 (kiraya veren) ve md. 341 (konut ve çatılı işyerinde kullanma giderleri, aksi yoksa kiracı) ile belirlenir: zincir. Not: araç metni 'aksine sözleşme ve yerel âdet' diyor ('veya' değil); yeniden yazılırsa 've/veya' yorumuna girilmemeli."
 - terim: KİRACININ TEMERRÜDÜ
   kategori_kodu: KIRA_VE_TAHLIYE
-  tanim: "Kiralananın tesliminden sonra vadesi gelen kira bedelini veya yan gideri ödemeyen kiracıya, kiraya verenin yazılı olarak süre verip bu sürede de ödenmezse sözleşmeyi feshedeceğini bildirmesidir."
+  tanim: "Kiracının, kiralananın tesliminden sonra vadesi gelen kira bedelini veya yan gideri ödememesidir; kiraya veren bu durumda kiracıya yazılı olarak bir süre verip, bu sürede de ödenmezse sözleşmeyi feshedeceğini bildirebilir."
   puf:
   - "Verilecek süre en az on gündür; konut ve çatılı işyeri kiralarında en az otuz gündür."
   - "Süre, kiracıya yazılı bildirimin yapıldığı tarihi izleyen günden itibaren işlemeye başlar."
   mevzuat: 6098 sayılı Kanun md. 315
-  dayanak_alintisi: "Kiracıya verilecek süre en az on gün, konut ve çatılı işyeri kiralarında ise en az otuz gündür."
+  dayanak_alintisi: "Kiracı, kiralananın tesliminden sonra muaccel olan kira bedelini veya yan gideri ödeme borcunu ifa etmezse, kiraya veren kiracıya yazılı olarak bir süre verip, bu sürede de ifa etmeme durumunda, sözleşmeyi feshedeceğini bildirebilir."
   kontrol: '2026-10-13'
-- terim: AYIBI BİLDİRME
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım terimi karşılamıyordu: 'kiracının temerrüdü', kiraya verenin bildirimi olarak tanımlanmıştı ('... kiraya verenin ... bildirmesidir'). Yeni tanım: 'Kiracının ... ödememesidir; kiraya veren bu durumda kiracıya yazılı olarak bir süre verip ... bildirebilir.' Dayanak alıntısı süre cümlesinden iddianın asıl cümlesine (md. 315 ilk cümle) çevrildi. Puf'lar md. 315 ile birebir (süre başlangıcı dahil)."
+- terim: AYIPLARI BİLDİRME
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının, kendisinin gidermekle yükümlü olmadığı ayıpları kiraya verene gecikmeksizin bildirme yükümlülüğüdür."
   puf:
   - "Bildirimde bulunmayan kiracı, bundan doğan zarardan sorumlu olur."
-  - "Kiracı, ayıbı giderme ya da zararı önleme çalışmalarına katlanır; kira indirimi ve zarar hakları saklıdır."
+  - "Kiracı, ayıp giderme ve zarar önleme çalışmalarına katlanır; kiraya veren bunları uygun süre önce bildirmelidir."
+  - "Kiraya veren çalışmalarda kiracının yararını gözetir; kiracının kira indirimi ve zarar giderimi hakları saklıdır."
   mevzuat: 6098 sayılı Kanun md. 318 ve 319
   dayanak_alintisi: "Kiracı, kendisinin gidermekle yükümlü olmadığı ayıpları kiraya verene gecikmeksizin bildirmekle yükümlüdür; aksi takdirde bundan doğan zarardan sorumludur."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Terim 'AYIBI BİLDİRME' → 'AYIPLARI BİLDİRME' (madde başlığı: 'Ayıpları kiraya verene bildirme borcu'; 'AYIP BİLDİRME BORCU' başlık tabanına sığmadı); eski terim doğrulayıcıda yalancı ⛔ SÜRE KAYNAKTA YOK veriyordu ('SZ-999 AYIBI', 'md. 319 AYIBI' → '999 ay', '319 ay'). Eski puf 2 'Kiracı, ayıbı giderme ya da zararı önleme çalışmalarına katlanır; kira indirimi ve zarar hakları saklıdır.' md. 319'u eksik aktarıyordu (kiraya verenin çalışmaları uygun süre önce bildirme ve kiracının yararını gözetme yükümlülüğü yoktu, 'zarar hakları' belirsizdi): iki puf'a ayrılıp tamamlandı. Tanım ve puf 1 md. 318 ile birebir."
 - terim: KİRALANANI GÖSTERME
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiracının, bakım, satış ya da sonraki kiralama için zorunlu olduğu ölçüde, kiraya verenin ve onun belirlediği üçüncü kişinin kiralananı gezip görmesine izin verme yükümlülüğüdür."
   puf:
   - "Kiraya veren, kiralananın gezilip görüleceğini uygun bir süre önce kiracıya bildirmek zorundadır."
   - "Kiraya veren, gezip görme sırasında kiracının yararlarını göz önünde tutmak zorundadır."
+  - "Kiracının kira bedelinin indirilmesine ve zararının giderilmesine ilişkin hakları saklıdır."
   mevzuat: 6098 sayılı Kanun md. 319
   dayanak_alintisi: "Kiracı, bakım, satış ya da sonraki kiralama için zorunlu olduğu ölçüde, kiraya verenin ve onun belirlediği üçüncü kişinin kiralananı gezip görmesine izin vermekle yükümlüdür."
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Tanım ve puf 1-2 md. 319 ile birebir. Maddenin son cümlesi ('Kiracının kira bedelinin indirilmesine ve zararının giderilmesine ilişkin hakları saklıdır.') gezip görmeyi de kapsıyor ama kartta yoktu; puf 3 olarak eklendi."
 - terim: YENİLİK VE DEĞİŞİKLİK
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: "Kiraya verenin, kiralananda kira sözleşmesinin feshini gerektirmeyen ve kiracıdan katlanması beklenebilecek yenilik ve değişiklikleri yapabilmesidir."
@@ -101,3 +123,5 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 320
   dayanak_alintisi: "Kiraya veren, kiralananda, kira sözleşmesinin feshini gerektirmeyen ve kiracıdan katlanması beklenebilecek olan yenilik ve değişiklikler yapabilir."
   kontrol: '2026-10-13'
+  inceleme: onay
+  inceleme_notu: "md. 320 üç cümlesi eksiksiz: tanım + menfaati gözetme + saklı haklar. Terim madde başlığından (kiraya veren tarafından); kiracının yaptığı değişiklik md. 321'dedir (A15b RIZAYLA DEĞİŞİKLİK)."

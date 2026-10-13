@@ -410,7 +410,7 @@ _SAYI_SOZ = r"(?:yüz(?:\s*(?:on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|d
 # süre sayılmaz: "md. 319 ayıp" → "319 ay", "bir ayrı madde" → "bir ay" ⛔ SÜRE KAYNAKTA YOK veriyordu (2026-10-13, sözlük
 # dalgası: kira/satış AYIP kartları hiç geçemiyordu).
 _SURE = re.compile(
-    rf"(?:(?<![\d.,])\b(\d+)\s*|\b({_SAYI_SOZ})\s+)(iş\s+günü|gün(?!ey|dem|ah|ce)|hafta|ay(?!ıp|rı|nı|kı)|yıl(?!dız|an))", re.I)
+    rf"(?:(?<![\d.,])\b(\d+)\s*|\b({_SAYI_SOZ})\s+)(iş\s+günü|gün(?!ey|dem|ah|ce)|hafta|ay(?!ıp|ıb|rı|nı|kı)|yıl(?!dız|an))", re.I)
 # "beşte dör": kanun metni "beşte dördünün" yazar (dört → dördü, t→d ünsüz yumuşaması); "beşte dört"
 # diye aramak doğru içeriği yanlışlıkla ⛔ yapıyordu (KMK md. 28, 2026-10-07).
 CUNLUK_IFADELERI = ("üçte iki", "salt çoğunluk", "oybirliği", "dörtte üç", "beşte dör")
