@@ -454,10 +454,18 @@ class TestTemsilciKartlar(unittest.TestCase):
         self.assertIn(kartlar[0]["kod"], kodlar)
         self.assertIn(kartlar[25]["kod"], kodlar)
 
-    def test_gercek_arsiv_bugun_tamami_doner(self):
+    def test_gercek_arsivde_temsilciler_gecerli(self):
+        """≤60 kartta arşivin tamamı; daha büyük arşivde sıralı, 60'ı aşmayan, arşivden gelen örneklem."""
         sa._onbellek = None
         kartlar = sa.kartlari_yukle(tazele=True)
-        self.assertEqual(sa.temsilci_kartlar(), kartlar)
+        sec = sa.temsilci_kartlar()
+        if len(kartlar) <= 60:
+            self.assertEqual(sec, kartlar)
+        else:
+            kodlar = [k["kod"] for k in sec]
+            self.assertLessEqual(len(sec), 60)
+            self.assertEqual(kodlar, sorted(kodlar))
+            self.assertTrue(set(kodlar) <= {k["kod"] for k in kartlar})
 
 
 if __name__ == "__main__":

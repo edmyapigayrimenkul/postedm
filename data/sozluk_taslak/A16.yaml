@@ -6,7 +6,7 @@ kartlar:
   puf:
   - Kiraya veren, sözleşme süresinin bitimine dayanarak sözleşmeyi sona erdiremez.
   - Ancak on yıllık uzama süresi sonunda, her uzama yılı bitiminden en az üç ay önce bildirip sebepsiz son verebilir.
-  - Konut ve çatılı işyeri kiralarında fesih bildirimi ancak yazılı yapılırsa geçerlidir.
+  - Fesih bildirimi, konut ve çatılı işyeri kiralarında ancak yazılı yapılırsa geçerlidir.
   mevzuat: 6098 sayılı Kanun md. 347 ve 348
   dayanak_alintisi: Konut ve çatılı işyeri kiralarında kiracı, belirli süreli sözleşmelerin süresinin bitiminden en az onbeş gün önce bildirimde bulunmadıkça, sözleşme aynı koşullarla bir yıl için uzatılmış sayılır.
   kontrol: '2026-10-13'
@@ -74,12 +74,14 @@ kartlar:
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Kiralananı sonradan edinen kişinin, kendisi, eşi, altsoyu, üstsoyu veya kanun gereği bakmakla yükümlü olduğu kişiler için konut ya da işyeri gereksinimi sebebiyle kullanma zorunluluğu varsa sözleşmeyi dava ile sona erdirebilmesidir.
   puf:
-  - Edinme tarihinden başlayarak bir ay içinde durum kiracıya yazılı olarak bildirilmelidir.
-  - Bu bildirim koşuluyla sözleşme, altı ay sonra açılacak bir davayla sona erdirilebilir.
-  - Sözleşme süresinin bitiminden başlayarak bir ay içinde açılacak dava yoluyla da bu hak kullanılabilir.
-  mevzuat: 6098 sayılı Kanun md. 351
-  dayanak_alintisi: Kiralananı sonradan edinen kişi, dilerse gereksinim sebebiyle sözleşmeyi sona erdirme hakkını, sözleşme süresinin bitiminden başlayarak bir ay içinde açacağı dava yoluyla da kullanabilir.
+  - Edinme tarihinden bir ay içinde durumu kiracıya yazılı bildirirse, altı ay sonra açacağı davayla sona erdirebilir.
+  - Dilerse bu hakkı, sözleşme süresinin bitiminden başlayarak bir ay içinde açacağı davayla da kullanabilir.
+  - Bu sürede dava açılacağı kiracıya yazılı bildirilmişse, dava süresi bir kira yılı uzar.
+  mevzuat: 6098 sayılı Kanun md. 351 ve 353
+  dayanak_alintisi: Kiralananı sonradan edinen kişi, onu kendisi, eşi, altsoyu, üstsoyu veya kanun gereği bakmakla yükümlü olduğu diğer kişiler için konut veya işyeri gereksinimi sebebiyle kullanma zorunluluğu varsa, edinme tarihinden başlayarak bir ay içinde durumu kiracıya yazılı olarak bildirmek koşuluyla, kira sözleşmesini altı ay sonra açacağı bir davayla sona erdirebilir.
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Terim md. 351'in kanundaki başlığı ('Yeni malikin gereksinimi'), tanım maddeyle uyumlu. Arşivdeki İHTİYAÇTAN TAHLİYE kiraya verenin md. 350/1 hakkını anlatıyor; yeni malikin ayrı süre ve bildirim düzeni olan md. 351 anlamca tekrar değil. Düzeltmeler: (1) Eski puf[0] ('Edinme tarihinden başlayarak bir ay içinde durum kiracıya yazılı olarak bildirilmelidir.') tek başına mutlak bir yükümlülük gibi duruyordu; oysa yazılı bildirim yalnız altı ay sonra açılan dava yolunun koşulu, sözleşme bitiminden sonraki bir aylık dava yolunda gerekmez. Eski puf[0] ve puf[1] maddedeki koşul cümlesi olarak birleştirildi: 'Edinme tarihinden bir ay içinde durumu kiracıya yazılı bildirirse, altı ay sonra açacağı davayla sona erdirebilir.' ('altı ay sonra'nın başlangıcı maddede de belirtilmemiş; kart maddenin sözünü aynen koruyor, yorum eklemedi.) (2) Eski puf[2] maddenin ikinci cümlesine yaklaştırıldı ('Dilerse bu hakkı ... da kullanabilir'). (3) Eksik bırakarak yanıltma: md. 353'e göre dava açılacağı süre içinde kiracıya yazılı bildirilirse dava süresi bir kira yılı uzar; md. 353 mevzuata eklendi, puf[2] olarak yazıldı (edilgen kuruldu: md. 353 'kiraya veren' diyor, kartta bu kişi yeni malik). (4) Dayanak alıntısı, tanımın koşullarını tam destekleyen maddenin birinci cümlesiyle değiştirildi (birebir)."
 - terim: İKİ HAKLI İHTAR
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Kiracının kira bedelini ödememesi nedeniyle kendisine yazılı olarak iki haklı ihtarda bulunulmasına sebep olması hâlinde, kiraya verenin sözleşmeyi dava yoluyla sona erdirebilmesidir.
@@ -90,24 +92,31 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 352
   dayanak_alintisi: Kiracı, bir yıldan kısa süreli kira sözleşmelerinde kira süresi içinde; bir yıl ve daha uzun süreli kira sözleşmelerinde ise bir kira yılı veya bir kira yılını aşan süre içinde kira bedelini ödemediği için kendisine yazılı olarak iki haklı ihtarda bulunulmasına sebep olmuşsa kiraya veren, kira süresinin ve bir yıldan uzun süreli kiralarda ihtarların yapıldığı kira yılının bitiminden başlayarak bir ay içinde, dava yoluyla kira sözleşmesini sona erdirebilir.
   kontrol: '2026-10-13'
-- terim: KİRACININ BAŞKA KONUTU
+  inceleme: red
+  inceleme_notu: "Terim ve tanım doğru, ama kart bu hâliyle yayınlanamaz ve üç maddeye sığacak biçimde kurtarılamıyor. (1) puf[1] maddenin en tartışmalı ifadesini ('bir kira yılı veya bir kira yılını aşan süre içinde') açıklamadan aktarıyor; gündelik okur bunu 'iki ihtar bir yılı aşan herhangi bir süreye yayılabilir' diye okuyabilir. Maddenin sözü kendi başına net değil; kart netleştiremez (yorum eklemek yasak), olduğu gibi aktarmak ise okura kullanılabilir bir kural vermiyor. (2) puf[2] Türkçe olarak bozuk: 'Dava, kira süresinin; bir yıldan uzun kirada ...' (iyelik eki askıda kalıyor, maddedeki 've' noktalı virgüle çevrilmiş). (3) Eksik bırakarak yanıltma: md. 353'e göre kiraya veren dava açma süresi içinde dava açacağını kiracıya yazılı bildirirse süre bir kira yılı uzar; kart 'bir ay içinde açılır' diyor. Bu kuralı eklemek dördüncü madde gerektiriyor, puf en fazla 3 madde. (4) puf[1] 117, puf[2] 122 karakter. Öneri: kısa/uzun süreli ayrımı tanıma alınarak, dava süresi ve md. 353 iki ayrı puf'ta yeniden yazılmalı; 'bir kira yılını aşan süre' ifadesinin nasıl aktarılacağına insan karar vermeli."
+- terim: KONUTU OLAN KİRACI
   kategori_kodu: KIRA_VE_TAHLIYE
-  tanim: Kiracının veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu varsa, kiraya verenin sözleşmeyi dava yoluyla sona erdirebilmesidir.
+  tanim: Kendisinin veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu bulunan kiracıdır; kiraya veren bunu sözleşme kurulurken bilmiyorsa sözleşmeyi dava ile sona erdirebilir.
   puf:
-  - Kiraya veren bu yola, sözleşmenin kurulması sırasında söz konusu konutu bilmiyorsa başvurabilir.
   - Dava, sözleşmenin bitiminden başlayarak bir ay içinde açılmalıdır.
-  mevzuat: 6098 sayılı Kanun md. 352
+  - Kiraya veren bu sürede dava açacağını kiracıya yazılı bildirmişse, dava süresi bir kira yılı uzar.
+  mevzuat: 6098 sayılı Kanun md. 352 ve 353
   dayanak_alintisi: Kiracının veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu bulunması durumunda kiraya veren, kira sözleşmesinin kurulması sırasında bunu bilmiyorsa, sözleşmenin bitiminden başlayarak bir ay içinde sözleşmeyi dava yoluyla sona erdirebilir.
   kontrol: '2026-10-13'
-- terim: KİRACININ ÖNCELİK HAKKI
+  inceleme: duzeltildi
+  inceleme_notu: "(1) Terim 'KİRACININ BAŞKA KONUTU' başlık yerleşimine sığmıyordu (çizim hatası) → 'KONUTU OLAN KİRACI' (md. 352/3'teki 'kiracının ... konutu bulunması' ifadesine en yakın kısa biçim; kanunda bu sebebin ayrı başlığı yok). Tanım terime uydurularak 'X nedir?' sorusunu cevaplayacak biçimde kuruldu. (2) Eski tanım, kiraya verenin hakkını koşulsuz veriyordu ('konutu varsa ... sona erdirebilmesidir'); maddedeki temel koşul 'kira sözleşmesinin kurulması sırasında bunu bilmiyorsa' yalnız puf[0]'daydı. Bu koşul tanıma alındı ('kiraya veren bunu sözleşme kurulurken bilmiyorsa'), eski puf[0] tanımı tekrar edeceği için çıkarıldı. (3) Eksik bırakarak yanıltma: puf[0] 'bir ay içinde açılmalıdır' diyordu; md. 353'e göre kiraya veren bu süre içinde dava açacağını kiracıya yazılı bildirirse dava süresi bir kira yılı uzar. md. 353 mevzuata eklendi, puf[1] olarak yazıldı. Diğer koşullar (kiracı ya da birlikte yaşadığı eşi, aynı ilçe veya belde belediye sınırları, oturmaya elverişli) maddedeki sözle korundu."
+- terim: ESKİ KİRACI ÖNCELİĞİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Yeniden inşa ve imarı gerçekleştirilen taşınmazı, eski kiracının yeni durumu ve yeni kira bedeliyle kiralamada sahip olduğu önceliktir.
   puf:
   - Hak, kiraya verenin yapacağı yazılı bildirimi izleyen bir ay içinde kullanılmalıdır.
-  - Kanuna aykırılıkta eski kiracıya, son kira yılında ödenmiş bir yıllık kira bedelinden az olmamak üzere tazminat ödenir.
+  - Bu hak sona erdirilmedikçe taşınmaz, üç yıl geçmeden başkasına kiralanamaz.
+  - Aykırılıkta kiraya veren, eski kiracıya son kira yılında ödenen bir yıllık kiradan az olmamak üzere tazminat öder.
   mevzuat: 6098 sayılı Kanun md. 355
   dayanak_alintisi: Eski kiracının, yeniden inşa ve imarı gerçekleştirilen taşınmazları, yeni durumu ve yeni kira bedeli ile kiralama konusunda öncelik hakkı vardır.
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "(1) Terim 'KİRACININ ÖNCELİK HAKKI' başlık yerleşimine sığmıyordu (doğrulayıcı ilk turda yapı hatası yüzünden göstermedi; ayrı denendi) ve çift anlamlıydı: emlak okuru 'kiracının öncelik hakkı'nı ev satılırken kiracının satın almada önceliği diye anlar (arşivdeki ÖNALIM HAKKI ile karışır). Kanundaki 'Eski kiracının ... öncelik hakkı' ifadesine göre 'ESKİ KİRACI ÖNCELİĞİ' yapıldı. (2) Eksik bırakarak yanıltma: md. 355/3'ün ikinci yarısı ('bu öncelik hakkı sona erdirilmedikçe, taşınmaz üç yıl geçmeden başkasına kiralanamaz') kartta yoktu; hakkın asıl güvencesi bu. Yeni puf[1] olarak eklendi. (3) Eski puf[1] 119 karakterdi ve 'Kanuna aykırılıkta' belirsizdi (maddede 'bu hükümlere aykırı davrandığı takdirde', yani md. 355'teki yasaklara); kim ödüyor da yazmıyordu → 'Aykırılıkta kiraya veren, eski kiracıya son kira yılında ödenen bir yıllık kiradan az olmamak üzere tazminat öder.' (puf[1]'in hemen ardından geldiği için 'aykırılık' bu yasağa bağlanıyor). Tanım ve puf[0] md. 355 ile birebir."
 - terim: ÖLÜMDE KİRAYI SÜRDÜRME
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Konut ve çatılı işyeri kiralarında kiracı ölünce, kanunda sayılan kişilerin kira sözleşmesini taraf olarak sürdürebilmesidir.
@@ -118,6 +127,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 356
   dayanak_alintisi: Ölen kiracının ortakları veya bu ortakların aynı meslek ve sanatı yürüten mirasçıları ve ölen kiracı ile birlikte aynı konutta oturanlar, sözleşmeye ve kanun hükümlerine uydukları sürece, taraf olarak kira sözleşmesini sürdürebilirler.
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "(1) Terim başlık yerleşimine sığmıyor; kanundaki başlık ('Kiracının ölümünde sözleşmenin sürdürülmesi') kısaltılınca ya ölüm ya sürdürme düşüyor ('KİRAYI SÜRDÜRME', 'ÖLÜMDE SÜRDÜRME' anlamı taşımıyor). (2) Kapalı liste açık liste gibi sunulmuş: md. 356 sürdürebilecek kişileri sayıyor; kart tanımda 'kanunda sayılan kişiler' deyip puf'larda 'Bunlardan biri ... Bir diğeri' diyor, listenin bittiği anlaşılmıyor. (3) Kapsam zinciri: aynı kanunun md. 333'üne göre kiracı ölünce mirasçıları sözleşmeyi feshedebilir, yani sözleşmede mirasçılar da vardır. Kart 'kira sözleşmesini sürdürebilecekler kanunda sayılan kişilerdir' izlenimi verdiği için okur, listede olmayan mirasçıların (ör. kiracının başka evde oturan çocukları) sözleşmeyle ilgisi kalmadığını sanabilir. md. 333 ile md. 356'nın ilişkisi kartta kurulmadan doğru anlatılamaz. (4) Maddedeki 'bu ortakların aynı meslek ve sanatı yürüten mirasçıları' ifadesi (ölen kiracının değil ortakların mirasçıları) gündelik okura anlamsız geliyor; kart açıklamadan aktarıyor, yorum eklemek de yasak. (5) puf[0] ve puf[1] tek bir listenin parçaları. Kurtarmak terimin, tanımın ve maddelerin yeniden kurulmasını ve md. 333'ün ele alınmasını gerektiriyor."
 - terim: KONUT KİRASI KAPSAMI
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Konut ve çatılı işyeri kiralarına ilişkin hükümlerin hangi kira sözleşmelerine uygulanacağını belirleyen kuraldır.
@@ -128,6 +139,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 339
   dayanak_alintisi: Konut ve çatılı işyeri kiralarına ilişkin hükümler, bunlarla birlikte kullanımı kiracıya bırakılan eşya hakkında da uygulanır.
   kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: "İçerik md. 339 ile uyumlu (eşya, altı ay ve daha kısa süreli geçici kullanım istisnası, kamu kurum ve kuruluşlarının bütün kira sözleşmeleri doğru aktarılmış), ama kart biçim olarak kurtarılamadı: (1) Terim başlık tabanına sığmıyor ('KONUT KİRASI KAPSAMI' 112 pt'ye düşüyor, taban 114; doğrulayıcı ilk turda yapı hatası yüzünden göstermedi, ayrı denendi). Sığan kısa biçimler ya Türkçe olarak bozuk ('KONUT KİRA KAPSAMI') ya da kanundaki kavramdan uzaklaşıyor ('KONUT VE İŞYERİ KİRASI' çatılı kaydını düşürür; açık alan işyeri kiraları bu hükümlerin dışında kalır, okur kapsamda sanar). (2) Mevcut terim de kavramı daraltıyor: madde 'Konut ve Çatılı İşyeri Kiraları' ayırımının kapsamı; terim yalnız konutu anıyor, işyeri kiracısı kendisini kapsam dışı sanabilir. (3) puf[1] 116 karakter. Terim seçimi orkestratörün kararı olmalı; içerik yeniden kullanılabilir."
 - terim: ÜRÜN KİRASI
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Kiraya verenin, kiracıya ürün veren bir şeyin veya hakkın kullanılmasını ve ürünlerin devşirilmesini (toplanmasını) bedel karşılığında bırakmayı üstlendiği sözleşmedir.
@@ -138,6 +151,8 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 357 ve 358
   dayanak_alintisi: Ürün kirası kiraya verenin, kiracıya, ürün veren bir şeyin veya hakkın kullanılmasını ve ürünlerin devşirilmesini bedel karşılığında bırakmayı üstlendiği sözleşmedir.
   kontrol: '2026-10-13'
+  inceleme: onay
+  inceleme_notu: "Tanım md. 357/1 ile birebir; '(toplanmasını)' açıklaması 'devşirilmesini' sözcüğünün doğru karşılığı, hukuki anlam eklemiyor. puf[0] ve puf[1] md. 357'nin ikinci ve üçüncü cümleleri (ürüne katılmalı kira ve oranın yerel âdete göre belirlenmesi), puf[2] md. 358 ile birebir; md. 358'in genel hükümlere yollaması kartta yalnız yollama olarak veriliyor, okuru yanıltacak bir sonuç çıkarılmıyor. Tanım ile maddeler birbirini tekrar etmiyor. Not: dosya başlığı A16'yı konut ve çatılı işyeri kiraları olarak anıyor, ürün kirası bu bölümün dışında ama dosyada; içerik yönünden sorun yok."
 - terim: OLAĞANÜSTÜ KİRA İNDİRİMİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Tarımsal bir taşınmazın verimi olağanüstü felaket veya doğal olaylar yüzünden önemli ölçüde azalırsa kiracının kira bedelinde indirim isteyebilmesidir.
@@ -147,7 +162,9 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 363
   dayanak_alintisi: Tarımsal bir taşınmazın her zamanki verimi, olağanüstü felaket veya doğal olaylar yüzünden önemli ölçüde azalırsa kiracı, kira bedelinden orantılı bir miktarın indirilmesini isteyebilir.
   kontrol: '2026-10-13'
-- terim: ÜRÜN VE YETİŞME GİDERLERİ
+  inceleme: red
+  inceleme_notu: "İçerik md. 363 ile çelişmiyor, ama kart terimden itibaren yeniden kurulmalı: (1) Terim başlık yerleşimine sığmıyor (doğrulayıcı ilk turda yapı hatası yüzünden göstermedi; ayrı denendi). Kanundaki başlığın ('Olağanüstü durumlarda kira bedelinden indirim') sığan kısa biçimi 'OLAĞANÜSTÜ İNDİRİM' gündelik dilde mağaza kampanyası sözü; sığan diğer adlar ('VERİM KAYBI İNDİRİMİ', 'ÜRÜN KİRASI İNDİRİMİ') kanunda olmayan uydurma adlar. (2) Mevcut terim de yanıltıcı: 'OLAĞANÜSTÜ KİRA İNDİRİMİ' tarımsal taşınmaz ve ürün kirası kaydını taşımıyor; deprem ya da salgın sonrası konut veya dükkân kiracısı kendisine uygulanan bir indirim hakkı sanabilir. (3) puf[0] ('Kiracı, kira bedelinden orantılı bir miktarın indirilmesini isteyebilir.') tanımın ikinci yarısının tekrarı, yalnız 'orantılı' sözcüğünü ekliyor. (4) puf[1] 124 karakter; kısaltırken 'ancak ... veya ...' yapısındaki iki koşuldan biri ya da 'ancak' sınırlaması düşüyor. (5) Tanımda maddedeki 'her zamanki verimi' 'verimi'ne indirgenmiş (azalmanın neye göre ölçüleceği). Kurtarmak terim, tanım ve iki maddenin baştan yazılmasını gerektiriyor."
+- terim: YETİŞME GİDERLERİ
   kategori_kodu: KIRA_VE_TAHLIYE
   tanim: Tarımsal bir taşınmazın kiracısının, kira sona erdiğinde henüz devşirilmemiş ürün için yaptığı tarım giderlerini kiraya verenden tazminat olarak isteyebilmesidir.
   puf:
@@ -156,3 +173,5 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 374
   dayanak_alintisi: Ancak kiracı, ürünün yetişmesi için yapmış olduğu tarım giderlerinin hâkim tarafından belirlenecek miktarını, kiraya verenden tazminat olarak isteyebilir ve bu tazminat işlemiş kiralardan indirilir.
   kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: "Terim 'ÜRÜN VE YETİŞME GİDERLERİ' (md. 374'ün kanundaki başlığı) başlık yerleşimine sığmıyordu → 'YETİŞME GİDERLERİ' (aynı başlığın kısaltması; tanımdaki 'ürünün yetişmesi için yapılan tarım giderleri' ile uyumlu). Başka değişiklik yok. İçerik denetimi: tanım, puf[0] (kiracının devşirilmemiş ürün üzerinde hak ileri sürememesi) ve puf[1] (miktarı hâkimin belirlemesi, tazminatın işlemiş kiralardan indirilmesi) md. 374'ün iki cümlesiyle birebir; tanımda miktar sınırı yok ama hemen puf[1]'de veriliyor, tanım 'giderlerin tamamı ödenir' demiyor. Kapsam (tarımsal taşınmaz kiracısı) maddedeki gibi."

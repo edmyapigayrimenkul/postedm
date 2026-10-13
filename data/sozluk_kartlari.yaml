@@ -426,3 +426,294 @@ kartlar:
   mevzuat: 3402 sayılı Kanun md. 12
   dayanak_alintisi: 30 günlük ilan süresi geçtikten sonra, dava açılmayan kadastro tutanaklarına ait sınırlandırma ve tespitler kesinleşir.
   kontrol: '2026-10-13'
+- kod: SZ-039
+  terim: TESLİM BORCU
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiraya verenin kiralananı kararlaştırılan tarihte, sözleşmede amaçlanan kullanıma elverişli bir durumda teslim etme ve sözleşme süresince bu durumda bulundurma yükümlülüğüdür.
+  puf:
+  - Teslim borcuna ilişkin bu hüküm, konut ve çatılı işyeri kiralarında kiracı aleyhine değiştirilemez.
+  - Konut ve çatılı işyeri dışındaki kiralarda kiracı aleyhine genel işlem koşuluyla bu hükme aykırılık yapılamaz.
+  mevzuat: 6098 sayılı Kanun md. 301
+  dayanak_alintisi: Kiraya veren, kiralananı kararlaştırılan tarihte, sözleşmede amaçlanan kullanıma elverişli bir durumda teslim etmek ve sözleşme süresince bu durumda bulundurmakla yükümlüdür.
+  kontrol: '2026-10-13'
+- kod: SZ-040
+  terim: AYIPTA KİRA İNDİRİMİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiralananın kullanımını etkileyen ayıplar bulunduğunda kiracının, kira bedelinden ayıpla orantılı bir indirim isteyebilmesidir.
+  puf:
+  - İndirim, ayıbın kiraya veren tarafından öğrenilmesinden ayıbın giderilmesine kadar geçen süre için istenebilir.
+  - Kiraya veren, kusuru olmadığını ispat etmedikçe, kiralananın ayıplı olmasından doğan zararları kiracıya öder.
+  mevzuat: 6098 sayılı Kanun md. 307 ve 308
+  dayanak_alintisi: Kiracı, kiralananın kullanımını etkileyen ayıpların varlığı hâlinde, bu ayıpların kiraya veren tarafından öğrenilmesinden ayıbın giderilmesine kadar geçen süre için, kira bedelinden ayıpla orantılı bir indirim yapılmasını isteyebilir.
+  kontrol: '2026-10-13'
+- kod: SZ-041
+  terim: ZAPTTAN SORUMLULUK
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Üçüncü bir kişinin kiralananda kiracının hakkıyla bağdaşmayan bir hak ileri sürmesi durumunda kiraya verenin kiracıya karşı sorumlu olmasıdır.
+  puf:
+  - Kiraya veren, kiracının bildirimi üzerine bu hak iddiasına ilişkin davayı üstlenmek zorundadır.
+  - Kiraya veren, bu hak iddiası yüzünden kiracının uğradığı her türlü zararı gidermekle yükümlüdür.
+  mevzuat: 6098 sayılı Kanun md. 309
+  dayanak_alintisi: Bir üçüncü kişinin kiralananda kiracının hakkıyla bağdaşmayan bir hak ileri sürmesi durumunda kiraya veren, kiracının bildirimi üzerine davayı üstlenmek ve kiracının uğradığı her türlü zararı gidermekle yükümlüdür.
+  kontrol: '2026-10-13'
+- kod: SZ-042
+  terim: KİRADA EL DEĞİŞTİRME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Sözleşmenin kurulmasından sonra kiralananın herhangi bir sebeple el değiştirmesi hâlinde yeni malikin, kira sözleşmesinin tarafı olmasıdır.
+  puf:
+  - Kiralanan kamulaştırılırsa kamulaştırmaya ilişkin hükümler saklıdır.
+  - Taşınmaz kiralarında, kiracılık hakkının tapu siciline şerhi sözleşmeyle kararlaştırılabilir.
+  - Konut ve çatılı işyerinde yeni malik, gereksinim hâlinde md. 351'deki koşullarla dava açıp sözleşmeyi bitirebilir.
+  mevzuat: 6098 sayılı Kanun md. 310, 312 ve 351
+  dayanak_alintisi: Sözleşmenin kurulmasından sonra kiralanan herhangi bir sebeple el değiştirirse, yeni malik kira sözleşmesinin tarafı olur.
+  kontrol: '2026-10-13'
+- kod: SZ-043
+  terim: KİRACININ TEMERRÜDÜ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının, kiralananın tesliminden sonra vadesi gelen kira bedelini veya yan gideri ödememesidir; kiraya veren bu durumda kiracıya yazılı olarak bir süre verip, bu sürede de ödenmezse sözleşmeyi feshedeceğini bildirebilir.
+  puf:
+  - Verilecek süre en az on gündür; konut ve çatılı işyeri kiralarında en az otuz gündür.
+  - Süre, kiracıya yazılı bildirimin yapıldığı tarihi izleyen günden itibaren işlemeye başlar.
+  mevzuat: 6098 sayılı Kanun md. 315
+  dayanak_alintisi: Kiracı, kiralananın tesliminden sonra muaccel olan kira bedelini veya yan gideri ödeme borcunu ifa etmezse, kiraya veren kiracıya yazılı olarak bir süre verip, bu sürede de ifa etmeme durumunda, sözleşmeyi feshedeceğini bildirebilir.
+  kontrol: '2026-10-13'
+- kod: SZ-044
+  terim: AYIPLARI BİLDİRME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının, kendisinin gidermekle yükümlü olmadığı ayıpları kiraya verene gecikmeksizin bildirme yükümlülüğüdür.
+  puf:
+  - Bildirimde bulunmayan kiracı, bundan doğan zarardan sorumlu olur.
+  - Kiracı, ayıp giderme ve zarar önleme çalışmalarına katlanır; kiraya veren bunları uygun süre önce bildirmelidir.
+  - Kiraya veren çalışmalarda kiracının yararını gözetir; kiracının kira indirimi ve zarar giderimi hakları saklıdır.
+  mevzuat: 6098 sayılı Kanun md. 318 ve 319
+  dayanak_alintisi: Kiracı, kendisinin gidermekle yükümlü olmadığı ayıpları kiraya verene gecikmeksizin bildirmekle yükümlüdür; aksi takdirde bundan doğan zarardan sorumludur.
+  kontrol: '2026-10-13'
+- kod: SZ-045
+  terim: KİRALANANI GÖSTERME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının, bakım, satış ya da sonraki kiralama için zorunlu olduğu ölçüde, kiraya verenin ve onun belirlediği üçüncü kişinin kiralananı gezip görmesine izin verme yükümlülüğüdür.
+  puf:
+  - Kiraya veren, kiralananın gezilip görüleceğini uygun bir süre önce kiracıya bildirmek zorundadır.
+  - Kiraya veren, gezip görme sırasında kiracının yararlarını göz önünde tutmak zorundadır.
+  - Kiracının kira bedelinin indirilmesine ve zararının giderilmesine ilişkin hakları saklıdır.
+  mevzuat: 6098 sayılı Kanun md. 319
+  dayanak_alintisi: Kiracı, bakım, satış ya da sonraki kiralama için zorunlu olduğu ölçüde, kiraya verenin ve onun belirlediği üçüncü kişinin kiralananı gezip görmesine izin vermekle yükümlüdür.
+  kontrol: '2026-10-13'
+- kod: SZ-046
+  terim: YENİLİK VE DEĞİŞİKLİK
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiraya verenin, kiralananda kira sözleşmesinin feshini gerektirmeyen ve kiracıdan katlanması beklenebilecek yenilik ve değişiklikleri yapabilmesidir.
+  puf:
+  - Kiraya veren, yenilik ve değişiklikleri yaparken kiracının menfaatlerini gözetmekle yükümlüdür.
+  - Kiracının kira bedelinin indirilmesine ve zararının giderilmesine ilişkin hakları saklıdır.
+  mevzuat: 6098 sayılı Kanun md. 320
+  dayanak_alintisi: Kiraya veren, kiralananda, kira sözleşmesinin feshini gerektirmeyen ve kiracıdan katlanması beklenebilecek olan yenilik ve değişiklikler yapabilir.
+  kontrol: '2026-10-13'
+- kod: SZ-047
+  terim: RIZAYLA DEĞİŞİKLİK
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilmesidir.
+  puf:
+  - Rıza gösteren kiraya veren, yazılı anlaşma yoksa kiralananın eski durumuyla geri verilmesini isteyemez.
+  - Aksine yazılı anlaşma yoksa kiracı, rızayla yaptığı değişikliklerden doğan değer artışının karşılığını isteyemez.
+  mevzuat: 6098 sayılı Kanun md. 321
+  dayanak_alintisi: Kiracı, kiraya verenin yazılı rızasıyla kiralananda yenilik ve değişiklikler yapabilir.
+  kontrol: '2026-10-13'
+- kod: SZ-048
+  terim: KİRA DEVRİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının, kiraya verenin yazılı rızasını alarak kira ilişkisini başkasına devretmesi ve devralanın kira sözleşmesinde kiracının yerine geçmesidir.
+  puf:
+  - Kiraya veren, işyeri kiralarında haklı sebep olmadıkça bu rızayı vermekten kaçınamaz.
+  - Devreden kiracı kiraya verene karşı borçlarından kurtulur; işyeri kiralarında sınırlı bir istisna vardır.
+  - İşyeri kiralarında devreden kiracı, sözleşme bitimine kadar ve en çok iki yıl devralanla müteselsilen sorumludur.
+  mevzuat: 6098 sayılı Kanun md. 323
+  dayanak_alintisi: Kiracı, kiraya verenin yazılı rızasını almadıkça, kira ilişkisini başkasına devredemez.
+  kontrol: '2026-10-13'
+- kod: SZ-049
+  terim: KİRALANANI KULLANMAMA
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının kendisinden kaynaklanan bir sebeple kiralananı hiç kullanmaması veya sınırlı kullanmasıdır.
+  puf:
+  - Kiralanan kullanıma elverişli bulundurulduğu sürece kiracı, kira bedelini ödemekle yükümlüdür.
+  - Bu durumda, kiraya verenin yapmaktan kurtulduğu giderler kira bedelinden indirilir.
+  mevzuat: 6098 sayılı Kanun md. 324
+  dayanak_alintisi: Kullanıma elverişli bulundurulduğu sürece kiralanan, kiracının kendisinden kaynaklanan bir sebeple kullanılmasa veya sınırlı olarak kullanılsa bile kiracı, kira bedelini ödemekle yükümlüdür.
+  kontrol: '2026-10-13'
+- kod: SZ-050
+  terim: ERKEN GERİ VERME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının sözleşme süresine veya fesih dönemine uymadan kiralananı geri vermesidir; kira sözleşmesinden doğan borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder.
+  puf:
+  - Kiracı ödeme gücü olan, devralmaya hazır, kiraya verenin kabulü beklenebilecek yeni kiracı bulursa borçları biter.
+  - Kiraya veren, kurtulduğu giderleri ve başka kullanımla elde ettiği ya da kasten kaçındığı yararı kiradan indirir.
+  mevzuat: 6098 sayılı Kanun md. 325
+  dayanak_alintisi: Kiracı, sözleşme süresine veya fesih dönemine uymaksızın kiralananı geri verdiği takdirde, kira sözleşmesinden doğan borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder.
+  kontrol: '2026-10-13'
+- kod: SZ-051
+  terim: KİRALANANI GERİ VERME
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiracının kiralananı ne durumda teslim almışsa, kira sözleşmesinin bitiminde o durumda geri verme yükümlülüğüdür.
+  puf:
+  - Kiracı, sözleşmeye uygun kullanımdan doğan eskime ve bozulmalardan sorumlu değildir.
+  - Kiracının, sözleşme bitince aykırı kullanım zararı dışında tazminat ödemeyi önceden üstlendiği anlaşma geçersizdir.
+  mevzuat: 6098 sayılı Kanun md. 334
+  dayanak_alintisi: Kiracı kiralananı ne durumda teslim almışsa, kira sözleşmesinin bitiminde o durumda geri vermekle yükümlüdür.
+  kontrol: '2026-10-13'
+- kod: SZ-052
+  terim: GERİ VERME İNCELEMESİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiraya verenin, geri verme sırasında kiralananın durumunu gözden geçirip kiracının sorumlu olduğu eksiklik ve ayıpları ona hemen yazılı olarak bildirme zorunluluğudur.
+  puf:
+  - Bildirim yoksa kiracı, teslimde olağan incelemeyle belirlenemeyecek eksik ve ayıp dışında sorumluluktan kurtulur.
+  - Kiraya veren, olağan incelemeyle belirlenemeyen eksik ve ayıpları belirleyince kiracıya hemen yazılı bildirmelidir.
+  mevzuat: 6098 sayılı Kanun md. 335
+  dayanak_alintisi: Kiraya veren, geri verme sırasında kiralananın durumunu gözden geçirmek ve kiracının sorumlu olduğu eksiklikleri ve ayıpları ona hemen yazılı olarak bildirmek zorundadır.
+  kontrol: '2026-10-13'
+- kod: SZ-053
+  terim: KİRA UZAMASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında belirli süreli sözleşmenin, kiracı süre bitiminden en az on beş gün önce bildirimde bulunmadıkça aynı koşullarla bir yıl için uzatılmış sayılmasıdır.
+  puf:
+  - Kiraya veren, sözleşme süresinin bitimine dayanarak sözleşmeyi sona erdiremez.
+  - Ancak on yıllık uzama süresi sonunda, her uzama yılı bitiminden en az üç ay önce bildirip sebepsiz son verebilir.
+  - Fesih bildirimi, konut ve çatılı işyeri kiralarında ancak yazılı yapılırsa geçerlidir.
+  mevzuat: 6098 sayılı Kanun md. 347 ve 348
+  dayanak_alintisi: Konut ve çatılı işyeri kiralarında kiracı, belirli süreli sözleşmelerin süresinin bitiminden en az onbeş gün önce bildirimde bulunmadıkça, sözleşme aynı koşullarla bir yıl için uzatılmış sayılır.
+  kontrol: '2026-10-13'
+- kod: SZ-054
+  terim: KULLANMA GİDERLERİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında ısıtma, aydınlatma ve su gibi giderleri kapsayan kanuni kavramdır.
+  puf:
+  - Sözleşmede aksi öngörülmemişse veya aksine yerel âdet yoksa kiracı bu giderlere katlanmakla yükümlüdür.
+  - Giderlere katlanan taraf, ispat edici belgelerin birer örneğini istem üzerine diğer tarafa vermek zorundadır.
+  mevzuat: 6098 sayılı Kanun md. 341
+  dayanak_alintisi: Kiracı, konut ve çatılı işyeri kiralarında, sözleşmede aksi öngörülmemişse veya aksine yerel âdet yoksa, ısıtma, aydınlatma ve su gibi kullanma giderlerine katlanmakla yükümlüdür.
+  kontrol: '2026-10-13'
+- kod: SZ-055
+  terim: AİLE KONUTU KİRASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Aile konutu olarak kullanılmak üzere kiralanan taşınmazda kiracının, eşinin açık rızası olmadıkça kira sözleşmesini feshedememesi kuralıdır.
+  puf:
+  - Rızanın alınması mümkün değilse ya da eş haklı sebep olmadan rıza vermezse kiracı, hâkimden karar isteyebilir.
+  - Eş, kiraya verene bildirimle taraf olursa fesih bildirimi ve ihtardaki ödeme süresi ikisine ayrı ayrı bildirilir.
+  mevzuat: 6098 sayılı Kanun md. 349
+  dayanak_alintisi: Aile konutu olarak kullanılmak üzere kiralanan taşınmazlarda kiracı, eşinin açık rızası olmadıkça kira sözleşmesini feshedemez.
+  kontrol: '2026-10-13'
+- kod: SZ-056
+  terim: YENİDEN İNŞA TAHLİYESİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiralananın yeniden inşası veya imarı amacıyla esaslı onarımı, genişletilmesi ya da değiştirilmesi gerekli ve bu işler sırasında kullanımı imkânsızsa, kiraya verenin sözleşmeyi dava ile sona erdirebilmesidir.
+  puf:
+  - Belirli süreli sözleşmede dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır.
+  - Kiraya veren bu sürede dava açacağını kiracıya yazılı bildirmişse, dava süresi bir kira yılı uzar.
+  - Bu amaçla boşaltılan taşınmaz eski hâliyle, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz.
+  mevzuat: 6098 sayılı Kanun md. 350, 353 ve 355
+  dayanak_alintisi: Yeniden inşa ve imar amacıyla boşaltılması sağlanan taşınmazlar, eski hâli ile, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz.
+  kontrol: '2026-10-13'
+- kod: SZ-057
+  terim: YENİ MALİKİN GEREKSİNİMİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiralananı sonradan edinen kişinin, kendisi, eşi, altsoyu, üstsoyu veya kanun gereği bakmakla yükümlü olduğu kişiler için konut ya da işyeri gereksinimi sebebiyle kullanma zorunluluğu varsa sözleşmeyi dava ile sona erdirebilmesidir.
+  puf:
+  - Edinme tarihinden bir ay içinde durumu kiracıya yazılı bildirirse, altı ay sonra açacağı davayla sona erdirebilir.
+  - Dilerse bu hakkı, sözleşme süresinin bitiminden başlayarak bir ay içinde açacağı davayla da kullanabilir.
+  - Bu sürede dava açılacağı kiracıya yazılı bildirilmişse, dava süresi bir kira yılı uzar.
+  mevzuat: 6098 sayılı Kanun md. 351 ve 353
+  dayanak_alintisi: Kiralananı sonradan edinen kişi, onu kendisi, eşi, altsoyu, üstsoyu veya kanun gereği bakmakla yükümlü olduğu diğer kişiler için konut veya işyeri gereksinimi sebebiyle kullanma zorunluluğu varsa, edinme tarihinden başlayarak bir ay içinde durumu kiracıya yazılı olarak bildirmek koşuluyla, kira sözleşmesini altı ay sonra açacağı bir davayla sona erdirebilir.
+  kontrol: '2026-10-13'
+- kod: SZ-058
+  terim: KONUTU OLAN KİRACI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kendisinin veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu bulunan kiracıdır; kiraya veren bunu sözleşme kurulurken bilmiyorsa sözleşmeyi dava ile sona erdirebilir.
+  puf:
+  - Dava, sözleşmenin bitiminden başlayarak bir ay içinde açılmalıdır.
+  - Kiraya veren bu sürede dava açacağını kiracıya yazılı bildirmişse, dava süresi bir kira yılı uzar.
+  mevzuat: 6098 sayılı Kanun md. 352 ve 353
+  dayanak_alintisi: Kiracının veya birlikte yaşadığı eşinin aynı ilçe veya belde belediye sınırları içinde oturmaya elverişli bir konutu bulunması durumunda kiraya veren, kira sözleşmesinin kurulması sırasında bunu bilmiyorsa, sözleşmenin bitiminden başlayarak bir ay içinde sözleşmeyi dava yoluyla sona erdirebilir.
+  kontrol: '2026-10-13'
+- kod: SZ-059
+  terim: ESKİ KİRACI ÖNCELİĞİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Yeniden inşa ve imarı gerçekleştirilen taşınmazı, eski kiracının yeni durumu ve yeni kira bedeliyle kiralamada sahip olduğu önceliktir.
+  puf:
+  - Hak, kiraya verenin yapacağı yazılı bildirimi izleyen bir ay içinde kullanılmalıdır.
+  - Bu hak sona erdirilmedikçe taşınmaz, üç yıl geçmeden başkasına kiralanamaz.
+  - Aykırılıkta kiraya veren, eski kiracıya son kira yılında ödenen bir yıllık kiradan az olmamak üzere tazminat öder.
+  mevzuat: 6098 sayılı Kanun md. 355
+  dayanak_alintisi: Eski kiracının, yeniden inşa ve imarı gerçekleştirilen taşınmazları, yeni durumu ve yeni kira bedeli ile kiralama konusunda öncelik hakkı vardır.
+  kontrol: '2026-10-13'
+- kod: SZ-060
+  terim: ÜRÜN KİRASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Kiraya verenin, kiracıya ürün veren bir şeyin veya hakkın kullanılmasını ve ürünlerin devşirilmesini (toplanmasını) bedel karşılığında bırakmayı üstlendiği sözleşmedir.
+  puf:
+  - Ürüne katılmalı kira, bedelin devşirilecek ürünün belli bir oranı olarak kararlaştırıldığı ürün kirasıdır.
+  - Bu oran sözleşmeyle kararlaştırılmamışsa yerel âdete göre belirlenir.
+  - Ürün kirasına ilişkin özel hüküm yoksa kira sözleşmesinin genel hükümleri uygulanır.
+  mevzuat: 6098 sayılı Kanun md. 357 ve 358
+  dayanak_alintisi: Ürün kirası kiraya verenin, kiracıya, ürün veren bir şeyin veya hakkın kullanılmasını ve ürünlerin devşirilmesini bedel karşılığında bırakmayı üstlendiği sözleşmedir.
+  kontrol: '2026-10-13'
+- kod: SZ-061
+  terim: YETİŞME GİDERLERİ
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Tarımsal bir taşınmazın kiracısının, kira sona erdiğinde henüz devşirilmemiş ürün için yaptığı tarım giderlerini kiraya verenden tazminat olarak isteyebilmesidir.
+  puf:
+  - Kiracı, kira sona erdiği anda henüz devşirilmemiş ürünler üzerinde bir hak ileri süremez.
+  - İstenebilecek miktarı hâkim belirler; tazminat işlemiş kiralardan indirilir.
+  mevzuat: 6098 sayılı Kanun md. 374
+  dayanak_alintisi: Ancak kiracı, ürünün yetişmesi için yapmış olduğu tarım giderlerinin hâkim tarafından belirlenecek miktarını, kiraya verenden tazminat olarak isteyebilir ve bu tazminat işlemiş kiralardan indirilir.
+  kontrol: '2026-10-13'
+- kod: SZ-062
+  terim: BAĞIMSIZ BÖLÜM
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat mülkiyetine konu gayrimenkulün, ayrı ayrı ve başlı başına kullanılmaya elverişli olup Kat Mülkiyeti Kanununa göre bağımsız mülkiyete konu olan bölümüdür.
+  puf:
+  - Kat mülkiyeti kütüğüne tescil edilen her bağımsız bölüm ayrı bir gayrimenkul niteliğini kazanır.
+  - Kat maliki kendi bölümünde, bu Kanunun ilgili hükümleri saklı kalmak şartıyla, malikin tüm haklarına sahiptir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 1, 2, 13 ve 15
+  dayanak_alintisi: Tamamlanmış bir yapının kat, daire, iş bürosu, dükkan, mağaza, mahzen, depo gibi bölümlerinden ayrı ayrı ve başlı başına kullanılmaya elverişli olanları üzerinde, o gayrimenkulün maliki veya ortak malikleri tarafından, bu Kanun hükümlerine göre, bağımsız mülkiyet hakları kurulabilir.
+  kontrol: '2026-10-13'
+- kod: SZ-063
+  terim: EKLENTİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir bağımsız bölümün dışında olup doğrudan doğruya o bölüme tahsis edilmiş kömürlük, su deposu, garaj, tuvalet gibi yerdir.
+  puf:
+  - Eklenti, ait olduğu bağımsız bölümün bütünleyici parçasıdır; bölümün maliki eklentinin de tek başına maliki olur.
+  - Eklentiler kat mülkiyeti kütüğünün beyanlar hanesine kaydedilir.
+  - Bağımsız bölüm devredilir veya kiralanırsa eklentileri de kendiliğinden devredilmiş veya kiralanmış olur.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 6
+  dayanak_alintisi: Bir bağımsız bölümün dışında olup, doğrudan doğruya o bölüme tahsis edilmiş olan kömürlük, su deposu, garaj, elektrik, havagazı veya su saati yuvaları, tuvalet gibi eklentiler, ait olduğu bağımsız bölümün bütünleyici parçası sayılır ve o bölümün maliki, eklentilerin de tek başına maliki olur.
+  kontrol: '2026-10-13'
+- kod: SZ-064
+  terim: ORTAK YERLER
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat mülkiyetine konu gayrimenkulün bağımsız bölümleri dışında kalıp, korunma ve ortaklaşa kullanma veya faydalanmaya yarayan yerlerdir.
+  puf:
+  - Ortak yerler kat mülkiyeti kuruluş resmi senedinde belirtilebilir; kanunda sayılanlar her halde ortak yerdir.
+  - Temeller, ana duvarlar, asansörler ve çatılar, kanunda her halde ortak yer sayılanlar arasındadır.
+  - Kanunda sayılmasa da ortaklaşa kullanma, korunma veya faydalanma için zaruri olan yer ve şeyler de ortak yerdir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 4
+  dayanak_alintisi: Yukarıda sayılanların dışında kalıp da, yine ortaklaşa kullanma, korunma veya faydalanma için zaruri olan diğer yerler ve şeyler de (Ortak yer) konusuna girer.
+  kontrol: '2026-10-13'
+- kod: SZ-065
+  terim: ARSA PAYI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Arsanın, Kat Mülkiyeti Kanununda yazılı esasa göre bağımsız bölümlere tahsis edilen ortak mülkiyet paylarıdır.
+  puf:
+  - Arsa payı, kat mülkiyeti veya kat irtifakından ayrı olarak ne devredilebilir ne de miras yoluyla geçebilir.
+  - Anagayrimenkulde, kat mülkiyetine bağlanmamış veya lehine kat irtifakı kurulmamış arsa payı bırakılamaz.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 5
+  dayanak_alintisi: Kat mülkiyetinin başkasına devri veya miras yoluyla geçmesi halinde, ona bağlı arsa payı da birlikte geçer; arsa payı, kat mülkiyetinden veya kat irtifakından ayrı olarak devredilemiyeceği gibi, miras yoluyla da geçmez ve başka bir hakla kayıtlanamaz.
+  kontrol: '2026-10-13'
+- kod: SZ-066
+  terim: KULLANMA HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat maliklerinin, ortak malik sıfatıyla paydaşı oldukları ortak yerlerden faydalanma haklarıdır.
+  puf:
+  - Genel kömürlük, garaj, teras, çamaşırhane gibi yerlerde hakkın ölçüsü, aksine sözleşme yoksa arsa payı oranındadır.
+  - Kat malikleri ortak yerlere arsa payları oranında, ortak mülkiyet hükümlerine göre malik olur.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 16
+  dayanak_alintisi: Kat malikleri ortak yerlerde kullanma hakkına sahiptirler; bu hakkın genel kömürlük, garaj, teras, çamaşırhane ve çamaşır kurutma alanları gibi yerlerdeki ölçüsü, aksine sözleşme olmadıkça, her kat malikine ait arsa payı ile oranlıdır.
+  kontrol: '2026-10-13'

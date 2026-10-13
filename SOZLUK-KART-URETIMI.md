@@ -46,6 +46,28 @@ Kapıda **tam test paketi** şarttır (yalnız doğrulayıcı yetmez).
 numaralar sessizce Ek Madde'nin metnine çözülüyordu (2985 Toplu Konut Kanunu md. 11–17 gibi; mevcut hiçbir atıf etkilenmiyordu). Ayrıca 21 normal maddenin sonuna bir sonraki Ek Madde başlığının "Ek" sözcüğü sızıyordu. Artık ek maddeler ayrı tür:
 etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler: `TestEkMaddeler`). Eski ve yeni `madde_metni`, 32 kanunun 4375 normal maddesinde karşılaştırıldı: yalnız bu iki fark.
 
+## Dalga 1 sonucu (2026-10-13: A15 kira genel, A16 konut/çatılı işyeri kirası, A20 KMK md. 1–19)
+
+**Arşiv 38 → 66 kart (≈61 günlük stok).** 4 yazar (sonnet) + 4 bağımsız inceleme (opus): 45 taslak karttan **28'i girdi (SZ-039…066), 17'si reddedildi** (%62 kabul). A12 (TBK sözleşme kurulması) hiç yazılamadı, yeniden verilecek.
+
+| Dosya | Alan | Taslak | Onay | Düzeltildi | Red |
+|---|---|---|---|---|---|
+| A15a | TBK kira, genel (md. 299–321) | 11 | 1 | 7 | 3 |
+| A15b | TBK kira, genel (md. 321–338) | 11 | 0 | 6 | 5 |
+| A16 | TBK konut/çatılı işyeri kirası (md. 339–378) | 15 | 2 | 7 | 6 |
+| A20 | KMK md. 1–19 | 8 | 0 | 5 | 3 |
+
+**Ne yanlış gitti / dersler**
+- **Kullanım sınırı:** dört yazar aynı anda çalışırken oturumun kullanım sınırı doldu (sıfırlanma 11:50 UTC) ve hepsi yarıda kesildi; taslaklar kendi doğrulama ve son kontrol adımına gelmeden kaldı (45 karttan 26'sı doğrulayıcıda kırmızı: puf >115 karakter, sığmayan başlık).
+  Çözüm: bu taslaklar doğrudan incelemeye verildi (inceleyici biçimi de düzeltti; kararlarını kart kart dosyaya yazdığı için kesinti riski azaldı). **Bir dalgada aynı anda en çok 4 ajan; bir sonraki dalgayı limit sıfırlanınca başlat.**
+  İnceleme maliyeti ≈ 700 bin ajan tokeni (4 inceleme: 143–211 bin). Kabul edilen 28 kartın 25'i inceleyici tarafından yeniden yazılarak kurtarıldı; yazar çıktısı tek başına yayına uygun değildi.
+- **Doğrulayıcı hatası bulundu:** süre denetimi "md. 319 ayıp" → "319 ay" sayıp **ayıp kartlarını hep engelliyordu** (ayrıca "ayrı", "aynı", "ayrıca", "ayıbı"). `mevzuat._SURE` düzeltildi, testli.
+- **Sık ret nedenleri:** (a) ürün kirası ya da konut/çatılı işyeri ayrımını söylemeden genel kural sunmak (ALT KİRA md. 322 ↔ md. 366; KİRACININ İFLASI md. 332 ↔ md. 370; KİRACININ ÖLÜMÜ md. 333 ↔ md. 356); (b) "gibi" ile kapalı liste açmak; (c) tanımı döngüsel yazmak ("…kütüğüne tescil edildiği sicildir"); (d) arşivdeki karta anlamca tekrar (KAT İRTİFAKI SAHİBİ, ÖNCELİKLE SATIN ALMA ↔ ÖNALIM HAKKI); (e) başlığın sığmaması (KAT MÜLKİYETİ KÜTÜĞÜ, KONUT KİRASI KAPSAMI, OLAĞANÜSTÜ KİRA İNDİRİMİ…).
+- **Reddedilen ama içeriği iyi olanlar, yeniden yazılırken tüm fesih/bildirim kuralları (md. 347–349, 353, 356) birlikte düşünülmeli:** KONUT KİRASI KAPSAMI (md. 339), BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ (md. 347 "ancak" zinciri), ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ + md. 356.
+
+**Arşivdeki mevcut kartlarla ilgili bulgu (dokunulmadı, karar sizin):** SZ-007 İHTİYAÇTAN TAHLİYE "dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır" diyor; md. 353'e göre kiraya veren bu sürede dava açacağını yazılı bildirmişse dava süresi bir kira yılı uzar (yeni SZ-056/057/058 bunu söylüyor). Kart olduğu gibi yanıltıcı değil ama eksik; atfa md. 353 eklenip bir madde yeniden yazılabilir.
+**Hiçbir onaylı kartta olmayan kapsam:** md. 339/2: doğası gereği geçici kullanıma ayrılmış taşınmazların altı ay ya da daha kısa kiralarında konut/çatılı işyeri hükümleri uygulanmaz (Silivri yazlık kiraları için önemli). Konut/çatılı işyeri kartlarının hiçbiri bunu söylemiyor.
+
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
 1. **Pilot:** tek yazar ajan, küçük bir alan (ör. A07 Kadastro, 6 kart). Araçlar ve talimat uçtan uca doğrulanır.
@@ -157,6 +179,7 @@ Kurallar:
 9. Terim kanundaki kavramın ya da madde başlığının kendisi olsun; kısaltma/özel ad uydurma ("haritasız kayıt"). Kanundaki kapalı listeyi "gibi" ile açma. "İntikal", "ihya", "tespit" gibi sözcük gündelik dilde başka anlama geliyorsa tanımda açıkça söyle ya da kullanma.
 10. Puf maddesi tanımın bir yarısını tekrar etmez; iki puf aynı cümlenin iki yarısı olmaz. Her puf tek başına doğru ve kapsamı belli olmalı ("kesinleşmeden" gibi çift anlamlı sözcük yok).
 11. Başlık (terim) yerleşim tabanına uymalı: en çok iki satır, ≥114 pt. Uzun tek sözcükten ("KESİNLEŞMESİ") ve ~22 karakteri aşan terimden kaçın; doğrulayıcı `çizim (başlık)` uyarısı verirse terimi kısalt.
+12. Yoğunluk: tanım ≤ ~200 karakter, tanım + puf toplamı ≤ ~280 karakter olsun; uzun kartın tanım puntosu 40 pt'ye (en yoğun kartta 36 pt'ye) iner ve Instagram'da okunması zorlaşır (dalga 1'de 7 kart 40 pt'ydi).
 
 Çıktı: taslak dosyası ve kısa rapor (yazılan/atılan sayı, değiştirilen terimler, kuşkulu kartlar).
 
