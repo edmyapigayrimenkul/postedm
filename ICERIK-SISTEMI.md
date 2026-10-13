@@ -704,6 +704,20 @@ liste çıktısına güvenilmemeli.
 
 ---
 
+## 5.9 Onay kuyruğu: 1 gün kuralı, havuz ve yeniden sunum (2026-10-13)
+
+Kullanıcı kararı: **otomatik hatırlatma yok**; bir içerik **1 gün** yayınlanmazsa havuza döner; hazırlandığı için **yeniden üretilmez**, başka bir gün tekrar önerilir.
+
+- **Akış:** içerik onaya düşer (albüm + düğmeli kart). 24 saat içinde yayınlanmadıysa sessiz kuyruk bakımı (`scripts/hatirlat.py`, günde iki koşu: 13:30 ve 21:30 TR) onu kuyruktan alır, eski albüm ve kartını gruptan siler. Mesaj atılmaz.
+- **Havuz:** modelle yazılmış konu bankası içeriği (`b1`, `nedir_dogrusu`, `net_cevap`, `vaka`) silinmez, `durum='havuzda'` olur; konu "kullanıldı" kalır. Aynı formatın bir sonraki turu önce havuza bakar (`telegram/akislar/havuz.py`): içerik **model çağrılmadan, aynı numarayla**
+  yeniden onaya sunulur (slaytlar saklı veriden yeniden çizilir, yayın kapısı yine çalışır). En eski önce. Kapıdan geçemezse arşive alınır ve o turda taze içerik üretilir.
+- **Havuza girmeyenler:** haber kaynaklı içerik (bayatlar), sözlük kartı (yeniden kurmak ucuz), finans, reels, metni eksik olanlar: eskisi gibi arşiv (`zaman_asimi`) + konu iadesi.
+- **Sınır:** havuz kayıtları 14 günde silinir; kullanıcı "Çöpe At / Bu turu atla" derse içerik havuza girmez. Planlı yayın penceresindeki içerik zaman aşımına girmez.
+- **Hatırlatma yalnız elle:** Telegram "⏰ Onayları Hatırlat" ya da `/hatirlat` (`hatirlat.py --zorla`).
+- Kod ve testler: MEMORY.md §10 madde 23, `tests/test_havuz_yeniden_sunum.py`.
+
+---
+
 ## 6. Kanca kütüphanesi
 
 Manşet üç parçadır: `parça_1` (beyaz) + `vurgu` (kırmızı) + `parça_2` (beyaz).
@@ -788,7 +802,10 @@ alanı bunun için var.
 |---|---|
 | `ICERIK-SISTEMI.md` | Bu belge. Kararların kaynağı |
 | `data/konu_bankasi.yaml` | Evergreen konu havuzu — brief'ler burada |
-| `src/konu_bankasi.py` | Sıradaki konuyu seçer, tekrarı önler |
+| `src/konu_bankasi.py` | Sıradaki konuyu seçer, tekrarı önler; havuzdaki hazır içeriği bulur (§5.9) |
+| `src/telegram/akislar/havuz.py` | Havuzdaki hazır içeriği model çağrılmadan yeniden onaya sunar (§5.9) |
+| `scripts/hatirlat.py` | Sessiz onay kuyruğu bakımı: 1 gün kuralı, havuz/arşiv (hatırlatma yalnız `--zorla`) |
+| `scripts/zamanli_koruma.py` | Zamanlanmış işin aynı gün ikinci kez çalışmasını önler (Cloudflare + GitHub yedeği) |
 | `src/generate_text.py` | Biçime özel prompt'lar, bütçeler §5'ten |
 | `src/fetch_news.py` | Yalnızca B5 için haber süzer — artık varsayılan değil |
 | `src/make_image.py` | Dizgi katmanı, zemin varyantları, karma slayt planlayıcı |

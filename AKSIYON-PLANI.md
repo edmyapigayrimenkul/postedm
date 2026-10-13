@@ -1,5 +1,10 @@
 # postedm — Sağlamlaştırma Aksiyon Planı
 
+> **GÜNCEL DURUM NOTU (2026-10-13).** Bu belge 11 Eylül 2026 denetiminin tarihsel kaydıdır; güncel durum için MEMORY.md §10–12, ARCHITECTURE.md §4 ve GEMINI.md'ye bakın. Eskiyen noktalar:
+> - **Depo artık PUBLIC** (GitHub API ile doğrulandı); §0.1'deki "PRIVATE" kararı geçersiz. Depoya sır/kişisel veri yazılmaz (MEMORY.md §10 madde 24).
+> - `hatirlat.yml` artık **hatırlatma yollamaz**: sessiz kuyruk bakımıdır (1 gün kuralı, havuz; MEMORY.md §10 madde 23).
+> - Zamanlayıcılar (günlük içerik, sözlük, rapor, haber önerisi, bakım) Cloudflare cron'undadır; GitHub cron'ları gecikmeli yedektir (§10 madde 13, 18).
+
 instabot'ta iki yılda öğrenilenlerin postedm'e uyarlanması.
 Kaynak: `~/Dogukan/instabot/CLAUDE.md` (2029 satır saha dersi) + 11 workflow + 14 test.
 
@@ -400,6 +405,6 @@ görmemek için.
 |---|---|---|
 | `son-dakika.yml` saat başı | — | Emlakta son dakika yok; haber triyajımız zaten günde bir |
 | `piyasa-bulteni.yml` | — | Borsa/döviz bülteni bizim sütunlarımızda yok |
-| `hatirlat.yml` 7 kez/gün | **sadeleştirilmiş** | Onay beklemede tek hatırlatma yeter; 7 bildirim grubu yorar |
+| `hatirlat.yml` 7 kez/gün | **sadeleştirilmiş → sonra kapatıldı (2026-10-13)** | Hatırlatma tamamen kaldırıldı; iş sessiz kuyruk bakımına döndü |
 | `haftalik-ozet.yml` | **ertelendi** | Ölçüm verisi birikmeden özetlenecek şey yok |
 | Carousel 10 slayt | — | Bizde 4-7, karma mimari zaten karar verilmiş |

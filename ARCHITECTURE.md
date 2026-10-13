@@ -65,26 +65,30 @@ Her fazın değişmez sırası: **(1) altın çıktı testi yaz ve ESKİ kodla k
 | Faz | İş | Durum |
 |---|---|---|
 | 1 | `scripts/yayinla.py` → `src/yayin/` | **Yapıldı** (bu PR) |
-| 2 | `src/telegram_bot.py` → `src/telegram/` | **Yapıldı** (2026-10-13): API (`istemci`, `medya_istek`, `album`, `temizlik`), arayüz (`ayarlar`, `menuler`, `menuler_panel`, `durum_metni`, `sonuc_mesaji`, `kaldir`, `kartlar`, `paneller`), akışlar (`akislar/`: `kapi`, `onay` + `onay_slayt`/`onay_karti`, `otomatik`, `sozluk`, `uretim`, `reels`, `otorite`, `ilan`, `finans`, `zamanli`). 253 satırlık `_haber_onayina_sun` adımlara bölündü. Güvence: `tests/test_telegram_altin.py` (219 senaryo) |
+| 2 | `src/telegram_bot.py` → `src/telegram/` | **Yapıldı** (2026-10-13): API (`istemci`, `medya_istek`, `album`, `temizlik`), arayüz (`ayarlar`, `menuler`, `menuler_panel`, `durum_metni`, `sonuc_mesaji`, `kaldir`, `kartlar`, `paneller`), akışlar (`akislar/`: `kapi`, `onay` + `onay_slayt`/`onay_karti`, `otomatik`, `sozluk`, `uretim`, `havuz`, `reels`, `otorite`, `ilan`, `finans`, `zamanli`). 253 satırlık `_haber_onayina_sun` adımlara bölündü. Güvence: `tests/test_telegram_altin.py` (219 senaryo) |
 | 3 | Çizim: `make_image` / `yeni_formatlar` / `haber_tasarim` ortak çizim çekirdeği + biçim başına dosya | Piksel karşılaştırmalı altın görseller (`scripts/gorsel_denetim.py` zaten 164 vaka ölçüyor) |
 | 4 | `db.py` → depo başına modül (haber, ilan, onay, ayar, hata) | Küçük; şema değişmez |
-| 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | **Kod yapıldı (2026-10-13), dağıtım bekliyor:** 7 iş Worker'dan (`ZAMANLI_ISLER`), GitHub cron'ları yedek, "günde bir kez" koruması `scripts/zamanli_koruma.py`. Yedekleri silmek: bir hafta sorunsuz Cloudflare çalışmasından sonra (MEMORY.md §10 madde 18) |
+| 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | **Yapıldı ve DAĞITILDI** (Worker Dağıt koşusu #2, 2026-10-13 21:26 UTC, sekiz cron doğrulandı): 7 iş Worker'dan (`ZAMANLI_ISLER`), GitHub cron'ları gecikmeli yedek, "günde bir kez" koruması `scripts/zamanli_koruma.py`. Hatırlatma işi artık sessiz kuyruk bakımı (MEMORY.md §10 madde 23). Yedekleri silmek: 20 Ekim'den sonra, sorunsuzsa |
 
-### Claude'un önceliği: paylaşım + Telegram altyapısı (kullanıcı kararı, 2026-10-13)
+### Açık işler ve devir (2026-10-13 sonu: Claude ile çalışma bitti, devam Gemini ile — MEMORY.md §11–12, GEMINI.md)
 
-Claude'dan istenen iş yalnız **paylaşım (yayın) altyapısı** ve **Telegram altyapısı**; geri kalanı (sözlük kartları vb.) Gemini ile yürür (MEMORY.md §11). Bu yüzden yukarıdaki fazlardan Faz 3 (çizim) ve Faz 4 (`db.py`)
-kullanıcı istemedikçe başlamaz; Faz 5 paylaşım/zamanlama tarafıdır. Aşağıdaki liste, belgelerde zaten kayıtlı açık maddelerin **aday havuzudur**; "(öneri)" işaretliler kayıtlı değil, Claude'un eklediği fikirdir. Sırayı kullanıcı belirler.
+Sırayı kullanıcı belirler; aşağıdaki liste devir anındaki durumdur ve yeni iş icat etmez, belgelerde kayıtlı maddelerin aday havuzudur.
 
-| Alan | Aday iş | Kaynak / not |
+| Alan | İş | Not / kaynak |
 |---|---|---|
-| Paylaşım · zamanlama | ~~**Faz 5**~~ **Yapıldı (kod, 2026-10-13):** rapor, haber önerisi ve hatırlatma Worker'a taşındı (MEMORY.md §10 madde 18). **Kalan:** Worker Dağıt çalıştırılacak; bir hafta sonra `hazirla.yml`, `hatirlat.yml`, `haber-oneri.yml`, `gunluk-rapor.yml` yedek cron'ları silinir (`test_tek_tetikleyici_kurali`, `test_zamanli_isler.py` birlikte güncellenir). Kalan GitHub-cron işleri (jeton yenileme, kaynak sağlığı, mevzuat denetimi, konu madenciliği) haftalık/sessiz; gecikmeleri zarar vermiyor, taşınmadı | MEMORY.md §10 madde 13, 18 |
-| Paylaşım · kanallar | `src/threads.py:241` `json` içe aktarılmamış (`metinleri_slaytlara_dagit` NameError'u yutuyor, `detay_metni` hiç ayrıştırılmıyor). Düzeltmek Threads içeriğini değiştirir: önce gözlem, sonra karar | MEMORY.md §10 madde 15 (a) |
-| Paylaşım · kanallar | X (Twitter) işçisi var ama hiçbir hedef onu seçmiyor (`hedef.kanal_listesi`). Kullanıcı kararı: şimdilik olduğu gibi kalır | MEMORY.md §10 madde 14 |
-| Paylaşım · kapı | `gorsel_sec:N` hedefi taslak işlemi sayılmıyor, yayın kapısından (denetim) geçiyor; "zaten yayında" kanal için de "Tekrar dene" düğmesi çıkabiliyor (zararsız) | MEMORY.md §10 madde 14 |
-| Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı. Site tarafı bu işin dışında; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
-| Telegram · teslim | Zaman aşımı belirsizliği: Telegram isteği işleyip cevabı geciktirirse aynı albüm nadiren iki kez düşebilir (bilinçli denge). (öneri) İstenirse `istemci._istek` seviyesinde yinelenen albüm kontrolü | MEMORY.md §10 madde 12 |
-| Telegram · Worker | Worker değişiklikleri yalnız **Worker Dağıt** workflow'uyla yayına çıkar; dağıtım sonrası Cron Triggers'ta sekiz satır doğrulanır (workflow API'den kendisi doğrular). **Yapıldı (2026-10-13):** Worker↔Python buton sözleşmesi `tests/test_buton_sozlesmesi.py` ile sabit, 4 ölü buton bulundu ve düzeltildi (MEMORY.md §10 madde 22) | MEMORY.md §10 madde 4, 13 |
-| Telegram · yapı | `src/telegram/album.py` (247 satır) ve `medya_istek.py` (226) 250 sınırına yakın: büyümeden önce bölünür; `reels.py`'nin Telegram'a video göndermesi katman kuralı 2'nin bilinen istisnasıdır | Bu belge §2 |
+| Zamanlama | **Yedek GitHub cron'larını sil** (`hazirla.yml` 2 günlük cron, `hatirlat.yml`, `haber-oneri.yml`, `gunluk-rapor.yml` `schedule` blokları) — **20 Ekim'den sonra**, Cloudflare bir hafta sorunsuz çalıştıysa. `test_tek_tetikleyici_kurali`, `test_cron_takvimle_uyumlu`, `tests/test_zamanli_isler.py` birlikte güncellenir; Worker cron'ları kalır | MEMORY.md §10 madde 13, 18 |
+| Telegram · Worker | **`worker/index.js` bölmek** (2142 satır tek dosya). Dikkat: JS testleri (`tests/*.test.mjs`) `worker/index.js`'i TEK dosya olarak kopyalayıp import eder; `tests/test_buton_sozlesmesi.py`, `test_zamanli_isler.py`, `test_sozlesme.py` kaynağı metin olarak okur → bölünce hepsi birleştirilmiş kaynağı okumalı. `wrangler deploy` birden çok dosyayı kendisi paketler. Bölme sonrası Worker Dağıt gerekir | Bu belge §2 kural 5 |
+| Telegram · teslim | Zaman aşımı belirsizliği: Telegram isteği işleyip cevabı geciktirirse aynı albüm nadiren iki kez düşebilir (bilinçli denge). İstenirse `istemci._istek` seviyesinde yinelenen albüm kontrolü | MEMORY.md §10 madde 12 |
+| Telegram · arayüz artıkları | "⏰ 1 saat ertele" düğmesi (`worker/index.js › anaMenu`, `yayin/aksiyonlar/yonetim.ertele`) ve ayar menüsündeki "Onay Hatırlatıcı AÇIK/KAPALI" (`src/ayar.py › hatirlatici`) artık anlamsız (hatırlatma yok). Kaldırmak Worker + altın çıktı + testleri değiştirir | MEMORY.md §10 madde 23 |
+| Telegram · yapı | `src/telegram/akislar/uretim.py` (249 satır) ve `album.py` (247) 250 sınırında; `medya_istek.py` 226. Yeni kod eklemeden önce böl. `reels.py`'nin Telegram'a video göndermesi katman kuralı 2'nin bilinen istisnasıdır | Bu belge §2 |
+| Paylaşım · kanallar | `src/threads.py:241` `json` içe aktarılmamış (NameError yutuluyor, `detay_metni` hiç ayrıştırılmıyor). Düzeltmek Threads içeriğini değiştirir: önce gözlem, sonra karar | MEMORY.md §10 madde 15 (a) |
+| Paylaşım · kanallar | X (Twitter) işçisi var ama hiçbir hedef onu seçmiyor. Kullanıcı kararı: şimdilik kalsın | MEMORY.md §10 madde 14 |
+| Paylaşım · kapı | `gorsel_sec:N` hedefi taslak işlemi sayılmıyor, yayın kapısından geçiyor; "zaten yayında" kanal için "Tekrar dene" düğmesi çıkabiliyor (zararsız) | MEMORY.md §10 madde 14 |
+| Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
+| İçerik · finans | Finans bülteni ayrı tasarım değil, standart carousel (kullanıcı "şimdilik tamam"); elle de onaysız yayın. İstenirse finansa özgü görsel (oran vurgusu, rakam kutusu) ve elle tetiklemede onay kartı | MEMORY.md §10 madde 21 |
+| İçerik · sözlük | A12 (TBK sözleşme kurulması) yazılmadı; reddedilen kira/fesih konuları (md. 347–349, 353, 356 birlikte), SZ-007'ye md. 353 istisnası, md. 339/2; hedef 365 kart (66 var) | SOZLUK-KART-URETIMI.md |
+| Mimari | Faz 3 (`make_image.py` 4107 satır: ortak çizim çekirdeği + biçim başına dosya, piksel karşılaştırmalı altın görseller), Faz 4 (`db.py` depo başına modül) | Bu belge §4 tablo |
+| Güvenlik / gizlilik | Depo PUBLIC (doğrulandı 2026-10-13): DB'deki taslaklar ve grup kimliği görünür. Kararı §5'e göre (özel ikinci depo ya da depoyu özel yapmak) | MEMORY.md §10 madde 24 |
 
 **Faz 2'nin tuzağı ve uygulanan çözüm:** testler `src.telegram_bot.mesaj_gonder` gibi adları yamalıyor (31 dosya). Eski adı yeniden dışa aktaran bir "kabuk" yetmez: taşınan kod yeni modüldeki işlevi çağırır, yama kabuktaki adı değiştirir, yama etkisiz kalır. Uygulanan kural:
 1. **Yeni modüller kardeşlerini modül üzerinden çağırır** (`istemci.mesaj_gonder()`; `from .istemci import mesaj_gonder` değil) ve `telegram_bot`'u içe aktaramaz — `tests/test_telegram_paketi.py` zorlar.
@@ -120,4 +124,6 @@ Seçenekler:
 ## 6. Bu belge nasıl güncel kalır
 - Faz bitince tabloda durum güncellenir ve MEMORY.md §10'a bulgu notu düşülür.
 - Yeni modül açılırken önce §2'deki katman kuralı sorulur: "bu kod hangi katmanda, aşağıya mı bağımlı?"
+- Telegram butonu eklerken/adını değiştirirken `tests/test_buton_sozlesmesi.py` yeşil olmalı: Python'ın ya da Worker'ın ürettiği her `callback_data` Worker'ın callback bloğunda işlenmeli (Worker bilinmeyen adı SESSİZCE yok sayar).
+- Zamanlanmış iş eklerken: Worker `ZAMANLI_ISLER` ↔ `wrangler.toml` crons ↔ workflow cron/slot/olay adları ↔ `worker-dagit.yml` doğrulaması aynı olmalı (`tests/test_zamanli_isler.py` karşılaştırır).
 - Büyük bölmeden önce altın çıktı testi şart; "testler geçiyor" tek başına yetmez (yayin bölmesinde mevcut testlerin hiçbiri `foto_adaylar` çökmesini yakalamamıştı).

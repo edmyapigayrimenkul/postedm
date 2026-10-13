@@ -17,6 +17,8 @@ Aşağıdaki "Claude alt ajan" ve `mcp__ccd_session_mgmt__get_usage` anlatımlar
 - **Gemini'nin ilk işi (Claude'dan devir):** A12 (TBK sözleşme kurulması) hiç yazılmadı; reddedilen ama içeriği iyi kira/fesih konuları (KONUT KİRASI KAPSAMI, BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ, ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ)
   md. 347–349, 353, 356 birlikte düşünülerek yeniden yazılacak; SZ-007'ye md. 353 istisnası; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok.
 - Gemini ücretsiz kotası ayrıdır; Claude kullanım limiti (aşağıda "Dalga 1" derslerindeki 4 ajan sınırı) onu bağlamaz.
+- **Güncel durum (2026-10-13 sonu):** arşivde **66 kart**; zamanlanmış sözlük **iki günde bir** onaysız otomatik yayınlanır (≈132 gün stok), hedef **365 kart**; elle `/sozluk` onay kartıyla düşer;
+  sözlük kartı onaylanmazsa havuza girmez, arşive alınır ve konusu iade edilir (yeniden kurmak ucuz; MEMORY.md §10 madde 23). Çalışma düzeni: GEMINI.md.
 
 ## Durum (2026-10-09; güncel arşiv sayısı için Dalga 1 sonucuna bak: 66 kart)
 
