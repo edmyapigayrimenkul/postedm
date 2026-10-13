@@ -137,7 +137,7 @@ class TestAcilFren(_DbAyariSahte):
 class TestKartSecimi(unittest.TestCase):
     def setUp(self):
         self.mesajlar = []
-        self._m = patch.object(tb, "mesaj_gonder", side_effect=lambda m, **k: self.mesajlar.append(m))
+        self._m = patch("src.telegram.istemci.mesaj_gonder", side_effect=lambda m, **k: self.mesajlar.append(m))
         self._m.start()
 
     def tearDown(self):
@@ -207,10 +207,10 @@ class TestKartAkisi(_DbTemizlik):
             return {"id": hid, "durum": "yayinlandi" if yayinda else "onay_bekliyor",
                     "instagram_post_id": "ig-1" if yayinda else None}
 
-        with patch.object(tb, "_sozluk_karti_sec", return_value=(copy.deepcopy(KART), taze)), \
-             patch.object(tb, "mesaj_gonder", side_effect=lambda m, **k: mesajlar.append(m)), \
-             patch.object(tb, "bot_duraklatildi_mi", return_value=(duraklatildi, "")), \
-             patch.object(tb, "haber_onayina_sun", onay), \
+        with patch("src.telegram.akislar.sozluk._sozluk_karti_sec", return_value=(copy.deepcopy(KART), taze)), \
+             patch("src.telegram.istemci.mesaj_gonder", side_effect=lambda m, **k: mesajlar.append(m)), \
+             patch("src.telegram.ayarlar.bot_duraklatildi_mi", return_value=(duraklatildi, "")), \
+             patch("src.telegram.akislar.onay.haber_onayina_sun", onay), \
              patch.object(db, "ayar_oku", side_effect=lambda a, v=None: son_gun if a == "sozluk_oto_son_gun" else v), \
              patch.object(db, "haber_getir", side_effect=haber_getir):
             with patch.dict(os.environ, {"SOZLUK_OTO_YAYIN": "1" if oto else "0"}):
@@ -218,7 +218,7 @@ class TestKartAkisi(_DbTemizlik):
         return sonuc, onay, mesajlar
 
     def test_kart_yoksa_none_doner_cagiran_modele_gecer(self):
-        with patch.object(tb, "_sozluk_karti_sec", return_value=(None, None)):
+        with patch("src.telegram.akislar.sozluk._sozluk_karti_sec", return_value=(None, None)):
             self.assertIsNone(tb.sozluk_karti_hazirla_ve_sun())
 
     def test_anahtar_kapaliyken_onaya_sunulur(self):
@@ -290,15 +290,15 @@ class TestOnayaSunOtoYayin(unittest.TestCase):
         self.oto = MagicMock(return_value=True)
         self.kapi = MagicMock(return_value=(True, []))
         self.yamalar = [
-            patch.object(tb.db, "haber_getir", return_value=self.haber),
-            patch.object(tb.db, "haber_guncelle"),
-            patch.object(tb.db, "onay_istegi_kaydet"),
-            patch.object(tb, "yayin_kapisi", self.kapi),
-            patch.object(tb, "_oto_yayinla", self.oto),
-            patch.object(tb, "mesaj_gonder", side_effect=lambda m, **k: self.mesajlar.append(m) or {"message_id": 1}),
-            patch.object(tb, "medya_grubu_gonder", return_value=[1]),
-            patch.object(tb, "icerik_onceki_mesajlarini_temizle"),
-            patch.object(tb.upload_image, "coklu_gorsel_yukle", return_value=[]),
+            patch("src.db.haber_getir", return_value=self.haber),
+            patch("src.db.haber_guncelle"),
+            patch("src.db.onay_istegi_kaydet"),
+            patch("src.telegram.akislar.kapi.yayin_kapisi", self.kapi),
+            patch("src.telegram.akislar.otomatik._oto_yayinla", self.oto),
+            patch("src.telegram.istemci.mesaj_gonder", side_effect=lambda m, **k: self.mesajlar.append(m) or {"message_id": 1}),
+            patch("src.telegram.album.medya_grubu_gonder", return_value=[1]),
+            patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"),
+            patch("src.upload_image.coklu_gorsel_yukle", return_value=[]),
             patch("src.yeni_formatlar.slaytlari_uret", return_value=[Path(self.slayt)]),
             patch("src.db_senkron.hemen_kaydet"),
         ]
@@ -360,8 +360,8 @@ class TestOnayaSunOtoYayin(unittest.TestCase):
 
 class TestOtoYayinla(unittest.TestCase):
     def _calistir(self, **sonuc):
-        with patch.object(tb, "medya_grubu_gonder", return_value=[1]) as album, \
-             patch.object(tb.subprocess, "run", **sonuc) as run:
+        with patch("src.telegram.album.medya_grubu_gonder", return_value=[1]) as album, \
+             patch("subprocess.run", **sonuc) as run:
             yanit = tb._oto_yayinla(77, ["a.jpg"], {"manset": "Başlık <b>"})
         return yanit, run, album
 
@@ -394,39 +394,39 @@ class TestOtoYayinla(unittest.TestCase):
         self.assertIn("OTOMATİK YAYIN", album.call_args.kwargs["caption"])
 
     def test_album_gonderilemese_de_yayin_denenir(self):
-        with patch.object(tb, "medya_grubu_gonder", side_effect=RuntimeError("ağ")), \
-             patch.object(tb.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout="", stderr="")) as run:
+        with patch("src.telegram.album.medya_grubu_gonder", side_effect=RuntimeError("ağ")), \
+             patch("subprocess.run", return_value=subprocess.CompletedProcess([], 0, stdout="", stderr="")) as run:
             self.assertTrue(tb._oto_yayinla(77, ["a.jpg"], {"manset": "x"}))
         run.assert_called_once()
 
 
 class TestSlotYonlendirme(unittest.TestCase):
     def test_sozluk_slotu_kart_varsa_kartla_gider(self):
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=True) as kart, \
-             patch.object(tb, "hizli_icerik_uret") as model, patch.object(tb, "mesaj_gonder"):
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, \
+             patch("src.telegram.akislar.uretim.hizli_icerik_uret") as model, patch("src.telegram.istemci.mesaj_gonder"):
             self.assertTrue(tb._sozluk_slotu())
         kart.assert_called_once()
         model.assert_not_called()
 
     def test_kart_basarisizsa_modele_gecilmez(self):
         # Kart bulundu ama kapı durdurdu (False): içerik zaten sorunlu, ikinci bir içerik üretilmez
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=False), \
-             patch.object(tb, "hizli_icerik_uret") as model, patch.object(tb, "mesaj_gonder"):
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=False), \
+             patch("src.telegram.akislar.uretim.hizli_icerik_uret") as model, patch("src.telegram.istemci.mesaj_gonder"):
             self.assertFalse(tb._sozluk_slotu())
         model.assert_not_called()
 
     def test_kart_kalmadiysa_modelle_ve_onayli(self):
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=None), \
-             patch.object(tb, "hizli_icerik_uret", return_value=True) as model, patch.object(tb, "mesaj_gonder") as mesaj:
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=None), \
+             patch("src.telegram.akislar.uretim.hizli_icerik_uret", return_value=True) as model, patch("src.telegram.istemci.mesaj_gonder") as mesaj:
             self.assertTrue(tb._sozluk_slotu())
         model.assert_called_once_with(format_turu="sozluk")
         self.assertIn("hazır sözlük kartı kalmadı", mesaj.call_args.args[0])
 
     def test_sozluk_slotu_ve_gunluk_donguye_baglanti(self):
-        with patch.object(tb, "_sozluk_slotu", return_value=True) as slot:
+        with patch("src.telegram.akislar.uretim._sozluk_slotu", return_value=True) as slot:
             self.assertTrue(tb.slot_icerigi_hazirla_ve_sun(slot="sozluk"))
         slot.assert_called_once()
-        with patch.object(tb, "_sozluk_slotu", return_value=True) as slot, \
+        with patch("src.telegram.akislar.uretim._sozluk_slotu", return_value=True) as slot, \
              patch.object(konu_bankasi, "siradaki_bilgilendirici_format", return_value="sozluk"), \
              patch.object(konu_bankasi, "bilgilendirici_format_kaydet") as kaydet:
             self.assertTrue(tb.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici"))
@@ -434,18 +434,18 @@ class TestSlotYonlendirme(unittest.TestCase):
         kaydet.assert_called_once_with("sozluk")
 
     def test_oto_yayin_bayragi_slottan_karta_kadar_iletilir(self):
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch.object(tb, "mesaj_gonder"):
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"):
             tb.slot_icerigi_hazirla_ve_sun(slot="sozluk", oto_yayin=True)
             kart.assert_called_once_with(oto_yayin=True)
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch.object(tb, "mesaj_gonder"):
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"):
             tb.slot_icerigi_hazirla_ve_sun(slot="sozluk", oto_yayin=False)
             kart.assert_called_once_with(oto_yayin=False)
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch.object(tb, "mesaj_gonder"):
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"):
             tb.slot_icerigi_hazirla_ve_sun(slot="sozluk")          # bayrak verilmedi: anahtara bakılır
             kart.assert_called_once_with()
 
     def test_gunluk_dongudeki_sozluk_gunu_bayragi_iletir(self):
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch.object(tb, "mesaj_gonder"), \
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=True) as kart, patch("src.telegram.istemci.mesaj_gonder"), \
              patch.object(konu_bankasi, "siradaki_bilgilendirici_format", return_value="sozluk"), \
              patch.object(konu_bankasi, "bilgilendirici_format_kaydet"):
             tb.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici", oto_yayin=False)
@@ -455,13 +455,13 @@ class TestSlotYonlendirme(unittest.TestCase):
         # kart kalmadı: modelin yazdığı sözlük HİÇBİR koşulda onaysız yayınlanmaz (hizli_icerik_uret oto_yayin almaz)
         import inspect
         self.assertNotIn("oto_yayin", inspect.signature(tb.hizli_icerik_uret).parameters)
-        with patch.object(tb, "sozluk_karti_hazirla_ve_sun", return_value=None), \
-             patch.object(tb, "hizli_icerik_uret", return_value=True) as model, patch.object(tb, "mesaj_gonder"):
+        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=None), \
+             patch("src.telegram.akislar.uretim.hizli_icerik_uret", return_value=True) as model, patch("src.telegram.istemci.mesaj_gonder"):
             tb.slot_icerigi_hazirla_ve_sun(slot="sozluk", oto_yayin=True)
         model.assert_called_once_with(format_turu="sozluk")
 
     def test_diger_formatlar_eskisi_gibi(self):
-        with patch.object(tb, "hizli_icerik_uret", return_value=True) as model, \
+        with patch("src.telegram.akislar.uretim.hizli_icerik_uret", return_value=True) as model, \
              patch.object(konu_bankasi, "siradaki_bilgilendirici_format", return_value="net_cevap"), \
              patch.object(konu_bankasi, "bilgilendirici_format_kaydet"):
             tb.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
@@ -497,10 +497,10 @@ class TestZamanlanmisCalistirma(unittest.TestCase):
             os.environ.pop("SOZLUK_OTO_YAYIN", None)
             if env is not None:
                 os.environ["SOZLUK_OTO_YAYIN"] = env
-            with patch.object(tb, "_sozluk_karti_sec", return_value=(copy.deepcopy(KART), True)), \
-                 patch.object(tb, "mesaj_gonder", side_effect=lambda m, **k: mesajlar.append(m)), \
-                 patch.object(tb, "bot_duraklatildi_mi", return_value=(False, "")), \
-                 patch.object(tb, "haber_onayina_sun", onay), \
+            with patch("src.telegram.akislar.sozluk._sozluk_karti_sec", return_value=(copy.deepcopy(KART), True)), \
+                 patch("src.telegram.istemci.mesaj_gonder", side_effect=lambda m, **k: mesajlar.append(m)), \
+                 patch("src.telegram.ayarlar.bot_duraklatildi_mi", return_value=(False, "")), \
+                 patch("src.telegram.akislar.onay.haber_onayina_sun", onay), \
                  patch.object(db, "ayar_oku", side_effect=ayar), \
                  patch.object(db, "haber_getir", return_value=haber):
                 tb.sozluk_karti_hazirla_ve_sun(oto_yayin=oto_yayin)
@@ -571,12 +571,12 @@ class TestHazirlaBayragi(unittest.TestCase):
     def _calistir(self, *argv):
         hz = self.hz
         with patch.object(sys, "argv", ["hazirla.py", *argv]), \
-             patch.object(hz.telegram_bot, "bot_duraklatildi_mi", return_value=(False, "")), \
+             patch("src.telegram.ayarlar.bot_duraklatildi_mi", return_value=(False, "")), \
              patch.object(hz.db, "eski_kayitlari_temizle", return_value=0), \
              patch.object(hz.db, "bayat_haberleri_ayikla", return_value=0), \
-             patch.object(hz.telegram_bot, "slot_icerigi_hazirla_ve_sun") as slot, \
-             patch.object(hz.telegram_bot, "sozluk_karti_hazirla_ve_sun") as kart, \
-             patch.object(hz.telegram_bot, "hizli_icerik_uret") as model:
+             patch("src.telegram.akislar.uretim.slot_icerigi_hazirla_ve_sun") as slot, \
+             patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun") as kart, \
+             patch("src.telegram.akislar.uretim.hizli_icerik_uret") as model:
             hz.main()
         return slot, kart, model
 

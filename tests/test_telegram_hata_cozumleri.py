@@ -64,10 +64,10 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         db.haber_guncelle(h_id, manset="Hisseli Tapu Satış Rehberi", durum="onay_bekliyor")
 
         with (
-            patch("src.telegram_bot.medya_grubu_gonder"),
-            patch("src.telegram_bot.mesaj_gonder") as mock_mesaj,
-            patch("src.telegram_bot.upload_image.coklu_gorsel_yukle", return_value=[]),
-            patch("src.telegram_bot.make_image.otorite_gonderi_slaytlari_uret", return_value=[]),
+            patch("src.telegram.album.medya_grubu_gonder"),
+            patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj,
+            patch("src.upload_image.coklu_gorsel_yukle", return_value=[]),
+            patch("src.make_image.otorite_gonderi_slaytlari_uret", return_value=[]),
             patch("src.db_senkron.hemen_kaydet"),
         ):
             mock_mesaj.return_value = {"message_id": 444}
@@ -135,7 +135,7 @@ class TestTelegramHataCozumleri(unittest.TestCase):
         mock_uret.assert_not_called()
         mock_video_yukle.assert_called_once_with(fake_video, baslik="Test Başlık", etiketler=None)
 
-    @patch("src.telegram_bot.mesaj_gonder")
+    @patch("src.telegram.istemci.mesaj_gonder")
     def test_hata_bildir_son_hata_txt_fallback_ve_id_tamamlama(self, mock_gonder):
         """hata_bildir boş hata ve ID durumunda son_hata.txt ve veritabanından teşhis koymalıdır."""
         h_id = db.haber_kaydet(

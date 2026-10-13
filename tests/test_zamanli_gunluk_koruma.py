@@ -55,9 +55,9 @@ class TestGunlukKoruma(unittest.TestCase):
         self.hazirla = _hazirla_modulu()
         self.ayar = SahteAyarlar()
         self.sablon = [
-            mock.patch.object(tb.db, "ayar_oku", side_effect=self.ayar.oku),
-            mock.patch.object(tb.db, "ayar_yaz", side_effect=self.ayar.yaz),
-            mock.patch.object(tb, "_tr_bugun", return_value=BUGUN),
+            mock.patch("src.db.ayar_oku", side_effect=self.ayar.oku),
+            mock.patch("src.db.ayar_yaz", side_effect=self.ayar.yaz),
+            mock.patch("src.telegram.akislar.zamanli._tr_bugun", return_value=BUGUN),
         ]
         for m in self.sablon:
             m.start()
@@ -67,8 +67,8 @@ class TestGunlukKoruma(unittest.TestCase):
         ortam = {"ZAMANLANMIS": "true" if zamanlanmis else ""}
         with mock.patch.dict(os.environ, ortam), \
              mock.patch.object(sys, "argv", ["hazirla.py", *argv]), \
-             mock.patch.object(tb, "bot_duraklatildi_mi", return_value=(False, "")), \
-             mock.patch.object(tb, "slot_icerigi_hazirla_ve_sun", return_value=sonuc) as slot, \
+             mock.patch("src.telegram.ayarlar.bot_duraklatildi_mi", return_value=(False, "")), \
+             mock.patch("src.telegram.akislar.uretim.slot_icerigi_hazirla_ve_sun", return_value=sonuc) as slot, \
              mock.patch.object(self.hazirla.db, "eski_kayitlari_temizle", return_value=0), \
              mock.patch.object(self.hazirla.db, "bayat_haberleri_ayikla", return_value=0):
             self.hazirla.main()

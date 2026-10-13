@@ -85,14 +85,14 @@ class TestHaberGorselVeOnayAkisi(unittest.TestCase):
         }
 
         with (
-            patch("src.telegram_bot.db.haber_getir", return_value=haber),
-            patch("src.telegram_bot.db.haber_guncelle") as mock_guncelle,
-            patch("src.telegram_bot.yayin_kapisi", return_value=(True, [])),
-            patch("src.telegram_bot.upload_image.coklu_gorsel_yukle", return_value=["https://cdn.com/1.jpg", "https://cdn.com/2.jpg"]),
-            patch("src.telegram_bot.medya_grubu_gonder") as mock_medya,
-            patch("src.telegram_bot.video_gonder") as mock_video,
-            patch("src.telegram_bot.mesaj_gonder"),
-            patch("src.telegram_bot.Path.exists", return_value=True),
+            patch("src.db.haber_getir", return_value=haber),
+            patch("src.db.haber_guncelle") as mock_guncelle,
+            patch("src.telegram.akislar.kapi.yayin_kapisi", return_value=(True, [])),
+            patch("src.upload_image.coklu_gorsel_yukle", return_value=["https://cdn.com/1.jpg", "https://cdn.com/2.jpg"]),
+            patch("src.telegram.album.medya_grubu_gonder") as mock_medya,
+            patch("src.telegram.medya_istek.video_gonder") as mock_video,
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("pathlib.Path.exists", return_value=True),
         ):
             res = telegram_bot._haber_onayina_sun(888)
             mock_medya.assert_called_once()

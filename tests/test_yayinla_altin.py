@@ -220,7 +220,7 @@ class Ortam:
             # Zamanlama bağımlı ara güncellemeler kaydedilmez; yalnız TAMAMLANMIŞ durum (adim == toplam_adim) deterministiktir
             if k.get("adim") == k.get("toplam_adim"):
                 self.kayitci.kaydet("telegram_bot.canli_yayin_durumu_guncelle", a, {x: y for x, y in k.items() if x != "baslangic_ts"})
-        return patch.object(telegram_bot, "canli_yayin_durumu_guncelle", side_effect=f)
+        return patch("src.telegram.durum_metni.canli_yayin_durumu_guncelle", side_effect=f)
 
     def _resim_ureticiler(self):
         ortam = self

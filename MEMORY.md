@@ -292,7 +292,7 @@ kararlardır; yeniden sorulmaz. Her maddenin testi var, testin adı yanında.
    satırını doğrula (sınıra takılan dağıtım cron'u sessizce yazmıyordu — Instabot).
 
 ### 9.6 Worker ve dağıtım
-1. `worker/index.js` menüleri `telegram_bot.py` menüleriyle BİREBİR aynı kalmalı.
+1. `worker/index.js` menüleri `src/telegram/menuler*.py` menüleriyle BİREBİR aynı kalmalı (`tests/test_sozlesme.py` karşılaştırır).
    Worker değişince: `cd worker && npx --yes wrangler deploy`. Son sürümler:
    `830fb293` (öneri + sesli yayın), `a21121a4` (planlı yayın).
 2. Worker testleri gerçek çağrıyla: `node --test tests/*.test.mjs` (52 test).
@@ -371,7 +371,11 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Hata düzeltildi:** `yayindan_kaldir("haber", …)` (✕ Yayından Kaldır düğmesi) 2026-10-07'den beri **çöküyordu**: `haberler` tablosunda olmayan `atlanma_zamani` sütununu yazıyordu
       (`OperationalError: no such column`). Facebook/Threads gönderisi silindikten SONRA çöktüğü için gönderi gidiyor, kayıt "yayında" kalıyor, Telegram'a rapor gelmiyordu.
       İlan yolu (`ilan_kaldirildi_isaretle`) etkilenmiyordu. Zaman damgası kaldırıldı; `aday.py` "atlanma_zamani" sütununu zaten yoksa tolere ediyor.
-    * **Faz 2 aşama 1–3 (aynı gün):** `telegram_bot.py` 2919 → 1219 satır. `src/telegram/` paketi: `istemci` (tek HTTP kapısı `_istek`), `medya_istek` (foto/video + yeniden deneme), `album`, `temizlik`, `ayarlar` (duraklatma/kanal),
-      `menuler` + `menuler_panel` (düğme setleri), `durum_metni` + `sonuc_mesaji` + `kaldir`, `kartlar`, `paneller`. Davranış 219 senaryoda birebir aynı; kuralları `tests/test_telegram_paketi.py` zorlar
-      (≤250 satır, `telegram_bot`'a yukarı bağımlılık yok, kardeş işlevler modül üzerinden). **Yeni bir testte Telegram yamalarken:** ağ kapısı `src.telegram.istemci._istek` / `_bot_bilgileri`;
-      `telegram_bot.mesaj_gonder` yaması yalnız hâlâ `telegram_bot.py`'de duran akışları sessizleştirir, `sonucu_yaz`/`canli_yayin_durumu_guncelle`/`panel_gonder` gibi taşınmış işlevleri sessizleştirmez.
+    * **Faz 2 tamamlandı (aynı gün):** `telegram_bot.py` 2919 → 168 satır (kod yok, canlı takma ad cephesi). `src/telegram/` paketi: `istemci` (tek HTTP kapısı `_istek`), `medya_istek`, `album`, `temizlik`, `ayarlar`,
+      `menuler`, `menuler_panel`, `durum_metni`, `sonuc_mesaji`, `kaldir`, `kartlar`, `paneller`, `akislar/` (`kapi`, `onay`, `onay_slayt`, `onay_karti`, `otomatik`, `sozluk`, `uretim`, `reels`, `otorite`, `ilan`, `finans`, `zamanli`).
+      Davranış 219 senaryoda birebir aynı (`tests/test_telegram_altin.py`); kurallar `tests/test_telegram_paketi.py`'de (≤250 satır, `telegram_bot`'a yukarı bağımlılık yok, kardeşler modül üzerinden, cephe tablosu paketle aynı).
+      **Test yazarken:** Telegram'ı sessizleştirmek için GERÇEK EVİ yamala — `patch("src.telegram.istemci.mesaj_gonder")`, ağ kapısı için `src.telegram.istemci._istek` / `_bot_bilgileri`; `patch("src.telegram_bot.X")` yalnız
+      cepheden çağıranları (scripts/, src/yayin/) sessizleştirir. Kaynak metni okuyan testler `tests/telegram_kaynak.py::telegram_kaynagi()` kullanır.
+    * **Bölmede bulunan gizli hatalar (düzeltilmedi, karar sizin):** (a) `src/threads.py:241` `json` içe aktarılmamış; `metinleri_slaytlara_dagit` içindeki `try/except Exception` NameError'u yutuyor, yani `detay_metni` HİÇ ayrıştırılmıyor
+      ve Threads zinciri satır alanlarından kuruluyor. Düzeltmek (import eklemek) içeriği değiştirir (yeni biçimlerde `manset` anahtarı olmayabilir) — gözlemlenmeden dokunulmadı. (b) `scripts/piyasa_otomatik.py` ve `src/piyasa_tablo.py`
+      kapalı piyasa özelliğinde tanımsız ad / olmayan `src.caption` modülü içeriyor (özellik kapalı, çalıştırılmıyor). (c) `src/haber_oneri.py` `Path` içe aktarmamıştı: yerel dosya yollu aday görseli NameError ile günlük öneriyi çökertirdi — düzeltildi.

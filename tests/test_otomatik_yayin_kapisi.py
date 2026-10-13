@@ -97,9 +97,9 @@ class TestFinansAkisiKapiyaBagli(unittest.TestCase):
             patch("src.video.slaytlardan_reels_uret", return_value=None),
             patch("src.dogrula.otomatik_yayina_uygun_mu", return_value=kapi_sonucu),
             patch("subprocess.run", return_value=MagicMock(returncode=0, stdout="POSTEDM_SONUC={}", stderr="")) as yayin,
-            patch("src.telegram_bot.mesaj_gonder") as mesaj,
-            patch("src.telegram_bot.medya_grubu_gonder"),
-            patch("src.telegram_bot.haber_onayina_sun", return_value=True) as onay,
+            patch("src.telegram.istemci.mesaj_gonder") as mesaj,
+            patch("src.telegram.album.medya_grubu_gonder"),
+            patch("src.telegram.akislar.onay.haber_onayina_sun", return_value=True) as onay,
         ):
             telegram_bot.finans_icerigi_hazirla_ve_yayinla(oto_yayin=True)
         return yayin, mesaj, onay

@@ -56,13 +56,52 @@ class TestTelegramPaketYapisi(unittest.TestCase):
         self.assertFalse(ihlal, f"Kardeş modülden ad alma yasak: {ihlal}")
 
     def test_eski_adlar_telegram_bot_tan_erisilebilir(self):
-        """22 kaynak ve 31 test dosyası bu adlarla çağırıyor; taşınınca kaybolmamalı."""
+        """22 kaynak, 31 test dosyası ve workflow'lardaki `python -c` satırları bu adlarla çağırıyor; taşınınca kaybolmamalı."""
         from src import telegram_bot
         for ad in ("mesaj_gonder", "mesaji_sil", "mesaji_guncelle", "menuyu_degistir", "aciklama_metni_kutusu",
                    "fotograf_gonder", "video_gonder", "medya_grubu_gonder", "slaytlari_gonder",
                    "son_medya_grubu_mesaj_idleri", "icerik_onceki_mesajlarini_temizle", "son_mesajlari_sil",
-                   "_bot_bilgileri", "_istek", "TELEGRAM_API_URL"):
+                   "_bot_bilgileri", "_istek", "TELEGRAM_API_URL", "haber_onayina_sun", "yayin_kapisi", "sozluk_karti_hazirla_ve_sun",
+                   "slot_icerigi_hazirla_ve_sun", "finans_icerigi_hazirla_ve_yayinla", "ilan_postunu_hazirla_ve_sor",
+                   "bot_duraklatildi_mi", "yayindan_kaldir", "komut_menusu_kaydet", "kota_gonder", "sonucu_yaz"):
             self.assertTrue(hasattr(telegram_bot, ad), ad)
+
+    def test_cephe_tablosu_paketle_ayni(self):
+        """telegram_bot._EV (ad → modül) paketin gerçek içeriğiyle birebir; yeni işlev eklenince tabloya da eklenir
+        (hata mesajı eksik / fazla / yanlış adları listeler)."""
+        from src import telegram_bot
+        gercek, cift = {}, []
+        for y in _moduller():
+            modul = ".".join(y.relative_to(PAKET).with_suffix("").parts)
+            for n in ast.parse(y.read_text(encoding="utf-8")).body:
+                adlar = ([n.name] if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+                         else [t.id for t in n.targets if isinstance(t, ast.Name)] if isinstance(n, ast.Assign) else [])
+                for a in adlar:
+                    if a in ("log", "KOK", "_son_medya_grubu_mesaj_idleri"):
+                        continue
+                    if a in gercek:
+                        cift.append(f"{a}: {gercek[a]} ve {modul}")
+                    gercek[a] = modul
+        self.assertFalse(cift, f"Aynı ad iki modülde (cephe hangisini göstereceğini bilemez): {cift}")
+        eksik = sorted(set(gercek) - set(telegram_bot._EV))
+        fazla = sorted(set(telegram_bot._EV) - set(gercek))
+        yanlis = sorted(a for a in gercek if a in telegram_bot._EV and telegram_bot._EV[a] != gercek[a])
+        self.assertEqual((eksik, fazla, yanlis), ([], [], []), "src/telegram_bot.py _EV tablosu paketle uyuşmuyor")
+
+    def test_cephe_kod_barindirmaz(self):
+        """telegram_bot.py yalnızca ad tablosu ve `__getattr__`/`__dir__`: iş mantığı geri sızmasın."""
+        agac = ast.parse((KOK / "src" / "telegram_bot.py").read_text(encoding="utf-8"))
+        islevler = sorted(n.name for n in agac.body if isinstance(n, ast.FunctionDef))
+        self.assertEqual(islevler, ["__dir__", "__getattr__"])
+
+    def test_cephe_adi_gercek_evinden_o_an_okur(self):
+        """Gerçek evdeki yama cepheden çağıranı da kapsar (canlı takma ad)."""
+        from unittest.mock import patch
+        from src import telegram_bot
+        with patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 7}) as m:
+            self.assertEqual(telegram_bot.mesaj_gonder("x"), {"message_id": 7})
+        m.assert_called_once_with("x")
+        self.assertIsNot(telegram_bot.mesaj_gonder, m)  # yama bitti: gerçek işlev geri geldi
 
 
 if __name__ == "__main__":

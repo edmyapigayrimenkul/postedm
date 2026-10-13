@@ -199,14 +199,14 @@ class TestDagitim(unittest.TestCase):
 
 class TestIlerleme(unittest.TestCase):
     def test_mesaj_id_yoksa_telegrama_hic_yazmaz(self):
-        with patch.object(telegram_bot, "canli_yayin_durumu_guncelle") as g:
+        with patch("src.telegram.durum_metni.canli_yayin_durumu_guncelle") as g:
             i = Ilerleme(["a", "b"], None, "b")
             i.baslat()
             i.bildir("a", "x", increment=True)
         g.assert_not_called()
 
     def test_tamamlanma_her_zaman_gider_ara_guncellemeler_sinirlanir(self):
-        with patch.object(telegram_bot, "canli_yayin_durumu_guncelle") as g:
+        with patch("src.telegram.durum_metni.canli_yayin_durumu_guncelle") as g:
             i = Ilerleme(["a", "b", "c"], 5, "b")
             i.bildir("a", "1", increment=True)   # ilk güncelleme geçer
             i.bildir("b", "2", increment=True)   # 1,2 sn içinde: atlanır
@@ -215,13 +215,13 @@ class TestIlerleme(unittest.TestCase):
         self.assertEqual(adimlar, [1, 3])
 
     def test_baslangic_gosterimi_sifir_adim(self):
-        with patch.object(telegram_bot, "canli_yayin_durumu_guncelle") as g:
+        with patch("src.telegram.durum_metni.canli_yayin_durumu_guncelle") as g:
             Ilerleme(["a", "b"], 5, "b").baslat()
         self.assertEqual(g.call_args.kwargs["adim"], 0)
         self.assertEqual(g.call_args.kwargs["toplam_adim"], 2)
 
     def test_telegram_hatasi_yayini_durdurmaz(self):
-        with patch.object(telegram_bot, "canli_yayin_durumu_guncelle", side_effect=RuntimeError("tg")):
+        with patch("src.telegram.durum_metni.canli_yayin_durumu_guncelle", side_effect=RuntimeError("tg")):
             i = Ilerleme(["a"], 5, "b")
             i.baslat()
             i.bildir("a", "x", increment=True)  # istisna dışarı sızmamalı

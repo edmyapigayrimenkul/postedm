@@ -28,7 +28,7 @@ Kod nasıl paylaşacağını bilir; o belge neyin paylaşmaya değer olduğunu t
                [make_image.py]     karma planlayıcı: 4 ↔ 7 slayt
                                    kutusuz dizgi, 3 zemin varyantı
                         ▼
-              [telegram_bot.py]    @PostEdmBot önizleme + onay
+              [src/telegram/]      @PostEdmBot önizleme + onay
                         │
                         ├── [✅ Yayına Al]   └── [❌ Pas Geç]
                         ▼

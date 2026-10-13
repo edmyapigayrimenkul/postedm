@@ -73,8 +73,8 @@ class TestTelegramInstabotSeviyesi(unittest.TestCase):
                     f"Beklenmeyen callback formatı: {cb}"
                 )
 
-    @patch("src.telegram_bot.haber_onayina_sun")
-    @patch("src.telegram_bot.mesaj_gonder")
+    @patch("src.telegram.akislar.onay.haber_onayina_sun")
+    @patch("src.telegram.istemci.mesaj_gonder")
     @patch("src.db_senkron.hemen_kaydet")
     @patch("src.generate_text._gemini_cagri")
     @patch("src.generate_text.konudan_uret")
@@ -100,8 +100,8 @@ class TestTelegramInstabotSeviyesi(unittest.TestCase):
         self.assertIn("2026 Tapu Harcı", haber["manset"])
         mock_onay.assert_called_once_with(haber_id)
 
-    @patch("src.telegram_bot.haber_onayina_sun")
-    @patch("src.telegram_bot.mesaj_gonder")
+    @patch("src.telegram.akislar.onay.haber_onayina_sun")
+    @patch("src.telegram.istemci.mesaj_gonder")
     @patch("src.db_senkron.hemen_kaydet")
     @patch("src.generate_text._gemini_cagri")
     @patch("src.generate_text.konudan_uret")

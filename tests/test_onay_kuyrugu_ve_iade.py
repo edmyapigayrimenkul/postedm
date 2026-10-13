@@ -131,9 +131,9 @@ class TestZamanAsimiTumKuyruk(unittest.TestCase):
         yeniler = [self._ekle(yas_gun=0.2), self._ekle(yas_gun=0.1)]  # 1 saatten genç değil, ama taze
         for hid in eskiler:
             _gecmis_ekle("S1-903", hid)
-        with mock.patch.object(hatirlat.telegram_bot, "mesaj_gonder") as mesaj, \
-             mock.patch.object(hatirlat.telegram_bot, "icerik_onceki_mesajlarini_temizle"), \
-             mock.patch.object(hatirlat.telegram_bot, "_bot_bilgileri", return_value=("t", "1")), \
+        with mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
+             mock.patch("src.telegram.istemci._bot_bilgileri", return_value=("t", "1")), \
              mock.patch.object(hatirlat.db, "wal_bosalt"):
             hatirlat.main(argv=[])
         for hid in eskiler:
@@ -148,7 +148,7 @@ class TestZamanAsimiTumKuyruk(unittest.TestCase):
 
     def test_tek_icerik_eski_mesaj_bicimini_korur(self):
         hid = self._ekle(yas_gun=8)
-        with mock.patch.object(hatirlat.telegram_bot, "mesaj_gonder") as mesaj, \
+        with mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
              mock.patch.object(hatirlat.db, "wal_bosalt"):
             hatirlat.main(argv=[])
         self.assertEqual(db.haber_getir(hid)["durum"], "zaman_asimi")
@@ -157,7 +157,7 @@ class TestZamanAsimiTumKuyruk(unittest.TestCase):
     def test_plan_penceresindeki_icerik_zaman_asimina_girmez(self):
         plan = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
         hid = self._ekle(yas_gun=9, planlanan_yayin=plan)
-        with mock.patch.object(hatirlat.telegram_bot, "mesaj_gonder"), mock.patch.object(hatirlat.db, "wal_bosalt"):
+        with mock.patch("src.telegram.istemci.mesaj_gonder"), mock.patch.object(hatirlat.db, "wal_bosalt"):
             hatirlat.main(argv=[])
         self.assertEqual(db.haber_getir(hid)["durum"], "onay_bekliyor")
 
@@ -184,8 +184,8 @@ class TestAtlaVeCopeAt(unittest.TestCase):
         self.idler.append(hid)
         _gecmis_ekle("S1-904", hid)
         with mock.patch.object(sys, "argv", ["yayinla.py", "--tur", "haber", "--id", str(hid), "--hedef", hedef]), \
-             mock.patch.object(self.yayinla.telegram_bot, "mesaj_gonder") as mesaj, \
-             mock.patch.object(self.yayinla.telegram_bot, "konu_bankasindan_hazirla") as yeni_uret:
+             mock.patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             mock.patch("src.telegram.akislar.uretim.konu_bankasindan_hazirla") as yeni_uret:
             self.yayinla.main()
         return hid, mesaj, yeni_uret
 

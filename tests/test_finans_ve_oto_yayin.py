@@ -76,9 +76,9 @@ class TestFinansVeOtoYayin(unittest.TestCase):
             # Kapının kendisi tests/test_otomatik_yayin_kapisi.py içinde.
             patch("src.dogrula.otomatik_yayina_uygun_mu", return_value=(True, [])),
             patch("subprocess.run") as mock_subproc,
-            patch("src.telegram_bot.mesaj_gonder") as mock_mesaj,
-            patch("src.telegram_bot.medya_grubu_gonder") as mock_medya,
-            patch("src.telegram_bot.haber_onayina_sun") as mock_onay,
+            patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj,
+            patch("src.telegram.album.medya_grubu_gonder") as mock_medya,
+            patch("src.telegram.akislar.onay.haber_onayina_sun") as mock_onay,
         ):
             mock_subproc.return_value = MagicMock(returncode=0, stdout="Yayın tamamlandı", stderr="")
             sonuc = telegram_bot.finans_icerigi_hazirla_ve_yayinla(oto_yayin=True)
@@ -119,8 +119,8 @@ class TestFinansVeOtoYayin(unittest.TestCase):
             patch("src.video.slaytlardan_reels_uret", return_value=dummy_img),
             patch("src.ses.sesli_video_hazirla", return_value=dummy_img),
             patch("subprocess.run") as mock_subproc,
-            patch("src.telegram_bot.mesaj_gonder"),
-            patch("src.telegram_bot.haber_onayina_sun", return_value=True) as mock_onay,
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.akislar.onay.haber_onayina_sun", return_value=True) as mock_onay,
         ):
             sonuc = telegram_bot.finans_icerigi_hazirla_ve_yayinla(oto_yayin=False)
             self.assertTrue(sonuc)
@@ -149,9 +149,9 @@ class TestDogrulamaKapisi(unittest.TestCase):
             patch("src.upload_image.coklu_gorsel_yukle", return_value=["https://cdn.example.com/1.jpg"]),
             patch("src.video.slaytlardan_reels_uret", return_value=None),
             patch("subprocess.run") as yayin,
-            patch("src.telegram_bot.mesaj_gonder") as mesaj,
-            patch("src.telegram_bot.medya_grubu_gonder"),
-            patch("src.telegram_bot.haber_onayina_sun", return_value=True) as onay,
+            patch("src.telegram.istemci.mesaj_gonder") as mesaj,
+            patch("src.telegram.album.medya_grubu_gonder"),
+            patch("src.telegram.akislar.onay.haber_onayina_sun", return_value=True) as onay,
         ):
             telegram_bot.finans_icerigi_hazirla_ve_yayinla(oto_yayin=True)
         yayin.assert_not_called()

@@ -146,8 +146,8 @@ class TestYayinKapisi(_GeciciDB):
         from src import telegram_bot
         hid = self._kayit()
         with patch("src.dogrula._kanun_metni", return_value=ONALIM_METNI), \
-             patch("src.telegram_bot.mesaj_gonder") as mesaj, \
-             patch("src.telegram_bot.medya_grubu_gonder") as album, \
+             patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
+             patch("src.telegram.album.medya_grubu_gonder") as album, \
              patch("src.make_image.otorite_gonderi_slaytlari_uret") as cizim, \
              patch("src.db_senkron.hemen_kaydet"):
             sonuc = telegram_bot.haber_onayina_sun(hid)
@@ -163,7 +163,7 @@ class TestYayinKapisi(_GeciciDB):
         from src import telegram_bot
         hid = self._kayit()
         with patch("src.dogrula.icerigi_denetle", side_effect=RuntimeError("bozuk")), \
-             patch("src.telegram_bot.mesaj_gonder") as mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
              patch("src.db_senkron.hemen_kaydet"):
             gecti, _ = telegram_bot.yayin_kapisi(hid, db.haber_getir(hid), {"manset": "x"})
         self.assertFalse(gecti)
@@ -179,7 +179,7 @@ class TestYayinKapisi(_GeciciDB):
         hid = self._kayit()
         db.haber_guncelle(hid, durum="onay_bekliyor")
         with patch("src.dogrula._kanun_metni", return_value=ONALIM_METNI), \
-             patch.object(yayinla.telegram_bot, "mesaj_gonder") as mesaj, \
+             patch("src.telegram.istemci.mesaj_gonder") as mesaj, \
              patch("src.instagram.carousel_yayinla") as ig, \
              patch("src.db_senkron.hemen_kaydet"), \
              patch.object(yayinla.sys, "argv", ["yayinla.py", "--tur", "haber", "--id", str(hid), "--hedef", "ig"]):
@@ -214,8 +214,8 @@ class TestHaberOnerisi(_GeciciDB):
             return None
 
         with patch("src.haber_triyaj.triyaj_et", side_effect=reddet), \
-             patch("src.telegram_bot.haberden_icerik_hazirla") as uret, \
-             patch("src.telegram_bot.mesaj_gonder") as mesaj:
+             patch("src.telegram.akislar.uretim.haberden_icerik_hazirla") as uret, \
+             patch("src.telegram.istemci.mesaj_gonder") as mesaj:
             self.assertFalse(haber_oneri.haberden_icerige(9))
         uret.assert_not_called()
         self.assertIn("somut bir kural", mesaj.call_args.args[0])
@@ -227,7 +227,7 @@ class TestHaberOnerisi(_GeciciDB):
             conn.execute("INSERT INTO haberler (id, kaynak, orijinal_baslik, orijinal_url, eklenme_tarihi, durum)"
                          " VALUES (10, 'Emlakkulisi', 'x', 'https://ornek.com/10', '2026-09-24', 'yayinlandi')")
             conn.commit()
-        with patch("src.haber_triyaj.triyaj_et") as triyaj, patch("src.telegram_bot.mesaj_gonder"):
+        with patch("src.haber_triyaj.triyaj_et") as triyaj, patch("src.telegram.istemci.mesaj_gonder"):
             self.assertFalse(haber_oneri.haberden_icerige(10))
         triyaj.assert_not_called()
 
@@ -238,7 +238,7 @@ class TestHaberOnerisi(_GeciciDB):
                          " VALUES (11, 'Emlakkulisi', 'Elendi haberi', 'https://ornek.com/11', '2026-09-24', 'elendi')")
             conn.commit()
         with patch("src.haber_triyaj.triyaj_et", return_value={"kod": "HABER-11", "bicim": "B5"}) as triyaj, \
-             patch("src.telegram_bot.haberden_icerik_hazirla", return_value=True) as uret:
+             patch("src.telegram.akislar.uretim.haberden_icerik_hazirla", return_value=True) as uret:
             self.assertTrue(haber_oneri.haberden_icerige(11))
         triyaj.assert_called_once()
         self.assertTrue(triyaj.call_args.kwargs.get("zorla"))
@@ -281,7 +281,7 @@ class TestHaberOnerisi(_GeciciDB):
         from src import haber_oneri
         simdi = datetime.now(timezone.utc)
         db.ayar_yaz("haber_oneri_gunluk", f"{haber_oneri._gunluk_sayac_anahtari(simdi)}:{haber_oneri.GUNLUK_AZAMI}")
-        with patch("src.haber_oneri.adaylari_sec") as sec, patch("src.telegram_bot.mesaj_gonder"):
+        with patch("src.haber_oneri.adaylari_sec") as sec, patch("src.telegram.istemci.mesaj_gonder"):
             self.assertEqual(haber_oneri.onerileri_gonder(tara=False), 0)
         sec.assert_not_called()
 

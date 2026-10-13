@@ -41,7 +41,7 @@ class TestKanalStandartlari(unittest.TestCase):
         im.save(self.dummy_img, "JPEG")
 
         # Kanal yönlendirmesi testi; yayın kapısının kendisi test_sifir_tolerans'ta
-        self._kapi = patch("src.telegram_bot.yayin_kapisi", return_value=(True, []))
+        self._kapi = patch("src.telegram.akislar.kapi.yayin_kapisi", return_value=(True, []))
         self._kapi.start()
 
     def tearDown(self):
@@ -76,9 +76,9 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s123") as fb_story,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/x"}) as yt_shorts,
             patch.object(yayinla.linkedin, "paylas", return_value="li-p123") as li_paylas,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "video_gonder") as tg_video,
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.medya_istek.video_gonder") as tg_video,
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -132,9 +132,9 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.facebook, "story_yayinla", return_value="fb-s-tek") as fb_story,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/y"}) as yt_shorts,
             patch.object(yayinla.linkedin, "paylas", return_value="li-p123") as li_paylas,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "video_gonder") as tg_video,
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.medya_istek.video_gonder") as tg_video,
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -173,15 +173,15 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
             patch.object(yayinla.instagram, "carousel_yayinla") as ig_carousel,
             patch.object(yayinla.instagram, "tekil_gorsel_yayinla") as ig_tekil,
-            patch.object(yayinla.telegram_bot, "video_gonder") as tg_video,
+            patch("src.telegram.medya_istek.video_gonder") as tg_video,
             patch.object(yayinla.tiktok, "video_yukle", return_value={"durum": True, "publish_id": "tt-vid-123"}) as tt_video,
             patch.object(yayinla.tiktok, "foto_yayinla") as tt_foto,
             patch.object(yayinla.video, "slaytlardan_reels_uret", return_value=self.dummy_video),
             patch.object(yayinla.ses, "sesli_video_hazirla", return_value=self.dummy_video),
             patch.object(yayinla.facebook, "video_yayinla", return_value="fb-v-reels") as fb_video,
             patch.object(yayinla.youtube, "shorts_yukle", return_value={"durum": True, "url": "https://youtu.be/z"}) as yt_shorts,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -217,8 +217,8 @@ class TestKanalStandartlari(unittest.TestCase):
             patch.object(yayinla.db, "haber_guncelle"),
             patch.object(yayinla.db, "onay_istegi_sonuclandir"),
             patch.object(yayinla.threads, "zincir_paylas_sonuc", return_value={"kok_id": "th-chain-45", "yayinlanan": 2, "toplam": 2, "eksik": []}) as th_zincir,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
         ):
             yayinla.main()
 
@@ -247,8 +247,8 @@ class TestKanalStandartlari(unittest.TestCase):
             patch("src.make_image.otorite_gonderi_slaytlari_uret", return_value=mock_besleme_yollari) as mock_make_image,
             patch.object(yayinla.upload_image, "coklu_gorsel_yukle", return_value=["https://cdn.com/yeni_4x5_1.jpg", "https://cdn.com/yeni_4x5_2.jpg"]),
             patch.object(yayinla.threads, "zincir_paylas_sonuc", return_value={"kok_id": "th-chain-native", "yayinlanan": 2, "toplam": 2, "eksik": []}) as th_zincir,
-            patch.object(yayinla.telegram_bot, "mesaj_gonder"),
-            patch.object(yayinla.telegram_bot, "sonucu_yaz"),
+            patch("src.telegram.istemci.mesaj_gonder"),
+            patch("src.telegram.sonuc_mesaji.sonucu_yaz"),
         ):
             yayinla.main()
 

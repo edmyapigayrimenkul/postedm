@@ -267,7 +267,7 @@ class TestOtomatikYayinVeRotasyonDöngüsü(unittest.TestCase):
         """Kanunla uyuşmayan kart seçildiğinde otomatik yayın durur ve sonraki karta geçer."""
         bozuk_kart = copy.deepcopy(self.kartlar[0])
         with patch.object(sa, "kart_kanun_durumu", return_value=(False, ["Mevzuat uyuşmazlığı tespit edildi"])):
-            with patch.object(telegram_bot, "mesaj_gonder") as mock_msg:
+            with patch("src.telegram.istemci.mesaj_gonder") as mock_msg:
                 secilen, taze = telegram_bot._sozluk_karti_sec()
                 # 8 deneme boyunca başarısız olup durmalı
                 self.assertIsNone(secilen)
