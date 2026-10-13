@@ -365,3 +365,9 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
       Rapor satırları eskiden tamamlanma sırasıyla (rastgele), şimdi kanal sırasıyla.
     * **Korundu ama sorulmalı:** (a) X (Twitter) işçisi var ama hiçbir hedef onu SEÇMEZ (`hedef.kanal_listesi`; eskiden de öyleydi). (b) `gorsel_sec:N` hedefi taslak işlemi sayılmıyor,
       bu yüzden yayın kapısından (denetim) geçiyor. (c) "zaten yayında" olarak atlanan kanal için de "Tekrar dene" düğmesi çıkabiliyor (tıklanınca "zaten yayında" der, zararsız).
+15. **`telegram_bot.py` altın çıktı testi + "Yayından Kaldır" hatası — 2026-10-13.** Faz 2 (bölme) öncesi `tests/test_telegram_altin.py`: ~219 senaryo, Telegram'a giden HER istek
+    (`sendMessage`/`sendPhoto`/`sendMediaGroup`/`editMessageText`/…: metin, düğmeler, zaman aşımı, deneme sayısı), yan etkiler (üretim/denetim/yükleme çağrıları, DB satırları) ve
+    dönüş/hata kaydı `tests/altin/telegram.json`'da. Yeniden kayıt YALNIZ davranış bilerek değişince: `TELEGRAM_ALTIN_KAYDET=1 [TELEGRAM_ALTIN_SENARYO=ad1,ad2] python -m unittest tests.test_telegram_altin`.
+    * **Hata düzeltildi:** `yayindan_kaldir("haber", …)` (✕ Yayından Kaldır düğmesi) 2026-10-07'den beri **çöküyordu**: `haberler` tablosunda olmayan `atlanma_zamani` sütununu yazıyordu
+      (`OperationalError: no such column`). Facebook/Threads gönderisi silindikten SONRA çöktüğü için gönderi gidiyor, kayıt "yayında" kalıyor, Telegram'a rapor gelmiyordu.
+      İlan yolu (`ilan_kaldirildi_isaretle`) etkilenmiyordu. Zaman damgası kaldırıldı; `aday.py` "atlanma_zamani" sütununu zaten yoksa tolere ediyor.
