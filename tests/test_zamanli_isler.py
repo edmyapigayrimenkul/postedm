@@ -141,7 +141,7 @@ class TestUcYerinUyumu(unittest.TestCase):
         self.assertIn("github.event_name != 'schedule'", elle)
 
     def test_hatirlat_zamanli_yuk_zorla_modunu_acmaz(self):
-        adim = next(a for a in _workflow("hatirlat.yml")["jobs"]["hatirlat"]["steps"] if a.get("name") == "Hatırlatıcıyı Çalıştır")
+        adim = next(a for a in _workflow("hatirlat.yml")["jobs"]["hatirlat"]["steps"] if a.get("name", "").startswith("Kuyruk bakımını çalıştır"))
         self.assertNotIn("zamanli", adim["env"]["ZORLA"])
 
 

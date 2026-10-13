@@ -938,7 +938,7 @@ export default {
           await cevapVer("Yayın 1 saat ertelendi");
           await mesajiGuncelle(
             `⏰ <b>Yayın 1 Saat Ertelendi</b>\n\n` +
-            `İçerik onay kuyruğunda korunmaktadır. Hatırlatıcılar 1 saat boyunca sessize alındı.`,
+            `İçerik onay kuyruğunda korunmaktadır; yayınlanmazsa 1 gün sonunda havuza döner.`,
             {
               inline_keyboard: [
                 [{ text: "🚀 Şimdi Yayına Al", callback_data: "yayinla" }],
@@ -2143,7 +2143,7 @@ function durumMetni() {
     "• <b>09:17</b> ve <b>18:17</b> — Haber önerileri; hangisinin içeriğe çevrileceğine siz karar verirsiniz\n" +
     "• <b>10:00</b> — Bilgilendirici (rotasyon: B1 · Nedir Doğrusu · Net Cevap · B1) — önce bu gruba <b>onaya</b> gelir\n" +
     "• <b>12:30</b> — Emlak Sözlüğü kartı, <b>iki günde bir</b> — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez). Elle /sozluk derseniz kart <b>onay butonlarıyla</b> düşer\n" +
-    "• <b>13:30</b> ve <b>21:30</b> — Onay bekleyen içerik varsa hatırlatma\n\n" +
+    "• <b>13:30</b> ve <b>21:30</b> — Sessiz kuyruk bakımı (hatırlatma YOK): 1 gün içinde yayınlanmayan içerik havuza döner, başka bir gün aynen yeniden önerilir\n\n" +
     "<i>Bu mesaj takvimi gösterir, sistemin sağlığını değil. Gerçek durum için " +
     "“Canlı Sağlık Raporu”na bas — kanallar, jetonlar ve son çalışmalar gerçekten denetlenir.</i>"
   );

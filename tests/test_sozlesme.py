@@ -726,12 +726,12 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             )
 
     def test_hatirlatici_zaman_asimi_ve_sayac(self) -> None:
-        """hatirlat.py 24 saatten eski veya 3 kez hatırlatılmış içerikleri zaman aşımına uğratmalı, diğerlerinin sayacını artırmalı."""
+        """Kuyruk bakımı (2026-10-13 kararı): otomatik koşu HATIRLATMAZ, 1 günü dolduranı havuza/arşive alır; elle (--zorla) hatırlatır."""
         from unittest.mock import patch
         import importlib
         hatirlat_mod = importlib.import_module("scripts.hatirlat")
 
-        # 1. 25 saat beklemiş haber -> zaman aşımı
+        # 1. Çok eski, havuza uygun olmayan (kaynaksız) haber -> arşive alınır; SESSİZ (mesaj yok); eski kartları silinir
         eski_haber = {
             "id": 101,
             "manset": "Çok Eski Haber",
@@ -742,12 +742,14 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[eski_haber]), \
              patch.object(hatirlat_mod.db, "durum_zaman_asimi_yap") as mock_za, \
              patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle") as mock_temizle, \
              patch.object(hatirlat_mod.db, "wal_bosalt"):
             hatirlat_mod.main(argv=[])
             mock_za.assert_called_once_with(101)
-            self.assertIn("ZAMAN AŞIMINA UĞRADI", mock_mesaj.call_args[0][0])
+            mock_mesaj.assert_not_called()
+            self.assertEqual({c.args[0] for c in mock_temizle.call_args_list}, {"haber", "haber_album"})
 
-        # 2. 2 saat beklemiş taze haber -> sayaç artırılır ve hatırlatılır
+        # 2. 2 saat beklemiş taze haber -> OTOMATİK koşuda hatırlatılmaz, sayaç artmaz, mesaj yok
         taze_haber = {
             "id": 102,
             "manset": "Taze Haber",
@@ -760,10 +762,20 @@ class TestIcerikSozlesmesi(unittest.TestCase):
              patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
              patch.object(hatirlat_mod.db, "wal_bosalt"):
             hatirlat_mod.main(argv=[])
+            mock_arttir.assert_not_called()
+            mock_mesaj.assert_not_called()
+
+        # 2b. AYNI haber ELLE istenirse (--zorla) hatırlatılır
+        with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[taze_haber]), \
+             patch.object(hatirlat_mod.db, "hatirlatma_arttir", return_value=1) as mock_arttir, \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
+             patch.object(hatirlat_mod.db, "wal_bosalt"):
+            hatirlat_mod.main(argv=["--zorla"])
             mock_arttir.assert_called_once_with(102)
             self.assertIn("1. Hatırlatma", mock_mesaj.call_args[0][0])
 
-        # 3. 2 gün beklemiş ve 3 kez hatırlatılmış haber -> 5 gün dolana kadar zaman aşımına uğramaz, onayda kalır
+        # 3. 2 gün beklemiş haber -> 1 gün kuralı (eskiden 5 gündü): zaman aşımına uğrar
         orta_haber = {
             "id": 103,
             "manset": "2 Günlük Bekleyen Haber",
@@ -774,9 +786,10 @@ class TestIcerikSozlesmesi(unittest.TestCase):
         with patch.object(hatirlat_mod.db, "onay_bekleyen_haberleri_getir", return_value=[orta_haber]), \
              patch.object(hatirlat_mod.db, "durum_zaman_asimi_yap") as mock_za_orta, \
              patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj_orta, \
+             patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
              patch.object(hatirlat_mod.db, "wal_bosalt"):
             hatirlat_mod.main(argv=[])
-            mock_za_orta.assert_not_called()
+            mock_za_orta.assert_called_once_with(103)
             mock_mesaj_orta.assert_not_called()
 
     def test_actions_asla_beklemede_kalmaz(self) -> None:

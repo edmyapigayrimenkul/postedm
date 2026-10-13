@@ -168,7 +168,7 @@ test("durum menüsü güncel takvimi gösterir (eski 13:30/18:30 İÇERİK slotl
   const kaynak = await import("node:fs").then((fs) => fs.readFileSync(join(kok, "worker/index.js"), "utf8"));
   assert.ok(!kaynak.includes("<b>18:30</b>"));
   assert.ok(!/<b>13:30<\/b>\s*—\s*(Bilgilendirici|Emlak|Haber)/.test(kaynak), "13:30 içerik slotu olarak geri gelmemeli");
-  assert.match(kaynak, /<b>13:30<\/b> ve <b>21:30<\/b> — Onay bekleyen içerik varsa hatırlatma/);
+  assert.match(kaynak, /<b>13:30<\/b> ve <b>21:30<\/b> — Sessiz kuyruk bakımı \(hatırlatma YOK\)/);
   assert.ok(kaynak.includes("<b>12:30</b>"));
   assert.ok(kaynak.includes("<b>08:40</b>"));
 });

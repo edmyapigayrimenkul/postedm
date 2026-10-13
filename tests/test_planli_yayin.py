@@ -83,7 +83,7 @@ class TestHatirlaticiPlaniBekler(unittest.TestCase):
              patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle") as temizle, \
              patch("src.telegram.istemci.mesaj_gonder"), \
              patch.object(hatirlat.db, "wal_bosalt"):
-            hatirlat.main(argv=[])
+            hatirlat.main(argv=["--zorla"])   # otomatik koşu hatırlatmaz (2026-10-13); elle hatırlatmada plan korunur
         self.assertEqual([c.args[0] for c in arttir.call_args_list], [52])
         self.assertNotIn(51, [c.args[1] for c in temizle.call_args_list])
 

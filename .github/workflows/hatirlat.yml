@@ -1,7 +1,9 @@
-# Hatırlatma ASIL olarak Cloudflare cron'undan tetiklenir (Worker `repository_dispatch` "hatirlat" + {slot, zamanli: true}, aynı saatlerde):
-# GitHub `schedule` koşuları 6-10 saat gecikiyor. Aşağıdaki iki cron GECİKMELİ YEDEKTİR; Worker o gün çalıştıysa
-# "Zamanlı koruma" adımı aynı slotu ikinci kez çalıştırmaz (scripts/zamanli_koruma.py), çalışmadıysa hatırlatma geç de olsa gider.
-name: Onay Hatırlatıcı (EDM)
+# ONAY KUYRUĞU BAKIMI (eski adı: Onay Hatırlatıcı). 2026-10-13 kararı: OTOMATİK HATIRLATMA YOK. Zamanlanmış koşular (Cloudflare cron'u 13:30 ve 21:30;
+# `repository_dispatch` "hatirlat" + {slot, zamanli: true}) yalnız sessiz bakım yapar: 1 günü dolduran onaysız içerik havuza alınır, hazır içerik
+# aynı formatın bir sonraki turunda model çağrılmadan yeniden sunulur (scripts/hatirlat.py başlığı, MEMORY.md §10 madde 23).
+# GitHub `schedule` koşuları 6-10 saat gecikiyor: aşağıdaki iki cron GECİKMELİ YEDEKTİR; Worker o gün çalıştıysa "Zamanlı koruma" adımı
+# aynı slotu ikinci kez çalıştırmaz (scripts/zamanli_koruma.py). Elle tetikleme (`zorla`: Telegram "⏰ Onayları Hatırlat", /hatirlat) hatırlatma yollar.
+name: Onay Kuyruğu Bakımı (EDM)
 
 on:
   schedule:
@@ -47,7 +49,7 @@ jobs:
         id: koruma
         run: python scripts/zamanli_koruma.py kontrol
 
-      - name: Hatırlatıcıyı Çalıştır
+      - name: Kuyruk bakımını çalıştır (elle tetiklenmişse hatırlat)
         if: steps.koruma.outputs.atla != 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -83,7 +85,7 @@ jobs:
           url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           requests.post(f"https://api.telegram.org/bot{t}/sendMessage", timeout=20, json={
               "chat_id": c, "parse_mode": "HTML",
-              "text": f"🔴 <b>{'Onay Hatırlatıcı'} BAŞARISIZ</b>\n\n"
+              "text": f"🔴 <b>{'Onay Kuyruğu Bakımı'} BAŞARISIZ</b>\n\n"
                       f'<a href="{url}">Log</a>',
           })
           PY
