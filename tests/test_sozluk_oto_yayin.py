@@ -139,7 +139,10 @@ class TestSozlukOtoYayin(unittest.TestCase):
 
         # 2. Çalıştırma adımı kontrolü
         self.assertIn("30 9 * * *", metin)
-        self.assertIn("python scripts/hazirla.py --slot sozluk --oto-yayin", metin)
+        # --oto-yayin yalnız zamanlanmış koşuda eklenir (elle tetiklenen sözlük onay kartıyla düşer): davranış tests/test_hazirla_yml_elle_tetik.py'de gerçek kabukla sınanır
+        self.assertIn('OTO="--oto-yayin"', metin)
+        self.assertIn('[ "$ZAMANLANMIS" = "true" ]', metin)
+        self.assertIn("python scripts/hazirla.py --slot sozluk $OTO", metin)
 
 
 if __name__ == "__main__":

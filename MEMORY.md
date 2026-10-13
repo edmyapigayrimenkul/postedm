@@ -402,6 +402,14 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     (4 workflow'da `schedule` bloğu; `test_tek_tetikleyici_kurali`, `test_cron_takvimle_uyumlu`, `test_zamanli_isler.py` birlikte güncellenir). Testler: `tests/test_zamanli_isler.py` (Worker tablosu ↔ toml ↔ workflow ↔ dağıtım doğrulaması,
     koruma betiği), `tests/worker_gunluk_tur.test.mjs` (her cron'un olayı, yükü, hata bildirimi).
 
+19. **Elle tetiklenen sözlük artık onay kartıyla düşer — 2026-10-13.** Kullanıcı isteği: günde bir sözlük kesin (12:30, zamanlanmış, onaysız yayın; değişmedi), günün diğer içeriği (10:00 döngüsü: b1 · nedir_dogrusu · net_cevap · b1)
+    ve elle tetiklenen HER içerik "albüm + ayrı düğmeli kart" (✅ Yayınla, kanal seçimi, sesli yayın, ertele, atla, çöpe at) olarak gruba düşer; günde iki haber önerisi (09:17, 18:17) ayrı. Bulunan tutarsızlık: `hazirla.yml` elle
+    `/sozluk` (`format_turu: sozluk`) ve `workflow_dispatch › slot_sozluk` için de `--oto-yayin` veriyordu, yani elle istenen sözlük **düğmesiz, doğrudan yayına** çıkıyordu. Şimdi `--oto-yayin` yalnız `ZAMANLANMIS=true` iken eklenir
+    (Cloudflare 12:30 / GitHub yedek cron'u); `SOZLUK_OTO_YAYIN=0` acil freni aynen geçerli (o zaman günlük sözlük de düğmeli kart olur). **Finans bülteni dışarıda tutuldu** (elle de `--oto-yayin`; ayrı karar bekliyor).
+    Test: `tests/test_hazirla_yml_elle_tetik.py` workflow'un kabuk betiğini sahte `python` ile gerçekten çalıştırır (eski workflow'a karşı 3 test kırmızı olur).
+    **Ölçüm (data/edm.db, 2026-10-13):** onay kartları 29 Eylül'den beri `-1003984339543` sohbetine gidiyor (168 kayıt, 15 gün). 10:00 içeriği 2–9 Ekim arası GitHub cron'uyla ≈10:20'de, 10–12 Ekim arası GitHub gecikmesiyle 13:30–16:38'de,
+    13 Ekim'de ilk kez Cloudflare ile 10:01'de geldi. Çok sayıda kart onaylanmadan 5 günlük zaman aşımına düştü (4–6 Ekim); 13 Ekim akşamı #594 ve #600 hâlâ onay bekliyor.
+
 ## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
 
 Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:

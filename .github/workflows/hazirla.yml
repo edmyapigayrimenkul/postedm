@@ -171,35 +171,39 @@ jobs:
           # Zamanlanmış koşu bot duraklatılmışsa çalışmaz ve aynı slot aynı günde ikinci kez üretilmez (hazirla.py);
           # elle tetiklenenler (Telegram butonu, workflow_dispatch) duraklatmayı da günlük korumayı da aşar.
           ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
-          # Sözlük kartı: her gün 12:30 çalıştırması `--oto-yayin` ile ONAYSIZ yayınlar (değişken tanımsız/boşken de AÇIK).
+          # Sözlük kartı: her gün 12:30 ZAMANLANMIŞ çalıştırması `--oto-yayin` ile ONAYSIZ yayınlar (değişken tanımsız/boşken de AÇIK); elle tetiklenen sözlük her zaman onay kartıyla düşer.
           # ACİL FREN: GitHub → Settings → Secrets and variables → Actions → Variables → SOZLUK_OTO_YAYIN = 0
           # (kart o gün Telegram'da onaya düşer). Tekrar açmak için değişkeni sil. Koşullar: ICERIK-SISTEMI.md §5.5.2.
           SOZLUK_OTO_YAYIN: ${{ vars.SOZLUK_OTO_YAYIN }}
         run: |
+          # Sözlük kartı ONAYSIZ yayına yalnız ZAMANLANMIŞ koşuda (Cloudflare 12:30 / GitHub yedek cron'u) çıkar. Elle tetiklenen her sözlük
+          # (Telegram /sozluk ve paneldeki düğme, workflow_dispatch) diğer formatlar gibi albüm + düğmeli onay kartıyla düşer; yayınlamak size kalır.
+          OTO=""
+          if [ "$ZAMANLANMIS" = "true" ]; then OTO="--oto-yayin"; fi
           if [ -n "$FORMAT" ]; then
             if [ "$FORMAT" = "reels" ]; then
               python scripts/hazirla.py --reels
             elif [ "$FORMAT" = "finans" ]; then
               python scripts/hazirla.py --finans --oto-yayin
             elif [ "$FORMAT" = "sozluk" ]; then
-              python scripts/hazirla.py --slot sozluk --oto-yayin
+              python scripts/hazirla.py --slot sozluk $OTO
             else
               python scripts/hazirla.py --format "$FORMAT"
             fi
           elif [ -n "$SLOT" ]; then
             if [ "$SLOT" = "sozluk" ]; then
-              python scripts/hazirla.py --slot sozluk --oto-yayin
+              python scripts/hazirla.py --slot sozluk $OTO
             else
               python scripts/hazirla.py --slot "$SLOT"
             fi
           elif [ "$ZAMANLAMA" = "0 7 * * *" ]; then
             python scripts/hazirla.py --slot bilgilendirici
           elif [ "$ZAMANLAMA" = "30 9 * * *" ]; then
-            python scripts/hazirla.py --slot sozluk --oto-yayin
+            python scripts/hazirla.py --slot sozluk $OTO
           elif [ "$HEDEF" = "slot_bilgilendirici" ]; then
             python scripts/hazirla.py --slot bilgilendirici
           elif [ "$HEDEF" = "slot_sozluk" ]; then
-            python scripts/hazirla.py --slot sozluk --oto-yayin
+            python scripts/hazirla.py --slot sozluk $OTO
           elif [ "$HEDEF" = "slot_haber" ] || [ "$HEDEF" = "haber" ]; then
             python scripts/hazirla.py --slot haber
           elif [ "$HEDEF" = "reels" ]; then
