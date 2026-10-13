@@ -1,10 +1,13 @@
+# Hatırlatma ASIL olarak Cloudflare cron'undan tetiklenir (Worker `repository_dispatch` "hatirlat" + {slot, zamanli: true}, aynı saatlerde):
+# GitHub `schedule` koşuları 6-10 saat gecikiyor. Aşağıdaki iki cron GECİKMELİ YEDEKTİR; Worker o gün çalıştıysa
+# "Zamanlı koruma" adımı aynı slotu ikinci kez çalıştırmaz (scripts/zamanli_koruma.py), çalışmadıysa hatırlatma geç de olsa gider.
 name: Onay Hatırlatıcı (EDM)
 
 on:
   schedule:
-    # 1. Öğleden sonra 13:30 TR (UTC 10:30)
+    # 1. Öğleden sonra 13:30 TR (UTC 10:30) → slot hatirlat_ogle
     - cron: '30 10 * * *'
-    # 2. Akşam 21:30 TR (UTC 18:30)
+    # 2. Akşam 21:30 TR (UTC 18:30) → slot hatirlat_aksam
     - cron: '30 18 * * *'
   workflow_dispatch:
   repository_dispatch:
@@ -20,6 +23,11 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    env:
+      # Zamanlanmış koşu = GitHub cron'u (yedek) YA DA Cloudflare cron'unun yolladığı hatirlat (asıl; payload.zamanli).
+      # Elle tetiklenenler (Telegram "Onayları Hatırlat", /hatirlat, workflow_dispatch) korumaya takılmaz ve onu tüketmez.
+      ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
+      ZAMANLI_SLOT: ${{ github.event.client_payload.slot || (github.event.schedule == '30 18 * * *' && 'hatirlat_aksam' || 'hatirlat_ogle') }}
     steps:
       - name: Kodu Çek
         uses: actions/checkout@v4
@@ -35,7 +43,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Zamanlı koruma (günde bir kez)
+        id: koruma
+        run: python scripts/zamanli_koruma.py kontrol
+
       - name: Hatırlatıcıyı Çalıştır
+        if: steps.koruma.outputs.atla != 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -46,6 +59,10 @@ jobs:
           else
             python scripts/hatirlat.py
           fi
+
+      - name: Zamanlı işi işaretle
+        if: success() && steps.koruma.outputs.atla != 'true'
+        run: python scripts/zamanli_koruma.py isaretle
 
       - name: Veritabanını Kaydet
         if: always()

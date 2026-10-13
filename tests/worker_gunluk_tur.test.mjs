@@ -77,6 +77,52 @@ test("12:30 TR (09:30 UTC) sözlük turu tetiklenir", async () => {
   assert.equal(dispatchler[0].client_payload.zamanli, true);
 });
 
+// Faz 5 (2026-10-13): hatırlatma, haber önerisi ve günlük rapor da Cloudflare cron'undan tetiklenir.
+// GitHub'ın kendi cron'ları yedek; aynı slot aynı günde bir kez çalışır (scripts/zamanli_koruma.py).
+const ZAMANLI = [
+  ["40 5 * * *", "rapor", "rapor", "Günlük rapor"],                          // 08:40 TR
+  ["17 6 * * *", "haber_oneri", "haber_oneri_sabah", "Haber önerisi"],       // 09:17 TR
+  ["30 10 * * *", "hatirlat", "hatirlat_ogle", "Onay hatırlatıcı"],          // 13:30 TR
+  ["17 15 * * *", "haber_oneri", "haber_oneri_aksam", "Haber önerisi"],      // 18:17 TR
+  ["30 18 * * *", "hatirlat", "hatirlat_aksam", "Onay hatırlatıcı"],         // 21:30 TR
+];
+
+for (const [ifade, olay, slot] of ZAMANLI) {
+  test(`${ifade} → ${olay} (${slot}) zamanlı yükle tetiklenir`, async () => {
+    await cron(ifade);
+    assert.equal(dispatchler.length, 1);
+    assert.equal(dispatchler[0].event_type, olay);
+    assert.equal(dispatchler[0].client_payload.slot, slot);
+    assert.equal(dispatchler[0].client_payload.zamanli, true);
+    assert.equal(dispatchler[0].client_payload.kaynak, "cloudflare_cron");
+    assert.equal(dispatchler[0].client_payload.cron, ifade);
+    assert.equal(dispatchler[0].client_payload.zorla, undefined, "hatırlatma zorla modunda çalışmamalı: 60 dk bekleme kuralı geçerli");
+    assert.equal(telegramlar.length, 0, "başarılı tetikte gruba mesaj düşmemeli");
+  });
+}
+
+for (const [ifade, , slot, ad] of ZAMANLI) {
+  test(`${slot}: üç denemede tetiklenemezse gruba iş adıyla haber verir`, async () => {
+    githubDurumlari = [401, 401, 401];
+    await cron(ifade);
+    assert.equal(dispatchler.length, 3);
+    const mesajlar = telegramlar.filter((t) => t.yontem === "sendMessage");
+    assert.equal(mesajlar.length, 1);
+    assert.ok(mesajlar[0].govde.text.includes(`${ad} tetiklenemedi`), mesajlar[0].govde.text);
+    assert.ok(mesajlar[0].govde.text.includes(slot));
+  });
+}
+
+test("yedi zamanlı işin her cron'u wrangler.toml'da ve her biri yalnız KENDİ olayını yollar", async () => {
+  const toml = await import("node:fs").then((fs) => fs.readFileSync(join(kok, "worker/wrangler.toml"), "utf8"));
+  for (const ifade of ["40 5 * * *", "17 6 * * *", "0 7 * * *", "30 9 * * *", "30 10 * * *", "17 15 * * *", "30 18 * * *"]) {
+    assert.ok(toml.includes(`"${ifade}"`), `${ifade} wrangler.toml'da yok`);
+    dispatchler = [];
+    await cron(ifade);
+    assert.equal(dispatchler.length, 1, `${ifade} tam bir dispatch yollamalı`);
+  }
+});
+
 test("10 dakikalık plan cron'u günlük tur TETİKLEMEZ", async () => {
   await cron("*/10 * * * *");
   assert.equal(dispatchler.filter((d) => d.event_type === "slot_hazirla").length, 0);
@@ -118,9 +164,11 @@ test("fetch istisna fırlatsa da Worker çökmez, yeniden dener ve bildirir", as
   assert.equal(telegramlar.filter((t) => t.yontem === "sendMessage").length, 1);
 });
 
-test("durum menüsü güncel takvimi gösterir (13:30 ve 18:30 slotları yok)", async () => {
+test("durum menüsü güncel takvimi gösterir (eski 13:30/18:30 İÇERİK slotları yok; 13:30 artık yalnız hatırlatma)", async () => {
   const kaynak = await import("node:fs").then((fs) => fs.readFileSync(join(kok, "worker/index.js"), "utf8"));
-  assert.ok(!kaynak.includes("<b>13:30</b>"));
   assert.ok(!kaynak.includes("<b>18:30</b>"));
+  assert.ok(!/<b>13:30<\/b>\s*—\s*(Bilgilendirici|Emlak|Haber)/.test(kaynak), "13:30 içerik slotu olarak geri gelmemeli");
+  assert.match(kaynak, /<b>13:30<\/b> ve <b>21:30<\/b> — Onay bekleyen içerik varsa hatırlatma/);
   assert.ok(kaynak.includes("<b>12:30</b>"));
+  assert.ok(kaynak.includes("<b>08:40</b>"));
 });

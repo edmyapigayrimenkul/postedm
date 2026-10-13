@@ -379,3 +379,49 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Bölmede bulunan gizli hatalar (düzeltilmedi, karar sizin):** (a) `src/threads.py:241` `json` içe aktarılmamış; `metinleri_slaytlara_dagit` içindeki `try/except Exception` NameError'u yutuyor, yani `detay_metni` HİÇ ayrıştırılmıyor
       ve Threads zinciri satır alanlarından kuruluyor. Düzeltmek (import eklemek) içeriği değiştirir (yeni biçimlerde `manset` anahtarı olmayabilir) — gözlemlenmeden dokunulmadı. (b) `scripts/piyasa_otomatik.py` ve `src/piyasa_tablo.py`
       kapalı piyasa özelliğinde tanımsız ad / olmayan `src.caption` modülü içeriyor (özellik kapalı, çalıştırılmıyor). (c) `src/haber_oneri.py` `Path` içe aktarmamıştı: yerel dosya yollu aday görseli NameError ile günlük öneriyi çökertirdi — düzeltildi.
+16. **Sözlük pilotu A07 Kadastro (3402) — 2026-10-13.** Mevzuat Önbelleği workflow'u çalıştı: 32 kanunun tamamı çekildi (14 yeni kanunun tertip tahmini tuttu). 8 kart yazıldı, bağımsız (opus) inceleme sonunda **4'ü arşive girdi (SZ-035…038)**:
+    doğrulayıcı yeşili doğruluk değildir; kapsam/istisna zinciri olan maddeler (md. 14, 16–18, 20) kartlaştırılamadı (iki turda dört ret). Başlık yerleşim tabanı (≥114 pt) doğrulayıcıda denetlenmiyordu, iki kart tam testte düştü: `baslik_sigma_sorunu` eklendi.
+    Ayrıntı, kart tablosu, yazar/inceleme kuralları 8–11: SOZLUK-KART-URETIMI.md "Pilot sonucu". Araç eksiği aynı gün giderildi: ek maddeler ("Ek Madde 6") artık ayrı tür (`ek md. 6` atfı, `ek 6` anahtarı); eskiden "md. 6" diye etiketleniyor, normal maddesi olmayan numaralar sessizce Ek Madde'ye çözülüyordu.
+17. **Sözlük dalga 1 — 2026-10-13.** Arşiv 38 → 66 kart: 45 taslaktan 28'i girdi (SZ-039…066: TBK kira genel/konut-işyeri, KMK md. 1–19), 17 ret (%62 kabul; kabul edilenlerin çoğunu inceleyici yeniden yazdı). Yazarlar oturum kullanım sınırına takılıp yarıda kesildi;
+    kural: bir dalgada en çok 4 ajan, limit sıfırlanınca yeni dalga. Süre denetimi (`mevzuat._SURE`) "md. 319 ayıp" → "319 ay" sayıp ayıp kartlarını engelliyordu: düzeltildi. Ayrıntı ve dersler: SOZLUK-KART-URETIMI.md "Dalga 1 sonucu".
+    Açık: SZ-007 md. 353 istisnasını söylemiyor; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok; A12 yazılmadı.
+
+18. **Faz 5 — hatırlatma, haber önerisi ve günlük rapor Cloudflare cron'una taşındı — 2026-10-13.** Madde 13'ün aynısı üç iş daha için: Worker `scheduled()` artık yedi zamanlanmış işi tetikler
+    (`worker/index.js › ZAMANLI_ISLER`: `40 5` rapor, `17 6` ve `17 15` haber önerisi, `0 7` içerik, `30 9` sözlük, `30 10` ve `30 18` hatırlatma; hepsi UTC, TR = +3) ve `wrangler.toml` crons **sekiz** satır
+    (+ `*/10 * * * *` plan çaları). Her iş kendi `repository_dispatch` olayını `{slot, zamanli: true, kaynak: "cloudflare_cron", cron}` yüküyle yollar (`rapor`, `haber_oneri`, `hatirlat`, `slot_hazirla`);
+    3 denemede olmazsa gruba "<iş adı> tetiklenemedi" yazar. Workflow'lardaki aynı saatli GitHub cron'ları **gecikmeli YEDEK olarak duruyor** (`haber-oneri.yml` cron'u slot ayırt edilsin diye ikiye bölündü: `17 6` ve `17 15`).
+    **Çift çalışmayı önleyen:** `scripts/zamanli_koruma.py kontrol|isaretle` — üç workflow'da "Zamanlı koruma (günde bir kez)" adımı (`kontrol`, `atla=true` ise sonraki adımlar atlanır) ve iş başarılıysa
+    "Zamanlı işi işaretle" (`isaretle`); işaret hazirla.py ile aynı: `ayarlar › zamanli_slot_son_gun:<slot>` (TR günü). Slotlar: `hatirlat_ogle`, `hatirlat_aksam`, `haber_oneri_sabah`, `haber_oneri_aksam`, `rapor`
+    (`ZAMANLI_GUNLUK_SLOTLAR`'a eklendi). Başarısız tur işaretlenmez (yedek yeniden dener); **elle istek korumaya takılmaz ve onu tüketmez** (Telegram "Onayları Hatırlat", `/hatirlat`, `/haber`, `/rapor`, `/kota`,
+    `workflow_dispatch`: `ZAMANLANMIS` yalnız schedule ya da `client_payload.zamanli == true`). `haber-oneri.yml`: Worker'ın zamanlı yükü `--haber-oneri` yoluna gider (eskiden schedule dışı her olay `--slot haber`e giderdi);
+    Telegram'ın `haber_oneri` dispatch'i `zamanli` taşımadığı için eskisi gibi `--slot haber`. Bilinen ödünler: (a) bot duraklatılmışken zamanlı haber önerisi atlanır ama o slot "yapıldı" işaretlenir
+    (gün içinde duraklatma kalkarsa o sabahın önerisi yedek tetikle de gelmez; akşam turu etkilenmez); (b) iş sessizce yutulan bir hatayla "başarılı" bitiyorsa (çıkış kodu 0) slot işaretlenir;
+    (c) GitHub aynı `concurrency` grubunda (`edm-veritabani`) en çok BİR bekleyen koşu tutar, yeni bekleyen eskisini iptal eder: yedek koşular hızlı atladığı için risk düşük ama sıfır değil (yeni değil, tüm DB'ye yazan işlerde var).
+    **Dağıtım gerekir:** main'e birleşince Actions → **Worker Dağıt** → Run workflow; Cron Triggers'ta SEKİZ satır görünmeli (iş bunu Cloudflare API'sinden doğrular, eksikse kırmızı biter).
+    Dağıtılana dek her şey eskisi gibi GitHub cron'uyla çalışır (koruma bunu bozmaz: ilk koşu çalışır ve işaretlenir). **GitHub yedek cron'larını bir hafta sorunsuz Cloudflare çalışmasından sonra silin**
+    (4 workflow'da `schedule` bloğu; `test_tek_tetikleyici_kurali`, `test_cron_takvimle_uyumlu`, `test_zamanli_isler.py` birlikte güncellenir). Testler: `tests/test_zamanli_isler.py` (Worker tablosu ↔ toml ↔ workflow ↔ dağıtım doğrulaması,
+    koruma betiği), `tests/worker_gunluk_tur.test.mjs` (her cron'un olayı, yükü, hata bildirimi).
+
+19. **Elle tetiklenen sözlük artık onay kartıyla düşer — 2026-10-13.** Kullanıcı isteği: günde bir sözlük kesin (12:30, zamanlanmış, onaysız yayın; değişmedi), günün diğer içeriği (10:00 döngüsü: b1 · nedir_dogrusu · net_cevap · b1)
+    ve elle tetiklenen HER içerik "albüm + ayrı düğmeli kart" (✅ Yayınla, kanal seçimi, sesli yayın, ertele, atla, çöpe at) olarak gruba düşer; günde iki haber önerisi (09:17, 18:17) ayrı. Bulunan tutarsızlık: `hazirla.yml` elle
+    `/sozluk` (`format_turu: sozluk`) ve `workflow_dispatch › slot_sozluk` için de `--oto-yayin` veriyordu, yani elle istenen sözlük **düğmesiz, doğrudan yayına** çıkıyordu. Şimdi `--oto-yayin` yalnız `ZAMANLANMIS=true` iken eklenir
+    (Cloudflare 12:30 / GitHub yedek cron'u); `SOZLUK_OTO_YAYIN=0` acil freni aynen geçerli (o zaman günlük sözlük de düğmeli kart olur). **Finans bülteni dışarıda tutuldu** (elle de `--oto-yayin`; ayrı karar bekliyor).
+    Test: `tests/test_hazirla_yml_elle_tetik.py` workflow'un kabuk betiğini sahte `python` ile gerçekten çalıştırır (eski workflow'a karşı 3 test kırmızı olur).
+    **Ölçüm (data/edm.db, 2026-10-13):** onay kartları 29 Eylül'den beri `-1003984339543` sohbetine gidiyor (168 kayıt, 15 gün). 10:00 içeriği 2–9 Ekim arası GitHub cron'uyla ≈10:20'de, 10–12 Ekim arası GitHub gecikmesiyle 13:30–16:38'de,
+    13 Ekim'de ilk kez Cloudflare ile 10:01'de geldi. Çok sayıda kart onaylanmadan 5 günlük zaman aşımına düştü (4–6 Ekim); 13 Ekim akşamı #594 ve #600 hâlâ onay bekliyor.
+
+## 11. 2026-10-13 İŞ BÖLÜMÜ KARARI — CLAUDE: PAYLAŞIM + TELEGRAM; GEMİNİ: GERİ KALANI
+
+Kullanıcı kararı (2026-10-13): **Claude'dan istenen iş, paylaşım (yayın) altyapısını ve Telegram altyapısını geliştirmektir. Geri kalan işler Gemini ile yürütülür.** Yeni oturum/ajan bu bölümü okuyup ona göre davranır:
+
+| Alan | Kim | Kod / belge |
+|---|---|---|
+| **Paylaşım altyapısı** — kanallara dağıtım, yayın kapısı, zamanlama/tetikleme, yeniden deneme, raporlama, Worker | **Claude** | `src/yayin/`, kanal modülleri (`src/instagram.py`, `facebook.py`, `threads.py`, `tiktok.py`, `youtube.py`, `linkedin.py`, `twitter.py`), `scripts/yayinla.py`, `scripts/hazirla.py`, `worker/`, `.github/workflows/` (yayın ve zamanlayıcı olanlar), ARCHITECTURE.md Faz 5 |
+| **Telegram altyapısı** — onay/yönetim yüzü, menüler, kartlar, albüm teslimi, düğme akışları | **Claude** | `src/telegram/` (cephe: `src/telegram_bot.py`), `tests/test_telegram_altin.py` |
+| **Sözlük kartı üretimi** (A12 ve sonrası dalgalar, reddedilen konuların yeniden yazımı, SZ-007 düzeltmesi, md. 339/2) ve diğer içerik/kart işleri | **Gemini** | SOZLUK-KART-URETIMI.md (devir notu en üstte), `data/sozluk_kartlari.yaml`, `data/sozluk_taslak/` |
+
+Kurallar:
+1. **Claude yeni sözlük dalgası BAŞLATMAZ** ve arşive kart eklemez; kullanıcı açıkça isterse yapar. Sözlük araçlarında (`kanun_oku`, doğrulayıcı, birleştirici, `mevzuat._SURE`) **hata** bulursa düzeltmesi serbesttir — araçlar model bağımsızdır, Gemini de bunları kullanır.
+2. Gemini'nin yazdığı kart da aynı hattan geçer: doğrulayıcı → **ayrı** inceleme turu → birleştirici → tam test + `gorsel_denetim.py`. Yazan model kendi kartını incelemez; doğrulayıcı yeşili doğruluk değildir (dalga 1: %62 kabul).
+3. Paylaşım ve Telegram değişiklikleri **altın çıktı güvencesi altında** yapılır (`tests/test_yayinla_altin.py` 70 senaryo, `tests/test_telegram_altin.py` 219 senaryo) ve ARCHITECTURE.md §2'deki katman/yama kurallarına uyar (kardeş modüller modül üzerinden çağrılır, dosya ≤250 satır, testler gerçek evi yamalar). Davranış bilerek değişiyorsa altın dosya yeniden kaydedilir ve fark bu belgeye yazılır.
+4. İş öncelik sırası (paylaşım + Telegram) ve bilinen açık maddeler: ARCHITECTURE.md §4 "Claude'un önceliği". Öncelik sırasını kullanıcı belirler; buradaki liste aday havuzudur, sırayla başlamak onay yerine geçmez.

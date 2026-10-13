@@ -17,30 +17,43 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from . import filtre, mevzuat
 
-# "MADDE 683 -" ve "GEÇİCİ MADDE 2 -". Kanun metni düz yazıya çevrildiğinde başlıklar satır içinde kalır.
+# "MADDE 683 -", "GEÇİCİ MADDE 2 -" ve "Ek Madde 6 -". Kanun metni düz yazıya çevrildiğinde başlıklar satır içinde kalır.
+# Ek maddeler normal maddeyle AYNI numarayı taşır (3402'de Madde 6 ve Ek Madde 6): ayrı tür olarak izlenmezse arama
+# sonuçları "md. 6" diye yanlış etiketlenir ve ek maddeye atıf yapılamaz (2026-10-13 pilotunda bir inceleme ajanı yakaladı).
 _BASLIK = re.compile(
-    r"(?<![A-Za-zÇĞİÖŞÜçğıöşü])(?P<gecici>GE[ÇC][İI]C[İI]\s+|Ge[çc]ici\s+)?(?:MADDE|Madde)\s*(?P<no>\d+)\s*[-–]"
+    r"(?<![A-Za-zÇĞİÖŞÜçğıöşü])(?P<tur>GE[ÇC][İI]C[İI]\s+|Ge[çc]ici\s+|EK\s+|Ek\s+)?(?:MADDE|Madde)\s*(?P<no>\d+)\s*[-–]"
 )
 
 BAGLAM_VARSAYILAN = 90
 ARAMA_AZAMI_SONUC = 20
 
 
-def madde_etiketi(gecici: bool, no: str) -> str:
+def madde_etiketi(gecici: bool, no: str, ek: bool = False) -> str:
+    if ek:
+        return f"ek md. {no}"
     return f"geçici md. {no}" if gecici else f"md. {no}"
 
 
+def anahtar_etiketi(anahtar: str) -> str:
+    """mevzuat.atiflari_coz anahtarından ('733', 'geçici 2', 'ek 6') okunur etiket."""
+    no = anahtar.split()[-1]
+    return madde_etiketi(anahtar.startswith("geçici"), no, ek=anahtar.startswith("ek"))
+
+
 def maddelere_bol(metin: str) -> List[Dict[str, Any]]:
-    """Kanun metnini maddelere böler: [{etiket, gecici, no, bas, govde_bas, bit}]. `bas` başlığın başlangıcı,
+    """Kanun metnini maddelere böler: [{etiket, gecici, ek, no, bas, govde_bas, bit}]. `bas` başlığın başlangıcı,
     `bit` bir sonraki madde başlığının başlangıcıdır (son maddede metin sonu)."""
     basliklar = list(_BASLIK.finditer(metin or ""))
     sonuc: List[Dict[str, Any]] = []
     for i, m in enumerate(basliklar):
-        gecici = bool(m.group("gecici"))
+        tur = (m.group("tur") or "").strip().lower()
+        gecici = tur.startswith("ge")
+        ek = tur == "ek"
         bit = basliklar[i + 1].start() if i + 1 < len(basliklar) else len(metin)
         sonuc.append({
-            "etiket": madde_etiketi(gecici, m.group("no")),
+            "etiket": madde_etiketi(gecici, m.group("no"), ek=ek),
             "gecici": gecici,
+            "ek": ek,
             "no": m.group("no"),
             "bas": m.start(),
             "govde_bas": m.end(),
@@ -50,11 +63,12 @@ def maddelere_bol(metin: str) -> List[Dict[str, Any]]:
 
 
 def _madde_bul(maddeler: List[Dict[str, Any]], madde: str) -> Optional[Dict[str, Any]]:
-    """`madde`: '733' ya da 'geçici 2' (mevzuat.atiflari_coz anahtarları)."""
+    """`madde`: '733', 'geçici 2' ya da 'ek 6' (mevzuat.atiflari_coz anahtarları)."""
     gecici = madde.startswith("geçici")
+    ek = madde.startswith("ek")
     no = madde.split()[-1]
     for m in maddeler:
-        if m["gecici"] == gecici and m["no"] == no:
+        if m["gecici"] == gecici and m.get("ek", False) == ek and m["no"] == no:
             return m
     return None
 
@@ -89,7 +103,7 @@ def maddeleri_oku(atif: str, *, aralik_azami: int = 10_000,
         for anahtar in maddeler_anahtar:
             m = _madde_bul(bolunmus, anahtar)
             if not m:
-                bulunamayan.append(f"{no} sayılı {ad} {madde_etiketi(anahtar.startswith('geçici'), anahtar.split()[-1])}")
+                bulunamayan.append(f"{no} sayılı {ad} {anahtar_etiketi(anahtar)}")
                 continue
             govde = metin[m["bas"]:m["bit"]].strip()
             okunan.append({

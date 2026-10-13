@@ -13,6 +13,11 @@
 #
 #  ⚠️ Bu job uyarı içerse bile YEŞİL kalır. Her sabah kırmızı gören
 #  insan kırmızıya körleşir; gerçek arıza o zaman kaybolur.
+#
+#  2026-10-13: ASIL tetikleyici Cloudflare cron'u (Worker `repository_dispatch` "rapor" + {slot: rapor, zamanli: true}, 08:40 TR):
+#  GitHub `schedule` koşuları 6-10 saat gecikiyor, "sabah raporu" öğleden sonra geliyordu. Aşağıdaki cron GECİKMELİ YEDEKTİR;
+#  Worker o gün çalıştıysa "Zamanlı koruma" adımı raporu ikinci kez üretmez (scripts/zamanli_koruma.py). Telegram'ın
+#  /rapor ve /kota komutları `zamanli` taşımaz (`kategori`/`mesaj_id` taşır): elle istek sayılır, korumaya takılmaz.
 # =========================================================
 
 name: Günlük Rapor
@@ -37,6 +42,9 @@ jobs:
       # (eski sürümde) uydurma "125 dk harcandı" sayısı gösteriyordu.
       actions: read
     timeout-minutes: 10
+    env:
+      ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
+      ZAMANLI_SLOT: rapor
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,7 +53,12 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
+      - name: Zamanlı koruma (günde bir kez)
+        id: koruma
+        run: python scripts/zamanli_koruma.py kontrol
+
       - name: Sessiz metrik topla (Instagram Insights + günlük takipçi)
+        if: steps.koruma.outputs.atla != 'true'
         continue-on-error: true
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
@@ -62,6 +75,7 @@ jobs:
         run: python scripts/metrik_topla.py
 
       - name: Durumu raporla
+        if: steps.koruma.outputs.atla != 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -80,6 +94,10 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: python scripts/gunluk_rapor.py
+
+      - name: Zamanlı işi işaretle
+        if: success() && steps.koruma.outputs.atla != 'true'
+        run: python scripts/zamanli_koruma.py isaretle
 
       - name: Veritabanını Kaydet
         if: always()

@@ -1,0 +1,127 @@
+# A20 — Kat Mülkiyeti Kanunu (634) md. 1-19: bağımsız bölüm, ortak yerler, eklenti, arsa payı, kat mülkiyetinin kurulması, kat maliklerinin hak ve yükümlülükleri. Yazar: Claude (alt ajan). Kanun metni: scripts/kanun_oku.py (2026-10-13 önbelleği).
+# İnceleme: bağımsız inceleme ajanı, 2026-10-13 (kanun metni kanun_oku.py önbelleğinden).
+kartlar:
+- terim: BAĞIMSIZ BÖLÜM
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat mülkiyetine konu gayrimenkulün, ayrı ayrı ve başlı başına kullanılmaya elverişli olup Kat Mülkiyeti Kanununa göre bağımsız mülkiyete konu olan bölümüdür.
+  puf:
+  - Kat mülkiyeti kütüğüne tescil edilen her bağımsız bölüm ayrı bir gayrimenkul niteliğini kazanır.
+  - Kat maliki kendi bölümünde, bu Kanunun ilgili hükümleri saklı kalmak şartıyla, malikin tüm haklarına sahiptir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 1, 2, 13 ve 15
+  dayanak_alintisi: Tamamlanmış bir yapının kat, daire, iş bürosu, dükkan, mağaza, mahzen, depo gibi bölümlerinden ayrı ayrı ve başlı başına kullanılmaya elverişli olanları üzerinde, o gayrimenkulün maliki veya ortak malikleri tarafından, bu Kanun hükümlerine göre, bağımsız mülkiyet hakları kurulabilir.
+  kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: >-
+    Eski puf[0] ("Tamamlanmış bir yapıda bağımsız mülkiyet haklarını gayrimenkulün maliki veya ortak malikleri kurabilir.") çıkarıldı:
+    md. 1'deki "bu Kanun hükümlerine göre" ve "ayrı ayrı ve başlı başına kullanılmaya elverişli olanları üzerinde" kayıtlarını düşürüyordu;
+    "ortak malikleri" md. 12'de "bütün paydaşlarının istemi" olarak daralıyor (zincir), ve puf bağımsız bölümü değil kat mülkiyetinin kuruluşunu anlatıyordu.
+    Eski puf[2] (129 karakter) md. 15'in kapsamını ("kendilerine ait bağımsız bölümler üzerinde") düşürüyordu → "Kat maliki kendi bölümünde, bu Kanunun ilgili hükümleri
+    saklı kalmak şartıyla, malikin tüm haklarına sahiptir." (kapsam ve saklılık kaydı korundu). Tanım md. 2 ile birebir; puf[0] md. 13 ile birebir.
+- terim: EKLENTİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir bağımsız bölümün dışında olup doğrudan doğruya o bölüme tahsis edilmiş kömürlük, su deposu, garaj, tuvalet gibi yerdir.
+  puf:
+  - Eklenti, ait olduğu bağımsız bölümün bütünleyici parçasıdır; bölümün maliki eklentinin de tek başına maliki olur.
+  - Eklentiler kat mülkiyeti kütüğünün beyanlar hanesine kaydedilir.
+  - Bağımsız bölüm devredilir veya kiralanırsa eklentileri de kendiliğinden devredilmiş veya kiralanmış olur.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 6
+  dayanak_alintisi: Bir bağımsız bölümün dışında olup, doğrudan doğruya o bölüme tahsis edilmiş olan kömürlük, su deposu, garaj, elektrik, havagazı veya su saati yuvaları, tuvalet gibi eklentiler, ait olduğu bağımsız bölümün bütünleyici parçası sayılır ve o bölümün maliki, eklentilerin de tek başına maliki olur.
+  kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: >-
+    Tanım: eski "...yerdir; kömürlük, su deposu, garaj, tuvalet gibi yerler eklentidir." örnekleri tahsis koşulundan kopararak genel hüküm kuruyordu
+    (md. 4'e göre genel kömürlük ve ortak garajlar ORTAK YERDİR) → örnekler "o bölüme tahsis edilmiş ... gibi yerdir" diye koşula bağlandı.
+    puf[0] 118 → 113 karakter ("sayılır" → "parçasıdır", anlam aynı). puf[2] 137 karakter → "Bağımsız bölüm devredilir veya kiralanırsa eklentileri de
+    kendiliğinden devredilmiş veya kiralanmış olur."; "kayıtlanma" çıkarıldı (gündelik dilde "tapuya kaydedilme" diye yanlış okunur; md. 6'daki üç
+    durumdan ikisini anlatmak yanıltmıyor).
+- terim: ORTAK YERLER
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat mülkiyetine konu gayrimenkulün bağımsız bölümleri dışında kalıp, korunma ve ortaklaşa kullanma veya faydalanmaya yarayan yerlerdir.
+  puf:
+  - Ortak yerler kat mülkiyeti kuruluş resmi senedinde belirtilebilir; kanunda sayılanlar her halde ortak yerdir.
+  - Temeller, ana duvarlar, asansörler ve çatılar, kanunda her halde ortak yer sayılanlar arasındadır.
+  - Kanunda sayılmasa da ortaklaşa kullanma, korunma veya faydalanma için zaruri olan yer ve şeyler de ortak yerdir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 4
+  dayanak_alintisi: Yukarıda sayılanların dışında kalıp da, yine ortaklaşa kullanma, korunma veya faydalanma için zaruri olan diğer yerler ve şeyler de (Ortak yer) konusuna girer.
+  kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: >-
+    puf[0]: md. 4'teki "sözleşme", md. 2(e) tanımına göre kat mülkiyetinin kurulmasına ait resmi senettir; gündelik okur komşular arası herhangi bir
+    anlaşma sanabilirdi → "kat mülkiyeti kuruluş resmi senedinde belirtilebilir". puf[2] 127 karakter ve "Sayılanların dışında" puf[1]'deki dört örneğe
+    bağlanıp listeyi daraltıyormuş gibi okunabiliyordu → "Kanunda sayılmasa da ortaklaşa kullanma, korunma veya faydalanma için zaruri olan yer ve
+    şeyler de ortak yerdir." puf[1] kapalı listeyi örnek listesine çevirmiyor ("sayılanlar arasındadır"); dört örnek md. 4'te geçiyor.
+- terim: ARSA PAYI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Arsanın, Kat Mülkiyeti Kanununda yazılı esasa göre bağımsız bölümlere tahsis edilen ortak mülkiyet paylarıdır.
+  puf:
+  - Arsa payı, kat mülkiyeti veya kat irtifakından ayrı olarak ne devredilebilir ne de miras yoluyla geçebilir.
+  - Anagayrimenkulde, kat mülkiyetine bağlanmamış veya lehine kat irtifakı kurulmamış arsa payı bırakılamaz.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 5
+  dayanak_alintisi: Kat mülkiyetinin başkasına devri veya miras yoluyla geçmesi halinde, ona bağlı arsa payı da birlikte geçer; arsa payı, kat mülkiyetinden veya kat irtifakından ayrı olarak devredilemiyeceği gibi, miras yoluyla da geçmez ve başka bir hakla kayıtlanamaz.
+  kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: >-
+    Eski puf[0] ("ayrı olarak devredilemez; miras yoluyla da geçmez") ile puf[1] ("kat mülkiyeti devredilir veya miras yoluyla geçerse arsa payı da
+    birlikte geçer") md. 5'in aynı cümlesinin iki yarısıydı ve aynı kuralı iki yönden söylüyordu; ayrıca "miras yoluyla da geçmez" tek başına "arsa
+    payı mirasla hiç geçmez" diye okunabiliyordu → tek puf: "Arsa payı, kat mülkiyeti veya kat irtifakından ayrı olarak ne devredilebilir ne de miras
+    yoluyla geçebilir." Tanım md. 2(d) ile birebir; "yazılı esas" (md. 3, değerle oranlılık) arşivdeki KAT MÜLKİYETİ kartında anlatıldığı için eklenmedi.
+- terim: KULLANMA HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat maliklerinin, ortak malik sıfatıyla paydaşı oldukları ortak yerlerden faydalanma haklarıdır.
+  puf:
+  - Genel kömürlük, garaj, teras, çamaşırhane gibi yerlerde hakkın ölçüsü, aksine sözleşme yoksa arsa payı oranındadır.
+  - Kat malikleri ortak yerlere arsa payları oranında, ortak mülkiyet hükümlerine göre malik olur.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 16
+  dayanak_alintisi: Kat malikleri ortak yerlerde kullanma hakkına sahiptirler; bu hakkın genel kömürlük, garaj, teras, çamaşırhane ve çamaşır kurutma alanları gibi yerlerdeki ölçüsü, aksine sözleşme olmadıkça, her kat malikine ait arsa payı ile oranlıdır.
+  kontrol: '2026-10-13'
+  inceleme: duzeltildi
+  inceleme_notu: >-
+    puf[0] 122 → 115 karakter ("aksine sözleşme olmadıkça, arsa payı ile oranlıdır" → "aksine sözleşme yoksa arsa payı oranındadır"); "gibi" md. 16'da
+    zaten açık liste, "aksine sözleşme" koşulu korundu. Tanım md. 2(b), puf[1] md. 16/1 ile birebir. Not: terim kanundaki tanımlı kavram (md. 2/b),
+    ama gündelik dilde genel bir söz; kartın anlamı tanımla ortak yerlere bağlanıyor.
+- terim: KAT İRTİFAKI SAHİBİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir arsa üzerinde ileride kat mülkiyetine konu olmak üzere yapılacak veya yapılmakta olan yapıların bağımsız bölümleri için kurulan kat irtifakı hakkına sahip kişidir.
+  puf:
+  - Yapının sözleşmede yazılı sürede başlaması ve tamamlanması için kendilerine düşen borçları karşılıklı isteyip dava edebilirler.
+  - Yapının tamamlanması için kendi aralarından veya dışarıdan bir veya birkaç kişiyi yönetici tayin edebilirler.
+  - Yapı fiilen tamamlanmış, bölümlerin üçte ikisi fiilen kullanılmaya başlanmışsa yönetimde kat mülkiyeti hükümleri uygulanır.
+  mevzuat: Kat Mülkiyeti Kanunu md. 2 ve 17
+  dayanak_alintisi: Kat irtifakı sahipleri, ortak arsa üzerinde yapılacak yapının, sözleşmede yazılı süre içinde başlaması ve tamamlanması için kendilerine düşen borçların yerine getirilmesini, karşılıklı olarak isteme ve dava etme hakkına sahiptirler.
+  kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: >-
+    Tanım, arşivdeki KAT İRTİFAKI kartının tanımını (md. 2/c) "sahip kişi" ekiyle tekrarlıyor: anlamca tekrar; terim türev bir kişi adı.
+    puf[0] bozuk: "kendilerine düşen borçları karşılıklı isteyip" kanundaki "kendilerine düşen borçların yerine getirilmesini karşılıklı olarak isteme"
+    anlamını kaydırıyor (kendi borçlarını istemek gibi okunuyor); öznesiz çoğul fiiller tekil başlıkla uyumsuz. puf[2] asıl sonucu düşürüyor
+    ("kat mülkiyetine geçilmemiş olsa dahi"). md. 17 yollama zinciri taşıyor (yönetici için kat mülkiyeti yöneticisi hükümleri; yönetimde kat mülkiyeti
+    hükümleri, md. 27 vd.) → tek kartla doğru anlatılamaz. puf[0] ve puf[2] ayrıca 115 karakteri aşıyor.
+- terim: KAT MÜLKİYETİ KÜTÜĞÜ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat mülkiyetinin ve kat irtifakının, Tapu Sicili Tüzüğüne göre tutulan kütüğüne tescil edildiği sicildir.
+  puf:
+  - Kat mülkiyetine konu her bağımsız bölüm, bağlı arsa payı gösterilerek kütüğün ayrı bir sayfasına tescil edilir.
+  - Henüz kadastrosu yapılmamış yerlerde tescil, ayrıca tutulan Kat Mülkiyeti Zabıt Defterine yapılır.
+  mevzuat: Kat Mülkiyeti Kanunu md. 11 ve 13
+  dayanak_alintisi: Kat mülkiyeti ve kat irtifakı, Tapu Sicili Tüzüğüne göre tutulacak kat mülkiyeti kütüğüne tescil olunur.
+  kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: >-
+    Başlık yerleşim tabanına sığmıyor (doğrulayıcı: iki satırda 112 pt) ve kanundaki kavram "kat mülkiyeti kütüğü"nden başka kısa bir terim yok;
+    "KAT KÜTÜĞÜ" gibi bir kısaltma uydurma olur. Tanım döngüsel ve bozuk ("...tutulan kütüğüne tescil edildiği sicildir": kütüğü, kütüğe tescilin
+    yapıldığı sicil diye tanımlıyor); "X nedir?" sorusunu cevaplamıyor. Gündelik okur için değeri de düşük (iç tapu teknikliği).
+- terim: ÖNCELİKLE SATIN ALMA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kat mülkiyeti kurulmuş gayrimenkulde bir bağımsız bölümün paydaşlarından biri payını başkasına satarsa, öteki paydaşların kullanabildiği önalım hakkıdır.
+  puf:
+  - Bağımsız bölümün satılmasında diğer kat maliklerinin öncelikle satın alma hakkı yoktur.
+  - Sözleşmede bu maddenin aksine hüküm konulabilir.
+  mevzuat: Kat Mülkiyeti Kanunu md. 8
+  dayanak_alintisi: Bir bağımsız bölümün paydaşlarından birinin kendi payını başkasına satması halinde öteki paydaşlar, öncelikle satınalma hakkını kullanabilirler.
+  kontrol: '2026-10-13'
+  inceleme: red
+  inceleme_notu: >-
+    Anlamca arşivdeki ÖNALIM HAKKI (SZ-001) kartının tekrarı: "öncelikle satın alma" önalımın (şufa) kendisidir ve tanım bunu "önalım hakkıdır" diye
+    söylüyor. Kuralın kullanımı (süre, bildirim, dava) md. 8'de yok; md. 9 ile Medeni Kanuna yollanıyor → kapsam zinciri, tek kartla anlatılamaz.
+    puf[1] "bu maddenin" okura anlamsız; "sözleşme" md. 2(e)'ye göre kuruluş resmi senedi, okur genel sözleşme sanar. puf[0] md. 8'deki kat
+    irtifakı bağlanmış arsa payı satışını düşürüyor. Terim kanundaki adın ("öncelikle satınalma hakkı") eksik hali.

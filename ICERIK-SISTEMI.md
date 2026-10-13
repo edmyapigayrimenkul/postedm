@@ -414,7 +414,9 @@ yoğun kart eski tavanda (44/30) kalır. Kutudaki "—" işaretinin girintisi ve
 **Otomatik yayın** (`telegram_bot.sozluk_karti_hazirla_ve_sun`): her gün öğlen 12:30 TR (09:30 UTC) `hazirla.py --slot sozluk --oto-yayin`
 çalışır. Asıl tetikleyici Cloudflare cron'udur (Worker `scheduled()` → `slot_hazirla {slot: sozluk, zamanli: true}`); `hazirla.yml` cron'u
 `30 9 * * *` 6–10 saat gecikebilen yedektir ve o gün zaten çalışmış slotu tekrar üretmez (MEMORY.md §10 madde 13). `--oto-yayin` "bu çalıştırma onaysız yayına yetkili" demektir;
-bayraksız çalıştırmalar (10:00 günlük döngü, elle `--slot sozluk`) açık anahtar yoksa hiçbir zaman otomatik değildir.
+bayraksız çalıştırmalar (10:00 günlük döngü) açık anahtar yoksa hiçbir zaman otomatik değildir. **Elle tetiklenen sözlük (Telegram `/sozluk`, panel düğmesi, `workflow_dispatch`)
+2026-10-13'ten beri bayraksız çalışır**: albüm + düğmeli onay kartı olarak düşer, yayınlamak insana kalır (`hazirla.yml`: `--oto-yayin` yalnız `ZAMANLANMIS=true` iken eklenir;
+`tests/test_hazirla_yml_elle_tetik.py` workflow'un kabuk betiğini gerçekten çalıştırarak sınar). Finans bülteni bu kararın dışındadır (elle de `--oto-yayin`).
 Modelin yazdığı sözlük bayrakla bile ASLA otomatik yayınlanmaz (kart kalmadıysa onaya düşer).
 
 **Günde bir sözlük:** sözlük 10:00'daki günlük döngüde YOK (döngü: b1, nedir_dogrusu, net_cevap, b1); yalnız 12:30'da

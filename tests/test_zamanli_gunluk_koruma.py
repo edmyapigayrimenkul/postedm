@@ -12,6 +12,7 @@ import os
 os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
 
 import importlib.util
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -146,15 +147,14 @@ class TestWorkflowVeWorkerSozlesmesi(unittest.TestCase):
 
     def test_worker_slot_hazirla_zamanli_yuk_gonderiyor(self):
         kaynak = (KOK / "worker/index.js").read_text(encoding="utf-8")
-        self.assertIn('"slot_hazirla", { slot, zamanli: true', kaynak)
+        self.assertIn("slot: is.slot, zamanli: true", kaynak)
         for cron, slot in (("0 7 * * *", "bilgilendirici"), ("30 9 * * *", "sozluk")):
-            self.assertIn(f'"{cron}": "{slot}"', kaynak)
+            self.assertRegex(kaynak, rf'"{re.escape(cron)}":\s*\{{ olay: "slot_hazirla", slot: "{slot}"')
 
     def test_gunluk_slotlar_workflow_cronlariyla_ayni_saatte(self):
         """Cloudflare ve GitHub cron'ları aynı UTC saatinde: biri diğerinin yedeği."""
-        import re
-        toml = (KOK / "worker/wrangler.toml").read_text(encoding="utf-8")
-        cf = set(re.findall(r'"([^"]+)"', next(s for s in toml.splitlines() if s.strip().startswith("crons"))))
+        import tomllib
+        cf = set(tomllib.loads((KOK / "worker/wrangler.toml").read_text(encoding="utf-8"))["triggers"]["crons"])
         w = yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         gh = {c["cron"] for c in w[True]["schedule"]}
         self.assertTrue({"0 7 * * *", "30 9 * * *"} <= cf)

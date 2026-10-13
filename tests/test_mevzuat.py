@@ -71,6 +71,19 @@ class TestSureIfadeleri(unittest.TestCase):
     def test_noter_onayli_sure_degildir(self):
         self.assertEqual(mevzuat.sure_ifadeleri("noter onaylı feragatname"), set())
 
+    def test_ay_gun_yil_ile_baslayan_baska_sozcukler_sure_degildir(self):
+        """"md. 319 ayıp" → "319 ay" sayılıyor, kira/satış AYIP kartları 'SÜRE KAYNAKTA YOK' ile engelleniyordu."""
+        for metin in ("md. 319 ayıp giderme", "6098 sayılı Kanun md. 308 ayıplı kira", "bir ayrı madde", "iki aynı hüküm",
+                      "md. 12 ayrıca", "madde 5 aykırı", "md. 319 ayıbı", "md. 308 ayıba", "SZ-999 AYIBI", "md. 310 ayıplı", "md. 4 güney cephe", "3 gündem maddesi", "md. 9 yıldız", "md. 2 yılan"):
+            self.assertEqual(mevzuat.sure_ifadeleri(metin), set(), metin)
+
+    def test_gercek_sureler_ek_ve_kisaltmalarla_hala_taninir(self):
+        self.assertEqual(mevzuat.sure_ifadeleri("3 aylık bildirim, 6 aya kadar, iki aydan fazla"),
+                         {("3", "ay"), ("6", "ay"), ("2", "ay")})
+        self.assertEqual(mevzuat.sure_ifadeleri("5 yıldır, 10 yıllık, 30 günlük, iki haftalık"),
+                         {("5", "yıl"), ("10", "yıl"), ("30", "gün"), ("2", "hafta")})
+        self.assertIn(("1", "ay"), mevzuat.sure_ifadeleri("1 ay önce"))
+
 
 class TestKanunMetnineKarsiDenetim(unittest.TestCase):
     def _denetle(self, metin, kaynak):

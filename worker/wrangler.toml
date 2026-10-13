@@ -29,25 +29,36 @@ workers_dev = true
 [vars]
 GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 
-# [triggers] — PLANLI YAYIN ÇALAR SAATİ + GÜNLÜK TUR (2026-10-12)
+# [triggers] — PLANLI YAYIN ÇALAR SAATİ + ZAMANLANMIŞ İŞLER (2026-10-12, genişletildi 2026-10-13)
 #
 # • "*/10 * * * *": "30 dk / 1-4 saat sonra yayınla" seçilince Worker planı PLANLAR KV'sine yazar; bu cron
 #   10 dakikada bir vakti gelen planı "yayinla" olarak GitHub'a yollar (GitHub yalnızca gerçek iş varken uyanır).
-# • "0 7 * * *" (10:00 TR) ve "30 9 * * *" (12:30 TR): GÜNLÜK İÇERİK TURU. GitHub `schedule` koşuları 6-10 saat
-#   gecikiyordu (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı); Cloudflare cron'u dakikasında çalışır.
-#   scheduled() bunlar için `slot_hazirla` {slot, zamanli: true} yollar.
+# • Diğer yedi cron ZAMANLANMIŞ İŞLERDİR (index.js › ZAMANLI_ISLER). GitHub `schedule` koşuları 6-10 saat gecikiyordu
+#   (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı); Cloudflare cron'u dakikasında çalışır. scheduled() her biri için
+#   `repository_dispatch` {slot, zamanli: true} yollar:
+#     "40 5 * * *"   08:40 TR  günlük rapor            → rapor
+#     "17 6 * * *"   09:17 TR  haber önerisi (sabah)   → haber_oneri
+#     "0 7 * * *"    10:00 TR  günlük bilgilendirici   → slot_hazirla
+#     "30 9 * * *"   12:30 TR  günlük sözlük kartı     → slot_hazirla
+#     "30 10 * * *"  13:30 TR  onay hatırlatıcı (öğle) → hatirlat
+#     "17 15 * * *"  18:17 TR  haber önerisi (akşam)   → haber_oneri
+#     "30 18 * * *"  21:30 TR  onay hatırlatıcı (akşam)→ hatirlat
 #
-# GÜNDE İKİ TUR OLMASIN (tests/test_sozlesme.py › test_tek_tetikleyici_kurali): hazirla.yml'deki aynı saatli GitHub
-# cron'ları SİLİNMEDİ, gecikmeli YEDEK olarak duruyor; hazirla.py zamanlanmış bir slotu aynı Türkiye gününde ikinci
-# kez üretmez (ayarlar › zamanli_slot_son_gun:<slot>). Cloudflare cron'u hiç yazılmamışsa (aşağıya bakın) GitHub
-# yedeği içeriği geç de olsa çıkarır; Worker dağıtılmadan GitHub cron'u kaldırılırsa HİÇ içerik üretilmez.
+# GÜNDE İKİ KEZ OLMASIN (tests/test_sozlesme.py › test_tek_tetikleyici_kurali, tests/test_zamanli_isler.py): ilgili workflow'lardaki
+# aynı saatli GitHub cron'ları SİLİNMEDİ, gecikmeli YEDEK olarak duruyor; aynı slot aynı Türkiye gününde ikinci kez çalışmaz
+# (hazirla.py / scripts/zamanli_koruma.py › ayarlar › zamanli_slot_son_gun:<slot>). Cloudflare cron'u hiç yazılmamışsa
+# (aşağıya bakın) GitHub yedeği işi geç de olsa çalıştırır; Worker dağıtılmadan GitHub cron'u kaldırılırsa İŞ HİÇ ÇALIŞMAZ.
 #
 # ⚠️ Dağıtımdan sonra cron'ların gerçekten yazıldığını doğrula (Cloudflare panel › Workers › edm-telegram-dispatcher ›
-# Settings › Triggers › Cron Triggers'ta üç satır görünmeli): sınıra takılan dağıtım kodu yükleyip cron'u
+# Settings › Triggers › Cron Triggers'ta SEKİZ satır görünmeli): sınıra takılan dağıtım kodu yükleyip cron'u
 # sessizce yazmıyordu (Instabot, 5 Eyl 2026). Hesap Workers Paid planında (kullanıcı, 2026-09-26): ücretsiz plandaki
-# "hesap başına 5 cron" sınırı yok.
+# "hesap başına 5 cron" sınırı yok. Worker Dağıt workflow'u sekizini de Cloudflare API'sinden doğrular.
 [triggers]
-crons = ["*/10 * * * *", "0 7 * * *", "30 9 * * *"]
+crons = [
+  "*/10 * * * *",
+  "40 5 * * *", "17 6 * * *", "0 7 * * *", "30 9 * * *",
+  "30 10 * * *", "17 15 * * *", "30 18 * * *",
+]
 
 # Planlar: anahtar plan:<telegram mesaj id>, değer JSON {an, payload, secili, ...}.
 # Instabot'un PLANLAR KV'sinden AYRI (o başka bir botun).

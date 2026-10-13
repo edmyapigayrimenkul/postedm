@@ -3,15 +3,83 @@
 Bu dosya, sözlük kart arşivini alt ajanlarla büyütme işinin planıdır. Oturum kapansa ya da bağlam dolsa bile iş
 buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.md` §5.5.2, arşiv: `data/sozluk_kartlari.yaml`.
 
-## Durum (2026-10-09)
+## Sahiplik: bu iş GEMİNİ ile yürür (kullanıcı kararı, 2026-10-13)
+
+**Claude bu işi sürdürmez.** Kullanıcı Claude'dan yalnız **paylaşım (yayın) altyapısı** ve **Telegram altyapısı** geliştirmesini istedi (bkz. MEMORY.md §11, ARCHITECTURE.md §4 "Claude'un önceliği");
+sözlük kartlarının geri kalanı (dalga 2 ve sonrası) Gemini ile yazılacak. Bu belge o yüzden iki işe yarar: (1) Gemini'ye verilecek devir notu, (2) Claude'un dalga 1'e kadar yaptığı işin kaydı.
+Aşağıdaki "Claude alt ajan" ve `mcp__ccd_session_mgmt__get_usage` anlatımları geçmiş dönemdir; Gemini için karşılıkları:
+
+- **Araçlar model bağımsızdır** ve olduğu gibi kullanılır: `scripts/kanun_oku.py` (kanun metni), `scripts/sozluk_kart_dogrula.py` (taslak doğrulayıcı), `scripts/sozluk_kart_birlestir.py` (`--kuru` ile deneme),
+  kapıda tam test (`python -m unittest discover tests`) ve `scripts/gorsel_denetim.py`. Kanun metinleri `mevzuat-onbellek` dalındandır (bkz. "Pilot sonucu").
+- **Değişmeyen kural:** yazan model kendi kartını incelemez. Taslak → doğrulayıcı → **ayrı bir inceleme turu** (ayrı oturum/ayrı istem; kartı yazmayan, kanun metnine iddia iddia bakan) → birleştirme. Doğrulayıcı yeşili doğruluk değildir;
+  dalga 1'de yazar çıktısının ancak %62'si, o da çoğunlukla yeniden yazılarak girdi. Modelin yazdığı sözlükte ince yanlışlar çıktığı için (ICERIK-SISTEMI §5.5.2) taslaklar hiçbir koşulda incelemesiz arşive girmez.
+- Yazar ve inceleme talimatları (aşağıdaki "Yazar ajan talimatı", "İnceleme ajanı talimatı" ve "Pilot/Dalga 1 sonucu"ndaki dersler, kural 8–12) model adından bağımsız metindir; Gemini'ye olduğu gibi verilebilir.
+- **Gemini'nin ilk işi (Claude'dan devir):** A12 (TBK sözleşme kurulması) hiç yazılmadı; reddedilen ama içeriği iyi kira/fesih konuları (KONUT KİRASI KAPSAMI, BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ, ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ)
+  md. 347–349, 353, 356 birlikte düşünülerek yeniden yazılacak; SZ-007'ye md. 353 istisnası; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok.
+- Gemini ücretsiz kotası ayrıdır; Claude kullanım limiti (aşağıda "Dalga 1" derslerindeki 4 ajan sınırı) onu bağlamaz.
+
+## Durum (2026-10-09; güncel arşiv sayısı için Dalga 1 sonucuna bak: 66 kart)
 
 - Arşivde 34 kart var; günde bir kartla 34 gün yeter (12 Kasım'da biter). Hedef 730 (2 yıl × günde 1): **696 eksik**.
 - `sozluk_arsivi.BEKLEME_GUN = 730` (aynı kart 2 yıl dolmadan tekrar gelmez), `HEDEF_KART = 730`; hiç yayınlanmamış kart 14'e
   inince Telegram'a hatırlatma gider. Kart bitince sözlük modelle üretilip onaya düşer (otomatik yayın YOK).
-- Kullanıcı kararı (2026-10-09): kartları **Claude alt ajanlarla** üretmek.
-- **ENGEL:** hesap planı Pro; haftalık limit %99 doluydu (sıfırlanma 13 Ekim 2026 06:00 UTC = 09:00 TR). Ajanları başlatmadan
-  önce `mcp__ccd_session_mgmt__get_usage` ile bak: haftalık ve 5 saatlik pencerede en az %50 boşluk yoksa BAŞLATMA; yarıda
-  kalan dalga hem kartları hem oturumu kilitler. 12 Kasım'a kadar vakit var, sıfırlanmayı beklemek güvenli.
+- Kullanıcı kararı (2026-10-09): kartları Claude alt ajanlarla üretmek. **2026-10-13'te değişti: Gemini ile** (yukarıdaki "Sahiplik" bölümü).
+- Eski engel notu (geçmiş): Claude hesabının haftalık limiti dolmuştu; ajan başlatmadan önce kullanım boşluğuna bakmak gerekiyordu. Gemini ile çalışırken geçerli değil.
+
+## Pilot sonucu (2026-10-13, A07 Kadastro 3402)
+
+**Kanun metinleri:** Actions → Mevzuat Önbelleği ile 32 kanunun TAMAMI çekildi (14 yeni kanunun tahmini tertipleri de tuttu; hiçbir `KANUNLAR` düzeltmesi gerekmedi).
+Dosyalar `mevzuat-onbellek` dalında; oturumda `git fetch origin mevzuat-onbellek` + `git archive FETCH_HEAD | tar -x -C data/mevzuat_onbellek` ile alınır (dizin .gitignore'da).
+Her dosya başlığında kanun no geçiyor, boyutlar makul (6217: 5,7 KB … 2004: 418 KB).
+
+**Kartlar:** 8 kart yazıldı (6 + reddedilen 2'nin yerine yeni 2), **4'ü arşive girdi (SZ-035…038)**. Doğrulayıcı ilk taslakta 6/6 yeşildi; bağımsız inceleme (opus) yine de 4 kartı düzeltti, 2'sini reddetti;
+yerine yazılan 2 kart da ikinci bağımsız incelemede reddedildi. **Doğrulayıcının yeşili doğruluk değildir**: yapıyı, alıntının birebirliğini ve sayıları sınar; kapsamı, istisnayı ve anlamı yalnız inceleme yakalar.
+Maliyet: iki inceleme ≈ 250 bin ajan tokeni (≈ 9 + 5 dk). Dalga planı bu orana göre kurulmalı: ~%50 ret/düzeltme payı + her dalgada ikinci inceleme turu.
+
+| Arşive girdi | Kod | Not |
+|---|---|---|
+| ASKI İLANI (md. 11) | SZ-035 | düzeltildi: tanımdaki dava cümlesi puf'la aynıydı, "Kanuna göre" → "Kadastro Kanunu gereğince", gerçek + tüzel kişi |
+| TESPİTE İTİRAZ (md. 9 ve 11) | SZ-036 | düzeltildi: dava hakkı her itiraz eden için ayrı madde; "askı ilanı" md. 11'den geldiği için atıfa md. 11 eklendi. Terim inceleme sırasında "KADASTRO TESPİTİNE İTİRAZ"dı; başlık tabanına sığmadığı için kısaltıldı (aşağıda) |
+| KADASTRO KOMİSYONU (md. 10) | SZ-037 | düzeltildi: sürenin başlangıcı ("geldiği tarihten"), "kanunla mahkemeye bırakılan" kaydı, "intikal" (miras sanılır) kaldırıldı |
+| KESİNLEŞME (md. 12) | SZ-038 | düzeltildi: "kesinleşmeden" çift anlamlıydı; on yıl kuralı tek maddede. Terim "KADASTRO KESİNLEŞMESİ"ydi (112 pt); kısaltıldı |
+
+**Reddedilenler ve dersler** (bir sonraki yazar/inceleme talimatına işlendi, aşağıda 8–10):
+- *TAPUSUZ TAŞINMAZ (md. 14)*: tapusuz her taşınmazın 20 yıllık zilyetlikle zilyet adına tespit edildiği izlenimini veriyordu; md. 16/17/18 (orta malları, hizmet malları, ormanlar, kamu hizmetine tahsisli yerler, imar planı alanı) bu yoldan çıkarılmış.
+- *KAMU MALI VE ZAMANAŞIMI (md. 18)*: "gibi" kapalı listeyi örnek listesine çevirdi; puf'lar tanımı tekrarladı; terim kavram değil konu başlığıydı.
+- *TAPU SINIRININ TESPİTİ (md. 20)*: terim kanundaki başlığa uymuyordu ("Kayıt ve belgelerin kapsamını tayin"); "haritasız kayıt" kısaltması kapsamı bozdu ("harita, plan ve krokiye dayanmayan"); D bendi ve sonundaki md. 14/17 yollaması eksikti.
+- *İHYA EDİLEN TAŞINMAZ (md. 14 ve 17)*: md. 14'ün asıl şartları (tapusuzluk, 20 yıl zilyetlik, 40/100 dönüm sınırı, belge) kartta yoktu; "Devlet arazisi" gündelik dilde tapulu Hazine arazisini de kapsar; "bu hüküm" yanlış okunabiliyordu.
+  → Başka maddelere yollama yapan, kapsam/istisna zinciri taşıyan maddeler (3402 md. 14, 16, 17, 18, 20 gibi) tek kartla doğru anlatılamıyor; bu alanlarda daha basit, tek kuralı olan maddeler seçilmeli.
+
+**Başlık yerleşim tabanı (pilotta kaçan hata):** iki kart doğrulayıcıdan ve incelemeden geçti, ama tam testte düştü: başlık (terim) tek satırda 116-160 pt ya da iki satırda 112-144 pt aralığında yerleşip ≥114 pt olmalı
+(`tests/test_sozluk_stres_sabotaj.py`); "KADASTRO TESPİTİNE İTİRAZ" iki satıra bile sığmadı, "KADASTRO KESİNLEŞMESİ" 112 pt'ye düştü. Sorun uzun TEK sözcüktür (KESİNLEŞMESİ 12 harf). Doğrulayıcıya `baslik_sigma_sorunu` eklendi;
+artık çizim denetiminde bu da sınanır (testi: `TestBaslikYerlesimTabani`). Yazar kuralı: terim ≤ ~20 karakter, tek sözcük ≤ ~10 harf; sınır durumlarında doğrulayıcıyı çalıştırarak seç.
+Kapıda **tam test paketi** şarttır (yalnız doğrulayıcı yetmez).
+
+**Araç düzeltmesi (aynı gün):** `kanun_oku.py ara` ek maddelerdeki ("Ek Madde 6") geçişleri "md. 6" diye etiketliyordu ve `maddelere_bol`/`mevzuat.madde_metni` ek maddeyi normal madde sayıyordu: ek madde atıfı ("ek md. 6") yoktu, ve normal maddesi bulunmayan
+numaralar sessizce Ek Madde'nin metnine çözülüyordu (2985 Toplu Konut Kanunu md. 11–17 gibi; mevcut hiçbir atıf etkilenmiyordu). Ayrıca 21 normal maddenin sonuna bir sonraki Ek Madde başlığının "Ek" sözcüğü sızıyordu. Artık ek maddeler ayrı tür:
+etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler: `TestEkMaddeler`). Eski ve yeni `madde_metni`, 32 kanunun 4375 normal maddesinde karşılaştırıldı: yalnız bu iki fark.
+
+## Dalga 1 sonucu (2026-10-13: A15 kira genel, A16 konut/çatılı işyeri kirası, A20 KMK md. 1–19)
+
+**Arşiv 38 → 66 kart (≈61 günlük stok).** 4 yazar (sonnet) + 4 bağımsız inceleme (opus): 45 taslak karttan **28'i girdi (SZ-039…066), 17'si reddedildi** (%62 kabul). A12 (TBK sözleşme kurulması) hiç yazılamadı, yeniden verilecek.
+
+| Dosya | Alan | Taslak | Onay | Düzeltildi | Red |
+|---|---|---|---|---|---|
+| A15a | TBK kira, genel (md. 299–321) | 11 | 1 | 7 | 3 |
+| A15b | TBK kira, genel (md. 321–338) | 11 | 0 | 6 | 5 |
+| A16 | TBK konut/çatılı işyeri kirası (md. 339–378) | 15 | 2 | 7 | 6 |
+| A20 | KMK md. 1–19 | 8 | 0 | 5 | 3 |
+
+**Ne yanlış gitti / dersler**
+- **Kullanım sınırı:** dört yazar aynı anda çalışırken oturumun kullanım sınırı doldu (sıfırlanma 11:50 UTC) ve hepsi yarıda kesildi; taslaklar kendi doğrulama ve son kontrol adımına gelmeden kaldı (45 karttan 26'sı doğrulayıcıda kırmızı: puf >115 karakter, sığmayan başlık).
+  Çözüm: bu taslaklar doğrudan incelemeye verildi (inceleyici biçimi de düzeltti; kararlarını kart kart dosyaya yazdığı için kesinti riski azaldı). **Bir dalgada aynı anda en çok 4 ajan; bir sonraki dalgayı limit sıfırlanınca başlat.**
+  İnceleme maliyeti ≈ 700 bin ajan tokeni (4 inceleme: 143–211 bin). Kabul edilen 28 kartın 25'i inceleyici tarafından yeniden yazılarak kurtarıldı; yazar çıktısı tek başına yayına uygun değildi.
+- **Doğrulayıcı hatası bulundu:** süre denetimi "md. 319 ayıp" → "319 ay" sayıp **ayıp kartlarını hep engelliyordu** (ayrıca "ayrı", "aynı", "ayrıca", "ayıbı"). `mevzuat._SURE` düzeltildi, testli.
+- **Sık ret nedenleri:** (a) ürün kirası ya da konut/çatılı işyeri ayrımını söylemeden genel kural sunmak (ALT KİRA md. 322 ↔ md. 366; KİRACININ İFLASI md. 332 ↔ md. 370; KİRACININ ÖLÜMÜ md. 333 ↔ md. 356); (b) "gibi" ile kapalı liste açmak; (c) tanımı döngüsel yazmak ("…kütüğüne tescil edildiği sicildir"); (d) arşivdeki karta anlamca tekrar (KAT İRTİFAKI SAHİBİ, ÖNCELİKLE SATIN ALMA ↔ ÖNALIM HAKKI); (e) başlığın sığmaması (KAT MÜLKİYETİ KÜTÜĞÜ, KONUT KİRASI KAPSAMI, OLAĞANÜSTÜ KİRA İNDİRİMİ…).
+- **Reddedilen ama içeriği iyi olanlar, yeniden yazılırken tüm fesih/bildirim kuralları (md. 347–349, 353, 356) birlikte düşünülmeli:** KONUT KİRASI KAPSAMI (md. 339), BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ (md. 347 "ancak" zinciri), ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ + md. 356.
+
+**Arşivdeki mevcut kartlarla ilgili bulgu (dokunulmadı, karar sizin):** SZ-007 İHTİYAÇTAN TAHLİYE "dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır" diyor; md. 353'e göre kiraya veren bu sürede dava açacağını yazılı bildirmişse dava süresi bir kira yılı uzar (yeni SZ-056/057/058 bunu söylüyor). Kart olduğu gibi yanıltıcı değil ama eksik; atfa md. 353 eklenip bir madde yeniden yazılabilir.
+**Hiçbir onaylı kartta olmayan kapsam:** md. 339/2: doğası gereği geçici kullanıma ayrılmış taşınmazların altı ay ya da daha kısa kiralarında konut/çatılı işyeri hükümleri uygulanmaz (Silivri yazlık kiraları için önemli). Konut/çatılı işyeri kartlarının hiçbiri bunu söylemiyor.
 
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
@@ -24,7 +92,7 @@ buradan kaldığı yerden devam eder. Kart kuralları ve neden: `ICERIK-SISTEMI.
 
 Hakem (Gemini) geçişi yalnız orkestratörde, ücretsiz kotayı gözeterek; yazarlar `--hakem` kullanmaz.
 
-## Araçlar (YAZILDI 2026-10-12; testli, ama canlı kanun metniyle HENÜZ denenmedi)
+## Araçlar (YAZILDI 2026-10-12; 2026-10-13'te canlı kanun metniyle uçtan uca DENENDİ — bkz. Pilot sonucu)
 
 Yazıldıkları ortamda `www.mevzuat.gov.tr` ağ politikasıyla kapalıydı: tüm testler sahte kanun metniyle çalışıyor. **Pilottan önce, ağı açık
 bir ortamda (yerel ya da ağ erişimi verilmiş bulut oturumu):**
@@ -120,6 +188,11 @@ Kurallar:
 6. Yalnız kendi taslak dosyana yaz. Başka dosyayı değiştirme, git kullanma, tüm test paketini koşma, `--hakem` kullanma.
 7. `scripts/sozluk_kart_dogrula.py` tamamen yeşil olana kadar düzelt. Sonra her kartı kendin yeniden oku ve kanun metniyle iddia iddia karşılaştır.
    Emin olmadığın kartı at ve başka terim yaz.
+8. Kapsam/istisna zinciri olan maddeyi kartlaştırma: madde "ancak", "saklıdır", "hükümleri dışında kalan" ile başka maddelere yolluyorsa ya da kuralın kapsamı başka bir maddede daralıyorsa (pilotta 3402 md. 14, 16, 17, 18, 20), kural tek kartla doğru anlatılamaz. Tek kuralı olan, kendi içinde tamam maddeler seç.
+9. Terim kanundaki kavramın ya da madde başlığının kendisi olsun; kısaltma/özel ad uydurma ("haritasız kayıt"). Kanundaki kapalı listeyi "gibi" ile açma. "İntikal", "ihya", "tespit" gibi sözcük gündelik dilde başka anlama geliyorsa tanımda açıkça söyle ya da kullanma.
+10. Puf maddesi tanımın bir yarısını tekrar etmez; iki puf aynı cümlenin iki yarısı olmaz. Her puf tek başına doğru ve kapsamı belli olmalı ("kesinleşmeden" gibi çift anlamlı sözcük yok).
+11. Başlık (terim) yerleşim tabanına uymalı: en çok iki satır, ≥114 pt. Uzun tek sözcükten ("KESİNLEŞMESİ") ve ~22 karakteri aşan terimden kaçın; doğrulayıcı `çizim (başlık)` uyarısı verirse terimi kısalt.
+12. Yoğunluk: tanım ≤ ~200 karakter, tanım + puf toplamı ≤ ~280 karakter olsun; uzun kartın tanım puntosu 40 pt'ye (en yoğun kartta 36 pt'ye) iner ve Instagram'da okunması zorlaşır (dalga 1'de 7 kart 40 pt'ydi).
 
 Çıktı: taslak dosyası ve kısa rapor (yazılan/atılan sayı, değiştirilen terimler, kuşkulu kartlar).
 
@@ -132,5 +205,6 @@ tutarlı mı, kategori uygun mu, (5) iki madde aynı şeyi mi söylüyor. Düzel
 
 ## Not: ücretsiz alternatif
 
-Gemini ücretsiz kotası ayrıdır (Claude limitini harcamaz). Taslak üretimi Gemini'ye, yalnız bağımsız inceleme Claude'a bırakılabilir; ama
+Gemini ücretsiz kotası ayrıdır (Claude limitini harcamaz). 2026-10-13 kararıyla taslak üretimi Gemini'dedir; bağımsız inceleme turu da ayrı bir Gemini çalıştırması olmalıdır
+(yazanın kendi kartını incelemesi geçerli sayılmaz). Claude'dan inceleme almak isterseniz kullanıcı ayrıca isteyebilir, ama iş akışı buna bağlı değildir. Ancak
 modelin yazdığı sözlük incelemesinde 12 konunun en az 4'ünde ince yanlış çıktı (bkz. §5.5.2): taslaklar hiçbir koşulda incelemesiz arşive girmez.

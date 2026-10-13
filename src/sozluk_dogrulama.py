@@ -200,10 +200,33 @@ def karti_denetle(
     return rapor
 
 
+BASLIK_PUNTO_TABANI = 114  # tests/test_sozluk_stres_sabotaj.py: tüm kartların başlığı ≥114 pt (Zilyetlikle Tescil standardı)
+
+
+def baslik_sigma_sorunu(terim: str) -> Optional[str]:
+    """Başlık (terim) tek satırda 116-160 pt ya da iki satırda 112-144 pt aralığında yerleşmeli ve ≥114 pt olmalı.
+    Çizim hatasız biter ama yerleşim küçük puntoya düşer; bu ölçüt `test_sozluk_stres_sabotaj` ile aynıdır, yoksa
+    kart incelemeden geçip arşiv testinde düşer (2026-10-13 pilotunda KADASTRO TESPİTİNE İTİRAZ / KADASTRO KESİNLEŞMESİ)."""
+    from . import yeni_formatlar
+    kw = 1080 - 2 * 78
+    r = yeni_formatlar._sigdir(terim, yeni_formatlar.FONT_FRAUNCES, range(160, 115, -2), kw, 10000, 1.15, azami_satir=1)
+    if not r:
+        r = yeni_formatlar._sigdir(terim, yeni_formatlar.FONT_FRAUNCES, range(144, 111, -2), kw, 10000, 1.15, azami_satir=2)
+    if not r:
+        return f"başlık '{terim}' iki satırda 112 pt'ye bile sığmıyor: daha kısa terim seç"
+    if r[0].size < BASLIK_PUNTO_TABANI:
+        return f"başlık '{terim}' {r[0].size} pt'ye düşüyor (taban {BASLIK_PUNTO_TABANI}): uzun sözcüğü kısalt ya da terimi değiştir"
+    return None
+
+
 def cizim_sorunlari(kart: Dict[str, Any]) -> List[str]:
-    """Kartı iki ölçüde çizer; taşma/örtülme/eksik içerik hatası (TasmaHatasi, EksikIcerik) sorun sayılır."""
+    """Kartı iki ölçüde çizer; taşma/örtülme/eksik içerik hatası (TasmaHatasi, EksikIcerik) sorun sayılır.
+    Başlığın puntosunun ≥114 pt tabanına uyması da burada denetlenir (bkz. baslik_sigma_sorunu)."""
     from . import yeni_formatlar
     sorunlar: List[str] = []
+    sigmama = baslik_sigma_sorunu(str(kart.get("terim") or ""))
+    if sigmama:
+        sorunlar.append(f"çizim (başlık): {sigmama}")
     veri = sozluk_arsivi.karttan_veri(kart)
     with tempfile.TemporaryDirectory() as tmp:
         for olcu in ("besleme", "story"):

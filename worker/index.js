@@ -1495,18 +1495,17 @@ export default {
 
   // Zamanlanmış cron'lar (wrangler.toml › triggers):
   //  • */10 * * * *   planlı yayın çalar saati
-  //  • 0 7 * * *      10:00 TR günlük bilgilendirici içerik   → slot_hazirla {slot: bilgilendirici}
-  //  • 30 9 * * *     12:30 TR günlük sözlük kartı            → slot_hazirla {slot: sozluk}
-  // Günlük tur ASIL olarak buradan tetiklenir (2026-10-12): GitHub `schedule` koşuları 6-10 saat gecikiyordu.
-  // hazirla.yml'deki aynı saatli cron'lar gecikmeli YEDEKTİR; `zamanli: true` yükü hazirla.py'ye "zamanlanmış koşu"
-  // der (duraklatma uyulur) ve aynı slot aynı günde ikinci kez üretilmez (bkz. test_tek_tetikleyici_kurali).
+  //  • ZAMANLI_ISLER tablosundaki her cron: günlük içerik turları, onay hatırlatıcı, haber önerisi, günlük rapor
+  // Bu işler ASIL olarak buradan tetiklenir (2026-10-12/13): GitHub `schedule` koşuları 6-10 saat gecikiyordu.
+  // İlgili workflow'lardaki aynı saatli cron'lar gecikmeli YEDEKTİR; `zamanli: true` yükü workflow'a "zamanlanmış koşu"
+  // der (duraklatma uyulur) ve aynı slot aynı günde ikinci kez çalışmaz (bkz. test_tek_tetikleyici_kurali).
   async scheduled(event, env, ctx) {
     if (event.cron === PLAN_CRON) {
       if (env.PLANLAR) await planlariIsle(env);
       return;
     }
-    const slot = GUNLUK_TURLAR[event.cron];
-    if (slot) await gunlukTuruTetikle(env, slot, event.cron);
+    const is = ZAMANLI_ISLER[event.cron];
+    if (is) await zamanliIsiTetikle(env, is, event.cron);
   },
 };
 
@@ -1922,31 +1921,42 @@ async function sohbeteGonder(env, sohbetId, metin, replyMarkup = null) {
   } catch (_) {}
 }
 
-// Günlük tur cron'ları (worker/wrangler.toml › triggers). Anahtar cron ifadesidir, UTC.
-const GUNLUK_TURLAR = {
-  "0 7 * * *": "bilgilendirici",   // 10:00 TR
-  "30 9 * * *": "sozluk",          // 12:30 TR (hazirla.py --slot sozluk --oto-yayin)
+// Zamanlanmış işler (worker/wrangler.toml › triggers). Anahtar cron ifadesidir, UTC; saatler TR = UTC+3.
+//   olay : GitHub repository_dispatch event_type'ı (workflow'un `types:` listesinde olmalı)
+//   slot : "günde bir kez" koruması anahtarı (src/telegram/akislar/zamanli.py › ZAMANLI_GUNLUK_SLOTLAR); workflow'daki
+//          ZAMANLI_SLOT ifadesiyle aynı ad. slot_hazirla için aynı zamanda hazirla.py'nin --slot değeridir.
+//   ad   : tetiklenemezse gruba yazılan iş adı
+// Üç tablo birbirine bağlıdır ve tests/test_zamanli_isler.py karşılaştırır: bu tablo ↔ wrangler.toml crons ↔ workflow cron'ları.
+const ZAMANLI_ISLER = {
+  "0 7 * * *":   { olay: "slot_hazirla", slot: "bilgilendirici",    ad: "Günlük içerik" },       // 10:00 TR
+  "30 9 * * *":  { olay: "slot_hazirla", slot: "sozluk",            ad: "Günlük içerik" },       // 12:30 TR (hazirla.py --slot sozluk --oto-yayin)
+  "40 5 * * *":  { olay: "rapor",        slot: "rapor",             ad: "Günlük rapor" },        // 08:40 TR
+  "17 6 * * *":  { olay: "haber_oneri",  slot: "haber_oneri_sabah", ad: "Haber önerisi" },       // 09:17 TR
+  "30 10 * * *": { olay: "hatirlat",     slot: "hatirlat_ogle",     ad: "Onay hatırlatıcı" },    // 13:30 TR
+  "17 15 * * *": { olay: "haber_oneri",  slot: "haber_oneri_aksam", ad: "Haber önerisi" },       // 18:17 TR
+  "30 18 * * *": { olay: "hatirlat",     slot: "hatirlat_aksam",    ad: "Onay hatırlatıcı" },    // 21:30 TR
 };
-const GUNLUK_TETIK_DENEME = 3;
+const ZAMANLI_TETIK_DENEME = 3;
 
-// Günlük turu GitHub'a yollar. GitHub 5xx/ağ hatası verirse kısa beklemelerle yeniden dener (Cloudflare cron'u
+// Zamanlanmış işi GitHub'a yollar. GitHub 5xx/ağ hatası verirse kısa beklemelerle yeniden dener (Cloudflare cron'u
 // başarısız çalıştırmayı kendisi yeniden denemez); yine olmazsa gruba haber verir: sessizce gün kaybolmasın.
-// GitHub cron'u zaten gecikmeli yedek olarak açık olduğundan içerik geç de olsa çıkar.
-async function gunlukTuruTetikle(env, slot, cron) {
+// Workflow'lardaki GitHub cron'ları zaten gecikmeli yedek olarak açık olduğundan iş geç de olsa çıkar.
+async function zamanliIsiTetikle(env, is, cron) {
   const bekleme = Number(env.TETIK_BEKLEME_MS ?? 3000);
-  for (let deneme = 1; deneme <= GUNLUK_TETIK_DENEME; deneme++) {
+  const yuk = { slot: is.slot, zamanli: true, kaynak: "cloudflare_cron", cron };
+  for (let deneme = 1; deneme <= ZAMANLI_TETIK_DENEME; deneme++) {
     try {
-      if (await tetikleGitHub(env, "slot_hazirla", { slot, zamanli: true, kaynak: "cloudflare_cron", cron })) return true;
+      if (await tetikleGitHub(env, is.olay, yuk)) return true;
     } catch (e) {
-      console.error(`Günlük tur (${slot}) tetiklenemedi (deneme ${deneme}):`, e);
+      console.error(`Zamanlı iş (${is.slot}) tetiklenemedi (deneme ${deneme}):`, e);
     }
-    if (deneme < GUNLUK_TETIK_DENEME && bekleme > 0) await new Promise((r) => setTimeout(r, bekleme * deneme));
+    if (deneme < ZAMANLI_TETIK_DENEME && bekleme > 0) await new Promise((r) => setTimeout(r, bekleme * deneme));
   }
   await bildirimGonder(
     env,
-    `⚠️ <b>Günlük içerik tetiklenemedi</b> (<code>${htmlKacis(slot)}</code>, Cloudflare cron).\n` +
+    `⚠️ <b>${htmlKacis(is.ad)} tetiklenemedi</b> (<code>${htmlKacis(is.slot)}</code>, Cloudflare cron).\n` +
       "<i>GitHub Actions'a ulaşılamadı — Worker'daki GITHUB_TOKEN süresi dolmuş veya yetkisi eksik olabilir. " +
-      "GitHub'ın kendi cron'u yedek olarak içeriği geç de olsa üretir; kalıcı çözüm için token'ı yenileyin.</i>"
+      "GitHub'ın kendi cron'u yedek olarak işi geç de olsa çalıştırır; kalıcı çözüm için token'ı yenileyin.</i>"
   );
   return false;
 }
@@ -2129,9 +2139,11 @@ function kaldirmaOnayMenusu(tur, refId) {
 function durumMetni() {
   return (
     "📊 <b>EDM YAYIN TAKVİMİ</b>\n\n" +
+    "• <b>08:40</b> — Günlük rapor (kota, jetonlar, son çalışmalar)\n" +
+    "• <b>09:17</b> ve <b>18:17</b> — Haber önerileri; hangisinin içeriğe çevrileceğine siz karar verirsiniz\n" +
     "• <b>10:00</b> — Bilgilendirici (rotasyon: B1 · Nedir Doğrusu · Net Cevap · B1) — önce bu gruba <b>onaya</b> gelir\n" +
-    "• <b>12:30</b> — Emlak Sözlüğü kartı — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez)\n\n" +
-    "Haber önerileri ayrıca düşer; hangisinin içeriğe çevrileceğine siz karar verirsiniz.\n\n" +
+    "• <b>12:30</b> — Emlak Sözlüğü kartı — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez). Elle /sozluk derseniz kart <b>onay butonlarıyla</b> düşer\n" +
+    "• <b>13:30</b> ve <b>21:30</b> — Onay bekleyen içerik varsa hatırlatma\n\n" +
     "<i>Bu mesaj takvimi gösterir, sistemin sağlığını değil. Gerçek durum için " +
     "“Canlı Sağlık Raporu”na bas — kanallar, jetonlar ve son çalışmalar gerçekten denetlenir.</i>"
   );

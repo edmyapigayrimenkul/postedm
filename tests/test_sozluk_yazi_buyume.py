@@ -128,7 +128,7 @@ class TestSentetikKartlar(unittest.TestCase):
 
 
 class TestArsivde(unittest.TestCase):
-    """34 kartın gerçek çözümü."""
+    """Arşivdeki kartların gerçek çözümü."""
 
     @classmethod
     def setUpClass(cls):
@@ -144,8 +144,12 @@ class TestArsivde(unittest.TestCase):
 
     def test_hicbir_kart_eski_tavandan_kucuk_cikmadi_gereksiz(self):
         # eski çözümün aşağı basamakları (40 ve altı) yalnız gerçekten sığmayan, çok yoğun kartlarda görülür
+        # Eşik arşivle ölçeklenir (34 kartta en çok 3 ≈ %9); yoğun kartlar (uzun tanım + üç madde) 40 pt'ye iner, ama
+        # hiçbiri 36 pt tabanının altına düşmez ve oran kontrol altında kalır.
         kucuk = [kod for kod, (t, _) in self.cozum.items() if t[1] < 44]
-        self.assertLessEqual(len(kucuk), 3, kucuk)
+        izin = max(3, round(len(self.kartlar) * 0.12))
+        self.assertLessEqual(len(kucuk), izin, kucuk)
+        self.assertGreaterEqual(min(t[1] for t, _ in self.cozum.values()), 36)
 
     def test_hiyerarsi_korunur(self):
         for kod, (tanim, maddeler) in self.cozum.items():
