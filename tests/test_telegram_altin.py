@@ -75,7 +75,7 @@ class Normallestirici:
         if isinstance(v, Path):
             return "P:" + v.name
         if isinstance(v, str):
-            s = v.replace(self.tmp, "<TMP>").replace(str(KOK), "<KOK>").replace(sys.executable, "<PY>")  # yorumlayıcı yolu makineye göre değişir
+            s = v.replace(self.tmp, "<TMP>").replace(sys.executable, "<PY>").replace(str(KOK), "<KOK>")  # yorumlayıcı yolu makineye göre değişir
             s = re.sub(r"(Geçen Süre|Toplam Dağıtım Süresi): [0-9.]+ sn", r"\1: <S> sn", s)
             s = re.sub(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(\+00:00|Z)?", "<ISO>", s)
             s = s.replace(_bugun_tr(), "<BUGUN>")  # uygulama "bugün"ü TR gününe göre yazar (ayarlar › *_son_gun); altın dosya günlük bozulmasın
