@@ -17,14 +17,14 @@ Aşağıdaki "Claude alt ajan" ve `mcp__ccd_session_mgmt__get_usage` anlatımlar
 - **Gemini'nin ilk işi (Claude'dan devir):** A12 (TBK sözleşme kurulması) hiç yazılmadı; reddedilen ama içeriği iyi kira/fesih konuları (KONUT KİRASI KAPSAMI, BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ, ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ)
   md. 347–349, 353, 356 birlikte düşünülerek yeniden yazılacak; SZ-007'ye md. 353 istisnası; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok.
 - Gemini ücretsiz kotası ayrıdır; Claude kullanım limiti (aşağıda "Dalga 1" derslerindeki 4 ajan sınırı) onu bağlamaz.
-- **Güncel durum (2026-10-13 sonu):** arşivde **66 kart**; zamanlanmış sözlük **iki günde bir** onaysız otomatik yayınlanır (≈132 gün stok), hedef **365 kart**; elle `/sozluk` onay kartıyla düşer;
+- **Güncel durum (2026-10-15):** arşivde **84 kart**; zamanlanmış sözlük **iki günde bir** onaysız otomatik yayınlanır (77 kart hiç yayınlanmadı ≈154 gün stok), hedef **365 kart**; elle `/sozluk` onay kartıyla düşer;
   sözlük kartı onaylanmazsa havuza girmez, arşive alınır ve konusu iade edilir (yeniden kurmak ucuz; MEMORY.md §10 madde 23). Çalışma düzeni: GEMINI.md.
 
-## Durum (2026-10-09; güncel arşiv sayısı için Dalga 1 sonucuna bak: 66 kart)
+## Durum (2026-10-15; güncel arşiv sayısı 84 kart, hedef 365)
 
-- **2026-10-13 güncellemesi:** zamanlanmış sözlük artık İKİ GÜNDE BİR çıkıyor (MEMORY.md §10 madde 20); iki günde bir kartla 2 yıl tekrarsız için **hedef 365 kart** (`HEDEF_KART`; aşağıdaki 730 hedefi eski, günde bir kart içindi). 66 kart ≈132 gün yeter.
+- **2026-10-15 güncellemesi (Dalga 2 tamamlandı):** A12 (TBK sözleşme kurulması, 15 kart) ve A16_revize (md. 339/2 geçici kiralar, md. 346 ek ödeme yasağı, md. 353 dava süresi uzaması, 3 kart) arşive eklendi (`SZ-067`..`SZ-084`). SZ-007'ye md. 353 istisnası işlendi. Arşivde **84 kart** var (77'si hiç yayınlanmamış ≈ 154 gün stok). Hedef 365 (`HEDEF_KART`).
 - (Eski, 2026-10-09) Arşivde 34 kart var; günde bir kartla 34 gün yeter (12 Kasım'da biter). Hedef 730 (2 yıl × günde 1): **696 eksik**.
-- `sozluk_arsivi.BEKLEME_GUN = 730` (aynı kart 2 yıl dolmadan tekrar gelmez), `HEDEF_KART = 730`; hiç yayınlanmamış kart 14'e
+- `sozluk_arsivi.BEKLEME_GUN = 730` (aynı kart 2 yıl dolmadan tekrar gelmez), `HEDEF_KART = 365`; hiç yayınlanmamış kart 14'e
   inince Telegram'a hatırlatma gider. Kart bitince sözlük modelle üretilip onaya düşer (otomatik yayın YOK).
 - Kullanıcı kararı (2026-10-09): kartları Claude alt ajanlarla üretmek. **2026-10-13'te değişti: Gemini ile** (yukarıdaki "Sahiplik" bölümü).
 - Eski engel notu (geçmiş): Claude hesabının haftalık limiti dolmuştu; ajan başlatmadan önce kullanım boşluğuna bakmak gerekiyordu. Gemini ile çalışırken geçerli değil.
@@ -81,8 +81,24 @@ etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler
 - **Sık ret nedenleri:** (a) ürün kirası ya da konut/çatılı işyeri ayrımını söylemeden genel kural sunmak (ALT KİRA md. 322 ↔ md. 366; KİRACININ İFLASI md. 332 ↔ md. 370; KİRACININ ÖLÜMÜ md. 333 ↔ md. 356); (b) "gibi" ile kapalı liste açmak; (c) tanımı döngüsel yazmak ("…kütüğüne tescil edildiği sicildir"); (d) arşivdeki karta anlamca tekrar (KAT İRTİFAKI SAHİBİ, ÖNCELİKLE SATIN ALMA ↔ ÖNALIM HAKKI); (e) başlığın sığmaması (KAT MÜLKİYETİ KÜTÜĞÜ, KONUT KİRASI KAPSAMI, OLAĞANÜSTÜ KİRA İNDİRİMİ…).
 - **Reddedilen ama içeriği iyi olanlar, yeniden yazılırken tüm fesih/bildirim kuralları (md. 347–349, 353, 356) birlikte düşünülmeli:** KONUT KİRASI KAPSAMI (md. 339), BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ (md. 347 "ancak" zinciri), ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ + md. 356.
 
-**Arşivdeki mevcut kartlarla ilgili bulgu (dokunulmadı, karar sizin):** SZ-007 İHTİYAÇTAN TAHLİYE "dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır" diyor; md. 353'e göre kiraya veren bu sürede dava açacağını yazılı bildirmişse dava süresi bir kira yılı uzar (yeni SZ-056/057/058 bunu söylüyor). Kart olduğu gibi yanıltıcı değil ama eksik; atfa md. 353 eklenip bir madde yeniden yazılabilir.
-**Hiçbir onaylı kartta olmayan kapsam:** md. 339/2: doğası gereği geçici kullanıma ayrılmış taşınmazların altı ay ya da daha kısa kiralarında konut/çatılı işyeri hükümleri uygulanmaz (Silivri yazlık kiraları için önemli). Konut/çatılı işyeri kartlarının hiçbiri bunu söylemiyor.
+**Arşivdeki mevcut kartlarla ilgili bulgu (Dalga 2'de tamamlandı):** SZ-007 İHTİYAÇTAN TAHLİYE kartında "dava, sürenin sonundan başlayarak bir ay içinde açılmalıdır" ifadesi vardı. Dalga 2'de puf[0]'a md. 353 uyarınca yazılı bildirimle dava süresinin bir yıl uzaması istisnası eklendi ve mevzuat atfına md. 353 dahil edildi.
+**Eksik kapsam (Dalga 2'de tamamlandı):** md. 339/2 uyarınca geçici konut kirası (altı ay veya daha kısa) SZ-082 olarak arşive eklendi.
+
+## Dalga 2 sonucu (2026-10-15: A12 TBK sözleşme kurulması, A16_revize kira tamamlama)
+
+**Arşiv 66 → 84 kart (77'si hiç yayınlanmamış ≈ 154 günlük stok).** Gemini oturumu: 1 yazar + 1 bağımsız inceleme ajanı. 18 taslak karttan **18'i girdi (SZ-067…084), 0 ret** (%100 başarı; 12 doğrudan onay, 6 incelemede yerinde düzeltilerek girdi).
+
+| Dosya | Alan | Taslak | Onay | Düzeltildi | Red | Kod Aralığı |
+|---|---|---|---|---|---|---|
+| A12 | TBK sözleşmenin kurulması, şekil, gabin, irade sakatlıkları, temsil (md. 1–40) | 15 | 11 | 4 | 0 | SZ-067…081 |
+| A16_revize | TBK kira tamamlama (md. 339/2 geçici kira, md. 346 ek ödeme yasağı, md. 353 dava süresi uzaması) | 3 | 1 | 2 | 0 | SZ-082…084 |
+
+**Kartlar ve Notlar:**
+- **A12 (15 kart):** SÖZLEŞME KURULMASI (SZ-067), SÜRELİ ÖNERİ (SZ-068), SÜRESİZ ÖNERİ (SZ-069), ÖNERİ SAYILMA (SZ-070), ŞEKİL SERBESTİSİ (SZ-071), YAZILI ŞEKİL (SZ-072), İMZA KURALI (SZ-073), İRADİ ŞEKİL (SZ-074), AŞIRI YARARLANMA (SZ-075), ÖN SÖZLEŞME (SZ-076), ESASLI YANILMA (SZ-077), ALDATMA (SZ-078), KORKUTMA (SZ-079), İRADE BOZUKLUĞU (SZ-080), YETKİSİZ TEMSİL (SZ-081).
+- **A16_revize (3 kart):** GEÇİCİ KONUT KİRASI (SZ-082, md. 339/2), EK ÖDEME YASAĞI (SZ-083, md. 346), DAVA SÜRESİ UZAMASI (SZ-084, md. 353).
+- **SZ-007 Güncellemesi:** İHTİYAÇTAN TAHLİYE kartı puf[0]'a md. 353 bildirimiyle 1 yıl uzama istisnası eklendi; mevzuat `Türk Borçlar Kanunu md. 350, 353 ve 355` oldu.
+- **İnceleme & Doğrulama:** Bağımsız inceleme alt ajanı kanun metinleriyle iddia iddia karşılaştırdı. 6 kartta yerinde hukuki hassasiyet düzeltmeleri yapıldı (Yazılı Şekil'de borç altına girenlerin imzası vurgusu; İmza Kuralı'nda el yazısı şartı; Ön Sözleşme'de asıl sözleşme şekli kuralı; Aldatma'da üçüncü kişi ayrımı; Geçici Konut Kirası'nda doğası gereği şartı; Dava Süresi Uzaması'nda 1 ay yerine davanın açılması için öngörülen süre ifadesi).
+- **Tipografi & Denetim:** Başlık yerleşimi kontrol edildi (EK ÖDEME YASAĞI 15 karakter seçildi); `sozluk_kart_dogrula.py` 18/18 temiz; `gorsel_denetim.py` 226 vaka 0 hata; 1204 Python testi ve 73 Worker testi yeşil.
 
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
