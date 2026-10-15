@@ -1,0 +1,36 @@
+kartlar:
+- terim: GEÇİCİ KONUT KİRASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Niteliği gereği geçici kullanıma özgülenmiş taşınmazların altı ay veya daha kısa süreyle kiralanmasıdır.
+  puf:
+  - Altı ay ve daha kısa süreli bu kiralamalarda konut ve çatılı işyeri kiralarına özgü koruyucu hükümler uygulanmaz.
+  - Geçici kullanım niteliği taşımayan veya altı ayı aşan kiralamalar bu istisnanın dışındadır.
+  - Taşınmazla birlikte kullanımı bırakılan eşyalar da kural olarak asıl kira hükümlerine tabidir.
+  mevzuat: 6098 sayılı Kanun md. 339
+  dayanak_alintisi: Ancak bu hükümler, niteliği gereği geçici kullanıma özgülenmiş taşınmazların altı ay ve daha kısa süreyle kiralanmalarında uygulanmaz.
+  kontrol: '2026-10-15'
+  inceleme: duzeltildi
+  inceleme_notu: Tanımdaki 'yazlık gibi' ifadesi kaldırılarak doğrudan kanun metnine uyarlandı; kamu kurumlarına ilişkin alakasız puf yerine md. 339/2 istisnasının kapsamı (altı ayı aşan veya sürekli barınma) ve md. 339/1 eşya kuralı konuldu.
+
+- terim: EK ÖDEME YASAĞI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Konut ve çatılı işyeri kiralarında kiracıya kira bedeli ve yan giderler dışında fazladan ödeme yükümlülüğü getirilememesi kuralıdır.
+  puf:
+  - Kira bedelinin zamanında ödenmemesi hâlinde ceza koşulu ödeneceğine ilişkin anlaşmalar geçersizdir.
+  - Kiranın gecikmesi hâlinde sonraki kira bedellerinin muaccel (peşin) olacağına dair anlaşmalar geçersizdir.
+  mevzuat: 6098 sayılı Kanun md. 346
+  dayanak_alintisi: Kiracıya, kira bedeli ve yan giderler dışında başka bir ödeme yükümlülüğü getirilemez.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: DAVA SÜRESİ UZAMASI
+  kategori_kodu: KIRA_VE_TAHLIYE
+  tanim: Tahliye davası açma süresi içinde kiracıya yazılı bildirim yapılarak dava açma hakkının bir kira yılı uzatılmasıdır.
+  puf:
+  - Yazılı bildirimin, en geç dava açmak için kanunda öngörülen yasal süre içinde kiracıya yapılması şarttır.
+  - Bildirim sayesinde kiraya veren, takip eden bir kira yılı boyunca dilediği zaman tahliye davası açabilir.
+  mevzuat: 6098 sayılı Kanun md. 353
+  dayanak_alintisi: Kiraya veren, en geç davanın açılması için öngörülen sürede dava açacağını kiracıya yazılı olarak bildirmişse, dava açma süresi bir kira yılı için uzamış sayılır.
+  kontrol: '2026-10-15'
+  inceleme: duzeltildi
+  inceleme_notu: Tanım, puf[0] ve puf[1] arasındaki üçlü tekrar giderildi; puf[0] yasal süre/şart unsuruna, puf[1] ise bir kira yılı uzamanın kiraya verene sağladığı dava açma serbestisine odaklandı.

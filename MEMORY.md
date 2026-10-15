@@ -451,6 +451,13 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Çözüm:** `db.onay_bekleyen_haberleri_getir` artık bekleyen aktif onay isteğinin zaman damgasını (`onay_istekleri.olusturma_tarihi`) subquery ile `onay_istegi_tarihi` olarak döner; `db.son_onay_istegi_tarihi` eklendi; `idx_onay_istekleri_ref` indeksi eklendi. `bekleme_suresi_dakika` önce bu aktif istek tarihini, yoksa geriye dönük uyumluluk için `eklenme_tarihi`'ni kullanır.
     * **Testler:** `tests/test_havuz_yeniden_sunum.py::test_havuzdan_yeniden_sunulan_icerik_hemen_havuza_donmez_24_saat_bekler` eklendi. Ayrıca test paketindeki iki lokal pürüz düzeltildi (`tests/test_telegram_altin.py`'de `<KOK>` öncesi `sys.executable` normalizasyonu ve `tests/test_sozluk_oto_yayin_guvenceleri.py`'de `sozluk_zamanli_gunu_mu` mock'u). Tam test paketi 1203/1203 yeşil.
 
+26. **Sözlük Dalga 2 — A12 Sözleşme Kurulması ve Kira Tamamlama — 2026-10-15 (Gemini).** Claude devrindeki sözlük eksiklerinin tamamı giderildi:
+    * **A12 (TBK md. 1–40 Sözleşmenin kurulması, şekil, gabin, irade sakatlıkları, temsil):** 15 yeni kart (`SZ-067`..`SZ-081`).
+    * **Kira tamamlama (A16_revize):** md. 339/2 geçici kiralar (`SZ-082 GEÇİCİ KONUT KİRASI`), md. 346 kiracı aleyhine düzenleme yasağı (`SZ-083 EK ÖDEME YASAĞI`), md. 353 dava süresinin uzaması (`SZ-084 DAVA SÜRESİ UZAMASI`).
+    * **SZ-007 İHTİYAÇTAN TAHLİYE revizyonu:** `data/sozluk_kartlari.yaml`'daki SZ-007'ye md. 353 yazılı bildirimle dava süresinin bir yıl uzaması istisnası eklendi; mevzuat atfı `Türk Borçlar Kanunu md. 350, 353 ve 355` olarak güncellendi.
+    * **Bağımsız Hukuki İnceleme & Kalite:** 18 taslak bağımsız alt ajanla kanun metnine karşı iddia iddia incelendi; 12 doğrudan onay, 6 düzeltildi, 0 ret. `sozluk_kart_dogrula.py` 18/18 temiz, `sozluk_kart_birlestir.py` ile arşive eklendi. `gorsel_denetim.py` (226 vaka) sıfır hata. Arşiv **66 → 84 karta çıktı (77'si hiç yayınlanmadı; iki günde bir yayınla ≈154 günlük stok)**.
+    * **Testler:** 1204/1204 Python testi OK, 73/73 JS testi OK.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.
@@ -501,5 +508,5 @@ Sözlük otomatik yayın kalır (iki günde bir); finans elle de onaysız yayın
 kullanıcı PR'ları kendisi birleştirir (Claude/ajan "birleştir" denmedikçe birleştirmez); Worker'ı kullanıcı dağıtır (Actions → Worker Dağıt, dal main); sır istenmez; web sitesi (edmyapigayrimenkul.com) bu işin dışında.
 
 ### 12.4 Açık işler
-ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlük A12 + reddedilen kira/fesih konuları + SZ-007 md. 353 + md. 339/2, `threads.py` `json` içe aktarması.
+ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlükte sonraki dalgalar (hedef 365 kart; Dalga 2 tamamlandı, 84 kart var), `threads.py` `json` içe aktarması.
 

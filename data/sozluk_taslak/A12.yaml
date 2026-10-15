@@ -1,0 +1,178 @@
+kartlar:
+- terim: SÖZLEŞME KURULMASI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Tarafların iradelerini karşılıklı ve birbirine uygun olarak açıklamalarıyla borç doğuran hukuki bağın meydana gelmesidir.
+  puf:
+  - İrade açıklaması açık olabileceği gibi örtülü de olabilir.
+  - Taraflar esaslı noktalarda uyuşmuşsa, ikinci derecedeki noktalar kararlaştırılmasa bile sözleşme kurulmuş sayılır.
+  - İkinci derecedeki noktalarda uyuşmazlık çıkarsa hâkim, işin özelliğine göre uyuşmazlığı karara bağlar.
+  mevzuat: 6098 sayılı Kanun md. 1 ve 2
+  dayanak_alintisi: Sözleşme, tarafların iradelerini karşılıklı ve birbirine uygun olarak açıklamalarıyla kurulur.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: SÜRELİ ÖNERİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir sözleşmenin yapılması için karşı tarafa kabul beyanında bulunması amacıyla belirli bir süre tanınarak yapılan tekliftir.
+  puf:
+  - Öneren taraf, belirlediği sürenin sona ermesine kadar teklifiyle bağlı kalmak zorundadır.
+  - Kabul beyanı belirlenen süre içinde önerene ulaşmazsa, öneren teklifiyle bağlılıktan kurtulur.
+  mevzuat: 6098 sayılı Kanun md. 3
+  dayanak_alintisi: Kabul için süre belirleyerek bir sözleşme yapılmasını öneren, bu sürenin sona ermesine kadar önerisiyle bağlıdır.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: SÜRESİZ ÖNERİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Karşı tarafa kabul için herhangi bir süre tayin edilmeksizin yapılan sözleşme teklifidir.
+  puf:
+  - Hazır olanlar arasında yapılan öneri hemen kabul edilmezse, öneren bağlılıktan kurtulur.
+  - Telefon veya bilgisayar gibi doğrudan iletişim araçlarıyla yapılan öneri hazır olanlar arasında sayılır.
+  - Hazır olmayan kişiye yapılan öneri, zamanında gönderilecek bir yanıtın ulaşması beklenebilecek ana kadar bağlar.
+  mevzuat: 6098 sayılı Kanun md. 4 ve 5
+  dayanak_alintisi: Kabul için süre belirlenmeksizin hazır olan bir kişiye yapılan öneri hemen kabul edilmezse; öneren, önerisiyle bağlılıktan kurtulur.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: ÖNERİ SAYILMA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir irade açıklamasının veya davranışın, kanun gereğince sözleşme yapmaya yönelik bağlayıcı teklif kabul edilmesidir.
+  puf:
+  - Fiyatı gösterilerek mal sergilenmesi veya fiyat listesi gönderilmesi kural olarak öneri sayılır.
+  - Öneren, bağlı olmama hakkını saklı tutarsa veya durumdan anlaşılırsa önerisi kendisini bağlamaz.
+  mevzuat: 6098 sayılı Kanun md. 8
+  dayanak_alintisi: Fiyatını göstererek mal sergilenmesi veya tarife, fiyat listesi ya da benzerlerinin gönderilmesi, aksi açıkça ve kolaylıkla anlaşılmadıkça öneri sayılır.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: ŞEKİL SERBESTİSİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kanunda özel bir geçerlilik şartı öngörülmedikçe sözleşmelerin herhangi bir şekle bağlı olmaksızın geçerli kurulabilmesidir.
+  puf:
+  - Kanunda sözleşmeler için öngörülen şekil, kural olarak geçerlilik şartıdır.
+  - Kanunun öngördüğü geçerlilik şekline uyulmaksızın kurulan sözleşmeler hüküm doğurmaz.
+  mevzuat: 6098 sayılı Kanun md. 12
+  dayanak_alintisi: Sözleşmelerin geçerliliği, kanunda aksi öngörülmedikçe, hiçbir şekle bağlı değildir.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: YAZILI ŞEKİL
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Sözleşme metninin ve borç altına girenlerin imzalarının yazılı bir belgede yer alması zorunluluğudur.
+  puf:
+  - Yazılı yapılması öngörülen sözleşmenin değiştirilmesinde de yazılı şekle uyulması zorunludur.
+  - Metinle çelişmeyen tamamlayıcı yan hükümler bu yazılı şekil kuralının dışındadır.
+  - İmzalı mektup veya güvenli elektronik imza ile saklanabilen metinler de yazılı şekil yerine geçer.
+  mevzuat: 6098 sayılı Kanun md. 13 ve 14
+  dayanak_alintisi: Kanunda yazılı şekilde yapılması öngörülen bir sözleşmenin değiştirilmesinde de yazılı şekle uyulması zorunludur.
+  kontrol: '2026-10-15'
+  inceleme: duzeltildi
+  inceleme_notu: Tanımla tekrara düşen ve 'tüm taraflar' diyerek hatalı genelleme yapan imza pufu yerine md. 14/2'deki yazılı şekil yerine geçen metinler (e-imza, imzalı mektup) eklendi.
+
+- terim: İMZA KURALI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Borç altına giren kimsenin metni benimsediğini ve onayladığını gösteren kişisel işaretidir.
+  puf:
+  - İmzanın borç altına giren kişinin bizzat el yazısıyla atılması zorunludur.
+  - Güvenli elektronik imza, el yazısıyla atılmış imzanın bütün hukuki sonuçlarını doğurur.
+  - Görme engellilerin imzalarında ancak kendi talepleri hâlinde şahit aranır.
+  mevzuat: 6098 sayılı Kanun md. 15
+  dayanak_alintisi: İmzanın, borç altına girenin el yazısıyla atılması zorunludur.
+  kontrol: '2026-10-15'
+  inceleme: duzeltildi
+  inceleme_notu: Tanımdaki 'el yazısıyla' ibaresi puf[0] ile birebir tekrar oluşturuyordu; tanım genel kavrama çekilerek puf ile arasındaki tekrar giderildi.
+
+- terim: İRADİ ŞEKİL
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kanunen şekle tabi olmayan bir sözleşmenin geçerliliğinin, tarafların kendi anlaşmalarıyla belirli bir şekle bağlanmasıdır.
+  puf:
+  - Taraflarca belirlenen geçerlilik şekline uyulmadan yapılan sözleşme tarafları bağlamaz.
+  - Ayrıntı belirtilmeksizin yazılı şekil kararlaştırılmışsa yasal yazılı şekil kuralları uygulanır.
+  mevzuat: 6098 sayılı Kanun md. 17
+  dayanak_alintisi: Kanunda şekle bağlanmamış bir sözleşmenin taraflarca belirli bir şekilde yapılması kararlaştırılmışsa, belirlenen şekilde yapılmayan sözleşme tarafları bağlamaz.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: AŞIRI YARARLANMA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Sözleşmedeki edimler arasındaki açık oransızlıktan, karşı tarafın zor durumda kalması, düşüncesizliği veya deneyimsizliğinden faydalanılarak yararlanılmasıdır.
+  puf:
+  - Zarar gören taraf sözleşmeyle bağlı olmadığını bildirip verdiğini geri isteyebilir.
+  - Dilerse sözleşmeye bağlı kalarak edimler arasındaki oransızlığın giderilmesini talep edebilir.
+  - Bu hak öğrenmeden veya zor durum bitiminden itibaren bir yıl ve her hâlde beş yıl içinde kullanılır.
+  mevzuat: 6098 sayılı Kanun md. 28
+  dayanak_alintisi: Bir sözleşmede karşılıklı edimler arasında açık bir oransızlık varsa, bu oransızlık, zarar görenin zor durumda kalmasından veya düşüncesizliğinden ya da deneyimsizliğinden yararlanılmak suretiyle gerçekleştirildiği takdirde, zarar gören, durumun özelliğine göre ya sözleşme ile bağlı olmadığını diğer tarafa bildirerek ediminin geri verilmesini ya da sözleşmeye bağlı kalarak edimler arasındaki oransızlığın giderilmesini isteyebilir.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: ÖN SÖZLEŞME
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Tarafların ileride asıl bir sözleşmeyi akdetmek konusunda karşılıklı olarak borç altına girdikleri bağlayıcı sözleşmedir.
+  puf:
+  - Taraflar, ileride bir asıl sözleşme kurma borcunu ön sözleşmeyle geçerli olarak üstlenebilir.
+  - Ön sözleşmenin geçerliliği, kanundaki istisnalar dışında ileride kurulacak asıl sözleşmenin şekline bağlıdır.
+  mevzuat: 6098 sayılı Kanun md. 29
+  dayanak_alintisi: Bir sözleşmenin ileride kurulmasına ilişkin sözleşmeler geçerlidir.
+  kontrol: '2026-10-15'
+  inceleme: duzeltildi
+  inceleme_notu: Puf[0] dayanak alıntısının ve tanımın neredeyse kelimesi kelimesine tekrarıydı; ileride sözleşme yapma borcunun geçerli üstlenilebileceği şeklinde yeniden ifade edildi.
+
+- terim: ESASLI YANILMA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Sözleşme kurulurken tarafın iradesi ile beyanı arasında sözleşmenin niteliğini, konusunu veya taraflarını değiştirecek derecede önemli bir uyumsuzluk bulunmasıdır.
+  puf:
+  - Sözleşme kurulurken esaslı yanılmaya düşen taraf sözleşme ile bağlı kalmaktan kurtulur.
+  - Sözleşmenin türünde, konusunda, karşı tarafın kimliğinde veya edim miktarında önemli yanılma esaslıdır.
+  - Sözleşmedeki basit hesap yanlışlıkları geçerliliği etkilemez; bunların düzeltilmesiyle yetinilir.
+  mevzuat: 6098 sayılı Kanun md. 30 ve 31
+  dayanak_alintisi: Sözleşme kurulurken esaslı yanılmaya düşen taraf, sözleşme ile bağlı olmaz.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: ALDATMA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir kimsenin gerçeğe aykırı beyan veya hileli davranışlarla yanıltılarak normalde yapmayacağı bir sözleşmeyi akdetmeye sevk edilmesidir.
+  puf:
+  - Karşı tarafın aldatması sonucu sözleşme yapan kimse, yanılması esaslı olmasa bile sözleşmeyle bağlı değildir.
+  - Üçüncü kişi aldatmışsa, karşı taraf bunu sözleşme anında biliyor veya bilebilecek durumdaysa sözleşme bağlamaz.
+  mevzuat: 6098 sayılı Kanun md. 36
+  dayanak_alintisi: Taraflardan biri, diğerinin aldatması sonucu bir sözleşme yapmışsa, yanılması esaslı olmasa bile, sözleşmeyle bağlı değildir.
+  kontrol: '2026-10-15'
+  inceleme: duzeltildi
+  inceleme_notu: Puf[1]'e md. 36/2'de yer alan 'sözleşmenin yapıldığı sırada' şartı ('sözleşme anında') eklenerek zaman unsuru netleştirildi.
+
+- terim: KORKUTMA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir kimsenin kendisinin veya yakınının kişilik haklarına ya da malvarlığına yönelik ağır ve yakın bir tehlike tehdidiyle sözleşme yapmaya zorlanmasıdır.
+  puf:
+  - Korkutma sonucu sözleşme yapan taraf sözleşmeyle bağlı değildir.
+  - Kişilik haklarına veya malvarlığına yönelik ağır ve yakın tehlike inancı haklıysa korkutma gerçekleşmiş sayılır.
+  - Kanuni bir yetkiyi kullanma tehdidiyle karşı tarafın zor durumundan aşırı menfaat sağlanması korkutma sayılır.
+  mevzuat: 6098 sayılı Kanun md. 37 ve 38
+  dayanak_alintisi: Taraflardan biri, diğerinin veya üçüncü bir kişinin korkutması sonucu bir sözleşme yapmışsa, sözleşmeyle bağlı değildir.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: İRADE BOZUKLUĞU
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Yanılma, aldatma veya korkutma sebebiyle iradesi sakatlanan tarafın sözleşmeyle bağlı kalmama veya iptal hakkını kullanabilmesi hâlidir.
+  puf:
+  - Yanılma ve aldatmayı öğrenme, korkutmada ise tehlikenin bitiminden itibaren bir yıllık hak düşürücü süre vardır.
+  - Bu bir yıl içinde bağlı olunmadığı bildirilmez veya verilen geri istenmezse sözleşme onanmış sayılır.
+  - Sözleşmenin onanmış sayılması, aldatma veya korkutmadan doğan tazminat isteme hakkını ortadan kaldırmaz.
+  mevzuat: 6098 sayılı Kanun md. 39
+  dayanak_alintisi: Yanılma veya aldatma sebebiyle ya da korkutulma sonucunda sözleşme yapan taraf, yanılma veya aldatmayı öğrendiği ya da korkutmanın etkisinin ortadan kalktığı andan başlayarak bir yıl içinde sözleşme ile bağlı olmadığını bildirmez veya verdiği şeyi geri istemezse, sözleşmeyi onamış sayılır.
+  kontrol: '2026-10-15'
+  inceleme: onay
+
+- terim: YETKİSİZ TEMSİL
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Temsil yetkisi bulunmayan bir kimsenin başka bir kişi adına ve hesabına hukuki işlem yapması durumudur.
+  puf:
+  - Yetkisiz temsilcinin yaptığı işlem, temsil olunan kişi açıkça veya örtülü olarak onamadıkça onu bağlamaz.
+  - Karşı taraf, temsil olunana işlemi onayıp onamayacağını bildirmesi için uygun bir süre tanıyabilir.
+  - Tanınan uygun süre içinde işlem onanmazsa, diğer taraf da sözleşmeyle bağlı olmaktan kurtulur.
+  mevzuat: 6098 sayılı Kanun md. 46
+  dayanak_alintisi: Bir kimse yetkisi olmadığı hâlde temsilci olarak bir hukuki işlem yaparsa, bu işlem ancak onadığı takdirde temsil olunanı bağlar.
+  kontrol: '2026-10-15'
+  inceleme: onay
