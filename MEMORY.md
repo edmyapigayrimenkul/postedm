@@ -446,6 +446,10 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
       altın çıktı yalnız `ertele_haber/ertele_ilan` mesaj metni için yeniden kaydedildi.
 24. **Depo PUBLIC (doğrulandı 2026-10-13, GitHub API `private:false`).** AKSIYON-PLANI.md §0.1 "PRIVATE" diyor (11 Eylül) ama eskimiş. Sonuç: depoya sır, kişisel veri, jeton, müşteri bilgisi YAZILMAZ (DB ve .md dosyaları herkese açık);
     `data/edm.db`'de onaylanmamış taslaklar ve Telegram grup kimliği görünür (ARCHITECTURE.md §5). Sırlar yalnız GitHub Secrets / Cloudflare secret'larında durur; sohbette istenmez.
+25. **Havuzdan sunulan içeriklerin kuyruk bakımında erken silinmesi hatası düzeltildi — 2026-10-15 (Gemini).** 14 Ekim 10:01'de günün içeriği olarak havuzdan sunulan #594 numaralı içerik, henüz 3.5 saat geçmişken 13:30 sessiz kuyruk bakımında silinip tekrar havuza çekilmişti ("günün içeriği çalışmadı" şikayeti).
+    * **Kök neden:** `scripts/hatirlat.py:bekleme_suresi_dakika`, bekleme süresini içeriğin ilk üretim tarihi olan `haberler.eklenme_tarihi`'ne göre hesaplıyordu (11 Ekim'de üretilmiş içerik 14 Ekim'de sunulduğunda 4.117 dk yaşlı görünüp anında 24 saat kuralına takılıyordu).
+    * **Çözüm:** `db.onay_bekleyen_haberleri_getir` artık bekleyen aktif onay isteğinin zaman damgasını (`onay_istekleri.olusturma_tarihi`) subquery ile `onay_istegi_tarihi` olarak döner; `db.son_onay_istegi_tarihi` eklendi; `idx_onay_istekleri_ref` indeksi eklendi. `bekleme_suresi_dakika` önce bu aktif istek tarihini, yoksa geriye dönük uyumluluk için `eklenme_tarihi`'ni kullanır.
+    * **Testler:** `tests/test_havuz_yeniden_sunum.py::test_havuzdan_yeniden_sunulan_icerik_hemen_havuza_donmez_24_saat_bekler` eklendi. Ayrıca test paketindeki iki lokal pürüz düzeltildi (`tests/test_telegram_altin.py`'de `<KOK>` öncesi `sys.executable` normalizasyonu ve `tests/test_sozluk_oto_yayin_guvenceleri.py`'de `sozluk_zamanli_gunu_mu` mock'u). Tam test paketi 1203/1203 yeşil.
 
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 

@@ -192,6 +192,51 @@ class TestUcdanUca(Temel):
         self.assertIsNone(db.haber_getir(eski), "14 günden eski havuz içeriği silinir (havuz sınırsız büyümez)")
         self.assertIsNotNone(db.haber_getir(taze))
 
+    def test_havuzdan_yeniden_sunulan_icerik_hemen_havuza_donmez_24_saat_bekler(self):
+        """Havuzdan tekrar sunulan içerik 3 gün önce eklenmiş olsa dahi Telegram'a yeni sunulduğunda
+        kuyruk bakımı onu 3.5 saatte silip tekrar havuza almaz; 24 saati doldurana kadar bekletir (2026-10-14 olayı)."""
+        # 1. 3 gün önce eklenmiş içerik
+        hid = self.ekle(durum="onay_bekliyor", yas_gun=3.0)
+        # 2. 3.5 saat önce Telegram onayına sunulmuş aktif onay isteği
+        sunum_zamani = (datetime.now(timezone.utc) - timedelta(hours=3.5)).isoformat()
+        with db._baglanti_al() as conn:
+            conn.execute(
+                "INSERT INTO onay_istekleri (tur, referans_id, telegram_mesaj_id, durum, olusturma_tarihi) VALUES ('haber', ?, 12345, 'bekliyor', ?)",
+                (str(hid), sunum_zamani),
+            )
+            conn.commit()
+
+        # 3. bekleme süresi 3 gün (~4320 dk) değil, ~210 dk çıkmalı
+        haber = next(h for h in db.onay_bekleyen_haberleri_getir(limit=500) if h["id"] == hid)
+        dakika = hatirlat.bekleme_suresi_dakika(haber)
+        self.assertIsNotNone(dakika)
+        self.assertAlmostEqual(dakika, 210, delta=5)
+
+        # 4. Kuyruk bakımı çalıştığında içerik havuza çekilmemeli, onayda kalmalı
+        gercek_getir = db.onay_bekleyen_haberleri_getir
+        with mock.patch.object(hatirlat.db, "onay_bekleyen_haberleri_getir",
+                               side_effect=lambda limit=5: [h for h in gercek_getir(limit=500) if h["id"] == hid]), \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle") as temizle, \
+             mock.patch.object(hatirlat.db, "wal_bosalt"):
+            hatirlat.main(argv=[])
+        self.assertEqual(db.haber_getir(hid)["durum"], "onay_bekliyor")
+        temizle.assert_not_called()
+
+        # 5. Onay isteği 25 saat eskiyse zaman aşımına uğramalı ve havuza dönmeli
+        eski_sunum = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
+        with db._baglanti_al() as conn:
+            conn.execute(
+                "UPDATE onay_istekleri SET olusturma_tarihi = ? WHERE referans_id = ?",
+                (eski_sunum, str(hid)),
+            )
+            conn.commit()
+        with mock.patch.object(hatirlat.db, "onay_bekleyen_haberleri_getir",
+                               side_effect=lambda limit=5: [h for h in gercek_getir(limit=500) if h["id"] == hid]), \
+             mock.patch("src.telegram.temizlik.icerik_onceki_mesajlarini_temizle"), \
+             mock.patch.object(hatirlat.db, "wal_bosalt"):
+            hatirlat.main(argv=[])
+        self.assertEqual(db.haber_getir(hid)["durum"], "havuzda")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

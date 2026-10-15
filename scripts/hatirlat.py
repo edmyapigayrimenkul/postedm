@@ -73,7 +73,22 @@ def _zaman_asimlarini_isle(bekleyenler: list[dict]) -> list[dict]:
 
 
 def bekleme_suresi_dakika(haber: dict) -> float | None:
-    ham = haber.get("eklenme_tarihi")
+    """Haberin onay bekleme süresini (dakika) hesaplar.
+
+    Öncelik sırası:
+    1. `haber['onay_istegi_tarihi']` (onay_istekleri tablosundaki aktif onay isteği zamanı)
+    2. `db.son_onay_istegi_tarihi(haber['id'])` (havuzdan yeniden sunulan içerikler ilk oluşturuldukları
+       günden değil, Telegram'a yeniden düştükleri andan itibaren 24 saat bekler)
+    3. `haber['eklenme_tarihi']` (geriye dönük uyumluluk / doğrudan test çağrıları)
+    """
+    ham = haber.get("onay_istegi_tarihi")
+    if not ham and haber.get("id"):
+        try:
+            ham = db.son_onay_istegi_tarihi(haber["id"])
+        except Exception:
+            ham = None
+    if not ham:
+        ham = haber.get("eklenme_tarihi")
     if not ham:
         return None
     try:

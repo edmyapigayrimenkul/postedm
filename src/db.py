@@ -168,6 +168,7 @@ def tablolari_olustur() -> None:
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
         CREATE INDEX IF NOT EXISTS idx_metrik_haber ON icerik_metrikleri(haber_id);
         CREATE INDEX IF NOT EXISTS idx_metrik_medya ON icerik_metrikleri(medya_id);
+        CREATE INDEX IF NOT EXISTS idx_onay_istekleri_ref ON onay_istekleri(referans_id, durum);
         """)
 
         # Dinamik şema göçü: Git geçmişindeki eski SQLite dosyaları da yeni
@@ -351,7 +352,15 @@ def onay_bekleyen_haberleri_getir(limit: int = 5) -> List[Dict[str, Any]]:
     """Telegram'a gönderilmiş ancak henüz yayınlanmamış/reddedilmemiş onay bekleyen kayıtları döner."""
     with _baglanti_al() as conn:
         rows = conn.execute(
-            "SELECT * FROM haberler WHERE durum IN ('onay_bekliyor', 'ertelendi') ORDER BY id DESC LIMIT ?",
+            """SELECT h.*,
+                      (SELECT MAX(oi.olusturma_tarihi)
+                         FROM onay_istekleri oi
+                        WHERE oi.referans_id = CAST(h.id AS TEXT)
+                          AND oi.durum = 'bekliyor') AS onay_istegi_tarihi
+                 FROM haberler h
+                WHERE h.durum IN ('onay_bekliyor', 'ertelendi')
+                ORDER BY h.id DESC
+                LIMIT ?""",
             (limit,),
         ).fetchall()
         return [dict(r) for r in rows]
@@ -644,6 +653,21 @@ def onay_istegi_ertele(tur: str, referans_id: str, dakika: int = 60) -> bool:
             )
         conn.commit()
     return True
+
+
+def son_onay_istegi_tarihi(referans_id: int | str) -> Optional[str]:
+    """Haberin/içeriğin bekleyen en son onay isteği zamanını (ISO UTC) döner.
+
+    Havuzdan yeniden sunulan içeriklerin bekleme süresi ilk oluşturulma gününden değil,
+    Telegram'a yeniden sunuldukları andan hesaplanır."""
+    with _baglanti_al() as conn:
+        row = conn.execute(
+            """SELECT MAX(olusturma_tarihi) AS son_tarih
+                 FROM onay_istekleri
+                WHERE referans_id = ? AND durum = 'bekliyor'""",
+            (str(referans_id),),
+        ).fetchone()
+        return str(row["son_tarih"]) if row and row["son_tarih"] else None
 
 
 def mesajdan_icerik_bul(mesaj_id: Optional[int] = None) -> Optional[Tuple[str, Any, Dict[str, Any]]]:

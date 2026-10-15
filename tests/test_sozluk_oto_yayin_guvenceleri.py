@@ -459,7 +459,9 @@ class TestSlotYonlendirme(unittest.TestCase):
         # kart kalmadı: modelin yazdığı sözlük HİÇBİR koşulda onaysız yayınlanmaz (hizli_icerik_uret oto_yayin almaz)
         import inspect
         self.assertNotIn("oto_yayin", inspect.signature(tb.hizli_icerik_uret).parameters)
-        with patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=None), \
+        with patch("src.telegram.akislar.sozluk.sozluk_zamanli_gunu_mu", return_value=True), \
+             patch("src.telegram.akislar.sozluk.sozluk_zamanli_isaretle"), \
+             patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=None), \
              patch("src.telegram.akislar.uretim.hizli_icerik_uret", return_value=True) as model, patch("src.telegram.istemci.mesaj_gonder"):
             tb.slot_icerigi_hazirla_ve_sun(slot="sozluk", oto_yayin=True)
         model.assert_called_once_with(format_turu="sozluk")
