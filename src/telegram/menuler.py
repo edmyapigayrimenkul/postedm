@@ -65,9 +65,6 @@ def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[
                 {"text": "🗑️ Mesajı Sil", "callback_data": "mesaji_sil"},
             ],
             [
-                {"text": "⏰ 1 saat ertele", "callback_data": "ertele"},
-            ],
-            [
                 {"text": "❌ Bu turu atla (Havuza döner)", "callback_data": "iptal"},
                 {"text": "🗑️ Çöpe At", "callback_data": "cope_at"},
             ],

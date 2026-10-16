@@ -153,7 +153,7 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.assertIn("yayin_menu:3", callbackler)
         self.assertIn("ses_menu:3", callbackler)  # 🎙️ Sesli Yayınla (2026-09-26)
         self.assertIn("manuel_paket", callbackler)
-        self.assertIn("ertele", callbackler)
+        self.assertNotIn("ertele", callbackler)  # ⏰ 1 saat ertele kaldırıldı (hatırlatma yok, 24 saat kuralı)
         self.assertIn("iptal", callbackler)
         self.assertIn("cope_at", callbackler)
 

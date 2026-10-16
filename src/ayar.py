@@ -17,7 +17,6 @@ log = logging.getLogger("ayar")
 
 DEGISTIRILEBILIR: Dict[str, Tuple[str, List[Any]]] = {
     "oto_yayin": ("🌙 Otomatik Yayın", [True, False]),
-    "hatirlatici": ("⏰ Onay Hatırlatıcı", [True, False]),
     "reels_varsayilan": ("🎬 Varsayılan Reels Modu", [True, False]),
     "kanal_threads": ("🧵 Threads Paylaşımı", [True, False]),
     "kanal_fb": ("📘 Facebook Paylaşımı", [True, False]),
@@ -27,7 +26,6 @@ DEGISTIRILEBILIR: Dict[str, Tuple[str, List[Any]]] = {
 
 VARSAYILANLAR: Dict[str, Any] = {
     "oto_yayin": True,
-    "hatirlatici": True,
     "reels_varsayilan": False,
     "kanal_threads": True,
     "kanal_fb": True,
