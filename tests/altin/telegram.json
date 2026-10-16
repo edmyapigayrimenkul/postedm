@@ -2101,12 +2101,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -2371,12 +2365,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -2851,12 +2839,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -3086,12 +3068,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -3700,12 +3676,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -4028,12 +3998,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -4267,12 +4231,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -4526,12 +4484,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -4811,12 +4763,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -5056,12 +5002,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -5244,12 +5184,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -5721,12 +5655,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -5950,12 +5878,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -6165,12 +6087,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -6376,12 +6292,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -9092,12 +9002,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -9264,12 +9168,6 @@
     ],
     [
      {
-      "callback_data": "ertele",
-      "text": "⏰ 1 saat ertele"
-     }
-    ],
-    [
-     {
       "callback_data": "iptal",
       "text": "❌ Bu turu atla (Havuza döner)"
      },
@@ -9375,12 +9273,6 @@
     ],
     [
      {
-      "callback_data": "ertele",
-      "text": "⏰ 1 saat ertele"
-     }
-    ],
-    [
-     {
       "callback_data": "iptal",
       "text": "❌ Bu turu atla (Havuza döner)"
      },
@@ -9410,12 +9302,6 @@
      {
       "callback_data": "ayarsec:oto_yayin:false",
       "text": "🌙 Otomatik Yayın: ✅ AÇIK"
-     }
-    ],
-    [
-     {
-      "callback_data": "ayarsec:hatirlatici:false",
-      "text": "⏰ Onay Hatırlatıcı: ✅ AÇIK"
      }
     ],
     [
@@ -10153,12 +10039,6 @@
     ],
     [
      {
-      "callback_data": "ertele",
-      "text": "⏰ 1 saat ertele"
-     }
-    ],
-    [
-     {
       "callback_data": "iptal",
       "text": "❌ Bu turu atla (Havuza döner)"
      },
@@ -10265,12 +10145,6 @@
      ],
      [
       {
-       "callback_data": "ertele",
-       "text": "⏰ 1 saat ertele"
-      }
-     ],
-     [
-      {
        "callback_data": "iptal",
        "text": "❌ Bu turu atla (Havuza döner)"
       },
@@ -10359,12 +10233,6 @@
       {
        "callback_data": "mesaji_sil",
        "text": "🗑️ Mesajı Sil"
-      }
-     ],
-     [
-      {
-       "callback_data": "ertele",
-       "text": "⏰ 1 saat ertele"
       }
      ],
      [
@@ -12257,12 +12125,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -12482,12 +12344,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -12783,12 +12639,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -13015,12 +12865,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -13119,12 +12963,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -13349,12 +13187,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -13598,12 +13430,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -13823,12 +13649,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -14056,12 +13876,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -14264,12 +14078,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -14467,12 +14275,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -14713,12 +14515,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -14938,12 +14734,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -15171,12 +14961,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -15349,12 +15133,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -15523,12 +15301,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -15756,12 +15528,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -15930,12 +15696,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -16308,12 +16068,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -17034,12 +16788,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -17310,12 +17058,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -17710,12 +17452,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -17983,12 +17719,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -18175,12 +17905,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -18469,12 +18193,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -19080,12 +18798,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -19270,12 +18982,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -19483,12 +19189,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -19692,12 +19392,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -19892,12 +19586,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -20102,12 +19790,6 @@
        ],
        [
         {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
-        }
-       ],
-       [
-        {
          "callback_data": "iptal",
          "text": "❌ Bu turu atla (Havuza döner)"
         },
@@ -20308,12 +19990,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [
@@ -20582,12 +20258,6 @@
         {
          "callback_data": "mesaji_sil",
          "text": "🗑️ Mesajı Sil"
-        }
-       ],
-       [
-        {
-         "callback_data": "ertele",
-         "text": "⏰ 1 saat ertele"
         }
        ],
        [

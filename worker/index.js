@@ -1514,7 +1514,6 @@ function ayarMenusu(ayarlar = {}) {
   return {
     inline_keyboard: [
       [{ text: `${v('oto_yayin', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🌙 Otomatik Yayın`, callback_data: `ayarsec:oto_yayin:${!v('oto_yayin', true)}` }],
-      [{ text: `${v('hatirlatici', true) ? '✅ AÇIK' : '⬜ KAPALI'} ⏰ Onay Hatırlatıcı`, callback_data: `ayarsec:hatirlatici:${!v('hatirlatici', true)}` }],
       [{ text: `${v('reels_varsayilan', false) ? '✅ AÇIK' : '⬜ KAPALI'} 🎬 Varsayılan Reels Modu`, callback_data: `ayarsec:reels_varsayilan:${!v('reels_varsayilan', false)}` }],
       [{ text: `${v('kanal_threads', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🧵 Threads Paylaşımı`, callback_data: `ayarsec:kanal_threads:${!v('kanal_threads', true)}` }],
       [{ text: `${v('kanal_fb', true) ? '✅ AÇIK' : '⬜ KAPALI'} 📘 Facebook Paylaşımı`, callback_data: `ayarsec:kanal_fb:${!v('kanal_fb', true)}` }],
@@ -1660,9 +1659,6 @@ function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook
       ],
       [
         { text: `🎨 Slayt düzenle (${adet} slayt)`, callback_data: `slayt_menu:${adet}` },
-      ],
-      [
-        { text: "⏰ 1 saat ertele", callback_data: "ertele" },
       ],
       [
         { text: "❌ Bu turu atla (Havuza döner)", callback_data: "iptal" },

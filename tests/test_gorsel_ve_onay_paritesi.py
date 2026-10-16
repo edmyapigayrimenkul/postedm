@@ -106,7 +106,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.assertIn("foto_menu:1", btn_callbacks)
         self.assertIn("metin_menu:1", btn_callbacks)
         self.assertIn("slayt_menu:1", btn_callbacks)
-        self.assertIn("ertele", btn_callbacks)
+        self.assertNotIn("ertele", btn_callbacks)
         self.assertIn("iptal", btn_callbacks)
         self.assertIn("cope_at", btn_callbacks)
 
@@ -273,7 +273,7 @@ class TestGorselVeOnayParitesi(unittest.TestCase):
         self.assertIn("yayin_menu:3", btn_callbacks)
         self.assertIn("ses_menu:3", btn_callbacks)
         self.assertIn("manuel_paket", btn_callbacks)
-        self.assertIn("ertele", btn_callbacks)
+        self.assertNotIn("ertele", btn_callbacks)
         self.assertIn("iptal", btn_callbacks)
         self.assertIn("cope_at", btn_callbacks)
 
