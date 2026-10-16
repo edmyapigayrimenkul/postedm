@@ -46,6 +46,49 @@ class TestDagitimVeZincir(unittest.TestCase):
             self.assertLessEqual(len(s['metin']), 500)
             self.assertGreater(len(s['metin']), 10)
 
+    def test_threads_metinleri_slaytlara_dagit_detay_metni_json(self):
+        """detay_metni JSON string olduğunda ayrıştırılıp slayt kartlarının metne dönüştüğünü doğrular."""
+        import json
+        detay_icerik = {
+            'slayt_2_detay': {
+                'kart_1': {'baslik': 'Maliye Denetimi', 'aciklama': 'Gerçek değer incelenir.'},
+                'kart_2': {'baslik': 'Harç Farkı', 'aciklama': 'Ceza uygulanır.'}
+            },
+            'slayt_3_cozum': {
+                'maddeler': [
+                    {'baslik': 'Beyan', 'aciklama': 'Doğru tutarı bildirin.'}
+                ]
+            }
+        }
+        haber = {
+            'manset': 'Tapu Değer Beyanı',
+            'spot': 'Tapuda doğru beyan esastır.',
+            'detay_metni': json.dumps(detay_icerik)
+        }
+        gorseller = ['http://img1.jpg', 'http://img2.jpg', 'http://img3.jpg', 'http://img4.jpg']
+        sayfalar = threads.metinleri_slaytlara_dagit(haber, gorseller)
+        self.assertEqual(len(sayfalar), 4)
+        # 1. kapak
+        self.assertIn('Tapu Değer Beyanı', sayfalar[0]['metin'])
+        # 2. slayt 2 detay kart 1
+        self.assertIn('Maliye Denetimi', sayfalar[1]['metin'])
+        # 3. slayt 2 detay kart 2
+        self.assertIn('Harç Farkı', sayfalar[2]['metin'])
+        # 4. slayt 3 cozum
+        self.assertIn('Beyan', sayfalar[3]['metin'])
+
+    def test_threads_metinleri_slaytlara_dagit_bozuk_json(self):
+        """Bozuk detay_metni JSON olduğunda çökmeden haber alanlarını kullandığını doğrular."""
+        haber = {
+            'manset': 'Bozuk JSON Manşet',
+            'spot': 'Bozuk JSON Spot',
+            'detay_metni': '{bozuk-json: olmaz'
+        }
+        gorseller = ['http://img1.jpg', 'http://img2.jpg']
+        sayfalar = threads.metinleri_slaytlara_dagit(haber, gorseller)
+        self.assertEqual(len(sayfalar), 2)
+        self.assertIn('Bozuk JSON Manşet', sayfalar[0]['metin'])
+
     @patch('src.threads.requests.post')
     @patch('src.threads._konteyner_bekle')
     def test_threads_zincir_paylas(self, mock_bekle, mock_post):

@@ -16,6 +16,7 @@ Metin, tekil görsel ve çoklu slayt (Carousel) paylaşımları yapar.
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -235,10 +236,12 @@ def metinleri_slaytlara_dagit(
     Her slayt görseli için Threads karakter limitine (<= 500) tam uygun,
     parça parça zincir metinleri üretir.
     """
-    detay = haber_veya_detay
-    if "detay_metni" in detay and isinstance(detay["detay_metni"], str):
+    detay = dict(haber_veya_detay)
+    if "detay_metni" in haber_veya_detay and isinstance(haber_veya_detay["detay_metni"], str):
         try:
-            detay = json.loads(detay["detay_metni"])
+            ayristirilmis = json.loads(haber_veya_detay["detay_metni"])
+            if isinstance(ayristirilmis, dict):
+                detay = {**haber_veya_detay, **ayristirilmis}
         except Exception:
             detay = haber_veya_detay
 
