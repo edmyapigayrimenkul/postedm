@@ -1,0 +1,96 @@
+kartlar:
+  - terim: "RESMÎ SENET"
+    kategori_kodu: tapu
+    tanim: "Taşınmaz mülkiyetinin devrini ve ayni hak tesisini sağlayan sözleşmelerin tapu müdürlüğünce resmen düzenlenmesi."
+    puf:
+      - "Resmi senedi taraflar ve görevliler imzalar, müdür onaylar; kimlikte şüphe varsa tanık istenebilir."
+      - "Resmi senede tarafların kimlik bilgileri ile birlikte vergi kimlik numaraları da kaydedilir."
+    mevzuat: "2644 sayılı Kanun md. 26"
+    dayanak_alintisi: "Resmi senede tarafların kimlik bilgileri ile birlikte vergi kimlik numaraları da kaydedilir ."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Tanım tekrarı olan puf[0] yerine md. 26'daki imza, onay ve tanık prosedürü eklendi; dayanak alıntısındaki eksik nokta tamamlandı."
+
+  - terim: "FARKLI YERDE İMZA"
+    kategori_kodu: tapu
+    tanim: "Taşınmaz devrinde tarafların farklı tapu müdürlükleri veya yurt dışı teşkilatında ayrı ayrı resmi senet imzalayabilmesi imkânı."
+    puf:
+      - "Uygulama, taşınmaz mülkiyetinin devrini amaçlayan resmi senetli sözleşmeler için geçerlidir."
+      - "Taraf iradeleri farklı müdürlükler veya yurt dışı teşkilatındaki görevlilerce ayrı ayrı alınabilir."
+    mevzuat: "2644 sayılı Kanun md. 26"
+    dayanak_alintisi: "Taşınmaz mülkiyetinin devrini amaçlayan sözleşmelerde, tarafların farklı tapu müdürlükleri veya yurt dışı teşkilatında bulunmaları hâlinde, taraf iradeleri resmî görevliler tarafından ayrı ayrı alınarak sözleşme tamamlanabilir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf maddeleri arasındaki bölük pörçük anlatım giderilerek kanundaki mülkiyet devri şartı ve teşkilat ayrımı netleştirildi."
+
+  - terim: "EVDE İMZA İMKÂNI"
+    kategori_kodu: tapu
+    tanim: "İlgililerin istemi üzerine resmi senedi düzenlemek ve imzalatmak için tapu görevlilerinin ikametgaha gitmesi usulü."
+    puf:
+      - "İlgililerin isteği üzerine resmi senet düzenlemek ve imzaları almak üzere memurlar ikametgaha gider."
+      - "İşlem sırasında gelecek haciz ve kısıtlama kararları ikametgaha gitmiş olan memura tebliğ olunur."
+    mevzuat: "2644 sayılı Kanun md. 26"
+    dayanak_alintisi: "Alakalıların isteği halinde resmi senedi tanzim için memurlar ikametgahlara giderler, bu sırada gelecek haciz ve tahdit kararları resmi senedi yapmak için ikametgaha gitmiş olan memura tebliğ olunur."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf maddeleri kanunun lafzına ve kronolojik akışına uygun olarak durulaştırıldı."
+
+  - terim: "SATIŞ VAADİ TERKİNİ"
+    kategori_kodu: tapu
+    tanim: "Tapu kütüğüne şerh edilen satış vaadinin beş yıl içinde satış veya tescil yapılmadığında re'sen terkin edilmesi."
+    puf:
+      - "Şerhten itibaren 5 yıl içinde satış veya tescil yapılmazsa şerh tapu görevlilerince re'sen terkin olunur."
+      - "Noterde yapılan satış vaadi ve arsa payı inşaat sözleşmeleri taraflardan biri isterse şerh edilir."
+    mevzuat: "2644 sayılı Kanun md. 26"
+    dayanak_alintisi: "Şerhten itibaren beş yıl içinde satış yapılmaz veya irtifak hakkı tesis ve tapuya tescil edilmezse işbu şerh tapu sicil müdürü veya tapu sicil görevlileri tarafından re'sen terkin olunur."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "İpucu uyarısı veren tanımdaki aşırı kanun benzerliği giderildi; puf[1]'e 'taraflardan birinin istemi' kanuni koşulu eklendi; SZ-027 ile mükerrerlik olmadığı teyit edildi."
+
+  - terim: "KREDİ İPOTEĞİ"
+    kategori_kodu: tapu
+    tanim: "Kredi kuruluşları ve bankalarca açılan kredilere teminat gösterilen taşınmazların resmi senetsiz doğrudan tescili."
+    puf:
+      - "Banka, kamu kurumu ve kooperatif kredilerine teminat gösterilen taşınmaz ipoteklerinde uygulanır."
+      - "Tarafların istemi halinde resmi senet yerine imzalı kredi veya borç sözleşmesine istinaden tescil edilir."
+    mevzuat: "2644 sayılı Kanun md. 26"
+    dayanak_alintisi: "Kamu kurum ve kuruluşları, kredi kuruluşları, bankalar, esnaf ve sanatkârlar kredi ve kefalet kooperatifleri ile tarım kredi kooperatiflerince açılmış veya açılacak tüm borç ve kredilere karşılık teminat gösterilen taşınmazların ipotek işlemleri, tarafların istemi halinde, taraflarınca imzalanan kredi veya borç sözleşmesine istinaden tapu müdürlüklerinde tapuya tescil olunur."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Birbirini tekrarlayan puflar ayrıştırıldı: Puf[0] kapsamdaki kuruluşları, Puf[1] ise resmi senet aranmaksızın sözleşmeyle doğrudan tescil imkanını vurguladı."
+
+  - terim: "YABANCININ EDİNİMİ"
+    kategori_kodu: tapu
+    tanim: "Yabancı uyruklu gerçek kişilerin Türkiye'de taşınmaz ve sınırlı ayni hak edinimine ilişkin kanuni miktar sınırlaması."
+    puf:
+      - "Edinilen taşınmaz ve hakların toplamı, özel mülkiyete konu ilçe yüz ölçümünün yüzde onunu geçemez."
+      - "Kişi başına ülke genelinde edinim 30 hektarı geçemez; Cumhurbaşkanı bu miktarı iki katına kadar artırabilir."
+    mevzuat: "2644 sayılı Kanun md. 35"
+    dayanak_alintisi: "Yabancı uyruklu gerçek kişilerin edindikleri taşınmazlar ile bağımsız ve sürekli nitelikteki sınırlı ayni hakların toplam alanı, özel mülkiyete konu ilçe yüz ölçümünün yüzde onunu ve kişi başına ülke genelinde otuz hektarı geçemez."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'e md. 35/1 uyarınca Cumhurbaşkanının 30 hektarlık sınırı iki katına kadar artırma yetkisi kanuni istisna olarak eklendi."
+
+  - terim: "YABANCIDA PROJE ŞARTI"
+    kategori_kodu: tapu
+    tanim: "Yabancıların satın aldıkları yapısız taşınmazda geliştirecekleri projeyi iki yıl içinde ilgili Bakanlığa sunma zorunluluğu."
+    puf:
+      - "Yabancı gerçek kişi ve ticaret şirketleri yapısız taşınmaz projesini 2 yılda ilgili Bakanlığa sunmalıdır."
+      - "Onaylanan proje başlama ve bitiş süresiyle kütüğün beyanlar hanesine işlenir ve Bakanlıkça takip edilir."
+    mevzuat: "2644 sayılı Kanun md. 35"
+    dayanak_alintisi: "Yabancı uyruklu gerçek kişiler ve yabancı ülkelerde kendi ülkelerinin kanunlarına göre kurulan tüzel kişiliğe sahip ticaret şirketleri, satın aldıkları yapısız taşınmazda geliştireceği projeyi iki yıl içinde ilgili Bakanlığın onayına sunmak zorundadır."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[0]'a yabancı ticaret şirketleri eklendi; puf[1]'e onaylanan projenin tapu kütüğünün beyanlar hanesine işlenmesi kanuni zorunluluğu dahil edildi."
+
+  - terim: "YABANCIDA TASFİYE"
+    kategori_kodu: tapu
+    tanim: "Kanuni sınırlara aykırı edinilen veya projesi süresinde yapılmayan yabancı taşınmazların Bakanlıkça bedele çevrilmesi."
+    puf:
+      - "Kanuna aykırı edinilen veya projesi süresinde bitirilmeyen yerler için 1 yılı aşmayan tasfiye süresi tanınır."
+      - "Maliki süresinde tasfiye etmezse taşınmaz idarece tasfiye edilerek satış bedeli hak sahibine ödenir."
+    mevzuat: "2644 sayılı Kanun md. 35"
+    dayanak_alintisi: "Bu madde hükümlerine aykırı olarak edinilen, edinim amacına aykırı kullanıldığı ilgili Bakanlık ve idarelerce tespit edilen, süresi içinde ilgili Bakanlığa başvurulmayan veya süresi içinde projeleri gerçekleştirilmeyenler ile bu maddenin birinci fıkrası kapsamındaki sınırlamalar dışında miras yoluyla edinilen taşınmazlar ve sınırlı ayni haklar, Maliye Bakanlığınca verilecek bir yılı geçmeyen süre içinde maliki tarafından tasfiye edilmediği takdirde tasfiye edilerek bedele çevrilir ve bedeli hak sahibine ödenir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf ifadeleri kanunun Maliye Bakanlığı tasfiyesi ve hak sahibine bedel ödenmesi kuralıyla tam uyumlu hale getirildi."

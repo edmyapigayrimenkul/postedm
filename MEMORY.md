@@ -477,6 +477,13 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Birleştirme & Arşiv Büyüklüğü:** `scripts/sozluk_kart_birlestir.py` ile 18 kart arşive eklendi (`SZ-104`..`SZ-121`). Arşiv **103'ten 121 karta çıktı (112'si hiç yayınlanmamış; iki günde bir yayınla ≈224 günlük / 7.5 aylık stok!)**.
     * **Testler & Doğrulamalar:** `sozluk_kart_dogrula.py` 19/19 temiz. `gorsel_denetim.py` 226 vaka 0 hata. JS testleri 73/73 OK. Sözlük unit testleri 178/178 OK.
 
+30. **Sözlük Dalga 5 — A05 TMK Tapu Sicili ve A06 Tapu Kanunu 2644 — 2026-10-18 (Gemini).**
+    * **A05 (TMK md. 998–1025 Tapu sicili, tescil, şerh, aleniyet, güven ilkesi, yolsuz tescil):** 10 yeni kart (`SZ-122`..`SZ-131`) — *Kütüğe Kayıt, Zarardan Sorumluluk, Kişisel Hak Şerhi, Tasarruf Kısıtlaması, Geçici Tescil Şerhi, Beyanlar Sütunu, Tescil İstemi, Tapunun Aleniyeti, Tapuya Güven İlkesi, Yolsuz Tescil*.
+    * **A06 (Tapu Kanunu 2644 md. 26 ve 35 resmî senet, şerh süresi, yabancı edinim):** 8 yeni kart (`SZ-132`..`SZ-139`) — *Resmî Senet, Farklı Yerde İmza, Evde İmza İmkânı, Satış Vaadi Terkini, Kredi İpoteği, Yabancının Edinimi, Yabancıda Proje Şartı, Yabancıda Tasfiye*.
+    * **Bağımsız Hukuki İnceleme Turu:** SOZLUK-KART-URETIMI.md kuralı gereği yazardan bağımsız alt ajan çalıştırıldı; 18 kart kanun metinleriyle iddia iddia karşılaştırıldı. 18 kartın tamamı yerinde düzeltilerek onaylandı, 0 ret. Kanuni koruyucu kurallar (md. 1007 yetkili mahkeme kuralı, md. 1024/3 yolsuz tescili kötüniyetliye doğrudan ileri sürebilme, Tapu Kanunu md. 26 evde imzaya gelen memura haciz tebliği şartı, md. 35 yabancıda Cumhurbaşkanının 2 katına çıkarma yetkisi) kartlara işlendi.
+    * **Birleştirme & Arşiv Büyüklüğü:** `scripts/sozluk_kart_birlestir.py` ile 18 kart arşive eklendi (`SZ-122`..`SZ-139`). Arşiv **121'den 139 karta çıktı (130'u hiç yayınlanmamış; iki günde bir yayınla ≈260 günlük / 8.5+ aylık stok!)**.
+    * **Testler & Doğrulamalar:** `sozluk_kart_dogrula.py` 18/18 temiz. `gorsel_denetim.py` 226 vaka 0 hata. JS testleri 73/73 OK. Sözlük unit testleri 178/178 OK.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.
@@ -527,5 +534,5 @@ Sözlük otomatik yayın kalır (iki günde bir); finans elle de onaysız yayın
 kullanıcı PR'ları kendisi birleştirir (Claude/ajan "birleştir" denmedikçe birleştirmez); Worker'ı kullanıcı dağıtır (Actions → Worker Dağıt, dal main); sır istenmez; web sitesi (edmyapigayrimenkul.com) bu işin dışında.
 
 ### 12.4 Açık işler
-ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlükte sonraki dalgalar (hedef 365 kart; Dalga 4 tamamlandı, 121 kart var; 224 gün stok).
+ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlükte sonraki dalgalar (hedef 365 kart; Dalga 5 tamamlandı, 139 kart var; 260 gün stok).
 

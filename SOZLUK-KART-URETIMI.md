@@ -131,6 +131,21 @@ etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler
 - **İnceleme & Düzeltmeler:** İNTİFA SÜRESİ taslağı SZ-020 (İntifa Hakkı) ile aynı hükümleri mükerrer kıldığı için bağımsız inceleme ajanımızca haklı olarak reddedildi. İrtifakın Sona Ermesi kartına md. 784 mülkiyet birleşmesi ve md. 785 terkin istemi eklendi. İpotek kartına md. 883 terkin hakkı işlendi. İpotekli Borç Senedi kartına md. 899 tapu idaresince resmen değer biçilmesi şartı eklendi. Boş Derece Kuralı'nda sözleşmenin geçerliliği ile tapuya şerhin ayni etkisi ayrımı kanun lafzıyla netleştirildi.
 - **Tipografi & Denetim:** `sozluk_kart_dogrula.py` 19/19 temiz; `gorsel_denetim.py` 226 vaka 0 hata; JS testleri 73/73 yeşil, sözlük unit testleri 178/178 yeşil.
 
+## Dalga 5 sonucu (2026-10-18: A05 TMK Tapu Sicili, A06 Tapu Kanunu 2644)
+
+**Arşiv 121 → 139 kart (130'u hiç yayınlanmamış ≈ 260 günlük stok).** Gemini oturumu: 1 yazar + 1 bağımsız inceleme ajanı. 18 taslak karttan **18'i girdi (SZ-122…139), 0 ret** (%100 başarı; 18'i incelemede yerinde düzeltilerek girdi).
+
+| Dosya | Alan | Taslak | Onay | Düzeltildi | Red | Kod Aralığı |
+|---|---|---|---|---|---|---|
+| A05 | TMK Tapu Sicili (md. 998–1025) | 10 | 0 | 10 | 0 | SZ-122…131 |
+| A06 | Tapu Kanunu 2644 (md. 26 ve 35) | 8 | 0 | 8 | 0 | SZ-132…139 |
+
+**Kartlar ve Notlar:**
+- **A05 (10 kart):** KÜTÜĞE KAYIT (SZ-122, md. 998), ZARARDAN SORUMLULUK (SZ-123, md. 1007), KİŞİSEL HAK ŞERHİ (SZ-124, md. 1009), TASARRUF KISITLAMASI (SZ-125, md. 1010), GEÇİCİ TESCİL ŞERHİ (SZ-126, md. 1011), BEYANLAR SÜTUNU (SZ-127, md. 1012), TESCİL İSTEMİ (SZ-128, md. 1013), TAPUNUN ALENİYETİ (SZ-129, md. 1020), TAPUYA GÜVEN İLKESİ (SZ-130, md. 1023, 1024), YOLSUZ TESCİL (SZ-131, md. 1024, 1025).
+- **A06 (8 kart):** RESMÎ SENET (SZ-132, md. 26), FARKLI YERDE İMZA (SZ-133, md. 26), EVDE İMZA İMKÂNI (SZ-134, md. 26), SATIŞ VAADİ TERKİNİ (SZ-135, md. 26), KREDİ İPOTEĞİ (SZ-136, md. 26), YABANCININ EDİNİMİ (SZ-137, md. 35), YABANCIDA PROJE ŞARTI (SZ-138, md. 35), YABANCIDA TASFİYE (SZ-139, md. 35).
+- **İnceleme & Düzeltmeler:** Zarardan Sorumluluk kartına tapu sicilinin bulunduğu yer mahkemesinin yetkisi (md. 1007/3); Kişisel Hak Şerhi'ne "arsa payı karşılığı inşaat" tam terimi; Tasarruf Kısıtlaması'na yargı kararları dışındaki kanuni sebepler; Tapuya Güven İlkesi'ne md. 1024 kötüniyet karşılaştırması; Yolsuz Tescil'e md. 1024/3 doğrudan ileri sürme kuralı; Farklı Yerde İmza ve Evde İmza kartlarına md. 26'daki haciz/tahdit tebligatı şartı ve Yabancının Edinimi kartına Cumhurbaşkanının 2 katına kadar artırma yetkisi işlendi.
+- **Tipografi & Denetim:** `sozluk_kart_dogrula.py` 18/18 temiz; `gorsel_denetim.py` 226 vaka 0 hata; JS testleri 73/73 yeşil, sözlük unit testleri 178/178 yeşil.
+
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
 1. **Pilot:** tek yazar ajan, küçük bir alan (ör. A07 Kadastro, 6 kart). Araçlar ve talimat uçtan uca doğrulanır.
