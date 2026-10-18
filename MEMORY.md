@@ -463,6 +463,13 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Arayüz artıkları temizlendi:** 13 Ekim'de hatırlatma kapatılıp 24 saat sessiz havuz kuralına geçildiği için anlamsız kalan **"⏰ 1 saat ertele"** düğmesi onay kartı menüsünden (`src/telegram/menuler.py` ve `worker/index.js › anaMenu`), **"⏰ Onay Hatırlatıcı"** ayarı ise ayar menüsünden (`src/ayar.py` ve `worker/index.js › ayarMenusu`) kaldırıldı. Geriye dönük uyumluluk için Worker ve Python `ertele` işleyicileri korundu (eski mesajlardan tıklanırsa çökmez).
     * **Testler & Altın Çıktı:** `tests/test_buton_sozlesmesi.py` 9/9 yeşil; `tests/test_slot_ve_menu_paritesi.py` ve `tests/test_gorsel_ve_onay_paritesi.py` yeni menü yapısına güncellendi. `tests/altin/telegram.json` menülerden ertele/hatırlatıcı satırlarının kalkması için güncellendi (yalnızca beklenen fark). JS testleri 73/73 yeşil. Worker dağıtımı (`worker-dagit.yml`) gerekecektir.
 
+28. **Sözlük Dalga 3 — A01 & A02 TMK Taşınmaz Mülkiyeti ve Komşuluk Hukuku — 2026-10-18 (Gemini).**
+    * **A01 (TMK md. 683–712 Mülkiyet hakkı, bütünleyici parça, doğal ürünler, yararlanma anlaşması, paylaşma istemi, taşınmaz mülkiyeti, tescil ilkesi, resmî şekil, heyelan, olağan zamanaşımı):** 10 yeni kart (`SZ-085`..`SZ-094`).
+    * **A02 (TMK md. 718–761 Dikey kapsam, haksız yapı, arazi devri istemi, taşkın yapı, taşınır yapı, komşu hakkı, taşan dal ve kökler, mecra hakkı, zorunlu su hakkı):** 9 yeni kart (`SZ-095`..`SZ-103`).
+    * **Bağımsız Hukuki İnceleme Turu:** SOZLUK-KART-URETIMI.md kuralı gereği yazardan bağımsız alt ajan çalıştırıldı; 19 kart kanun metniyle iddia iddia karşılaştırıldı. 19 kartın tamamı yerinde düzeltilerek onaylandı, 0 ret. Karakter sınırları, tipografi yerleşim tabanları (≥112 pt) sağlandı. `MECRA GEÇİRME HAKKI` başlık tabanını aştığı için `MECRA HAKKI` olarak kısaltıldı; `AĞAÇ VE DAL SINIRI` yerine kanun lafzı `TAŞAN DAL VE KÖKLER` getirildi.
+    * **Birleştirme & Arşiv Büyüklüğü:** `scripts/sozluk_kart_birlestir.py` ile arşive eklendi. Arşiv **84'ten 103 karta çıktı (94'ü hiç yayınlanmamış; iki günde bir yayınla ≈188 günlük stok!)**. 100 kart barajı aşıldı.
+    * **Testler & Doğrulamalar:** `sozluk_kart_dogrula.py` 19/19 temiz. `gorsel_denetim.py` 226 vaka 0 hata. JS testleri 73/73 OK. Sözlük unit testleri 106/106 OK.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.
@@ -513,5 +520,5 @@ Sözlük otomatik yayın kalır (iki günde bir); finans elle de onaysız yayın
 kullanıcı PR'ları kendisi birleştirir (Claude/ajan "birleştir" denmedikçe birleştirmez); Worker'ı kullanıcı dağıtır (Actions → Worker Dağıt, dal main); sır istenmez; web sitesi (edmyapigayrimenkul.com) bu işin dışında.
 
 ### 12.4 Açık işler
-ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlükte sonraki dalgalar (hedef 365 kart; Dalga 2 tamamlandı, 84 kart var), `threads.py` `json` içe aktarması.
+ARCHITECTURE.md §4 "Açık işler ve devir" tablosu. En önemlileri: yedek GitHub cron'larını silmek (20 Ekim'den sonra, sorunsuzsa), `worker/index.js`'i bölmek, sözlükte sonraki dalgalar (hedef 365 kart; Dalga 3 tamamlandı, 103 kart var; 188 gün stok).
 
