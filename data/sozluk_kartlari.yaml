@@ -1097,3 +1097,183 @@ kartlar:
   mevzuat: 4721 sayılı Kanun md. 761
   dayanak_alintisi: Evi, arazisi veya işletmesi için gerekli sudan yoksun olup, bunu aşırı zahmet ve gidere katlanmaksızın başka yoldan sağlayamayan taşınmaz maliki, komşusundan, onun ihtiyacından fazla olan suyu tam bir bedel karşılığında almasını sağlayacak bir irtifak kurulmasını isteyebilir.
   kontrol: '2026-10-18'
+- kod: SZ-104
+  terim: İRTİFAK HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir taşınmaz üzerinde diğer bir taşınmaz lehine kurulan, malikini mülkiyet yetkilerinden kaçınmaya veya belirli kullanıma katlanmaya mecbur kılan sınırlı ayni haktır.
+  puf:
+  - Yapma borçları, irtifaka başlı başına konu olamaz; ona ancak yan edim olarak bağlanabilir.
+  - İrtifak yükü, maliki bazı yetkileri kullanmaktan kaçınmaya veya kullanıma katlanmaya mecbur kılar.
+  mevzuat: Türk Medeni Kanunu md. 779
+  dayanak_alintisi: Taşınmaz lehine irtifak hakkı, bir taşınmaz üzerinde diğer bir taşınmaz lehine konulmuş bir yük olup, yüklü taşınmazın malikini mülkiyet hakkının sağladığı bazı yetkileri kullanmaktan kaçınmaya veya yararlanan taşınmaz malikinin yüklü taşınmazı belirli şekilde kullanmasına katlanmaya mecbur kılar.
+  kontrol: '2026-10-18'
+- kod: SZ-105
+  terim: İRTİFAKIN TESCİLİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: İrtifak hakkının hukuken kurulabilmesi ve geçerlilik kazanabilmesi için tapu kütüğüne tescil edilmesi zorunluluğudur.
+  puf:
+  - Kazanılmasında ve tescilinde, aksi öngörülmedikçe taşınmaz mülkiyeti hükümleri uygulanır.
+  - İrtifakın zamanaşımıyla kazanılması ancak mülkiyeti bu yolla elde edilebilecek taşınmazlarda mümkündür.
+  mevzuat: Türk Medeni Kanunu md. 780
+  dayanak_alintisi: İrtifak hakkının kurulması için tapu kütüğüne tescil şarttır. İrtifak hakkının kazanılmasında ve tescilinde, aksi öngörülmüş olmadıkça taşınmaz mülkiyetine ilişkin hükümler uygulanır.
+  kontrol: '2026-10-18'
+- kod: SZ-106
+  terim: İRTİFAKIN SONA ERMESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: İrtifak hakkının tapu kütüğündeki tescilin terkini veya yüklü ya da yararlanan taşınmazın yok olmasıyla sona ermesidir.
+  puf:
+  - İki taşınmaza aynı kişi malik olsa bile terkin edilmedikçe irtifak hakkı ayni hak olarak varlığını sürdürür.
+  - Lehine kurulan taşınmaz için hiçbir yararı kalmamışsa yüklü taşınmaz maliki hakkın terkinini isteyebilir.
+  mevzuat: Türk Medeni Kanunu md. 783, 784 ve 785
+  dayanak_alintisi: İrtifak hakkı, tescilin terkini veya yüklü ya da yararlanan taşınmazın yok olmasıyla sona erer.
+  kontrol: '2026-10-18'
+- kod: SZ-107
+  terim: İNTİFADA BAKIM
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: İntifa hakkı sahibinin, hakkın konusu olan malın korunması ve olağan bakımı için onarım ve yenilemeleri yapma borcudur.
+  puf:
+  - Daha önemli iş ve önlemler gerekiyorsa intifa sahibi durumu malike bildirmek ve izin vermek zorundadır.
+  - Malik gereken işleri yapmaktan kaçınırsa intifa hakkı sahibi bunları onun hesabına kendisi yapabilir.
+  mevzuat: Türk Medeni Kanunu md. 812
+  dayanak_alintisi: İntifa hakkı sahibi, hakkın konusu olan malın muhafazası ve olağan bakımı için gerekli onarım ve yenilemeleri yapmakla yükümlüdür.
+  kontrol: '2026-10-18'
+- kod: SZ-108
+  terim: OTURMA HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Hak sahibine bir binadan veya onun bir bölümünden konut olarak yararlanma yetkisi veren şahsa bağlı irtifak hakkıdır.
+  puf:
+  - Oturma hakkı başkasına devredilemez ve mirasçılara geçmez.
+  - Kanunda aksine hüküm bulunmadıkça intifa hakkına ilişkin hükümler oturma hakkına da uygulanır.
+  mevzuat: Türk Medeni Kanunu md. 823
+  dayanak_alintisi: Oturma hakkı, bir binadan veya onun bir bölümünden konut olarak yararlanma yetkisi verir. Oturma hakkı, başkasına devredilemez ve mirasçılara geçmez.
+  kontrol: '2026-10-18'
+- kod: SZ-109
+  terim: OTURMA KAPSAMI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Oturma hakkı sahibinin binadan yararlanma sınırlarının genel olarak kişisel ihtiyaçlarına göre belirlendiği yasal kapsamdır.
+  puf:
+  - Açıkça şahsına özgülendiği belirtilmedikçe hak sahibi binada ailesi ve ev halkı ile birlikte oturabilir.
+  - Binanın bir bölümünde oturma hakkına sahip olan kimse ortaklaşa kullanıma özgülenen yerlerden de yararlanabilir.
+  mevzuat: Türk Medeni Kanunu md. 824
+  dayanak_alintisi: Oturma hakkının kapsamı, genel olarak hak sahibinin kişisel ihtiyaçlarına göre belirlenir. Oturma hakkı sahibi, hakkın şahsına özgülendiği açıkça belirtilmedikçe, bina veya onun bir bölümünde ailesi ve ev halkı ile birlikte oturabilir.
+  kontrol: '2026-10-18'
+- kod: SZ-110
+  terim: ÜST HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz malikinin üçüncü kişi lehine arazisinin altında veya üstünde yapı yapma ya da koruma yetkisi tanıdığı irtifak hakkıdır.
+  puf:
+  - Aksi kararlaştırılmış olmadıkça üst hakkı devredilebilir ve mirasçılara geçer.
+  - Bağımsız ve en az 30 yıl süreli üst hakkı süreklidir; sahibinin istemiyle tapuya taşınmaz olarak kaydedilebilir.
+  mevzuat: Türk Medeni Kanunu md. 826
+  dayanak_alintisi: Bir taşınmaz maliki, üçüncü kişi lehine arazisinin altında veya üstünde yapı yapmak veya mevcut bir yapıyı muhafaza etmek yetkisi veren bir irtifak hakkı kurabilir. Aksi kararlaştırılmış olmadıkça bu hak, devredilebilir ve mirasçılara geçer.
+  kontrol: '2026-10-18'
+- kod: SZ-111
+  terim: ÜST HAKKI SÜRESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bağımsız bir üst hakkının en çok yüz yıl için kurulabileceğini ve süre uzatım şartlarını belirleyen azami sınırdır.
+  puf:
+  - Sürenin 3/4'ü dolduktan sonra resmî şekle uyularak her zaman en çok 100 yıllık yeni bir süre için uzatılabilir.
+  - Üst hakkı süresinin uzatılacağına ilişkin önceden yapılan taahhütler kanunen bağlayıcı değildir.
+  mevzuat: Türk Medeni Kanunu md. 836
+  dayanak_alintisi: Üst hakkı, bağımsız bir hak olarak en çok yüz yıl için kurulabilir. Üst hakkı, süresinin dörtte üçü dolduktan sonra, kurulması için öngörülen şekle uyularak her zaman en çok yüz yıllık yeni bir süre için uzatılabilir.
+  kontrol: '2026-10-18'
+- kod: SZ-112
+  terim: TAŞINMAZ YÜKÜ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir taşınmaz malikini yalnızca o taşınmazla sorumlu olmak üzere bir başkasına bir şey vermek veya yapmakla yükümlü kılan ayni haktır.
+  puf:
+  - Hak sahibi olarak doğrudan bir başka taşınmazın maliki de gösterilebilir.
+  - Konusu ancak yüklü taşınmazın ekonomik niteliğinden doğan veya yararlananın ekonomik ihtiyacını karşılayan edimdir.
+  mevzuat: Türk Medeni Kanunu md. 839
+  dayanak_alintisi: Taşınmaz yükü, bir taşınmazın malikini yalnız o taşınmazla sorumlu olmak üzere diğer bir kimseye bir şey vermek veya yapmakla yükümlü kılar.
+  kontrol: '2026-10-18'
+- kod: SZ-113
+  terim: TAŞINMAZ REHNİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir alacağı teminat altına almak amacıyla taşınmaz üzerinde kanunda sayılı şekillerde kurulan sınırlı ayni haktır.
+  puf:
+  - Taşınmaz rehni ancak ipotek, ipotekli borç senedi veya irat senedi şeklinde kurulabilir; başka tür kurulamaz.
+  - Taşınmaz rehni ancak tapuya kayıtlı taşınmazlar üzerinde kurulabilir; tapusuz taşınmazda rehin kurulamaz.
+  mevzuat: Türk Medeni Kanunu md. 850 ve 853
+  dayanak_alintisi: Taşınmaz rehni, ancak ipotek, ipotekli borç senedi veya irat senedi şeklinde kurulabilir.
+  kontrol: '2026-10-18'
+- kod: SZ-114
+  terim: REHİNDE ÜST SINIR
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz rehninin, alacak miktarı belirsiz veya değişken ise bütün istemleri karşılayacak üst sınırla kurulması kuralıdır.
+  puf:
+  - Alacağın miktarı belli değilse taşınmazın güvence altına alacağı üst sınır taraflarca tescilde belirtilir.
+  - Kredi kuruluşlarının yabancı para kredilerini güvenceye almak için yabancı para üzerinden de rehin kurulabilir.
+  mevzuat: Türk Medeni Kanunu md. 851
+  dayanak_alintisi: Taşınmaz rehni, miktarı Türk parası ile gösterilen belli bir alacak için kurulabilir. Alacağın miktarının belli olmaması hâlinde, alacaklının bütün istemlerini karşılayacak şekilde taşınmazın güvence altına alacağı üst sınır taraflarca belirtilir.
+  kontrol: '2026-10-18'
+- kod: SZ-115
+  terim: REHNİN RESMÎ ŞEKLİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz rehni sözleşmesinin geçerliliğinin resmî memur önünde düzenlenmesine ve tapuya tescile bağlı olması kuralıdır.
+  puf:
+  - Taşınmaz rehninin kurulmasına ilişkin sözleşmenin geçerliliği resmî şekilde yapılmış olmasına bağlıdır.
+  - Kanunda öngörülen ayrık durumlar (kanuni ipotekler) saklı kalmak üzere rehin tapu kütüğüne tescil ile kurulur.
+  mevzuat: Türk Medeni Kanunu md. 856
+  dayanak_alintisi: Taşınmaz rehni tapu kütüğüne tescil ile kurulur. Kanunda öngörülen ayrık durumlar saklıdır. Taşınmaz rehninin kurulmasına ilişkin sözleşmenin geçerliliği, resmî şekilde yapılmış olmasına bağlıdır.
+  kontrol: '2026-10-18'
+- kod: SZ-116
+  terim: İPOTEK
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Mevcut veya henüz doğmamış olmakla beraber doğması olası bir alacağı güvence altına alan taşınmaz rehni türüdür.
+  puf:
+  - İpoteğe konu olacak taşınmazın borçlunun mülkiyetinde bulunması kanunen gerekmez.
+  - Alacak sona erince ipotekli taşınmazın maliki alacaklıdan ipoteğin tapuda terkin edilmesini isteyebilir.
+  mevzuat: Türk Medeni Kanunu md. 881 ve 883
+  dayanak_alintisi: Hâlen mevcut olan veya henüz doğmamış olmakla beraber doğması kesin veya olası bulunan herhangi bir alacak, ipotekle güvence altına alınabilir. İpoteğe konu olacak taşınmazın, borçlunun mülkiyetinde bulunması gerekmez.
+  kontrol: '2026-10-18'
+- kod: SZ-117
+  terim: İPOTEKLİ YERİN DEVRİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: İpotekli taşınmazın devredilmesi halinde asıl borçlunun sorumluluğunu ve rehin güvencesini düzenleyen temel kuraldır.
+  puf:
+  - Aksi kararlaştırılmış olmadıkça taşınmazın devri borçlunun sorumluluğunda ve güvencede değişiklik yaratmaz.
+  - Yeni malik borcu yüklenir, alacaklı 1 yılda önceki borçluya yazılı bildirim yapmazsa borçlu borcundan kurtulur.
+  mevzuat: Türk Medeni Kanunu md. 888
+  dayanak_alintisi: İpotekli taşınmazın devri, aksi kararlaştırılmış olmadıkça, borçlunun sorumluluğunda ve güvencede bir değişiklik meydana getirmez. Yeni malik borcu yüklendiği takdirde alacaklı, kendisine başvurma hakkını saklı tuttuğunu bir yıl içinde yazılı olarak önceki borçluya bildirmezse, borçlu borcundan kurtulur.
+  kontrol: '2026-10-18'
+- kod: SZ-118
+  terim: REHİN DERECESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz rehninde alacaklıların tatmin sırasını ve tescil edilen güvence sınırını belirleyen resmi öncelik basamağıdır.
+  puf:
+  - Rehnin sağladığı güvence ve öncelik hakkı, tapu tescilinde belirtilen rehin derecesi ile sınırlıdır.
+  - Önceki derecenin miktarı tescilde gösterilmek kaydıyla ikinci veya daha sonraki derecede de rehin kurulabilir.
+  mevzuat: Türk Medeni Kanunu md. 870
+  dayanak_alintisi: Rehnin sağladığı güvence, tescilde belirtilen rehin derecesi ile sınırlıdır. Taşınmaz rehni, sırada kendisinden önce gelecek olanın miktarının tescilde belirtilmesi kaydıyla ikinci veya daha sonraki derecede de kurulabilir.
+  kontrol: '2026-10-18'
+- kod: SZ-119
+  terim: BOŞ DERECE KURALI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Önceki sıradaki rehin terkin edilse bile sonraki alacaklının kendiliğinden boş dereceye ilerleyememesi ilkesidir.
+  puf:
+  - Terkin edilen rehin hakkı yerine malik tarafından serbestçe yeni bir rehin hakkı kurulabilir.
+  - Boşalan dereceye geçme sözleşmesinin geçerliliği resmî şekle, ayni etki sağlaması ise tapuya şerhe bağlıdır.
+  mevzuat: Türk Medeni Kanunu md. 871
+  dayanak_alintisi: Aynı taşınmaz üzerinde farklı sıralarda kurulmuş bulunan rehin haklarından birinin terkin edilmiş olması, sonraki sırada yer alan rehinli alacaklıya boşalan dereceye geçme hakkı vermez. Terkin edilen rehin hakkı yerine yeni bir rehin hakkı kurulabilir.
+  kontrol: '2026-10-18'
+- kod: SZ-120
+  terim: İPOTEKLİ BORÇ SENEDİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz rehniyle güvence altına alınmış kişisel bir alacak meydana getiren kıymetli evrak niteliğindeki rehin senedidir.
+  puf:
+  - İpotekli borç senedi yoluyla rehin kurulabilmesi için tapu idaresince taşınmaza resmen değer biçilir.
+  - Tapu idaresince resmen biçilmiş değeri aşan miktar için ipotekli borç senedi yoluyla rehin kurulamaz.
+  mevzuat: Türk Medeni Kanunu md. 898 ve 899
+  dayanak_alintisi: İpotekli borç senedi, taşınmaz rehniyle güvence altına alınmış kişisel bir alacak meydana getirir.
+  kontrol: '2026-10-18'
+- kod: SZ-121
+  terim: KAYNAK HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Başkasının arazisinde bulunan su kaynağından su alma ve bu suyu kendi arazisine akıtma yetkisi veren irtifak hakkıdır.
+  puf:
+  - Aksi kararlaştırılmış olmadıkça bu irtifak hakkı başkasına devredilebilir ve mirasçılara geçer.
+  - Bağımsız nitelikte ve en az 30 yıl için kurulmuş ise tapu kütüğüne taşınmaz olarak kaydedilebilir.
+  mevzuat: Türk Medeni Kanunu md. 837
+  dayanak_alintisi: Başkasının arazisinde bulunan kaynak üzerinde irtifak hakkı, bu arazinin malikini suyun alınmasına ve akıtılmasına katlanmakla yükümlü kılar. Bu hak, aksi kararlaştırılmış olmadıkça, başkasına devredilebilir ve mirasçıya geçer.
+  kontrol: '2026-10-18'
