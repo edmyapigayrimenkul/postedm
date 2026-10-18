@@ -1,0 +1,120 @@
+kartlar:
+  - terim: "KÜTÜĞE KAYIT"
+    kategori_kodu: tapu
+    tanim: "Tapu kütüğüne ayrı bir sayfa açılarak taşınmaz niteliğiyle kaydedilebilen arazi, bağımsız bölüm ve haklar."
+    puf:
+      - "Arazinin ve kat mülkiyetine tabi bağımsız bölümlerin kütüğe kaydı özel kanun hükümlerine tabidir."
+      - "Süreklilik koşulunun gerçekleşmesi için hakkın süresiz veya en az otuz yıl süreli olması gerekir."
+    mevzuat: "Türk Medeni Kanunu md. 998"
+    dayanak_alintisi: "Tapu siciline taşınmaz olarak şunlar kaydedilir: 1. Arazi, 2. Taşınmazlar üzerindeki bağımsız ve sürekli haklar, 3. Kat mülkiyetine konu olan bağımsız bölümler."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Tanım tekrarı önlendi; puf[0]'a md. 998/2 ve 4 uyarınca özel kanun hükümlerine tabi olma kuralı işlendi."
+
+  - terim: "ZARARDAN SORUMLULUK"
+    kategori_kodu: tapu
+    tanim: "Tapu sicilinin tutulmasından, yanlış veya eksik işlem yapılmasından doğan bütün zararlardan Devletin doğrudan sorumluluğu."
+    puf:
+      - "Devletin tapu sicilinden doğan sorumluluğuna ilişkin davalar, tapu sicilinin bulunduğu yer mahkemesinde açılır."
+      - "Devlet zararı ödedikten sonra zararın doğmasında kusuru bulunan görevlilere rücu eder."
+    mevzuat: "Türk Medeni Kanunu md. 1007"
+    dayanak_alintisi: "Tapu sicilinin tutulmasından doğan bütün zararlardan Devlet sorumludur. Devlet, zararın doğmasında kusuru bulunan görevlilere rücu eder."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[0]'daki tanım tekrarı kaldırıldı; md. 1007/3 uyarınca yetkili yer mahkemesi kuralı eklendi."
+
+  - terim: "KİŞİSEL HAK ŞERHİ"
+    kategori_kodu: tapu
+    tanim: "Sözleşmelerden doğan kişisel hakların tapu kütüğüne yazılarak sonraki hak sahiplerine karşı ileri sürülebilir kılınması."
+    puf:
+      - "Arsa payı karşılığı inşaat, satış vaadi, kira, alım, önalım ve gerialım sözleşmesi hakları şerhedilebilir."
+      - "Şerh verilmekle o taşınmaz üzerinde sonradan kazanılan hakların sahiplerine karşı ileri sürülebilir."
+    mevzuat: "Türk Medeni Kanunu md. 1009"
+    dayanak_alintisi: "Bunlar şerh verilmekle o taşınmaz üzerinde sonradan kazanılan hakların sahiplerine karşı ileri sürülebilir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[0]'daki hatalı 'inşaat' ifadesi kanun lafzına uygun olarak 'arsa payı karşılığı inşaat' yapıldı; kapalı listeyi açan 'gibi' ifadesi temizlendi."
+
+  - terim: "TASARRUF KISITLAMASI"
+    kategori_kodu: tapu
+    tanim: "Malikin taşınmaz üzerindeki tasarruf yetkisini sınırlayan kanuni sebeplerin ve kararların tapu kütüğüne şerh verilmesi."
+    puf:
+      - "Çekişmeli hak kararları, haciz, iflas kararı, konkordato süresi ile aile yurdu şerh verilebilir."
+      - "Şerh verilmekle, taşınmaz üzerinde sonradan hak kazanan kişilere karşı doğrudan ileri sürülebilir."
+    mevzuat: "Türk Medeni Kanunu md. 1010"
+    dayanak_alintisi: "Tasarruf yetkisi kısıtlamaları, şerh verilmekle taşınmaz üzerinde sonradan kazanılan hakların sahiplerine karşı ileri sürülebilir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Tanım yalnız yargı kararlarıyla sınırlı olmaktan çıkarılıp kanuni sebepleri kapsayacak şekilde düzeltildi; puf[0] ve puf[1] kanun metnine uyarlandı."
+
+  - terim: "GEÇİCİ TESCİL ŞERHİ"
+    kategori_kodu: tapu
+    tanim: "İddia edilen bir ayni hakkın güvenceye alınması veya tasarruf yetkisi eksikliğinin giderilmesi için konulan şerh."
+    puf:
+      - "Bütün ilgililerin razı olmasına veya hâkimin geçici tescil kararı vermesine bağlıdır."
+      - "Şerhe konu hak sonradan gerçekleşirse, şerh tarihinden başlayarak üçüncü kişilere karşı ileri sürülebilir."
+    mevzuat: "Türk Medeni Kanunu md. 1011"
+    dayanak_alintisi: "Şerhin konusu olan hak sonradan gerçekleşirse, şerh tarihinden başlayarak üçüncü kişilere karşı ileri sürülebilir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'deki lafzi olmayan 'ayni etki doğurur' yorumu kanundaki 'üçüncü kişilere karşı ileri sürülebilir' lafzıyla değiştirildi; şartlar netleştirildi."
+
+  - terim: "BEYANLAR SÜTUNU"
+    kategori_kodu: tapu
+    tanim: "Bir taşınmazın eklentileri ile mülkiyete ilişkin kamu hukuku kısıtlamalarının tapu kütüğünde gösterildiği özel sütun."
+    puf:
+      - "Taşınmazın eklentileri malikin istemi üzerine kütükteki beyanlar sütununa yazılır."
+      - "Eklenti kaydının terkini, kütükte hak sahibi görünen bütün ilgililerin rızasına bağlıdır."
+    mevzuat: "Türk Medeni Kanunu md. 1012"
+    dayanak_alintisi: "Bir taşınmazın eklentileri, malikin istemi üzerine kütükteki beyanlar sütununa yazılır. Bu kaydın terkini, kütükte hak sahibi görünen bütün ilgililerin rızasına bağlıdır."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'deki halk ağzı 'silinmesi' ifadesi TMK md. 1012 lafzındaki teknik 'terkini' terimiyle değiştirildi."
+
+  - terim: "TESCİL İSTEMİ"
+    kategori_kodu: tapu
+    tanim: "Tapu kütüğüne tescil işleminin tasarrufa konu taşınmazın malikinin yazılı beyanına dayanılarak yapılması kuralı."
+    puf:
+      - "Tescil, kural olarak tasarrufa konu taşınmaz malikinin yazılı beyanı üzerine yapılır."
+      - "Kanun hükmüne veya kesinleşmiş mahkeme kararına dayanan edinimlerde malikin beyanı aranmaz."
+    mevzuat: "Türk Medeni Kanunu md. 1013"
+    dayanak_alintisi: "Tescil, tasarrufa konu olan taşınmaz malikinin yazılı beyanı üzerine yapılır. Edinen kimse, kanun hükmüne, kesinleşmiş mahkeme kararına veya buna eşdeğer bir belgeye dayanıyorsa, bu beyana gerek yoktur."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[0] ve puf[1] kanun metnine tam sadakatle sadeleştirildi."
+
+  - terim: "TAPUNUN ALENİYETİ"
+    kategori_kodu: tapu
+    tanim: "İlgisini inanılır kılan herkese tapu kütüğünün açık olması ve kimsenin tapu kaydını bilmediğini ileri sürememesi ilkesi."
+    puf:
+      - "İlgisini inanılır kılan herkes, kütük sayfasının gösterilmesini veya belge örneklerini isteyebilir."
+      - "Tapu sicili herkese açıktır; hiç kimse sicildeki bir kaydı bilmediğini ileri süremez."
+    mevzuat: "Türk Medeni Kanunu md. 1020"
+    dayanak_alintisi: "Tapu sicili herkese açıktır. İlgisini inanılır kılan herkes, tapu kütüğündeki ilgili sayfanın ve belgelerin tapu memuru önünde kendisine gösterilmesini veya bunların örneklerinin verilmesini isteyebilir. Kimse tapu sicilindeki bir kaydı bilmediğini ileri süremez."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'deki 'iddia edemez' yerine kanunun amir lafzı olan 'ileri süremez' yazıldı; puf[0] kanun metnine göre hassaslaştırıldı."
+
+  - terim: "TAPUYA GÜVEN İLKESİ"
+    kategori_kodu: tapu
+    tanim: "Tapu kütüğündeki tescile iyi niyetle güvenerek mülkiyet veya ayni hak kazanan üçüncü kişinin bu kazanımının korunması esası."
+    puf:
+      - "Tapu kütüğündeki tescile iyiniyetle dayanarak mülkiyet veya ayni hak kazanan üçüncü kişinin kazanımı korunur."
+      - "Yolsuz tescili bilen veya bilmesi gereken üçüncü kişiler tapu kütüğündeki bu tescile dayanamaz."
+    mevzuat: "Türk Medeni Kanunu md. 1023 ve 1024"
+    dayanak_alintisi: "Tapu kütüğündeki tescile iyiniyetle dayanarak mülkiyet veya bir başka aynî hak kazanan üçüncü kişinin bu kazanımı korunur."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'deki %0 örtüşme uyarısı giderildi; iyiniyet-kötüniyet dengesi için mevzuata TMK md. 1024 dahil edilerek metin kanun lafzıyla yazıldı."
+
+  - terim: "YOLSUZ TESCİL"
+    kategori_kodu: tapu
+    tanim: "Bağlayıcı olmayan bir hukuki işleme dayanan veya hukuki sebepten yoksun bulunan geçersiz tapu kütüğü tescili."
+    puf:
+      - "Ayni hakkı zedelenen kişi, tescilin yolsuz olduğunu iyiniyetli olmayan üçüncü kişilere karşı ileri sürebilir."
+      - "Yolsuz tescil, terkin veya değişiklik halinde ayni hakkı zedelenen kimse sicilin düzeltilmesini dava edebilir."
+    mevzuat: "Türk Medeni Kanunu md. 1024 ve 1025"
+    dayanak_alintisi: "Bağlayıcı olmayan bir hukukî işleme dayanan veya hukukî sebepten yoksun bulunan tescil yolsuzdur."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Tanımı tekrarlayan puf[0] yerine md. 1024/3'teki doğrudan ileri sürebilme kuralı getirildi; puf[1]'e md. 1025 uyarınca terkin ve değişiklik halleri eklendi."
