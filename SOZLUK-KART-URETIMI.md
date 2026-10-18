@@ -116,6 +116,21 @@ etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler
 - **İnceleme & Düzeltmeler:** Bağımsız inceleme ajanı tüm kartları kanun metinleriyle iddia iddia denetledi. Yapay "AĞAÇ VE DAL SINIRI" terimi kanun lafzındaki "TAŞAN DAL VE KÖKLER" ile değiştirildi ve orman istisnası eklendi. "MECRA GEÇİRME HAKKI" terimi iki satırda 112 pt tabanını aştığı için "MECRA HAKKI" olarak kısaltıldı ve kamulaştırma istisnası eklendi. Paylaşma isteminde "uygun olmayan zaman" yasağı, resmî şekil şartında ölüme bağlı tasarruf istisnası, tescil ilkesinde işgal ve kamulaştırma kapalı listesi tam metinle yazıldı.
 - **Tipografi & Denetim:** `sozluk_kart_dogrula.py` 19/19 temiz; `gorsel_denetim.py` 226 vaka 0 hata; JS testleri 73/73 yeşil, sözlük unit testleri 106/106 yeşil.
 
+## Dalga 4 sonucu (2026-10-18: A03 TMK irtifak hakları/taşınmaz yükü, A04 TMK taşınmaz rehni/ipotek)
+
+**Arşiv 103 → 121 kart (112'si hiç yayınlanmamış ≈ 224 günlük stok).** Gemini oturumu: 1 yazar + 1 bağımsız inceleme ajanı. 19 taslak karttan **18'i girdi (SZ-104…121), 1 ret** (İNTİFA SÜRESİ arşivdeki SZ-020 ile mükerrer olduğu için reddedildi; 1 doğrudan onay, 17 düzeltildi).
+
+| Dosya | Alan | Taslak | Onay | Düzeltildi | Red | Kod Aralığı |
+|---|---|---|---|---|---|---|
+| A03 | TMK irtifak hakları ve taşınmaz yükü (md. 779–849) | 10 | 1 | 8 | 1 | SZ-104…112 |
+| A04 | TMK taşınmaz rehni ve ipotek (md. 850–903) | 9 | 0 | 9 | 0 | SZ-113…121 |
+
+**Kartlar ve Notlar:**
+- **A03 (9 kart):** İRTİFAK HAKKI (SZ-104, md. 779), İRTİFAKIN TESCİLİ (SZ-105, md. 780), İRTİFAKIN SONA ERMESİ (SZ-106, md. 783, 784, 785), İNTİFADA BAKIM (SZ-107, md. 812), OTURMA HAKKI (SZ-108, md. 823), OTURMA KAPSAMI (SZ-109, md. 824), ÜST HAKKI (SZ-110, md. 826), ÜST HAKKI SÜRESİ (SZ-111, md. 836), TAŞINMAZ YÜKÜ (SZ-112, md. 839).
+- **A04 (9 kart):** TAŞINMAZ REHNİ (SZ-113, md. 850, 853), REHİNDE ÜST SINIR (SZ-114, md. 851), REHNİN RESMÎ ŞEKLİ (SZ-115, md. 856), İPOTEK (SZ-116, md. 881, 883), İPOTEKLİ YERİN DEVRİ (SZ-117, md. 888), REHİN DERECESİ (SZ-118, md. 870), BOŞ DERECE KURALI (SZ-119, md. 871), İPOTEKLİ BORÇ SENEDİ (SZ-120, md. 898, 899), KAYNAK HAKKI (SZ-121, md. 837).
+- **İnceleme & Düzeltmeler:** İNTİFA SÜRESİ taslağı SZ-020 (İntifa Hakkı) ile aynı hükümleri mükerrer kıldığı için bağımsız inceleme ajanımızca haklı olarak reddedildi. İrtifakın Sona Ermesi kartına md. 784 mülkiyet birleşmesi ve md. 785 terkin istemi eklendi. İpotek kartına md. 883 terkin hakkı işlendi. İpotekli Borç Senedi kartına md. 899 tapu idaresince resmen değer biçilmesi şartı eklendi. Boş Derece Kuralı'nda sözleşmenin geçerliliği ile tapuya şerhin ayni etkisi ayrımı kanun lafzıyla netleştirildi.
+- **Tipografi & Denetim:** `sozluk_kart_dogrula.py` 19/19 temiz; `gorsel_denetim.py` 226 vaka 0 hata; JS testleri 73/73 yeşil, sözlük unit testleri 178/178 yeşil.
+
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 
 1. **Pilot:** tek yazar ajan, küçük bir alan (ör. A07 Kadastro, 6 kart). Araçlar ve talimat uçtan uca doğrulanır.

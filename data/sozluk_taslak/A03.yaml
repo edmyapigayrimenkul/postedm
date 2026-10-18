@@ -1,0 +1,120 @@
+kartlar:
+  - terim: "İRTİFAK HAKKI"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "Bir taşınmaz üzerinde diğer bir taşınmaz lehine kurulan, malikini mülkiyet yetkilerinden kaçınmaya veya belirli kullanıma katlanmaya mecbur kılan sınırlı ayni haktır."
+    puf:
+      - "Yapma borçları, irtifaka başlı başına konu olamaz; ona ancak yan edim olarak bağlanabilir."
+      - "İrtifak yükü, maliki bazı yetkileri kullanmaktan kaçınmaya veya kullanıma katlanmaya mecbur kılar."
+    mevzuat: "Türk Medeni Kanunu md. 779"
+    dayanak_alintisi: "Taşınmaz lehine irtifak hakkı, bir taşınmaz üzerinde diğer bir taşınmaz lehine konulmuş bir yük olup, yüklü taşınmazın malikini mülkiyet hakkının sağladığı bazı yetkileri kullanmaktan kaçınmaya veya yararlanan taşınmaz malikinin yüklü taşınmazı belirli şekilde kullanmasına katlanmaya mecbur kılar."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Kanun lafzına uyum sağlandı (\"tek başına\" yerine kanundaki \"başlı başına\" yazıldı); puf[1]'deki tanım tekrarı giderilerek katlanma ve kaçınma borcu mahiyeti netleştirildi."
+
+  - terim: "İRTİFAKIN TESCİLİ"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "İrtifak hakkının hukuken kurulabilmesi ve geçerlilik kazanabilmesi için tapu kütüğüne tescil edilmesi zorunluluğudur."
+    puf:
+      - "Kazanılmasında ve tescilinde, aksi öngörülmedikçe taşınmaz mülkiyeti hükümleri uygulanır."
+      - "İrtifakın zamanaşımıyla kazanılması ancak mülkiyeti bu yolla elde edilebilecek taşınmazlarda mümkündür."
+    mevzuat: "Türk Medeni Kanunu md. 780"
+    dayanak_alintisi: "İrtifak hakkının kurulması için tapu kütüğüne tescil şarttır. İrtifak hakkının kazanılmasında ve tescilinde, aksi öngörülmüş olmadıkça taşınmaz mülkiyetine ilişkin hükümler uygulanır."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1] kanun lafzındaki \"elde edilebilecek\" ifadesine uyarlandı; kategori TAPU_VE_HUKUK olarak standartlaştırıldı."
+
+  - terim: "İRTİFAKIN SONA ERMESİ"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "İrtifak hakkının tapu kütüğündeki tescilin terkini veya yüklü ya da yararlanan taşınmazın yok olmasıyla sona ermesidir."
+    puf:
+      - "İki taşınmaza aynı kişi malik olsa bile terkin edilmedikçe irtifak hakkı ayni hak olarak varlığını sürdürür."
+      - "Lehine kurulan taşınmaz için hiçbir yararı kalmamışsa yüklü taşınmaz maliki hakkın terkinini isteyebilir."
+    mevzuat: "Türk Medeni Kanunu md. 783, 784 ve 785"
+    dayanak_alintisi: "İrtifak hakkı, tescilin terkini veya yüklü ya da yararlanan taşınmazın yok olmasıyla sona erer."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Taslakta tek bir cümlenin (md. 783) tanım, puf[0] ve puf[1]'de üç kez tekrarlanması sorunu giderildi; mevzuata md. 784 ve 785 dahil edilerek aynı malikte birleşme ve yararı kalmayan irtifakın terkini kuralları eklendi."
+
+  - terim: "İNTİFA SÜRESİ"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "İntifa hakkının gerçek kişilerde ölümle, tüzel kişilerde ise sürenin dolması veya kişiliğin kalkmasıyla biteceği üst zaman sınırı."
+    puf:
+      - "Gerçek kişilerde intifa hakkı en geç hak sahibinin ölümüyle sona erer; miras kalmaz."
+      - "Tüzel kişilerin intifa hakkı kanunen en çok yüz yıl devam edebilir."
+    mevzuat: "Türk Medeni Kanunu md. 797"
+    dayanak_alintisi: "İntifa hakkı, gerçek kişilerde hak sahibinin ölümü; tüzel kişilerde kararlaştırılan sürenin dolması, süre kararlaştırılmamışsa kişiliğin ortadan kalkmasıyla sona erer. Tüzel kişilerin intifa hakkı, en çok yüz yıl devam edebilir."
+    kontrol: "2026-10-18"
+    inceleme: red
+    inceleme_notu: "Arşivdeki SZ-020 (İNTİFA HAKKI, md. 794-797) kartı ile tamamen aynı kuralları (gerçek kişilerde ölümle sona erme ve tüzel kişilerde yüz yıl azami süre sınırı) birebir tekrar etmektedir. SOZLUK-KART-URETIMI.md kural 5 ve Dalga 1 emsali (arşivdeki karta anlamca tekrar) uyarınca reddedildi."
+
+  - terim: "İNTİFADA BAKIM"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "İntifa hakkı sahibinin, hakkın konusu olan malın korunması ve olağan bakımı için onarım ve yenilemeleri yapma borcudur."
+    puf:
+      - "Daha önemli iş ve önlemler gerekiyorsa intifa sahibi durumu malike bildirmek ve izin vermek zorundadır."
+      - "Malik gereken işleri yapmaktan kaçınırsa intifa hakkı sahibi bunları onun hesabına kendisi yapabilir."
+    mevzuat: "Türk Medeni Kanunu md. 812"
+    dayanak_alintisi: "İntifa hakkı sahibi, hakkın konusu olan malın muhafazası ve olağan bakımı için gerekli onarım ve yenilemeleri yapmakla yükümlüdür."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[0]'a kanunda emredilen malikin işleri yapmasına izin verme yükümlülüğü eklendi; tanım ve puf cümleleri kanun lafzıyla uyumlu hale getirildi."
+
+  - terim: "OTURMA HAKKI"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "Hak sahibine bir binadan veya onun bir bölümünden konut olarak yararlanma yetkisi veren şahsa bağlı irtifak hakkıdır."
+    puf:
+      - "Oturma hakkı başkasına devredilemez ve mirasçılara geçmez."
+      - "Kanunda aksine hüküm bulunmadıkça intifa hakkına ilişkin hükümler oturma hakkına da uygulanır."
+    mevzuat: "Türk Medeni Kanunu md. 823"
+    dayanak_alintisi: "Oturma hakkı, bir binadan veya onun bir bölümünden konut olarak yararlanma yetkisi verir. Oturma hakkı, başkasına devredilemez ve mirasçılara geçmez."
+    kontrol: "2026-10-18"
+    inceleme: onay
+    inceleme_notu: "Kanun metniyle (TMK md. 823) tam uyumlu, şahsa bağlılık ve intifa hükümleri yollaması eksiksiz aktarılmış, biçim ve bütçe sınırları kusursuz."
+
+  - terim: "OTURMA KAPSAMI"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "Oturma hakkı sahibinin binadan yararlanma sınırlarının genel olarak kişisel ihtiyaçlarına göre belirlendiği yasal kapsamdır."
+    puf:
+      - "Açıkça şahsına özgülendiği belirtilmedikçe hak sahibi binada ailesi ve ev halkı ile birlikte oturabilir."
+      - "Binanın bir bölümünde oturma hakkına sahip olan kimse ortaklaşa kullanıma özgülenen yerlerden de yararlanabilir."
+    mevzuat: "Türk Medeni Kanunu md. 824"
+    dayanak_alintisi: "Oturma hakkının kapsamı, genel olarak hak sahibinin kişisel ihtiyaçlarına göre belirlenir. Oturma hakkı sahibi, hakkın şahsına özgülendiği açıkça belirtilmedikçe, bina veya onun bir bölümünde ailesi ve ev halkı ile birlikte oturabilir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'deki \"bölümüne sahip olan\" şeklindeki mülkiyet yanılgısı yaratabilecek ifade \"oturma hakkına sahip olan\" olarak düzeltildi; tanım tam cümle yapıldı ve puf[0] kanun lafzına uyarlandı."
+
+  - terim: "ÜST HAKKI"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "Taşınmaz malikinin üçüncü kişi lehine arazisinin altında veya üstünde yapı yapma ya da koruma yetkisi tanıdığı irtifak hakkıdır."
+    puf:
+      - "Aksi kararlaştırılmış olmadıkça üst hakkı devredilebilir ve mirasçılara geçer."
+      - "Bağımsız ve en az 30 yıl süreli üst hakkı süreklidir; sahibinin istemiyle tapuya taşınmaz olarak kaydedilebilir."
+    mevzuat: "Türk Medeni Kanunu md. 826"
+    dayanak_alintisi: "Bir taşınmaz maliki, üçüncü kişi lehine arazisinin altında veya üstünde yapı yapmak veya mevcut bir yapıyı muhafaza etmek yetkisi veren bir irtifak hakkı kurabilir. Aksi kararlaştırılmış olmadıkça bu hak, devredilebilir ve mirasçılara geçer."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'e tapu kütüğüne müstakil taşınmaz olarak kaydın zorunlu kurucu unsuru olan \"bağımsızlık\" niteliği eklendi; tanım akıcılaştırıldı."
+
+  - terim: "ÜST HAKKI SÜRESİ"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "Bağımsız bir üst hakkının en çok yüz yıl için kurulabileceğini ve süre uzatım şartlarını belirleyen azami sınırdır."
+    puf:
+      - "Sürenin 3/4'ü dolduktan sonra resmî şekle uyularak her zaman en çok 100 yıllık yeni bir süre için uzatılabilir."
+      - "Üst hakkı süresinin uzatılacağına ilişkin önceden yapılan taahhütler kanunen bağlayıcı değildir."
+    mevzuat: "Türk Medeni Kanunu md. 836"
+    dayanak_alintisi: "Üst hakkı, bağımsız bir hak olarak en çok yüz yıl için kurulabilir. Üst hakkı, süresinin dörtte üçü dolduktan sonra, kurulması için öngörülen şekle uyularak her zaman en çok yüz yıllık yeni bir süre için uzatılabilir."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Tanım tekrarı olan puf[0] kaldırıldı; md. 836/3'teki kritik \"önceden yapılan taahhüdün bağlayıcı olmadığı\" emredici hükmü puf[1] olarak eklendi; tanım tam cümle yapıldı."
+
+  - terim: "TAŞINMAZ YÜKÜ"
+    kategori_kodu: TAPU_VE_HUKUK
+    tanim: "Bir taşınmaz malikini yalnızca o taşınmazla sorumlu olmak üzere bir başkasına bir şey vermek veya yapmakla yükümlü kılan ayni haktır."
+    puf:
+      - "Hak sahibi olarak doğrudan bir başka taşınmazın maliki de gösterilebilir."
+      - "Konusu ancak yüklü taşınmazın ekonomik niteliğinden doğan veya yararlananın ekonomik ihtiyacını karşılayan edimdir."
+    mevzuat: "Türk Medeni Kanunu md. 839"
+    dayanak_alintisi: "Taşınmaz yükü, bir taşınmazın malikini yalnız o taşınmazla sorumlu olmak üzere diğer bir kimseye bir şey vermek veya yapmakla yükümlü kılar."
+    kontrol: "2026-10-18"
+    inceleme: duzeltildi
+    inceleme_notu: "Puf[1]'deki kanunun kurucu unsuru olan \"ekonomik nitelik\" ve \"ekonomik ihtiyaç\" kavramları eksiksiz metne işlendi; tanım tam cümle yapıldı."
