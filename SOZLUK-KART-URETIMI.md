@@ -17,12 +17,13 @@ Aşağıdaki "Claude alt ajan" ve `mcp__ccd_session_mgmt__get_usage` anlatımlar
 - **Gemini'nin ilk işi (Claude'dan devir):** A12 (TBK sözleşme kurulması) hiç yazılmadı; reddedilen ama içeriği iyi kira/fesih konuları (KONUT KİRASI KAPSAMI, BELİRSİZ SÜRELİ KİRA, KİRA SÖZLEŞMESİ, ÖNEMLİ SEBEP FESHİ, KİRACININ ÖLÜMÜ)
   md. 347–349, 353, 356 birlikte düşünülerek yeniden yazılacak; SZ-007'ye md. 353 istisnası; md. 339/2 (altı ay ve kısa geçici kiralar) hiçbir kartta yok.
 - Gemini ücretsiz kotası ayrıdır; Claude kullanım limiti (aşağıda "Dalga 1" derslerindeki 4 ajan sınırı) onu bağlamaz.
-- **Güncel durum (2026-10-15):** arşivde **84 kart**; zamanlanmış sözlük **iki günde bir** onaysız otomatik yayınlanır (77 kart hiç yayınlanmadı ≈154 gün stok), hedef **365 kart**; elle `/sozluk` onay kartıyla düşer;
+- **Güncel durum (2026-10-18):** arşivde **103 kart**; zamanlanmış sözlük **iki günde bir** onaysız otomatik yayınlanır (94 kart hiç yayınlanmadı ≈188 gün stok), hedef **365 kart**; elle `/sozluk` onay kartıyla düşer;
   sözlük kartı onaylanmazsa havuza girmez, arşive alınır ve konusu iade edilir (yeniden kurmak ucuz; MEMORY.md §10 madde 23). Çalışma düzeni: GEMINI.md.
 
-## Durum (2026-10-15; güncel arşiv sayısı 84 kart, hedef 365)
+## Durum (2026-10-18; güncel arşiv sayısı 103 kart, hedef 365)
 
-- **2026-10-15 güncellemesi (Dalga 2 tamamlandı):** A12 (TBK sözleşme kurulması, 15 kart) ve A16_revize (md. 339/2 geçici kiralar, md. 346 ek ödeme yasağı, md. 353 dava süresi uzaması, 3 kart) arşive eklendi (`SZ-067`..`SZ-084`). SZ-007'ye md. 353 istisnası işlendi. Arşivde **84 kart** var (77'si hiç yayınlanmamış ≈ 154 gün stok). Hedef 365 (`HEDEF_KART`).
+- **2026-10-18 güncellemesi (Dalga 3 tamamlandı):** A01 (TMK mülkiyetin kapsamı ve kazanılması, 10 kart) ve A02 (TMK mülkiyet kısıtlamaları ve komşuluk, 9 kart) arşive eklendi (`SZ-085`..`SZ-103`). Arşivde **103 kart** var (94'ü hiç yayınlanmamış ≈ 188 gün stok). Hedef 365 (`HEDEF_KART`).
+- **2026-10-15 güncellemesi (Dalga 2 tamamlandı):** A12 (TBK sözleşme kurulması, 15 kart) ve A16_revize (md. 339/2 geçici kiralar, md. 346 ek ödeme yasağı, md. 353 dava süresi uzaması, 3 kart) arşive eklendi (`SZ-067`..`SZ-084`). SZ-007'ye md. 353 istisnası işlendi. Arşiv 84 kart olmuştu.
 - (Eski, 2026-10-09) Arşivde 34 kart var; günde bir kartla 34 gün yeter (12 Kasım'da biter). Hedef 730 (2 yıl × günde 1): **696 eksik**.
 - `sozluk_arsivi.BEKLEME_GUN = 730` (aynı kart 2 yıl dolmadan tekrar gelmez), `HEDEF_KART = 365`; hiç yayınlanmamış kart 14'e
   inince Telegram'a hatırlatma gider. Kart bitince sözlük modelle üretilip onaya düşer (otomatik yayın YOK).
@@ -99,6 +100,21 @@ etiket "ek md. 6", atıf `3402 sayılı Kanun ek md. 6`, anahtar `ek 6` (testler
 - **SZ-007 Güncellemesi:** İHTİYAÇTAN TAHLİYE kartı puf[0]'a md. 353 bildirimiyle 1 yıl uzama istisnası eklendi; mevzuat `Türk Borçlar Kanunu md. 350, 353 ve 355` oldu.
 - **İnceleme & Doğrulama:** Bağımsız inceleme alt ajanı kanun metinleriyle iddia iddia karşılaştırdı. 6 kartta yerinde hukuki hassasiyet düzeltmeleri yapıldı (Yazılı Şekil'de borç altına girenlerin imzası vurgusu; İmza Kuralı'nda el yazısı şartı; Ön Sözleşme'de asıl sözleşme şekli kuralı; Aldatma'da üçüncü kişi ayrımı; Geçici Konut Kirası'nda doğası gereği şartı; Dava Süresi Uzaması'nda 1 ay yerine davanın açılması için öngörülen süre ifadesi).
 - **Tipografi & Denetim:** Başlık yerleşimi kontrol edildi (EK ÖDEME YASAĞI 15 karakter seçildi); `sozluk_kart_dogrula.py` 18/18 temiz; `gorsel_denetim.py` 226 vaka 0 hata; 1204 Python testi ve 73 Worker testi yeşil.
+
+## Dalga 3 sonucu (2026-10-18: A01 TMK mülkiyet kapsamı/kazanılması, A02 TMK mülkiyet kısıtlamaları ve komşuluk)
+
+**Arşiv 84 → 103 kart (94'ü hiç yayınlanmamış ≈ 188 günlük stok).** Gemini oturumu: 1 yazar + 1 bağımsız inceleme ajanı. 19 taslak karttan **19'u girdi (SZ-085…103), 0 ret** (%100 başarı; 19'u incelemede yerinde düzeltilerek girdi).
+
+| Dosya | Alan | Taslak | Onay | Düzeltildi | Red | Kod Aralığı |
+|---|---|---|---|---|---|---|
+| A01 | TMK mülkiyetin kapsamı, kazanılması, sınırlanması (md. 683–717) | 10 | 0 | 10 | 0 | SZ-085…094 |
+| A02 | TMK taşınmaz mülkiyetinin kısıtlamaları ve komşuluk (md. 718–761) | 9 | 0 | 9 | 0 | SZ-095…103 |
+
+**Kartlar ve Notlar:**
+- **A01 (10 kart):** MÜLKİYET HAKKI (SZ-085, md. 683), BÜTÜNLEYİCİ PARÇA (SZ-086, md. 684), DOĞAL ÜRÜNLER (SZ-087, md. 685), YARARLANMA ANLAŞMASI (SZ-088, md. 689), PAYLAŞMA İSTEMİ (SZ-089, md. 698), TAŞINMAZ MÜLKİYETİ (SZ-090, md. 704), TESCİL İLKESİ (SZ-091, md. 705), RESMÎ ŞEKİL ŞARTI (SZ-092, md. 706), HEYELAN BÖLGESİ (SZ-093, md. 710), OLAĞAN ZAMANAŞIMI (SZ-094, md. 712).
+- **A02 (9 kart):** DİKEY KAPSAM (SZ-095, md. 718), HAKSIZ YAPI (SZ-096, md. 722), ARAZİ DEVRİ İSTEMİ (SZ-097, md. 724), TAŞKIN YAPI (SZ-098, md. 725), TAŞINIR YAPI (SZ-099, md. 728), KOMŞU HAKKI (SZ-100, md. 737), TAŞAN DAL VE KÖKLER (SZ-101, md. 740), MECRA HAKKI (SZ-102, md. 744), ZORUNLU SU HAKKI (SZ-103, md. 761).
+- **İnceleme & Düzeltmeler:** Bağımsız inceleme ajanı tüm kartları kanun metinleriyle iddia iddia denetledi. Yapay "AĞAÇ VE DAL SINIRI" terimi kanun lafzındaki "TAŞAN DAL VE KÖKLER" ile değiştirildi ve orman istisnası eklendi. "MECRA GEÇİRME HAKKI" terimi iki satırda 112 pt tabanını aştığı için "MECRA HAKKI" olarak kısaltıldı ve kamulaştırma istisnası eklendi. Paylaşma isteminde "uygun olmayan zaman" yasağı, resmî şekil şartında ölüme bağlı tasarruf istisnası, tescil ilkesinde işgal ve kamulaştırma kapalı listesi tam metinle yazıldı.
+- **Tipografi & Denetim:** `sozluk_kart_dogrula.py` 19/19 temiz; `gorsel_denetim.py` 226 vaka 0 hata; JS testleri 73/73 yeşil, sözlük unit testleri 106/106 yeşil.
 
 ## Süreç: yazar → bağımsız inceleme → birleştirme
 

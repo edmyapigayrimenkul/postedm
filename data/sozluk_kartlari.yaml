@@ -907,3 +907,193 @@ kartlar:
   mevzuat: 6098 sayılı Kanun md. 353
   dayanak_alintisi: Kiraya veren, en geç davanın açılması için öngörülen sürede dava açacağını kiracıya yazılı olarak bildirmişse, dava açma süresi bir kira yılı için uzamış sayılır.
   kontrol: '2026-10-15'
+- kod: SZ-085
+  terim: MÜLKİYET HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir kimseye sahibi olduğu şey üzerinde hukuk düzeninin sınırları içinde dilediği gibi kullanma, yararlanma ve tasarruf etme yetkisi tanıyan ayni haktır.
+  puf:
+  - Malik, malını haksız olarak elinde bulunduran kimseye karşı doğrudan istihkak davası açabilir.
+  - Malik, mülkiyet hakkına yönelen her türlü haksız elatmanın (müdahalenin) önlenmesini dava edebilir.
+  mevzuat: 4721 sayılı Kanun md. 683
+  dayanak_alintisi: Bir şeye malik olan kimse, hukuk düzeninin sınırları içinde, o şey üzerinde dilediği gibi kullanma, yararlanma ve tasarrufta bulunma yetkisine sahiptir.
+  kontrol: '2026-10-18'
+- kod: SZ-086
+  terim: BÜTÜNLEYİCİ PARÇA
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Yerel âdetlere göre asıl şeyin temel unsuru sayılan ve o şey yok edilmedikçe veya yapısı bozulmadıkça ondan ayrılması mümkün olmayan parçadır.
+  puf:
+  - Asıl şeye malik olan kimse, kanun gereği o şeyin bütünleyici parçalarına da doğrudan malik olur.
+  - Bir unsurun bütünleyici parça sayılıp sayılmayacağı değerlendirilirken yerel âdetler esas alınır.
+  mevzuat: 4721 sayılı Kanun md. 684
+  dayanak_alintisi: Bir şeye malik olan kimse, o şeyin bütünleyici parçalarına da malik olur.
+  kontrol: '2026-10-18'
+- kod: SZ-087
+  terim: DOĞAL ÜRÜNLER
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir şeyden dönemsel olarak elde edilen doğal veya hukukî ürünler ile amaca ve âdete uygun olarak sağlanan diğer verimlerdir.
+  puf:
+  - Bir şeyin maliki, aksine yasal kural veya hak olmadıkça o şeyin ürünlerinin de maliki olur.
+  - Doğal ürünler, asıl şeyden ayrılıncaya kadar onun bütünleyici parçası sayılır ve ona tabi olur.
+  mevzuat: 4721 sayılı Kanun md. 685
+  dayanak_alintisi: Doğal ürünler asıl şeyden ayrılıncaya kadar onun bütünleyici parçasıdır.
+  kontrol: '2026-10-18'
+- kod: SZ-088
+  terim: YARARLANMA ANLAŞMASI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Paylı mülkiyette paydaşların oybirliğiyle malın kullanılması, yararlanılması ve yönetimine ilişkin kanundan farklı kurallar belirledikleri sözleşmedir.
+  puf:
+  - İmzaları noterlikçe onaylanan anlaşma, paydaşlardan birinin başvurusuyla tapu kütüğüne şerh verilebilir.
+  - Eşyanın korunması için zorunlu yönetim işleri ve acil önlem alma hakları anlaşmayla dahi kaldırılamaz.
+  mevzuat: 4721 sayılı Kanun md. 689
+  dayanak_alintisi: Taşınmazlarla ilgili anlaşmalar imzalarının noterlikçe onaylanması koşuluyla paydaşlardan birinin başvurusu üzerine tapu kütüğüne şerh verilebilir.
+  kontrol: '2026-10-18'
+- kod: SZ-089
+  terim: PAYLAŞMA İSTEMİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Paylı mülkiyette her bir paydaşın, kanuni veya sözleşmesel bir engel bulunmadıkça malın paylaşılmasını talep etme hakkıdır.
+  puf:
+  - Taşınmazlarda paylı mülkiyetin devamına ilişkin sözleşmeler resmî şekle bağlıdır ve tapuya şerh verilebilir.
+  - Paylaşmayı isteme hakkı en çok on yıl sınırlandırılabilir; uygun olmayan zamanda paylaşma isteminde bulunulamaz.
+  mevzuat: 4721 sayılı Kanun md. 698
+  dayanak_alintisi: Paylaşmayı isteme hakkı, hukukî bir işlemle en çok on yıllık süre ile sınırlandırılabilir.
+  kontrol: '2026-10-18'
+- kod: SZ-090
+  terim: TAŞINMAZ MÜLKİYETİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kanunen arazi, tapuda ayrı sayfaya kaydedilen bağımsız ve sürekli haklar ile kat mülkiyetine tabi bağımsız bölümler üzerindeki mülkiyettir.
+  puf:
+  - Bağımsız ve sürekli hakların taşınmaz mülkiyetine konu olabilmesi için tapuda ayrı sayfaya kaydı zorunludur.
+  - Kat mülkiyeti kütüğüne kayıtlı bağımsız bölümler de müstakil birer taşınmaz mülkiyeti konusu oluşturur.
+  mevzuat: 4721 sayılı Kanun md. 704
+  dayanak_alintisi: 'Taşınmaz mülkiyetinin konusu şunlardır: 1. Arazi, 2. Tapu kütüğünde ayrı sayfaya kaydedilen bağımsız ve sürekli haklar, 3. Kat mülkiyeti kütüğüne kayıtlı bağımsız bölümler.'
+  kontrol: '2026-10-18'
+- kod: SZ-091
+  terim: TESCİL İLKESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz mülkiyetinin kazanılmasının kural olarak tapu kütüğüne tescil yapılmasıyla gerçekleşeceğini öngören temel ilkedir.
+  puf:
+  - Miras, mahkeme kararı, cebrî icra, işgal ve kamulaştırma hâllerinde mülkiyet tescilden önce kazanılır.
+  - Tescilsiz kazanılan hâllerde de malikin tasarruf işlemi yapabilmesi tapu kütüğüne tescil edilmiş olmasına bağlıdır.
+  mevzuat: 4721 sayılı Kanun md. 705
+  dayanak_alintisi: Taşınmaz mülkiyetinin kazanılması, tescille olur.
+  kontrol: '2026-10-18'
+- kod: SZ-092
+  terim: RESMÎ ŞEKİL ŞARTI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz mülkiyetinin devrini amaçlayan sözleşmelerin geçerli olabilmesi için kanunen resmî şekilde düzenlenmesi zorunluluğudur.
+  puf:
+  - Taşınmaz mülkiyetinin devrini amaçlayan sözleşmeler resmî şekilde düzenlenmiş bulunmadıkça geçerli olmaz.
+  - Ölüme bağlı tasarruflar ve mal rejimi sözleşmeleri, genel resmî şekilden ayrı kendilerine özgü şekillere tabidir.
+  mevzuat: 4721 sayılı Kanun md. 706
+  dayanak_alintisi: Taşınmaz mülkiyetinin devrini amaçlayan sözleşmelerin geçerli olması, resmî şekilde düzenlenmiş bulunmalarına bağlıdır.
+  kontrol: '2026-10-18'
+- kod: SZ-093
+  terim: HEYELAN BÖLGESİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Yetkili makamlarca belirlenen ve arazi kaymasının sınır değişikliğine yol açmayacağı kuralının uygulanmadığı yörelerdeki arazidir.
+  puf:
+  - Heyelan bölgeleri yetkili makamlarca belirlenirken ilgili yöredeki arazinin yapısı doğrudan göz önünde tutulur.
+  - Taşınmazın heyelan bölgesinde bulunduğu ilgililere bildirilir ve tapu kütüğünün beyanlar sütununa resmen yazılır.
+  mevzuat: 4721 sayılı Kanun md. 710
+  dayanak_alintisi: Arazi kaymasının sınır değişikliğine yol açmayacağı ilkesi, yetkili makamlarca heyelân bölgesi olduğu belirlenen yörelerde uygulanmaz.
+  kontrol: '2026-10-18'
+- kod: SZ-094
+  terim: OLAĞAN ZAMANAŞIMI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Geçerli hukuki sebep olmaksızın tapuda malik yazılan kişinin, davasız, aralıksız ve 10 yıl iyiniyetli zilyetlikle mülkiyet kazanmasıdır.
+  puf:
+  - Taşınmaz üzerindeki zilyetliğin davasız ve aralıksız olarak tam on yıl boyunca iyiniyetle sürdürülmesi zorunludur.
+  - Bu şartlar gerçekleştiğinde, kişinin bu yolla kazanmış olduğu taşınmaz mülkiyeti hakkına artık itiraz edilemez.
+  mevzuat: 4721 sayılı Kanun md. 712
+  dayanak_alintisi: Geçerli bir hukukî sebep olmaksızın tapu kütüğüne malik olarak yazılan kişi, taşınmaz üzerindeki zilyetliğini davasız ve aralıksız olarak on yıl süreyle ve iyiniyetle sürdürürse, onun bu yolla kazanmış olduğu mülkiyet hakkına itiraz edilemez.
+  kontrol: '2026-10-18'
+- kod: SZ-095
+  terim: DİKEY KAPSAM
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Arazi üzerindeki mülkiyetin, kullanılmasında yarar olduğu ölçüde arazinin üstündeki hava ve altındaki arz katmanlarını kapsamasıdır.
+  puf:
+  - Mülkiyet hakkı, arazinin üstündeki ve altındaki alanı ancak malikin kullanılmasında yarar olduğu ölçüde kapsar.
+  - Bu mülkiyetin kapsamına, yasal sınırlamalar saklı kalmak üzere yapılar, bitkiler ve kaynaklar da doğrudan girer.
+  mevzuat: 4721 sayılı Kanun md. 718
+  dayanak_alintisi: Arazi üzerindeki mülkiyet, kullanılmasında yarar olduğu ölçüde, üstündeki hava ve altındaki arz katmanlarını kapsar.
+  kontrol: '2026-10-18'
+- kod: SZ-096
+  terim: HAKSIZ YAPI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Kendi arazisindeki yapıda başkasının malzemesini ya da başkasının arazisindeki yapıda malzemenin rızasız kullanılması durumudur.
+  puf:
+  - Rızasız kullanılan malzeme, sökülüp kaldırılıncaya kadar yapının ve arazinin bütünleyici parçası niteliğini alır.
+  - Söküm aşırı zarara yol açmayacaksa, malzeme veya arazi sahibi masrafı yaptırana ait olmak üzere sökme isteyebilir.
+  mevzuat: 4721 sayılı Kanun md. 722
+  dayanak_alintisi: Bir kimse kendi arazisindeki yapıda başkasının malzemesini ya da başkasının arazisindeki yapıda kendisinin veya bir başkasının malzemesini kullanırsa, bu malzeme arazinin bütünleyici parçası olur.
+  kontrol: '2026-10-18'
+- kod: SZ-097
+  terim: ARAZİ DEVRİ İSTEMİ
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Yapının değeri arazi değerinden açıkça fazlaysa, iyiniyetli tarafın uygun bedelle arsa mülkiyetinin devrini isteme yetkisidir.
+  puf:
+  - İyiniyetli olmak koşuluyla devir isteme hakkını hem yapıyı yapan malzeme sahibi hem de arazi maliki kullanabilir.
+  - Devir uygun bir bedel karşılığında; arazinin tamamının veya yapı için yeterli kısmının mülkiyeti verilerek yapılır.
+  mevzuat: 4721 sayılı Kanun md. 724
+  dayanak_alintisi: Yapının değeri açıkça arazinin değerinden fazlaysa, iyiniyetli taraf uygun bir bedel karşılığında yapının ve arazinin tamamının veya yeterli bir kısmının mülkiyetinin malzeme sahibine verilmesini isteyebilir.
+  kontrol: '2026-10-18'
+- kod: SZ-098
+  terim: TAŞKIN YAPI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Bir taşınmaz üzerinde inşa edilen yapının, bitişikteki komşu taşınmazın sınırını ve alanını aşarak inşa edilmesidir.
+  puf:
+  - Taşırılan arazi üzerinde geçerli bir irtifak hakkı varsa, taşan kısım yapıyı yapanın taşınmazının parçası olur.
+  - Komşu 15 günde itiraz etmezse; iyiniyetli yapan, uygun bedelle irtifak veya mülkiyet devri talep edebilir.
+  mevzuat: 4721 sayılı Kanun md. 725
+  dayanak_alintisi: Bir yapının başkasına ait araziye taşırılan kısmı, eğer yapıyı yapan malik taşırılan arazi üzerinde bir irtifak hakkına sahip bulunuyorsa, ona ait taşınmazın bütünleyici parçası olur.
+  kontrol: '2026-10-18'
+- kod: SZ-099
+  terim: TAŞINIR YAPI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Başkasının arazisi üzerinde kalıcı olması amaçlanmaksızın kurulan kulübe, büfe, çardak ve baraka gibi hafif yapılardır.
+  puf:
+  - Kalıcı olması amaçlanmayan hafif yapılar arazinin parçası sayılmaz; doğrudan bunları yapan malikine aittir.
+  - Bu tür yapılar taşınır mal hükümlerine tabi olur ve tapu kütüğüne tescil edilmez veya gösterilmez.
+  mevzuat: 4721 sayılı Kanun md. 728
+  dayanak_alintisi: Başkasının arazisi üzerinde kalıcı olması amaçlanmaksızın yapılan kulübe, büfe, çardak, baraka ve benzeri hafif yapılar, bunların malikine aittir.
+  kontrol: '2026-10-18'
+- kod: SZ-100
+  terim: KOMŞU HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Taşınmaz malikinin mülkünü kullanırken veya işletirken komşularını olumsuz etkileyecek taşkınlıklardan kaçınma borcudur.
+  puf:
+  - Yerel âdete göre hoş görülebilecek dereceyi aşan duman, buğu, kurum, toz, koku, gürültü veya sarsıntı yasaktır.
+  - Yerel âdete uygun ve kaçınılmaz taşkınlıklardan doğan denkleştirme (tazminat) hakları saklıdır.
+  mevzuat: 4721 sayılı Kanun md. 737
+  dayanak_alintisi: Herkes, taşınmaz mülkiyetinden doğan yetkileri kullanırken ve özellikle işletme faaliyetini sürdürürken, komşularını olumsuz şekilde etkileyecek taşkınlıktan kaçınmakla yükümlüdür.
+  kontrol: '2026-10-18'
+- kod: SZ-101
+  terim: TAŞAN DAL VE KÖKLER
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Komşu parselden araziye taşarak zarar veren ağaç dalı veya köklerinin kaldırılmasını isteme ve sahiplenme yetkisidir.
+  puf:
+  - Zarar veren dal ve kökler isteme rağmen uygun sürede kaldırılmazsa, komşu bunları kesip mülkiyetine geçirebilir.
+  - Taşmaya katlanan komşu bu dallardaki meyveleri toplayabilir; ancak komşu ormanlar hakkında bu kural uygulanmaz.
+  mevzuat: 4721 sayılı Kanun md. 740
+  dayanak_alintisi: Komşunun arazisine taşarak zarar veren dal ve kökler, onun istemi üzerine uygun bir süre içinde kaldırılmazsa, komşu bu dal ve kökleri kesip kendi mülkiyetine geçirebilir.
+  kontrol: '2026-10-18'
+- kod: SZ-102
+  terim: MECRA HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Zorunlu hatların araziden geçirilmesine katlanma ve bu hakkı tapu kütüğüne irtifak olarak tescil ettirme yetkisidir.
+  puf:
+  - Arazisinden hat geçirilen malikin uğrayacağı zararın tamamının önceden ve tam olarak ödenmesi şarttır.
+  - Hak sahibinin istemi ve giderleri ödemesiyle tescil edilir; kamulaştırmaya tabi mecralara bu kural uygulanmaz.
+  mevzuat: 4721 sayılı Kanun md. 744
+  dayanak_alintisi: Mecrayı geçirme hakkı, hak sahibinin istemi üzerine ve giderleri ödemesi koşuluyla tapu kütüğüne tescil edilir.
+  kontrol: '2026-10-18'
+- kod: SZ-103
+  terim: ZORUNLU SU HAKKI
+  kategori_kodu: TAPU_VE_HUKUK
+  tanim: Gerekli sudan yoksun olan taşınmaz malikinin, bedeli karşılığında komşusunun fazla suyundan irtifakla yararlanma hakkıdır.
+  puf:
+  - Zorunlu su irtifakının kurulmasında öncelikle kaynak sahibinin menfaati ve ihtiyacı gözetilir.
+  - Durum ve koşullar değiştiğinde kurulmuş su irtifakının değiştirilmesi veya kaldırılması istenebilir.
+  mevzuat: 4721 sayılı Kanun md. 761
+  dayanak_alintisi: Evi, arazisi veya işletmesi için gerekli sudan yoksun olup, bunu aşırı zahmet ve gidere katlanmaksızın başka yoldan sağlayamayan taşınmaz maliki, komşusundan, onun ihtiyacından fazla olan suyu tam bir bedel karşılığında almasını sağlayacak bir irtifak kurulmasını isteyebilir.
+  kontrol: '2026-10-18'

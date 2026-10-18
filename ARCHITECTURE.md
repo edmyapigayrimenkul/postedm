@@ -86,7 +86,7 @@ Sırayı kullanıcı belirler; aşağıdaki liste devir anındaki durumdur ve ye
 | Paylaşım · kapı | `gorsel_sec:N` hedefi taslak işlemi sayılmıyor, yayın kapısından geçiyor; "zaten yayında" kanal için "Tekrar dene" düğmesi çıkabiliyor (zararsız) | MEMORY.md §10 madde 14 |
 | Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
 | İçerik · finans | Finans bülteni ayrı tasarım değil, standart carousel (kullanıcı "şimdilik tamam"); elle de onaysız yayın. İstenirse finansa özgü görsel (oran vurgusu, rakam kutusu) ve elle tetiklemede onay kartı | MEMORY.md §10 madde 21 |
-| İçerik · sözlük | Dalga 2 tamamlandı (A12 15 kart, A16_revize 3 kart, SZ-007 güncellendi). Arşiv 84 kart (77 yayınlanmamış; 154 gün stok), hedef 365 kart | SOZLUK-KART-URETIMI.md |
+| İçerik · sözlük | Dalga 3 tamamlandı (A01 10 kart, A02 9 kart). Arşiv 103 kart (94 yayınlanmamış; 188 gün stok), hedef 365 kart | SOZLUK-KART-URETIMI.md |
 | Mimari | Faz 3 (`make_image.py` 4107 satır: ortak çizim çekirdeği + biçim başına dosya, piksel karşılaştırmalı altın görseller), Faz 4 (`db.py` depo başına modül) | Bu belge §4 tablo |
 | Güvenlik / gizlilik | Depo PUBLIC (doğrulandı 2026-10-13): DB'deki taslaklar ve grup kimliği görünür. Kararı §5'e göre (özel ikinci depo ya da depoyu özel yapmak) | MEMORY.md §10 madde 24 |
 
