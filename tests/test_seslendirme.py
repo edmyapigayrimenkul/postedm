@@ -117,7 +117,8 @@ class TestSesSecimi(unittest.TestCase):
         self.assertIn(config.ayar_al("seslendirme.ses_id"), url)
         self.assertNotIn("ESKI_ADAM_SESI", url)  # ortam değişkeni seçimi ezmez
         self.assertEqual(govde["voice_settings"], config.ayar_al("seslendirme.ayarlar"))
-        self.assertEqual(govde["text"], "Hazreti Ali beş binde bir ölçekli planı açıkladı.")
+        self.assertIn("Hazreti Ali beş binde bir ölçekli planı açıkladı.", govde["text"])
+        self.assertIn("[serious, news anchor]", govde["text"])
 
     @patch("src.ses.time.sleep")
     @patch("src.ses.ses_suresi_ogren", return_value=3.0)
@@ -134,6 +135,24 @@ class TestSesSecimi(unittest.TestCase):
         with patch("src.ses.config.env_al", side_effect=self._env):
             self.assertIsNone(ses.metin_seslendir("Deneme metni.", cikti_yolu=self.cikti))
         self.assertEqual(post.call_count, 1)
+
+    @patch("src.ses.requests.post")
+    def test_elevenlabs_kota_bitince_fish_audio_devreye_girer(self, post):
+        # 1. çağrı ElevenLabs 402, 2. çağrı Fish Audio 200
+        post.side_effect = [
+            self._yanit(402, b"", "quota_exceeded"),
+            self._yanit(200, b"f" * 600, ""),
+        ]
+        def env_with_fish(k, v=""):
+            if k == "FISH_AUDIO_API_KEY":
+                return "fake_fish_key"
+            return self._env(k, v)
+
+        with patch("src.ses.config.env_al", side_effect=env_with_fish):
+            sonuc = ses.metin_seslendir("Deneme metni.", cikti_yolu=self.cikti)
+        self.assertEqual(sonuc, self.cikti)
+        self.assertEqual(ses.son_kullanilan_motor(), "Fish Audio")
+        self.assertIn("api.fish.audio", post.call_args_list[1][0][0])
 
 
 class TestSureler(unittest.TestCase):

@@ -1176,3 +1176,17 @@ def tek_harfleri_belirginlestir(metin: str) -> str:
     """
     return re.sub(r"(?<![\w'’\"-])([A-ZÇĞİÖŞÜ])(?=[ \t,.;:!?]|-\d|$)", r'"\1"', metin or "")
 
+
+def ses_icin_kesme_kaynat(metin: str) -> str:
+    """ElevenLabs ve TTS motorları için özel isimlerdeki kesme işaretlerini kaynaştırır.
+
+    ElevenLabs kesme işaretini ("Aksoy'un", "Silivri'de") duraksama / tırnak olarak algılayıp
+    eki tek başına ayrı bir kelime gibi okur. Küçük harfle biten kelimelerde
+    kesme işareti kaldırılarak ek gövdeye kaynaştırılır ("Aksoy'un" -> "Aksoyun").
+    Büyük harfli kısaltmalar ("TBMM'de", "KDV'li") harf harf okunsun diye korunur.
+    """
+    if not metin:
+        return ""
+    return re.sub(rf"(?<=[{_KUCUK}])['’](?=[{_KUCUK}])", "", metin)
+
+
