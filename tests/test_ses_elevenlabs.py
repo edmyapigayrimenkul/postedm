@@ -67,6 +67,82 @@ class TestSesElevenLabs(unittest.TestCase):
         # 402 durumunda break yaptığı için yalnızca 1 kere çağrılmalı
         self.assertEqual(mock_post.call_count, 1)
 
+    @patch("src.ses.requests.post")
+    @patch("src.ses.config.env_al")
+    def test_metin_seslendir_elevenlabs_kota_bitti_fish_audio_devreye_girer(self, mock_env, mock_post):
+        """ElevenLabs kota hatası (402) aldığında Fish Audio fallback motoruna geçmeli."""
+        def fake_env(anahtar):
+            if anahtar == "ELEVENLABS_API_KEY":
+                return "fake_el_key"
+            if anahtar == "FISH_AUDIO_API_KEY":
+                return "fake_fish_key"
+            return None
+        mock_env.side_effect = fake_env
+
+        resp_el = MagicMock(status_code=402, text="Quota exceeded", content=b"")
+        resp_fish = MagicMock(status_code=200, content=b"fake fish audio mp3 content" * 30)
+        mock_post.side_effect = [resp_el, resp_fish]
+
+        cikti = self.tmp_path / "test_fallback.mp3"
+        res = ses.metin_seslendir("Hisseli tapu devri hakkında bilgi.", cikti_yolu=cikti)
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res, cikti)
+        self.assertEqual(ses.son_kullanilan_motor(), "Fish Audio")
+        self.assertEqual(mock_post.call_count, 2)
+        # 2. çağrı Fish Audio endpoint'ine gitmeli
+        ikinci_cagri_url = mock_post.call_args_list[1][0][0]
+        self.assertIn("api.fish.audio", ikinci_cagri_url)
+
+    @patch("src.ses.requests.post")
+    @patch("src.ses.config.env_al")
+    def test_metin_seslendir_elevenlabs_yoksa_dogrudan_fish_audio(self, mock_env, mock_post):
+        """ELEVENLABS_API_KEY tanımlı değilse doğrudan Fish Audio denenmeli."""
+        mock_env.side_effect = lambda k: "fake_fish_key" if k == "FISH_AUDIO_API_KEY" else None
+
+        resp_fish = MagicMock(status_code=200, content=b"fake fish audio content" * 30)
+        mock_post.return_value = resp_fish
+
+        cikti = self.tmp_path / "test_fish_only.mp3"
+        res = ses.metin_seslendir("Silivri arsa rayiç bedeli.", cikti_yolu=cikti)
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res, cikti)
+        self.assertEqual(ses.son_kullanilan_motor(), "Fish Audio")
+        self.assertEqual(mock_post.call_count, 1)
+        self.assertIn("api.fish.audio", mock_post.call_args[0][0])
+
+    @patch("src.ses.requests.post")
+    @patch("src.ses.config.env_al")
+    def test_metin_seslendir_ozel_isim_kesme_isareti_kaynastirilir(self, mock_env, mock_post):
+        """Özel isimlerdeki kesme işaretleri TTS için kaynaştırılmalı ("Aksoy'un" -> "Aksoyun")."""
+        mock_env.side_effect = lambda k: "fake_el_key" if k == "ELEVENLABS_API_KEY" else None
+        fake_resp = MagicMock(status_code=200, content=b"fake content" * 50)
+        mock_post.return_value = fake_resp
+
+        cikti = self.tmp_path / "test_kesme.mp3"
+        with patch("src.ses.ses_suresi_ogren", return_value=5.0):
+            ses.metin_seslendir("Ahmet Aksoy'un kararı Silivri'de açıklandı.", cikti_yolu=cikti)
+
+        self.assertEqual(mock_post.call_count, 1)
+        gonderilen_metin = mock_post.call_args[1]["json"]["text"]
+        self.assertIn("Ahmet Aksoyun kararı Silivride açıklandı.", gonderilen_metin)
+        self.assertNotIn("Aksoy'un", gonderilen_metin)
+        self.assertNotIn("Silivri'de", gonderilen_metin)
+
+    def test_ses_etiketi_sec_tur_ve_kelimeler(self):
+        """ses_etiketi_sec içerik türü ve anahtar kelimelere göre doğru audio tag üretmeli."""
+        # Kriz / risk / dava kelimeleri -> serious
+        kriz_veri = {"format_turu": "sozluk", "terim": "Kaçak Yapı Yıkım Kararı", "tanim": "Riskli yapı tespiti"}
+        self.assertEqual(ses.ses_etiketi_sec(kriz_veri), "[serious, news anchor]")
+
+        # Normal sözlük -> confident
+        sozluk_veri = {"format_turu": "sozluk", "terim": "Kat İrtifakı", "tanim": "Yapılmakta olan bina üzerinde kurulan irtifak hakkı"}
+        self.assertEqual(ses.ses_etiketi_sec(sozluk_veri), "[confident, professional]")
+
+        # Boş / None veri -> varsayılan
+        self.assertEqual(ses.ses_etiketi_sec(None), "[serious, news anchor]")
+
     @patch("src.ses.subprocess.run")
     def test_sesli_video_hazirla_cift_kanal(self, mock_run):
         """Hem voiceover hem fon müziği verildiğinde amix ile çift kanal mikslemeli."""

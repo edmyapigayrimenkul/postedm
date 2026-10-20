@@ -84,11 +84,129 @@ def ses_sec(tercih: Optional[str] = None) -> Optional[Path]:
     if mevcutlar:
         return random.choice(mevcutlar)
 
-DEFAULT_ELEVENLABS_VOICE_ID = "KediIz7pebzt5TaDHiiZ"  # Alex — Instabot ana sesi (derin, epik, güçlü bariton)
+DEFAULT_ELEVENLABS_VOICE_ID = "KAGDtM2gzDrjWlUp2KNe"  # Ana haber spikeri — eleven_v4 doğal Türkçe spiker tonu
+DEFAULT_FISH_VOICE_ID = "a6d624c6b8de45d2b89eb0da9a691872"  # Mazlum Kiper sesi (tok, vakur Türkçe haber/anlatıcı)
+
+SON_KULLANILAN_MOTOR: str = "ElevenLabs"
+
+
+def son_kullanilan_motor() -> str:
+    """Son başarılı seslendirmede kullanılan TTS motorunu döner ('ElevenLabs' veya 'Fish Audio')."""
+    return SON_KULLANILAN_MOTOR
 
 
 def _ses_ayari(anahtar: str, varsayilan: Any = None) -> Any:
     return config.ayar_al(f"seslendirme.{anahtar}", varsayilan)
+
+
+def _hizlandir_atempo(ses_yolu: Path, hiz: float) -> None:
+    """
+    ElevenLabs v4/v3 modellerinde speed parametresi bazen API tarafında yok sayıldığından,
+    üretilen MP3'ü FFmpeg atempo filtresiyle tonu (pitch) bozmadan hedef hıza getirir.
+    """
+    if not ses_yolu.exists() or abs(hiz - 1.0) <= 0.01:
+        return
+    gecici = ses_yolu.with_name(f"{ses_yolu.stem}_atempo{ses_yolu.suffix}")
+    try:
+        r = subprocess.run(
+            [
+                imageio_ffmpeg.get_ffmpeg_exe(), "-y",
+                "-i", str(ses_yolu),
+                "-filter:a", f"atempo={hiz:.2f}",
+                "-c:a", "libmp3lame", "-q:a", "2",
+                str(gecici),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if r.returncode == 0 and gecici.exists() and gecici.stat().st_size > 500:
+            gecici.replace(ses_yolu)
+        else:
+            gecici.unlink(missing_ok=True)
+    except Exception as e:
+        log.debug("atempo hızlandırma uygulanamadı (%s): %s", ses_yolu.name, e)
+        gecici.unlink(missing_ok=True)
+
+
+def ses_etiketi_sec(veri: Optional[Dict[str, Any]] = None) -> str:
+    """
+    ElevenLabs v4/v3 için içeriğin türüne ve konusuna göre cümle başı
+    performans etiketini (Audio Tag) seçer.
+    Cümle ortasında etiket değiştirilmez (ton kırılmasını önlemek için).
+    """
+    if not veri or not isinstance(veri, dict):
+        return "[serious, news anchor]"
+
+    tur = str(veri.get("format_turu") or veri.get("format") or veri.get("bicim") or "").lower()
+    manset = str(veri.get("manset") or veri.get("terim") or veri.get("soru") or "").lower()
+    metin = f"{manset} {str(veri.get('spot') or veri.get('tanim') or '')}".lower()
+
+    # Kriz, dava, ceza, yıkım, tahliye, haciz veya riskli durumlarda vakur/ciddi spiker tonu
+    kriz_kelimeleri = (
+        "ceza", "haciz", "tahliye", "yıkım", "dava", "iptal", "dolandır",
+        "mağdur", "kaçak", "mühür", "risk", "tehlike", "ihtar", "uyarı",
+    )
+    if any(k in metin for k in kriz_kelimeleri):
+        return "[serious, news anchor]"
+
+    # Sözlük, nedir doğrusu, rehber içeriklerinde güven veren, profesyonel anlatıcı
+    if tur in ("sozluk", "nedir_dogrusu", "dogrusu", "net_cevap", "soru", "rehber"):
+        return "[confident, professional]"
+
+    return "[serious, news anchor]"
+
+
+def fish_audio_seslendir(
+    metin: str,
+    cikti_yolu: Optional[Path] = None,
+    hiz: Optional[float] = None,
+) -> Optional[Path]:
+    """Metni Fish Audio S2.1 ile seslendirir (ElevenLabs yedeği / fallback)."""
+    fish_key = config.env_al("FISH_AUDIO_API_KEY")
+    if not fish_key:
+        return None
+
+    fish_voice_id = (
+        _ses_ayari("fish_voice_id")
+        or config.env_al("FISH_AUDIO_VOICE_ID")
+        or DEFAULT_FISH_VOICE_ID
+    )
+
+    if cikti_yolu is None:
+        cikti_yolu = config.yol_al(f"data/output/ses_fish_{os.getpid()}_{int(time.time() * 1000)}.mp3")
+    cikti_yolu = Path(cikti_yolu)
+    cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
+
+    ayarlar = dict(_ses_ayari("ayarlar", {}) or {})
+    hiz_deger = hiz if hiz is not None else float(ayarlar.get("speed", 1.15) or 1.15)
+
+    headers = {
+        "Authorization": f"Bearer {fish_key}",
+        "Content-Type": "application/json",
+        "model": "s2.1-pro-free",
+    }
+    payload = {
+        "text": metin,
+        "reference_id": fish_voice_id,
+        "format": "mp3",
+        "prosody": {"speed": hiz_deger},
+    }
+
+    for deneme in range(1, 3):
+        try:
+            log.info("Fish Audio TTS çağrılıyor (deneme %d/2, ses_id: %s)...", deneme, fish_voice_id)
+            r = requests.post("https://api.fish.audio/v1/tts", headers=headers, json=payload, timeout=45)
+            if r.status_code == 200 and len(r.content) > 500:
+                cikti_yolu.write_bytes(r.content)
+                log.info("Fish Audio seslendirme başarılı: %s (boyut: %d bayt)", cikti_yolu.name, len(r.content))
+                return cikti_yolu
+            log.warning("Fish Audio TTS hatası (deneme %d/2) [%s]: %s", deneme, r.status_code, r.text[:120])
+        except Exception as e:
+            log.warning("Fish Audio TTS isteği başarısız (deneme %d/2): %s", deneme, e)
+        if deneme < 2:
+            time.sleep(2)
+
+    return None
 
 
 def ses_suresi_ogren(ses_yolu: Path | str) -> float:
@@ -118,62 +236,101 @@ def metin_seslendir(
     ses_id: Optional[str] = None,
     cikti_yolu: Optional[Path] = None,
     hiz: Optional[float] = None,
+    ton_etiketi: Optional[str] = None,
 ) -> Optional[Path]:
-    """Metni ElevenLabs ile seslendirir (ses ve ayarlar config.yaml › seslendirme).
+    """Metni ElevenLabs veya Fish Audio ile seslendirir (ses ve ayarlar config.yaml › seslendirme).
 
     Metin önce okunus.okunusa_cevir'den geçer: "Hz." hazreti, "1/5000" beş binde
-    bir, "KDV" ka de ve okunur. Seçilen ses kütüphaneden kalkmışsa yedek sese
-    düşülür; yetki ya da kota hatasında (401/402) beklemeden vazgeçilir.
+    bir, "KDV" ka de ve okunur; okunus.ses_icin_kesme_kaynat ile özel isim kesme
+    işaretleri birleştirilir ("Aksoy'un" -> "Aksoyun").
+    Öncelikle ElevenLabs denenir; yetki/kota hatasında (401/402/invalid_api_key) veya
+    ElevenLabs anahtarı yoksa Fish Audio S2.1 fallback motoruna geçilir.
     """
-    api_key = config.env_al("ELEVENLABS_API_KEY")
-    if not api_key:
-        log.warning("ELEVENLABS_API_KEY bulunamadı, seslendirme atlanıyor.")
+    global SON_KULLANILAN_MOTOR
+    ham_metin = (metin or "").strip()
+    if not ham_metin:
         return None
 
-    # Okunuş, sonra tek harfin tırnağı ("A Milli Takım": düz "A" çok hızlı okunuyordu — ölçüldü)
-    temiz_metin = okunus.tek_harfleri_belirginlestir(okunus.okunusa_cevir(metin or ""))
+    # Başta hazır [...] etiketi varsa okunuş dönüşümünden önce ayır
+    bas_etiket = ton_etiketi
+    m_etiket = re.match(r"^(\[[^\]]+\])\s*(.*)$", ham_metin, flags=re.DOTALL)
+    if m_etiket:
+        bas_etiket = bas_etiket or m_etiket.group(1).strip()
+        ham_metin = m_etiket.group(2).strip()
+
+    # Okunuş, sonra tek harfin tırnağı ve özel isim kesme kaynaştırması
+    temiz_metin = okunus.tek_harfleri_belirginlestir(okunus.okunusa_cevir(ham_metin))
+    temiz_metin = okunus.ses_icin_kesme_kaynat(temiz_metin)
     if not temiz_metin:
         return None
-
-    # ELEVENLABS_VOICE_ID ortam değişkeni bilerek okunmuyor: yereldeki eski değer
-    # config.yaml'daki seçimi sessizce geri çeviriyordu. Tek kaynak config.yaml.
-    sesler = [s for s in dict.fromkeys([ses_id, _ses_ayari("ses_id"), _ses_ayari("yedek_ses_id"),
-                                        DEFAULT_ELEVENLABS_VOICE_ID]) if s]
-    ayarlar = dict(_ses_ayari("ayarlar", {}) or {})
-    if hiz:
-        ayarlar["speed"] = hiz
 
     if cikti_yolu is None:
         cikti_yolu = config.yol_al(f"data/output/ses_{os.getpid()}_{int(time.time() * 1000)}.mp3")
     cikti_yolu = Path(cikti_yolu)
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
 
-    headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
-    for el_voice_id in sesler:
-        payload = {
-            "text": temiz_metin,
-            "model_id": _ses_ayari("model", "eleven_multilingual_v2"),
-            "voice_settings": ayarlar,
-            "language_code": "tr",
-        }
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{el_voice_id}"
-        for deneme in range(1, 4):
-            try:
-                log.info("🎙️ ElevenLabs TTS (deneme %d/3) [ses: %s]: %s...", deneme, el_voice_id, temiz_metin[:45])
-                resp = requests.post(url, headers=headers, json=payload, timeout=45)
-                if resp.status_code == 200 and len(resp.content) > 500:
-                    cikti_yolu.write_bytes(resp.content)
-                    log.info("ElevenLabs sesi üretildi: %s (%.1f sn)", cikti_yolu.name, ses_suresi_ogren(cikti_yolu))
-                    return cikti_yolu
-                log.warning("ElevenLabs API hatası (deneme %d/3) [%s]: %s", deneme, resp.status_code, resp.text[:120])
-                if resp.status_code in (401, 402):
-                    return None  # yetki/kota: başka ses denemek de aynı hatayı alır
-                if resp.status_code in (400, 404) and "voice" in resp.text.lower():
-                    break  # ses kütüphaneden kalkmış: yedek sese geç
-            except Exception as e:
-                log.warning("ElevenLabs ağ/istek istisnası (deneme %d/3): %s", deneme, e)
-            if deneme < 3:
-                time.sleep(1.5 * deneme)
+    api_key = config.env_al("ELEVENLABS_API_KEY")
+    if api_key:
+        sesler = [s for s in dict.fromkeys([
+            ses_id,
+            _ses_ayari("ses_id"),
+            _ses_ayari("yedek_ses_id"),
+            DEFAULT_ELEVENLABS_VOICE_ID,
+        ]) if s]
+        ayarlar = dict(_ses_ayari("ayarlar", {}) or {})
+        if hiz is not None:
+            ayarlar["speed"] = hiz
+
+        model_id = str(_ses_ayari("model", "eleven_multilingual_v2") or "eleven_multilingual_v2")
+        v4_etiketli_mi = model_id.startswith(("eleven_v4", "eleven_v3"))
+        aktif_etiket = (bas_etiket or "[serious, news anchor]").strip()
+        el_metin = f"{aktif_etiket} {temiz_metin}" if (v4_etiketli_mi and aktif_etiket) else temiz_metin
+
+        hiz_deger = hiz if hiz is not None else float(ayarlar.get("speed", 1.15) or 1.15)
+
+        headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
+        for el_voice_id in sesler:
+            payload = {
+                "text": el_metin,
+                "model_id": model_id,
+                "voice_settings": ayarlar,
+                "language_code": "tr",
+            }
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{el_voice_id}"
+            kota_bitti = False
+            for deneme in range(1, 4):
+                try:
+                    log.info("🎙️ ElevenLabs TTS (deneme %d/3) [ses: %s]: %s...", deneme, el_voice_id, temiz_metin[:45])
+                    resp = requests.post(url, headers=headers, json=payload, timeout=45)
+                    if resp.status_code == 200 and len(resp.content) > 500:
+                        cikti_yolu.write_bytes(resp.content)
+                        if v4_etiketli_mi and abs(hiz_deger - 1.0) > 0.01:
+                            _hizlandir_atempo(cikti_yolu, hiz_deger)
+                        log.info("ElevenLabs sesi üretildi: %s (%.1f sn, boyut: %d bayt)", cikti_yolu.name, ses_suresi_ogren(cikti_yolu), len(resp.content))
+                        SON_KULLANILAN_MOTOR = "ElevenLabs"
+                        return cikti_yolu
+                    log.warning("ElevenLabs API hatası (deneme %d/3) [%s]: %s", deneme, resp.status_code, resp.text[:120])
+                    if resp.status_code in (401, 402) or (resp.status_code == 400 and "invalid_api_key" in resp.text):
+                        log.warning("ElevenLabs kimlik/kota hatası (%s): Fish Audio fallback deneniyor.", resp.status_code)
+                        kota_bitti = True
+                        break  # yetki/kota: başka ElevenLabs sesi denemek yerine Fish Audio'ya geç
+                    if resp.status_code in (400, 404) and "voice" in resp.text.lower():
+                        break  # ses kütüphaneden kalkmış: yedek sese geç
+                except Exception as e:
+                    log.warning("ElevenLabs ağ/istek istisnası (deneme %d/3): %s", deneme, e)
+                if deneme < 3:
+                    time.sleep(1.5 * deneme)
+            if kota_bitti:
+                break
+    else:
+        log.info("ELEVENLABS_API_KEY yok veya bulunamadı, Fish Audio fallback deneniyor.")
+
+    # 2. Aşama: Fish Audio Fallback Motoru (etiketsiz saf Türkçe metin gönderilir)
+    fish_yol = fish_audio_seslendir(temiz_metin, cikti_yolu=cikti_yolu, hiz=hiz)
+    if fish_yol:
+        SON_KULLANILAN_MOTOR = "Fish Audio"
+        return fish_yol
+
     return None
 
 
@@ -298,7 +455,8 @@ def anlatimli_video_uret(
     kapak_sesi = cagri_sesi = None
     try:
         metin = kapak_seslendirme_metni(veri)
-        kapak_sesi = metin_seslendir(metin) if metin else None
+        etiket = ses_etiketi_sec(veri)
+        kapak_sesi = metin_seslendir(metin, ton_etiketi=etiket) if metin else None
         cagri = kapanis_cagrisi(veri) if kapak_sesi else None
         cagri_sesi = _onbellekli_seslendir(cagri) if cagri else None
     except Exception as e:
@@ -323,6 +481,7 @@ def anlatimli_video_uret(
 
     if sonuc is not None:
         sonuc["anlatim"] = bool(kapak_sesi)
+        sonuc["tts_motoru"] = son_kullanilan_motor() if kapak_sesi else None
 
     sessiz_gecici = config.yol_al(f"data/output/gecici_anlatim_{os.getpid()}_{int(time.time() * 1000)}.mp4")
     sessiz = video.slaytlardan_reels_uret(slayt_yollari, cikti_yolu=sessiz_gecici, slayt_sureleri=sureler, haber=veri)
@@ -332,6 +491,7 @@ def anlatimli_video_uret(
     anlatim = _anlatim_izi(parcalar, sum(sureler), Path(sessiz).with_name(f"{Path(sessiz).stem}_anlatim.wav")) if parcalar else None
     if sonuc is not None:
         sonuc["anlatim"] = bool(anlatim)
+        sonuc["tts_motoru"] = son_kullanilan_motor() if anlatim else None
 
     son_hedef = cikti_yolu or config.yol_al(f"data/output/video_{os.getpid()}.mp4")
     karisik = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20, muzik=muzik, hedef_yol=son_hedef)

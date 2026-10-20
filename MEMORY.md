@@ -484,6 +484,13 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Birleştirme & Arşiv Büyüklüğü:** `scripts/sozluk_kart_birlestir.py` ile 18 kart arşive eklendi (`SZ-122`..`SZ-139`). Arşiv **121'den 139 karta çıktı (130'u hiç yayınlanmamış; iki günde bir yayınla ≈260 günlük / 8.5+ aylık stok!)**.
     * **Testler & Doğrulamalar:** `sozluk_kart_dogrula.py` 18/18 temiz. `gorsel_denetim.py` 226 vaka 0 hata. JS testleri 73/73 OK. Sözlük unit testleri 178/178 OK.
 
+31. **ElevenLabs v4 ve Fish Audio S2.1 Fallback TTS Motoru Entegrasyonu (Instabot Paritesi) — 2026-10-20 (Gemini).**
+    * **Ne yapıldı:** `instabot` projesindeki ElevenLabs v4 Audio Tag / `atempo` hızlandırma ve Fish Audio S2.1 (`api.fish.audio/v1/tts`) fallback motoru altyapısı `postedm`'e uyarlandı.
+    * **`src/okunus.py`:** `ses_icin_kesme_kaynat` fonksiyonu eklendi; ElevenLabs'in kesme işaretlerini duraksama veya ayrı kelime algılayıp ekleri kopuk okuması önlendi ("Aksoy'un" -> "Aksoyun", "Silivri'de" -> "Silivride"). Kısaltmalar ("TBMM'de") korundu.
+    * **`src/ses.py`:** `fish_audio_seslendir`, `_hizlandir_atempo`, `ses_etiketi_sec`, `son_kullanilan_motor()` eklendi. `metin_seslendir` ElevenLabs'te 401/402 kota veya yetki hatası aldığında döngüde beklemeden ve gereksiz diğer ElevenLabs seslerini denemeden anında Fish Audio S2.1 motoruna fallback yapıyor; anahtar yoksa da doğrudan Fish Audio deneniyor. Üretilen seste son kullanılan motor takip ediliyor.
+    * **`config.yaml`:** Kullanıcı talimatıyla Instabot ses ayarları birebir kopyalandı (`ses_id: "KAGDtM2gzDrjWlUp2KNe"` Ana haber spikeri, `yedek_ses_id: "KediIz7pebzt5TaDHiiZ"` Alex, `fish_voice_id: "a6d624c6b8de45d2b89eb0da9a691872"` Mazlum Kiper, `model: "eleven_v4"`, `speed: 1.22`).
+    * **Testler & Doğrulamalar:** `tests/test_ses_elevenlabs.py` (13 test OK), `tests/test_seslendirme.py` (22 test OK), `tests/test_okunus.py` (10 test OK), `tests/test_sesli_yayin.py` (17 test OK), `tests/test_instabot_yeni_moduller.py` ve güvenlik sözleşmesi testleri OK, JS worker testleri 73/73 OK.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.
