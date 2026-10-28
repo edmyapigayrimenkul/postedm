@@ -26,6 +26,8 @@ Tüm entegrasyonlar **%100 EDM Yapı & Gayrimenkul adına sıfırdan ve müstaki
 | **Facebook** | `Edm Yapi & Gayrimenkul` | Sayfa ID: `145361567360773` | ✅ Aktif (Kalıcı Süresiz Sayfa Tokeni) |
 | **Threads** | `@edmyapigayrimenkul` | User ID: `28138648412457225` | ✅ Aktif (Meta Long-Lived Token - 60 Günlük) |
 | **YouTube Shorts** | `@edmyapigayrimenkul` | Kanal: Metin Özdoğan | ✅ Aktif (Google Cloud EDM Projesi `refresh_token`) |
+| **TikTok** | `@edmyapigayrimenkul` | Creator Content API | ✅ Aktif (`TIKTOK_ACCESS_TOKEN`) |
+| **LinkedIn** | `EDM Yapı&Gayrimenkul` | Org ID: `67226326` | ✅ Aktif (Community Management API - 60 Günlük OAuth) |
 | **Telegram Botu** | `@PostEdmBot` | Grup: `EDM Social Media` (`-1003984339543`) | ✅ Aktif (Onay & Önizleme Merkezi) |
 | **AI Motoru** | Gemini 3.5 Flash | Kurumsal Ton Promptu | ✅ Aktif (`GEMINI_API_KEY`) |
 | **Görsel Barındırma** | ImgBB & Catbox | 4:5 Slayt Yükleyici | ✅ Aktif (`IMGBB_API_KEY`) |
@@ -490,6 +492,39 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **`src/ses.py`:** `fish_audio_seslendir`, `_hizlandir_atempo`, `ses_etiketi_sec`, `son_kullanilan_motor()` eklendi. `metin_seslendir` ElevenLabs'te 401/402 kota veya yetki hatası aldığında döngüde beklemeden ve gereksiz diğer ElevenLabs seslerini denemeden anında Fish Audio S2.1 motoruna fallback yapıyor; anahtar yoksa da doğrudan Fish Audio deneniyor. Üretilen seste son kullanılan motor takip ediliyor.
     * **`config.yaml`:** Kullanıcı talimatıyla Instabot ses ayarları birebir kopyalandı (`ses_id: "KAGDtM2gzDrjWlUp2KNe"` Ana haber spikeri, `yedek_ses_id: "KediIz7pebzt5TaDHiiZ"` Alex, `fish_voice_id: "a6d624c6b8de45d2b89eb0da9a691872"` Mazlum Kiper, `model: "eleven_v4"`, `speed: 1.22`).
     * **Testler & Doğrulamalar:** `tests/test_ses_elevenlabs.py` (13 test OK), `tests/test_seslendirme.py` (22 test OK), `tests/test_okunus.py` (10 test OK), `tests/test_sesli_yayin.py` (17 test OK), `tests/test_instabot_yeni_moduller.py` ve güvenlik sözleşmesi testleri OK, JS worker testleri 73/73 OK.
+
+32. **Yedek GitHub Cron'larının Silinmesi — 2026-10-21 (Gemini).**
+    * **Ne yapıldı:** Cloudflare Worker cron'ları 13 Ekim'den bu yana sorunsuz çalıştığı için ARCHITECTURE.md §4'teki 20 Ekim sonrası planı devreye alındı. 4 adet workflow dosyasındaki (`hazirla.yml`, `gunluk-rapor.yml`, `haber-oneri.yml`, `hatirlat.yml`) gecikmeli yedek `schedule` blokları silindi.
+    * **Sözleşme & Testler:** `tests/test_zamanli_isler.py`, `tests/test_zamanli_gunluk_koruma.py` ve `tests/test_sozlesme.py` içindeki schedule/cron kontrolleri güncellendi; tek tetikleyici kuralı pekiştirildi.
+
+33. **Çift Albüm Teslimat Güvencesi & Telegram Idempotensi — 2026-10-21 (Gemini).**
+    * **Ne yapıldı:** `src/telegram/album.py` ve `src/telegram/medya_istek.py` içerisinde `sendMediaGroup` zaman aşımı artırıldı (azami 120 sn), HTTP ağ kopması/zaman aşımı durumunda Telegram'ın albümü grupta fiilen oluşturup oluşturmadığı teyit edilerek aynı onay kartı için mükerrer albüm basılması (çift albüm sorunu) engellendi.
+    * **Testler:** `tests/test_telegram_medya_teslimi.py` yeşil.
+
+34. **Faz 3: Görsel Motoru Modülerleştirmesi (`src/cizim/` paketi) — 2026-10-21 (Gemini).**
+    * **Ne yapıldı:** 4107 satırlık devasa `src/make_image.py` dosyası parçalanarak `src/cizim/` paketi altına 25 adet bağımsız, tek sorumluluklu modüle ayrıldı.
+    * **250 Satır Kuralı:** Paketteki 25 dosyanın her biri ve geriye dönük uyumluluk cephesi olan `src/make_image.py` (163 satır) istisnasız $\le 250$ satır sınırına uymaktadır (`tests/test_cizim_paketi.py` ile zorlanır).
+    * **Dinamik Tuval Boyutu Desteği:** Hikaye (`story` 9:16) ve besleme (`besleme` 4:5) geçişlerinde `tuval` bağlam yöneticisi modüller arasındaki boyut senkronizasyonunu dinamik olarak yönetir.
+    * **Mock / Test Uyumluluğu:** Testlerin `make_image._foto_indir_veya_ac` ve `make_image._haber_gorseli_alternatifi` yamaları şeffaf bir köprüyle `cizim` modüllerine yansıtıldı.
+    * **Doğrulama:** `scripts/gorsel_denetim.py` (226 görsel vakanın tümü) 0 HATA ile tamamlandı. 73 JS testi OK. 1213 Python testinin tamamı OK.
+
+35. **LinkedIn Kurumsal Şirket Sayfası Entegrasyonu Devreye Alındı — 2026-10-29 (Gemini).**
+    * **Onay Süreci:** LinkedIn Developer portalında `Community Management API` (Development Tier) başvurusu onaylandı.
+    * **Hesap & Yetki Doğrulaması:** `EDM Yapı&Gayrimenkul` şirket sayfası (`67226326` / `urn:li:organization:67226326`) bağlandı; `w_organization_social`, `r_organization_social`, `rw_organization_admin` yetkileri içeren 60 günlük aktif OAuth token alındı ve canlı API sorgusuyla (`/rest/organizations/67226326`) HTTP 200 ile doğrulandı.
+    * **Canlı Yapılandırma:** Yerel `.env` ve GitHub Actions secret'ları (`LINKEDIN_ACCESS_TOKEN` ve `LINKEDIN_ORGANIZATION_URN`) güncellendi.
+    * **Yayın Hattı:** `src/yayin/hedef.py` artık `hepsi` hedefi seçildiğinde LinkedIn'i de otomatik olarak yayın kuyruğuna dahil eder (`hepsi: ['tiktok', 'story', 'threads', 'facebook', 'youtube', 'linkedin']`). Onay kartındaki tekil `💼 LI` butonu da aktiftir.
+
+36. **Platforma Özel Kanca & Metin Mimarisi ve Kapsamlı Sabotaj/Stres Testleri — 2026-10-29 (Gemini).**
+    * **Platform Ayrışımı:**
+      * **LinkedIn:** B2B mevzuat analizi (`⚖️ MEVZUAT VE YASAL DAYANAK`), kurumsal yatırımcı dili, noter/fiili taksim risk değerlendirmeleri, Silivri/Çatalca bölgesel piyasa analizi. Soru kalıpları ("Yorumlarda buluşalım" vb.) kesinlikle yok; doğrudan profesyonel kaydetme/paylaşma çağrısı.
+      * **Threads:** 1/N zincir köprüsü (`👇 Detaylar ve yasal haklar zincirde 🧵`), her slayt görseli için $\le 480$ karakterlik sıralı dağıtım, soru yerine hak koruma amaçlı "Kaydet" çağrısı ve son slaytta kurumsal EDM CTA kilidi.
+      * **TikTok:** 150 karakterlik merak kancası ve manşeti kesmeyen başlık kurucu (`baslik_kur`), 4000 karakterlik carousel açıklaması (`aciklama_kur`).
+      * **Instagram & Facebook:** İlk 125 karakterde feed kancası, taranabilir maddeler ve kurumsal kapanış.
+    * **Son 1 Ayın Hata Teşhisi:**
+      * LinkedIn `HTTP 400`: Community Management API token'ı ile çözüldü.
+      * TikTok `HTTP 403` (`unaudited_client`): Inbox Draft taslak modunun `BILGI` seviyesinde çalıştığı, akışı çökertmediği doğrulandı.
+      * Dağıtım İzolasyonu: Bir kanal aksasa dahi diğer kanalların başarıyla yayına girdiği, DB'ye yazıldığı ve mükerrer paylaşımın önlendiği teyit edildi.
+    * **Sabotaj ve Stres Güvencesi:** `tests/test_platform_metinleri_ve_sabotaj.py` (12/12 yeşil) — Null/bozuk veri enjeksiyonu, 10.000 karakterlik dev payload stresi, XSS/SQLi sabotajı, ağır emoji/ZWJ unicode dayanıklılığı, 15 parçalık Threads zinciri ve kanal hata toleransı tam koruma altına alındı.
 
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 

@@ -134,7 +134,7 @@ def aciklama_kur(
     Editoryal metni ve etiketleri tekrarsız (mükerrersiz) olarak azami 4000 karaktere kadar birleştirir.
     Metnin sonundaki mevcut hashtag kuyruğunu ayıklar ve tek bir temiz etiket bloğu üretir.
     """
-    metin_temiz = (metin or "").strip()
+    metin_temiz = filtre.markdown_temizle(metin or "").strip()
 
     # 1. Metnin sonundaki mevcut hashtag kuyruğunu (yalnızca etiketlerden oluşan satırları) ayıkla
     satirlar = metin_temiz.splitlines()

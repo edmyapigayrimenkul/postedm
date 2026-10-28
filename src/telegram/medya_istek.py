@@ -22,16 +22,10 @@ from . import istemci
 log = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------------------------------------------
-# MEDYA GÖNDERİMİ (tekil fotoğraf ve albüm)
-#
-# NİYE (2026-10-12): günlük içeriğin albüm yüklemesi 60 sn okuma zaman aşımına uğradı (Actions logu: "Yerel medya grubu
-# istisnası ... Read timed out"). Eski yedek yol yerel dosya yollarını Telegram'a "URL" diye gönderip sessizce 400 aldı;
-# albüm hiç gelmedi, kimseye haber verilmedi. Artık: her istek sınırlı süreyle ve yeniden denenerek yapılır
-# (429'da retry_after, 5xx/ağ hatasında artan bekleme), yerel albüm → URL albüm → indirip yükle → tek tek gönderim
-# sırasıyla düşülür ve hiçbiri tutmazsa hata günlüğüne yazılır.
-# ---------------------------------------------------------------------------------------------------------------
-MEDYA_ZAMAN_ASIMI = (10, 40)   # (bağlanma, okuma) saniye — eskiden tek parça 60 sn'ydi, bir kez denenip bırakılıyordu
+# MEDYA GÖNDERİMİ (tekil fotoğraf ve albüm):
+# Yerel albüm → URL albüm → indirip yükle → tek tek gönderim sırasıyla denenir.
+# Hata günlüğüne yazılır; 429'da retry_after, 5xx'te artan bekleme uygulanır.
+MEDYA_ZAMAN_ASIMI = (10, 65)   # (bağlanma, okuma) saniye — albüm işlemede Telegram sunucusu için yeterli bütçe
 MEDYA_DENEME = 2               # tek istek için deneme sayısı
 MEDYA_TOPLAM_SURE = 240        # albüm stratejileri için toplam bütçe (sn); tek tek gönderim ek 120 sn daha alabilir
 _MEDYA_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
@@ -40,9 +34,9 @@ _MEDYA_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
 def _cevap_json(r: Any) -> Dict[str, Any]:
     try:
         veri = r.json()
-    except Exception:  # noqa: BLE001 — JSON olmayan cevap (HTML hata sayfası vb.)
+        return veri if isinstance(veri, dict) else {}
+    except Exception:  # noqa: BLE001
         return {}
-    return veri if isinstance(veri, dict) else {}
 
 
 def _cevap_ayrintisi(r: Any) -> str:

@@ -126,16 +126,17 @@ class TestSozlukOtoYayin(unittest.TestCase):
             mock_onay.assert_called_once_with(123, oto_yayin=True)
 
     def test_workflow_hazirla_yml_sozluk_zamanlama_ve_adim(self):
-        """.github/workflows/hazirla.yml dosyasında 12:30 TR cron'u ve --oto-yayin bayrağı olmalı."""
-        yml_yolu = Path(__file__).resolve().parent.parent / ".github/workflows/hazirla.yml"
+        """.github/workflows/hazirla.yml dosyasında --oto-yayin bayrağı ve Worker'da 12:30 TR cron'u olmalı."""
+        kok = Path(__file__).resolve().parent.parent
+        import tomllib
+        cf_crons = tomllib.loads((kok / "worker/wrangler.toml").read_text(encoding="utf-8"))["triggers"]["crons"]
+        self.assertIn("30 9 * * *", cf_crons, "wrangler.toml içinde 30 9 * * * (12:30 TR) cron'u eksik!")
+
+        yml_yolu = kok / ".github/workflows/hazirla.yml"
         self.assertTrue(yml_yolu.exists(), "hazirla.yml bulunamadı")
 
         metin = yml_yolu.read_text(encoding="utf-8")
         parsed = yaml.safe_load(metin)
-
-        on_block = parsed.get("on") or parsed.get(True) or {}
-        schedules = [s.get("cron") for s in on_block.get("schedule", []) if "cron" in s]
-        self.assertIn("30 9 * * *", schedules, "hazirla.yml içinde 30 9 * * * (12:30 TR) cron'u eksik!")
 
         # 2. Çalıştırma adımı kontrolü
         self.assertIn("30 9 * * *", metin)

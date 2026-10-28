@@ -39,7 +39,7 @@ def yayinla(b: YayinBaglami, ilerleme: Ilerleme) -> KanalSonucu:
             s.ekle("🎵 <b>TikTok:</b> Video üretilemedi ✗", HATA)
     else:
         try:
-            res = tiktok.foto_yayinla(b.public_urller, baslik=b.baslik, hazir_video_yolu=b.v_yolu)
+            res = tiktok.foto_yayinla(b.public_urller, baslik=b.baslik, hazir_video_yolu=b.v_yolu, aciklama=b.caption)
             if res.get("durum"):
                 if res.get("taslak_mi"):
                     s.ekle(TASLAK_FOTO, BILGI)

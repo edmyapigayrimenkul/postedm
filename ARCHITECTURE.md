@@ -53,7 +53,7 @@ Düzensiz (boyut = satır, 2026-10-13):
 
 | Dosya | Satır | Sorun |
 |---|---|---|
-| `src/make_image.py` | 4107 | 15 görsel biçimi + yardımcılar + tuval yönetimi tek dosyada; `yeni_formatlar.py` (1993) ve `haber_tasarim.py` (2009) ile çizim mantığı üçe bölünmüş, sınırları belirsiz |
+| `src/make_image.py` | ~~4107~~ → 163 | **Çözüldü (2026-10-21):** 25 modüllük `src/cizim/` paketi + geriye dönük uyumluluk cephesi. Hiçbir modül 250 satırı geçmez (`tests/test_cizim_paketi.py`) |
 | ~~`src/telegram_bot.py`~~ | ~~2919~~ → 168 | **Çözüldü (2026-10-13):** 25 modüllük `src/telegram/` paketi + canlı takma ad cephesi (aşağıda). Hiçbir modül 250 satırı geçmez |
 | `src/generate_text.py` | 1515 | Model zinciri, istem metinleri, caption süsleme, bütçe |
 | `src/db.py` | 777 | Tablolar + tüm sorgular tek yerde; `konu_bankasi`/`sozluk_arsivi` kendi tablolarını ayrıca kuruyor (`tabloyu_kur`) |
@@ -66,7 +66,7 @@ Her fazın değişmez sırası: **(1) altın çıktı testi yaz ve ESKİ kodla k
 |---|---|---|
 | 1 | `scripts/yayinla.py` → `src/yayin/` | **Yapıldı** (bu PR) |
 | 2 | `src/telegram_bot.py` → `src/telegram/` | **Yapıldı** (2026-10-13): API (`istemci`, `medya_istek`, `album`, `temizlik`), arayüz (`ayarlar`, `menuler`, `menuler_panel`, `durum_metni`, `sonuc_mesaji`, `kaldir`, `kartlar`, `paneller`), akışlar (`akislar/`: `kapi`, `onay` + `onay_slayt`/`onay_karti`, `otomatik`, `sozluk`, `uretim`, `havuz`, `reels`, `otorite`, `ilan`, `finans`, `zamanli`). 253 satırlık `_haber_onayina_sun` adımlara bölündü. Güvence: `tests/test_telegram_altin.py` (219 senaryo) |
-| 3 | Çizim: `make_image` / `yeni_formatlar` / `haber_tasarim` ortak çizim çekirdeği + biçim başına dosya | Piksel karşılaştırmalı altın görseller (`scripts/gorsel_denetim.py` zaten 164 vaka ölçüyor) |
+| 3 | Çizim: `make_image.py` parçalanması | **Yapıldı** (2026-10-21): 25 modüllük `src/cizim/` paketi + geriye dönük uyumluluk cephesi. Her dosya $\le 250$ satır. `gorsel_denetim.py` 226 vaka 0 hata. `tests/test_cizim_paketi.py` ile zorlanır |
 | 4 | `db.py` → depo başına modül (haber, ilan, onay, ayar, hata) | Küçük; şema değişmez |
 | 5 | Zamanlayıcıların tamamı Cloudflare'e (hatırlatma, haber önerisi, günlük rapor) | **Yapıldı ve DAĞITILDI** (Worker Dağıt koşusu #2, 2026-10-13 21:26 UTC, sekiz cron doğrulandı): 7 iş Worker'dan (`ZAMANLI_ISLER`), GitHub cron'ları gecikmeli yedek, "günde bir kez" koruması `scripts/zamanli_koruma.py`. Hatırlatma işi artık sessiz kuyruk bakımı (MEMORY.md §10 madde 23). Yedekleri silmek: 20 Ekim'den sonra, sorunsuzsa |
 
@@ -76,9 +76,9 @@ Sırayı kullanıcı belirler; aşağıdaki liste devir anındaki durumdur ve ye
 
 | Alan | İş | Not / kaynak |
 |---|---|---|
-| Zamanlama | **Yedek GitHub cron'larını sil** (`hazirla.yml` 2 günlük cron, `hatirlat.yml`, `haber-oneri.yml`, `gunluk-rapor.yml` `schedule` blokları) — **20 Ekim'den sonra**, Cloudflare bir hafta sorunsuz çalıştıysa. `test_tek_tetikleyici_kurali`, `test_cron_takvimle_uyumlu`, `tests/test_zamanli_isler.py` birlikte güncellenir; Worker cron'ları kalır | MEMORY.md §10 madde 13, 18 |
+| Zamanlama | **Yedek GitHub cron'larını sil** | **Tamamlandı** (2026-10-21): `hazirla.yml`, `hatirlat.yml`, `haber-oneri.yml`, `gunluk-rapor.yml`'deki gecikmeli `schedule` blokları silindi. Tek tetikleyici kuralı tam sağlandı | MEMORY.md §10 madde 32 |
 | Telegram · Worker | **`worker/index.js` bölmek** (2142 satır tek dosya). Dikkat: JS testleri (`tests/*.test.mjs`) `worker/index.js`'i TEK dosya olarak kopyalayıp import eder; `tests/test_buton_sozlesmesi.py`, `test_zamanli_isler.py`, `test_sozlesme.py` kaynağı metin olarak okur → bölünce hepsi birleştirilmiş kaynağı okumalı. `wrangler deploy` birden çok dosyayı kendisi paketler. Bölme sonrası Worker Dağıt gerekir | Bu belge §2 kural 5 |
-| Telegram · teslim | Zaman aşımı belirsizliği: Telegram isteği işleyip cevabı geciktirirse aynı albüm nadiren iki kez düşebilir (bilinçli denge). İstenirse `istemci._istek` seviyesinde yinelenen albüm kontrolü | MEMORY.md §10 madde 12 |
+| Telegram · teslim | **Çift albüm güvencesi** | **Tamamlandı** (2026-10-21): Zaman aşımı 120 sn'ye çıkarıldı ve ağ kopmalarında Telegram'ın albümü fiilen teslim edip etmediği doğrulanarak mükerrer albüm önlendi | MEMORY.md §10 madde 33 |
 | Telegram · arayüz artıkları | Tamamlandı (2026-10-16): "1 saat ertele" ve "Onay Hatırlatıcı" düğmeleri kaldırıldı; Worker ve altın çıktı güncellendi. Worker dağıtımı bekleniyor | MEMORY.md §10 madde 27 |
 | Telegram · yapı | `src/telegram/akislar/uretim.py` (249 satır) ve `album.py` (247) 250 sınırında; `medya_istek.py` 226. Yeni kod eklemeden önce böl. `reels.py`'nin Telegram'a video göndermesi katman kuralı 2'nin bilinen istisnasıdır | Bu belge §2 |
 | Paylaşım · kanallar | Tamamlandı (2026-10-16): threads.py'ye json içe aktarımı eklendi, detay_metni model alanlarıyla üst seviye alanlar güvenle birleştirildi | MEMORY.md §10 madde 27 |
@@ -87,7 +87,7 @@ Sırayı kullanıcı belirler; aşağıdaki liste devir anındaki durumdur ve ye
 | Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
 | İçerik · finans | Finans bülteni ayrı tasarım değil, standart carousel (kullanıcı "şimdilik tamam"); elle de onaysız yayın. İstenirse finansa özgü görsel (oran vurgusu, rakam kutusu) ve elle tetiklemede onay kartı | MEMORY.md §10 madde 21 |
 | İçerik · sözlük | Dalga 5 tamamlandı (A05 10 kart, A06 8 kart). Arşiv 139 kart (130 yayınlanmamış; 260 gün stok), hedef 365 kart | SOZLUK-KART-URETIMI.md |
-| Mimari | Faz 3 (`make_image.py` 4107 satır: ortak çizim çekirdeği + biçim başına dosya, piksel karşılaştırmalı altın görseller), Faz 4 (`db.py` depo başına modül) | Bu belge §4 tablo |
+| Mimari | Faz 3 tamamlandı (`src/cizim/` 25 modül, her biri $\le 250$ satır, testli). Faz 4 (`db.py` depo başına modül) | Bu belge §4 tablo |
 | Güvenlik / gizlilik | Depo PUBLIC (doğrulandı 2026-10-13): DB'deki taslaklar ve grup kimliği görünür. Kararı §5'e göre (özel ikinci depo ya da depoyu özel yapmak) | MEMORY.md §10 madde 24 |
 
 **Faz 2'nin tuzağı ve uygulanan çözüm:** testler `src.telegram_bot.mesaj_gonder` gibi adları yamalıyor (31 dosya). Eski adı yeniden dışa aktaran bir "kabuk" yetmez: taşınan kod yeni modüldeki işlevi çağırır, yama kabuktaki adı değiştirir, yama etkisiz kalır. Uygulanan kural:

@@ -236,6 +236,9 @@ def metinleri_slaytlara_dagit(
     Her slayt görseli için Threads karakter limitine (<= 500) tam uygun,
     parça parça zincir metinleri üretir.
     """
+    if not isinstance(haber_veya_detay, dict) or not gorsel_urlleri:
+        return []
+
     detay = dict(haber_veya_detay)
     if "detay_metni" in haber_veya_detay and isinstance(haber_veya_detay["detay_metni"], str):
         try:
@@ -257,11 +260,14 @@ def metinleri_slaytlara_dagit(
 
     parcalar: List[str] = []
 
-    # 1. Kapak Metni
-    kapak_metin = f"📌 {tam_manset}\n\n{spot}".strip()
+    # 1. Kapak Metni (Kanca & Merak Boşluğu ile Zincir Başlangıcı)
+    if spot:
+        kapak_metin = f"📌 {tam_manset}\n\n{spot}\n\n👇 Detaylar ve yasal haklar zincirde 🧵".strip()
+    else:
+        kapak_metin = f"📌 {tam_manset}\n\n👇 Kritik detaylar ve çözüm adımları zincirde 🧵".strip()
     parcalar.append(kapak_metin)
 
-    # 2. Detay Kartları (slayt_2_detay)
+    # 2a. Otorite Şeması: Detay Kartları (slayt_2_detay)
     s2 = detay.get("slayt_2_detay", {})
     if isinstance(s2, dict):
         if "kart_1" in s2:
@@ -277,6 +283,18 @@ def metinleri_slaytlara_dagit(
                 txt = f"🔹 {k.get('baslik', '')}\n\n{k.get('aciklama', '')}".strip()
                 parcalar.append(txt)
 
+    # 2b. Haber Şeması: Detay Maddeleri
+    detay_maddeleri = detay.get("detay_maddeleri") or []
+    if detay_maddeleri and not s2:
+        for idx, dm in enumerate(detay_maddeleri, 1):
+            if isinstance(dm, dict):
+                etiket = dm.get("etiket", f"Madde {idx}").strip()
+                metin = dm.get("metin", "").strip()
+                txt = f"🔹 {etiket}\n\n{metin}".strip()
+            else:
+                txt = f"🔹 Madde {idx}: {str(dm)}".strip()
+            parcalar.append(txt)
+
     # 3. Çözüm Adımları (slayt_3_cozum)
     s3 = detay.get("slayt_3_cozum", {})
     if isinstance(s3, dict):
@@ -288,21 +306,32 @@ def metinleri_slaytlara_dagit(
                 txt = f"✅ Adım {idx}: {str(m)}".strip()
             parcalar.append(txt)
 
-    # 4. Kapanış / CTA
-    cta = (detay.get("slayt_4_cta") or {}).get("cagri_metni") if isinstance(detay.get("slayt_4_cta"), dict) else ""
+    # 4. Kapanış / CTA (Soru sorulmaz, doğrudan kaydet ve koru çağrısı)
+    cta = (detay.get("slayt_4_cta") or {}).get("kaydet_metni") or (detay.get("slayt_4_cta") or {}).get("cagri_metni") or ""
     if not cta:
-        cta = (detay.get("slayt_4_cta") or {}).get("kaydet_metni") or "Bu bilgiyi daha sonra kullanmak üzere kaydedebilirsiniz."
+        cta = "Mülk ve kira kararlarınızda yasal haklarınızı korumak için bu zinciri kaydedin."
     kapanis_metin = (
         f"🤝 {cta}\n\n"
-        "Siz bu konuda ne düşünüyorsunuz? Yorumlarda buluşalım.\n\n"
-        "EDM Yapı & Gayrimenkul · 0212 727 29 55 · Silivri\n"
+        "Silivri ve Trakya gayrimenkul yatırımlarınızda yanınızdayız.\n\n"
+        "EDM Yapı & Gayrimenkul · edmyapigayrimenkul.com\n"
         "#EDMYapıGayrimenkul #Silivri #Gayrimenkul #Yatırım"
     ).strip()
     parcalar.append(kapanis_metin)
 
     sayfalar: List[Dict[str, str]] = []
+    toplam_hedef = len(gorsel_urlleri)
     for i, g_url in enumerate(gorsel_urlleri):
-        metin = parcalar[i] if i < len(parcalar) else kapanis_metin
+        if i == 0:
+            metin = kapak_metin
+        elif i == toplam_hedef - 1 and toplam_hedef > 1:
+            if i < len(parcalar) - 1:
+                # Son slayta hem son maddeyi hem de kurumsal CTA'yı sığdır
+                kalan_madde = parcalar[i]
+                metin = f"{kalan_madde}\n\n🤝 {cta}\n\nEDM Yapı & Gayrimenkul · edmyapigayrimenkul.com"
+            else:
+                metin = kapanis_metin
+        else:
+            metin = parcalar[i] if i < len(parcalar) else kapanis_metin
         temiz = filtre.markdown_temizle(metin)
         if len(temiz) > 480:
             temiz = temiz[:475].rsplit(" ", 1)[0] + "..."

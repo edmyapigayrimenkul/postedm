@@ -6,11 +6,6 @@
 name: Onay Kuyruğu Bakımı (EDM)
 
 on:
-  schedule:
-    # 1. Öğleden sonra 13:30 TR (UTC 10:30) → slot hatirlat_ogle
-    - cron: '30 10 * * *'
-    # 2. Akşam 21:30 TR (UTC 18:30) → slot hatirlat_aksam
-    - cron: '30 18 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [hatirlat]
@@ -26,10 +21,10 @@ jobs:
     permissions:
       contents: write
     env:
-      # Zamanlanmış koşu = GitHub cron'u (yedek) YA DA Cloudflare cron'unun yolladığı hatirlat (asıl; payload.zamanli).
+      # Zamanlanmış koşu = Cloudflare cron'unun yolladığı hatirlat (payload.zamanli == true).
       # Elle tetiklenenler (Telegram "Onayları Hatırlat", /hatirlat, workflow_dispatch) korumaya takılmaz ve onu tüketmez.
-      ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
-      ZAMANLI_SLOT: ${{ github.event.client_payload.slot || (github.event.schedule == '30 18 * * *' && 'hatirlat_aksam' || 'hatirlat_ogle') }}
+      ZAMANLANMIS: ${{ github.event.client_payload.zamanli == true }}
+      ZAMANLI_SLOT: ${{ github.event.client_payload.slot || 'hatirlat_ogle' }}
     steps:
       - name: Kodu Çek
         uses: actions/checkout@v4
