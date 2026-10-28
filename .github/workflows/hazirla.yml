@@ -2,17 +2,8 @@ name: Paylaşım Hazırla (EDM)
 
 on:
   schedule:
-    # GÜNDE TEK İÇERİK (2026-09-24 kararı; önceden 10:00 / 13:30 / 18:30 üç slot vardı).
-    # ⚠️ ASIL TETİKLEYİCİ CLOUDFLARE CRON'U (2026-10-12): GitHub `schedule` koşuları 6-10 saat gecikiyordu
-    # (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı). Worker aynı saatlerde `slot_hazirla`
-    # (payload: slot, zamanli) yollar. Aşağıdaki iki cron GECİKMELİ YEDEKTİR: Worker o gün çalışmışsa
-    # hazirla.py aynı slotu ikinci kez üretmez (ayarlar › zamanli_slot_son_gun:<slot>), çalışmamışsa içerik geç de olsa çıkar.
-    # 10:00 TR (UTC 07:00): format dört günlük döngüde döner — B1, Nedir Doğrusu,
-    # Net Cevap, B1 (sözlük döngüde YOK: aşağıda 12:30'da ayrı). Haberler içerikten bağımsız: haber-oneri.yml.
-    - cron: '0 7 * * *'
-    # HER GÜN ÖĞLEN SÖZLÜK KARTI (12:30 TR / UTC 09:30) - TAM OTOMATİK YAYIN
-    - cron: '30 9 * * *'
-    # Cumartesi 08:00 TR — beslemeden konu adayı madenciliği (paylaşım yapmaz)
+    # Cumartesi 08:00 TR — beslemeden konu adayı madenciliği (paylaşım yapmaz; ICERIK-SISTEMI.md §5.7).
+    # Günlük içerik (10:00 TR) ve sözlük (12:30 TR) artık yalnız Cloudflare Worker cron'undan tetiklenir (repository_dispatch slot_hazirla).
     - cron: '0 5 * * 6'
   workflow_dispatch:
     inputs:
@@ -133,8 +124,7 @@ jobs:
       # Günün tek içeriği (ve elle tetiklenen format / slot istekleri)
       - name: Günlük İçerik Hazırla ve Paylaş
         if: >-
-          (github.event_name == 'schedule' && (github.event.schedule == '0 7 * * *' || github.event.schedule == '30 9 * * *'))
-          || inputs.hedef == 'slot_bilgilendirici' || inputs.hedef == 'slot_sozluk' || inputs.hedef == 'slot_haber' || inputs.hedef == 'gunluk' || inputs.hedef == 'finans' || inputs.hedef == 'reels' || inputs.hedef == 'haber'
+          inputs.hedef == 'slot_bilgilendirici' || inputs.hedef == 'slot_sozluk' || inputs.hedef == 'slot_haber' || inputs.hedef == 'gunluk' || inputs.hedef == 'finans' || inputs.hedef == 'reels' || inputs.hedef == 'haber'
           || github.event.action == 'sabah_hazirla' || github.event.action == 'slot_hazirla' || github.event.action == 'finans_hazirla' || github.event.action == 'reels_hazirla'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

@@ -152,13 +152,14 @@ class TestWorkflowVeWorkerSozlesmesi(unittest.TestCase):
             self.assertRegex(kaynak, rf'"{re.escape(cron)}":\s*\{{ olay: "slot_hazirla", slot: "{slot}"')
 
     def test_gunluk_slotlar_workflow_cronlariyla_ayni_saatte(self):
-        """Cloudflare ve GitHub cron'ları aynı UTC saatinde: biri diğerinin yedeği."""
+        """20 Ekim sonrası: yedek günlük GitHub cron'ları kaldırıldı; tetikleyici Cloudflare cron'udur."""
         import tomllib
         cf = set(tomllib.loads((KOK / "worker/wrangler.toml").read_text(encoding="utf-8"))["triggers"]["crons"])
         w = yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         gh = {c["cron"] for c in w[True]["schedule"]}
         self.assertTrue({"0 7 * * *", "30 9 * * *"} <= cf)
-        self.assertTrue({"0 7 * * *", "30 9 * * *"} <= gh)
+        self.assertNotIn("0 7 * * *", gh)
+        self.assertNotIn("30 9 * * *", gh)
 
 
 if __name__ == "__main__":

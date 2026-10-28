@@ -50,20 +50,17 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
     """
     LinkedIn platformunun profesyonel ve B2B yatırımcı kitlesine özel
     editoryal metin üretir.
-    Yapı:
-      1. Sektörel Manşet & Kanca
-      2. 📊 Resmi Veriler & İhale/Piyasa Özeti (Madde madde)
-      3. 🏢 Silivri & Trakya Bölgesel Yatırım Analizi
-      4. ⚖️ Mevzuat, Tapu & İmar Risk Değerlendirmesi
-      5. 🤝 EDM Danışmanlık İletişim & CTA
-      6. Profesyonel Hashtag'ler
     """
     if not isinstance(veri, dict):
-        return str(veri or "")
+        return ""
 
     baslik = manset or veri.get("manset") or veri.get("baslik") or ""
     kanca = veri.get("kanca") or veri.get("hook") or ""
     spot = veri.get("spot") or veri.get("ozet") or ""
+
+    if not baslik and not kanca and not spot:
+        return ""
+
     detay_maddeleri = veri.get("detay_maddeleri") or []
     uzman_notu = haber_alanlari.sana_etkisi(veri)
     paragraflar = haber_alanlari.detay_paragraflari(veri, kalin=False) if veri.get("detay_yazisi") else []
@@ -88,13 +85,12 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
         if soz:
             parcalar.append(f"“{soz}”" + (f" — {sahibi}" if sahibi else "") + "\n")
 
-    # 3b. Resmi Veriler & Detay Maddeleri (eski şema: maddeli döküm)
+    # 3b. Resmi Veriler & Detay Maddeleri (Haber şeması: maddeli döküm)
     if detay_maddeleri and not paragraflar:
         parcalar.append("📊 ÖNE ÇIKAN VERİLER VE ANALİZ:")
         for idx, dm in enumerate(detay_maddeleri, 1):
             if isinstance(dm, dict):
                 etiket = dm.get("etiket", "")
-                # 01 // gibi etiketleri temizle
                 etiket_temiz = etiket.split("//")[-1].strip() if "//" in etiket else etiket.strip()
                 metin = dm.get("metin", "").strip()
                 if etiket_temiz and metin:
@@ -105,12 +101,37 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
                 parcalar.append(f"• {dm.strip()}")
         parcalar.append("")
 
-    # 4. EDM Uzman Notu
+    # 3c. Otorite Şeması (B1/B3/B4 & Sözlük): Analiz Kartları ve Çözüm Adımları
+    if not paragraflar and not detay_maddeleri:
+        s2 = veri.get("slayt_2_detay") if isinstance(veri.get("slayt_2_detay"), dict) else {}
+        s3 = veri.get("slayt_3_cozum") if isinstance(veri.get("slayt_3_cozum"), dict) else {}
+        puf_maddeleri = veri.get("puf_maddeleri") or []
+        if s2 or s3 or puf_maddeleri:
+            parcalar.append("📋 HUKUKİ ANALİZ VE ÇÖZÜM ADIMLARI:")
+            if "kart_1" in s2 and isinstance(s2["kart_1"], dict):
+                parcalar.append(f"• ⚠️ Risk/Hata: {s2['kart_1'].get('baslik', '')} — {s2['kart_1'].get('aciklama', '')}")
+            if "kart_2" in s2 and isinstance(s2["kart_2"], dict):
+                parcalar.append(f"• ⚖️ Yasal Kural: {s2['kart_2'].get('baslik', '')} — {s2['kart_2'].get('aciklama', '')}")
+            for m in s3.get("maddeler", []):
+                if isinstance(m, dict):
+                    parcalar.append(f"• ✅ {m.get('baslik', 'Uygulama')}: {m.get('aciklama', '')}")
+                else:
+                    parcalar.append(f"• ✅ {str(m)}")
+            for pm in puf_maddeleri:
+                parcalar.append(f"• 💡 Püf Noktası: {str(pm).strip()}")
+            parcalar.append("")
+
+    # 4. Yasal Dayanak & Mevzuat Çerçevesi
+    yasal_dayanak = veri.get("yasal_dayanak") or veri.get("mevzuat") or (veri.get("_brief") or {}).get("mevzuat")
+    if yasal_dayanak and str(yasal_dayanak).strip():
+        parcalar.append(f"⚖️ MEVZUAT VE YASAL DAYANAK:\n{str(yasal_dayanak).strip()}\n")
+
+    # 5. EDM Uzman Notu
     if uzman_notu:
         if veri.get("uzman_notu") and not veri.get("sana_etkisi"):
-            parcalar.append(f"⚖️ UZMAN DEĞERLENDİRMESİ:\n{uzman_notu.strip()}\n")   # eski şema
+            parcalar.append(f"🏢 UZMAN DEĞERLENDİRMESİ:\n{uzman_notu.strip()}\n")   # eski şema
         else:
-            parcalar.append(f"{uzman_notu.strip()}\n")
+            parcalar.append(f"🏢 BÖLGESEL PİYASA DEĞERLENDİRMESİ:\n{uzman_notu.strip()}\n")
 
     # 5. İletişim & CTA
     parcalar.append(

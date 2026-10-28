@@ -412,19 +412,29 @@ class TestIcerikSozlesmesi(unittest.TestCase):
             )
 
     def test_cron_takvimle_uyumlu(self) -> None:
-        """Günde iki zamanlama: 10:00 TR (07:00 UTC) bilgilendirici döngü, 12:30 TR (09:30 UTC) sözlük kartı otomatik yayın."""
+        """Günde iki zamanlama: 10:00 TR (07:00 UTC) bilgilendirici döngü, 12:30 TR (09:30 UTC) sözlük kartı otomatik yayın.
+
+        20 Ekim sonrası: Günlük tetikleyiciler Cloudflare Worker üzerinde (worker/wrangler.toml ve index.js ZAMANLI_ISLER).
+        Workflow'lar repository_dispatch ile tetiklenir; hazirla.yml içinde yedek günlük cron'lar kaldırılmıştır.
+        """
+        import tomllib
         import yaml as _yaml
 
+        cf = set(tomllib.loads((KOK / "worker/wrangler.toml").read_text(encoding="utf-8"))["triggers"]["crons"])
+        self.assertTrue(
+            {"0 7 * * *", "30 9 * * *"} <= cf,
+            f"Cloudflare cron'ları 10:00 TR ve 12:30 TR içermeli: {cf}",
+        )
+
         w = _yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
-        cronlar = [c["cron"] for c in w[True]["schedule"]]
+        cronlar = [c["cron"] for c in (w.get(True) or {}).get("schedule", [])]
         gunluk = [c for c in cronlar if c.strip().endswith("* * *")]
         self.assertEqual(
-            gunluk, ["0 7 * * *", "30 9 * * *"],
-            f"Günlük tetikleyiciler 10:00 TR ve 12:30 TR olmalı: {cronlar}",
+            gunluk, [],
+            f"hazirla.yml içindeki yedek günlük cron'lar kaldırılmış olmalı: {gunluk}",
         )
 
         h = _yaml.safe_load((KOK / ".github/workflows/haber-oneri.yml").read_text(encoding="utf-8"))
-        self.assertTrue(h[True]["schedule"], "Haber önerisi zamanlanmamış")
         self.assertIn("haber_oneri", h[True]["repository_dispatch"]["types"])
         self.assertIn("--haber-oneri", (KOK / ".github/workflows/haber-oneri.yml").read_text(encoding="utf-8"))
 

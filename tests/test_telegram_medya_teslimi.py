@@ -128,7 +128,17 @@ class MedyaTeslimiTesti(unittest.TestCase):
         self.assertEqual(len(fotolar), 3)
         self.assertEqual(fotolar[0].kwargs["data"]["caption"], "<b>Başlık</b>")
         self.assertEqual(fotolar[1].kwargs["data"]["caption"], "")
-        self.assertEqual(telegram_bot.son_medya_grubu_mesaj_idleri(), [41, 42, 43])
+
+    def test_ayni_album_kisa_surede_tekrar_istenirse_mukerrer_gonderilmez(self):
+        """Aynı albüm (aynı chat, caption, slaytlar) kısa sürede tekrar çağrılırsa çift albüm düşmesini önler."""
+        with patch("requests.post", return_value=tamam_grup(51, 52, 53)) as post:
+            ilk = telegram_bot.medya_grubu_gonder(self.slaytlar, caption="İdempotent Test")
+            ikinci = telegram_bot.medya_grubu_gonder(self.slaytlar, caption="İdempotent Test")
+        self.assertEqual(ilk, [51, 52, 53])
+        self.assertEqual(ikinci, [51, 52, 53])
+        # Telegram API'sine sadece 1 kez gidilmeli, 2. çağrı önbellekten dönmeli
+        self.assertEqual(post.call_count, 1)
+        self.assertEqual(telegram_bot.son_medya_grubu_mesaj_idleri(), [51, 52, 53])
 
     def test_eksik_teslim_hata_gunlugune_yazilir(self):
         sayac = {"foto": 0}

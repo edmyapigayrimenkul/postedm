@@ -1053,6 +1053,20 @@ def caption_zenginlestir(
         kanca_baslik = satirlar[0] if satirlar else (manset or govde)
         return tiktok.baslik_kur(kanca_baslik, nihai_etiketler)
 
+    if platform_key == "linkedin":
+        b2b_sabitler = ["#EDMYapıGayrimenkul", "#GayrimenkulYatırımı", "#İmarMevzuatı", "#Silivri"]
+        li_etiketler = [t for t in (b2b_sabitler + nihai_etiketler) if t.strip()]
+        gorulen_li = set()
+        temiz_li_etiketler = []
+        for t in li_etiketler:
+            k = filtre.kucult(t)
+            if k not in gorulen_li:
+                gorulen_li.add(k)
+                temiz_li_etiketler.append(t)
+        tag_str = " ".join(temiz_li_etiketler[:5])
+        ek = f"\n\n{iletisim}" if iletisim else ""
+        return f"{govde}{ek}\n\n{tag_str}".strip()
+
     if platform_key == "threads":
         azami = 480
         tag_str = " ".join(nihai_etiketler[:3])
@@ -1108,6 +1122,15 @@ def _captionlari_zenginlestir(veri: Dict[str, Any]) -> Dict[str, Any]:
     elif veri.get("caption_instagram"):
         veri["caption_threads"] = caption_zenginlestir(
             veri["caption_instagram"], kategori_kodu=kat, platform="threads", manset=man
+        )
+
+    if veri.get("caption_linkedin"):
+        veri["caption_linkedin"] = caption_zenginlestir(
+            veri["caption_linkedin"], kategori_kodu=kat, platform="linkedin", manset=man
+        )
+    elif veri.get("caption_instagram"):
+        veri["caption_linkedin"] = caption_zenginlestir(
+            veri["caption_instagram"], kategori_kodu=kat, platform="linkedin", manset=man
         )
     return veri
 

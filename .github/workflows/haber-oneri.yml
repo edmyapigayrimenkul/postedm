@@ -27,9 +27,6 @@
 name: Haber Önerisi
 
 on:
-  schedule:
-    - cron: "17 6 * * *"    # 09:17 TR → slot haber_oneri_sabah
-    - cron: "17 15 * * *"   # 18:17 TR → slot haber_oneri_aksam
   repository_dispatch:
     types: [haber_oneri]
   workflow_dispatch:
@@ -46,8 +43,8 @@ jobs:
     permissions:
       contents: write
     env:
-      ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
-      ZAMANLI_SLOT: ${{ github.event.client_payload.slot || (github.event.schedule == '17 15 * * *' && 'haber_oneri_aksam' || 'haber_oneri_sabah') }}
+      ZAMANLANMIS: ${{ github.event.client_payload.zamanli == true }}
+      ZAMANLI_SLOT: ${{ github.event.client_payload.slot || 'haber_oneri_sabah' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

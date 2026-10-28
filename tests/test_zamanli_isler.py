@@ -88,11 +88,11 @@ class TestUcYerinUyumu(unittest.TestCase):
             dinleyenler = [ad for ad in ISLER if olay in ((_workflow(ad).get(True) or {}).get("repository_dispatch") or {}).get("types", [])]
             self.assertTrue(dinleyenler, f"{cron}: Worker '{olay}' olayını yolluyor ama hiçbir workflow bu olayı dinlemiyor")
 
-    def test_her_cloudflare_cronunun_github_yedegi_ayni_saatte(self):
-        """Cloudflare ve GitHub cron'ları AYNI UTC saatinde: biri diğerinin yedeği (aynı slot, aynı gün)."""
+    def test_yedek_github_cronlari_kaldirildi_ve_asli_cloudflare(self):
+        """20 Ekim sonrası: yedek GitHub cron'ları kaldırıldı; 7 zamanlı iş yalnızca Cloudflare cron'undan tetiklenir."""
         for cron, (olay, slot) in _worker_tablosu().items():
             dosya = next(ad for ad, o in ISLER.items() if o == olay)
-            self.assertIn(cron, _github_cronlari(dosya), f"{slot}: {dosya} içinde yedek GitHub cron'u '{cron}' yok")
+            self.assertNotIn(cron, _github_cronlari(dosya), f"{slot}: {dosya} içinde kaldırılması gereken yedek GitHub cron'u '{cron}' hala duruyor")
 
     def test_workflow_slotlari_korunan_slotlarla_ayni(self):
         """Workflow'daki ZAMANLI_SLOT ifadesinin ürettiği her ad, ZAMANLI_GUNLUK_SLOTLAR'da ve Worker tablosunda olmalı."""

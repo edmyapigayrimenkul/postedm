@@ -23,8 +23,6 @@
 name: Günlük Rapor
 
 on:
-  schedule:
-    - cron: "40 5 * * *"
   workflow_dispatch:
   repository_dispatch:
     types: [rapor]
@@ -43,7 +41,7 @@ jobs:
       actions: read
     timeout-minutes: 10
     env:
-      ZAMANLANMIS: ${{ github.event_name == 'schedule' || github.event.client_payload.zamanli == true }}
+      ZAMANLANMIS: ${{ github.event.client_payload.zamanli == true }}
       ZAMANLI_SLOT: rapor
     steps:
       - uses: actions/checkout@v4
