@@ -77,8 +77,8 @@ def tipografi_temizle(metin: str) -> str:
 
 def markdown_temizle(metin: str) -> str:
     """
-    Metindeki markdown kalın (**metin**) veya italik (*metin* / _metin_) işaretlerini temizler.
-    Instagram, Threads, Facebook gibi düz metin alanlarında ** işaretlerinin çıplak görünmesini engeller.
+    Metindeki markdown kalın (**metin**), italik (*metin* / _metin_) veya liste (* madde) işaretlerini temizler.
+    Instagram, Threads, Facebook, LinkedIn, TikTok gibi düz metin alanlarında * veya ** işaretlerinin çıplak görünmesini engeller.
     Hashtag'leri (#kelime) korur.
     """
     if not metin or not isinstance(metin, str):
@@ -87,16 +87,24 @@ def markdown_temizle(metin: str) -> str:
     metin = tipografi_temizle(metin)
     # HTML etiketlerini temizle (örn: <b>, <i>, <script>)
     metin = re.sub(r"<[^>]+>", "", metin)
+    # ***kalın italik*** -> kalın italik
+    metin = re.sub(r"\*\*\*(.*?)\*\*\*", r"\1", metin)
     # **kalın** -> kalın
     metin = re.sub(r"\*\*(.*?)\*\*", r"\1", metin)
     # __kalın__ -> kalın
     metin = re.sub(r"__(.*?)__", r"\1", metin)
+    # *italik/vurgu* -> italik/vurgu
+    metin = re.sub(r"\*([^*]+?)\*", r"\1", metin)
+    # _italik_ -> italik
+    metin = re.sub(r"_([^_]+?)_", r"\1", metin)
     # Markdown başlık işaretleri (örn: '### Başlık' -> 'Başlık', hashtag'leri bozmaz)
     metin = re.sub(r"^#{1,6}\s+", "", metin, flags=re.MULTILINE)
     # `kod` -> kod
     metin = re.sub(r"`(.*?)`", r"\1", metin)
-    # Kalan tekil çift yıldızları temizle
-    metin = metin.replace("**", "").replace("__", "")
+    # Satır başı yıldız liste işaretleri: '* madde' -> '• madde'
+    metin = re.sub(r"^\s*\*\s+", "• ", metin, flags=re.MULTILINE)
+    # Düz metinde çıplak kalan tekil veya çift yıldızları tamamen süpür
+    metin = metin.replace("**", "").replace("__", "").replace("*", "")
     return metin.strip()
 
 

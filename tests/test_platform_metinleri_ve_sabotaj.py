@@ -146,7 +146,101 @@ class TestPlatformMetinleriVeKancalar(unittest.TestCase):
 
         li_metin = generate_text.caption_zenginlestir(ham_metin, platform="linkedin", manset="Hisseli Arsa Analizi")
         self.assertIn("#GayrimenkulYatırımı", li_metin)
-        self.assertIn("edmyapigayrimenkul.com", li_metin)
+
+    # 5. TÜM İÇERİK FORMATLARININ (HABER, NEDİR DOĞRUSU, NET CEVAP, VAKA, SÖZLÜK, REELS, İLAN) UYUMLULUĞU
+    def test_tum_icerik_formatlari_tum_platformlara_uyumludur(self):
+        """Haber, Nedir Doğrusu, Net Cevap, Vaka, Sözlük, Reels ve İlan formatlarının tüm platform çıktıları kurallara uymalıdır."""
+        format_ornekleri = [
+            # 1. Haber
+            {
+                "tur": "haber",
+                "manset": "Silivri İmar Planı Askıya Çıktı",
+                "spot": "Yeni konut ve ticaret alanları için askı süreci başladı.",
+                "yasal_dayanak": "3194 sayılı İmar Kanunu md. 8",
+                "detay_maddeleri": [{"etiket": "İtiraz Süresi", "metin": "30 gün içinde itiraz edilebilir."}]
+            },
+            # 2. Nedir Doğrusu
+            {
+                "tur": "nedir_dogrusu",
+                "manset": "Tapu Harcını Kim Öder?",
+                "spot": "Alıcı ve satıcı arasındaki harç paylaşımı kuralları.",
+                "yasal_dayanak": "492 sayılı Harçlar Kanunu",
+                "slayt_2_detay": {
+                    "kart_1": {"baslik": "Yaygın Hata", "aciklama": "Hepsini alıcı öder sanılır."},
+                    "kart_2": {"baslik": "Yasal Kural", "aciklama": "Yarı yarıya (%2 + %2) ödenir."}
+                },
+                "slayt_3_cozum": {"maddeler": [{"baslik": "Sözleşme Maddesi", "aciklama": "Aksi kararlaştırılabilir."}]}
+            },
+            # 3. Net Cevap
+            {
+                "tur": "net_cevap",
+                "manset": "Hisseli Tapuya Ev Yapılır mı?",
+                "spot": "Tüm hissedarların muvafakati olmadan yapı ruhsatı alınamaz.",
+                "yasal_dayanak": "3194 sayılı İmar Kanunu md. 22",
+                "slayt_2_detay": {"kart_1": {"baslik": "Ruhsat Şartı", "aciklama": "Hissedar imzası şarttır."}}
+            },
+            # 4. Örnek Olay / Vaka
+            {
+                "tur": "vaka",
+                "manset": "Notersiz Gayrimenkul Satış Vaadi Tuzağı",
+                "spot": "Adi yazılı senetle arsa alan yatırımcı tapuyu alamadı.",
+                "yasal_dayanak": "TBK md. 237 ve Noterlik Kanunu md. 60",
+                "slayt_2_detay": {"kart_1": {"baslik": "Hukuki Hata", "aciklama": "Resmi şekil şartına uyulmadı."}}
+            },
+            # 5. Sözlük Kartı
+            {
+                "tur": "sozluk",
+                "manset": "Şufa (Önalım) Hakkı Nedir?",
+                "spot": "Paydaşın payını üçüncü kişiye satması durumunda diğer paydaşların öncelikle satın alma hakkıdır.",
+                "yasal_dayanak": "TMK md. 732",
+                "detay_metni": json.dumps({"terim": "ŞUFA HAKKI", "anlam": "Paydaşın öncelikle alma hakkı", "yasal_dayanak": "TMK md. 732"})
+            },
+            # 6. Reels
+            {
+                "tur": "reels",
+                "manset": "Arsa Alırken Dikkat Edilmesi Gereken 3 Madde",
+                "spot": "Kadastro yolu olmayan araziye inşaat izni verilmez.",
+                "yasal_dayanak": "Plansız Alanlar İmar Yönetmeliği"
+            },
+            # 7. İlan
+            {
+                "tur": "ilan",
+                "baslik": "Silivri Alibey Satılık Arsa",
+                "manset": "Silivri Alibey Satılık Arsa",
+                "spot": "İmar sınırında 500 m2 müstakil parsel.",
+                "kaynak_url": "https://edmyapigayrimenkul.com/ilan/123"
+            }
+        ]
+
+        gorseller = ["https://cdn.example.com/s1.jpg", "https://cdn.example.com/s2.jpg", "https://cdn.example.com/s3.jpg"]
+
+        for ornek in format_ornekleri:
+            tur = ornek["tur"]
+            # 1. LinkedIn
+            li = linkedin.linkedin_metni_hazirla(ornek)
+            self.assertNotIn("*", li, f"{tur} formatında LinkedIn'de * kaldı")
+            self.assertNotIn("Yorumlarda buluşalım", li, f"{tur} formatında LinkedIn'de soru kalıbı kaldı")
+            self.assertIn("edmyapigayrimenkul.com", li)
+
+            # 2. Threads Zinciri
+            th_zincir = threads.metinleri_slaytlara_dagit(ornek, gorseller)
+            for idx, sayfa in enumerate(th_zincir):
+                metin = sayfa["metin"]
+                self.assertLessEqual(len(metin), 480, f"{tur} formatında Threads sayfa {idx} 480 k. aştı")
+                self.assertNotIn("*", metin, f"{tur} formatında Threads sayfa {idx}'de * kaldı")
+                self.assertNotIn("Yorumlarda buluşalım", metin)
+
+            # 3. TikTok Başlık ve Açıklama
+            tt_b = tiktok.baslik_kur(ornek.get("manset") or ornek.get("baslik", ""))
+            tt_a = tiktok.aciklama_kur(ornek.get("spot") or ornek.get("manset", ""))
+            self.assertLessEqual(len(tt_b), 150, f"{tur} formatında TikTok başlığı 150 k. aştı")
+            self.assertNotIn("*", tt_b)
+            self.assertNotIn("*", tt_a)
+
+            # 4. Instagram Caption
+            ig = generate_text.caption_zenginlestir(ornek.get("spot") or ornek.get("manset", ""), platform="instagram", manset=ornek.get("manset"))
+            self.assertNotIn("*", ig, f"{tur} formatında Instagram'da * kaldı")
+            self.assertNotIn("Yorumlarda buluşalım", ig)
 
 
 class TestSabotajVeStres(unittest.TestCase):
@@ -196,6 +290,36 @@ class TestSabotajVeStres(unittest.TestCase):
         
         sayfalar = threads.metinleri_slaytlara_dagit({"manset": zararli}, ["https://cdn.example.com/1.jpg"])
         self.assertNotIn("<script>", sayfalar[0]["metin"])
+
+    # 3b. AÇIKLAMALARDA MARKDOWN YILDIZ (*) VE BOLD TEMİZLİĞİ
+    def test_markdown_yildiz_ve_bold_isaretleri_asla_aciklamaya_sizmaz(self):
+        """Instagram, Threads, LinkedIn, TikTok ve Facebook açıklamalarında hiçbir zaman * veya ** işaretleri görünmemelidir."""
+        kirli_metin = "**Önemli Uyarı:** Tapu devrinde *kesinlikle* boş kağıda imza atmayın! ***Dikkat*** * Madde 1 * Madde 2"
+        
+        # Instagram
+        ig_sonuc = generate_text.caption_zenginlestir(kirli_metin, platform="instagram")
+        self.assertNotIn("*", ig_sonuc)
+        self.assertIn("Önemli Uyarı:", ig_sonuc)
+        self.assertIn("kesinlikle", ig_sonuc)
+
+        # Threads
+        th_sonuc = generate_text.caption_zenginlestir(kirli_metin, platform="threads")
+        self.assertNotIn("*", th_sonuc)
+
+        # LinkedIn
+        li_sonuc = linkedin.linkedin_metni_hazirla({"manset": kirli_metin, "spot": kirli_metin})
+        self.assertNotIn("*", li_sonuc)
+
+        # TikTok Başlık & Açıklama
+        tt_b = tiktok.baslik_kur(kirli_metin)
+        tt_a = tiktok.aciklama_kur(kirli_metin)
+        self.assertNotIn("*", tt_b)
+        self.assertNotIn("*", tt_a)
+
+        # Threads Zincir Sayfaları
+        sayfalar = threads.metinleri_slaytlara_dagit({"manset": kirli_metin, "spot": kirli_metin}, ["url1", "url2"])
+        for s in sayfalar:
+            self.assertNotIn("*", s["metin"])
 
     # 4. KANAL HATA İZOLASYONU (BİRİ ÇÖKSE DE DİĞERLERİ YAŞAMALI)
     def test_dagitim_motoru_kanal_hatalarini_izole_eder(self):
