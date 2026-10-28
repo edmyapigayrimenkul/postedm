@@ -346,6 +346,7 @@ class TestSabotajVeStres(unittest.TestCase):
             patch("src.threads.paylas", return_value="th_post_456"),
             patch("src.threads.zincir_paylas_sonuc", return_value={"kok_id": "th_post_456", "yayinlanan": 2, "toplam": 2, "eksik": []}),
             patch("src.tiktok.foto_yayinla", return_value={"durum": False, "hata": "HTTP 403 unaudited_client"}),
+            patch("src.linkedin.kullanilabilir_mi", return_value=True),
             patch("src.linkedin.paylas", side_effect=RuntimeError("LinkedIn 500 Internal Server Error")),
         ):
             sonuc_dagitim = dagitim.dagit(b, ["instagram", "threads", "tiktok", "linkedin"], mock_ilerleme)
