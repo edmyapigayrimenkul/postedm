@@ -54,6 +54,14 @@ def linkedin_metni_hazirla(veri: Dict[str, Any], manset: Optional[str] = None) -
     if not isinstance(veri, dict):
         return ""
 
+    if "detay_metni" in veri and isinstance(veri["detay_metni"], str):
+        try:
+            ayristirilmis = json.loads(veri["detay_metni"])
+            if isinstance(ayristirilmis, dict):
+                veri = {**veri, **ayristirilmis}
+        except Exception:
+            pass
+
     baslik = manset or veri.get("manset") or veri.get("baslik") or ""
     kanca = veri.get("kanca") or veri.get("hook") or ""
     spot = veri.get("spot") or veri.get("ozet") or ""
