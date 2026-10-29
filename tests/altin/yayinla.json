@@ -3,6 +3,7 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 721\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 721\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"THZ\"], \"islev\": \"threads.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"[facebook] [instagram] Açıklama 721\", [\"https://cdn.example.com/h721_1.jpg\", \"https://cdn.example.com/h721_2.jpg\", \"https://cdn.example.com/h721_3.jpg\"]], \"islev\": \"facebook.paylas\", \"kwargs\": {}}",
    "{\"args\": [\"[instagram] Açıklama 721\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 721\", \"platform\": \"facebook\"}}",
@@ -1141,6 +1142,7 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 701\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 701\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:story_701.jpg\"], \"islev\": \"upload_image.gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Manşet 701\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
@@ -1277,6 +1279,7 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 702\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 702\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGT1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:story_702.jpg\"], \"islev\": \"upload_image.gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Manşet 702\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
@@ -1413,6 +1416,7 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 703\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 703\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"THZ\"], \"islev\": \"threads.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"[facebook] [instagram] Açıklama 703\", [\"https://cdn.example.com/h703_1.jpg\", \"https://cdn.example.com/h703_2.jpg\", \"https://cdn.example.com/h703_3.jpg\"]], \"islev\": \"facebook.paylas\", \"kwargs\": {}}",
    "{\"args\": [\"[instagram] Açıklama 703\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 703\", \"platform\": \"facebook\"}}",
@@ -1539,6 +1543,7 @@
  "haber_ig_tek_ve_carousel_tiktok_taslak": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 707\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 707\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"707\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 707</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #707 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 707</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -1788,6 +1793,7 @@
  "haber_kismi_basari": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 705\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 705\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Manşet 705\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"youtube.shorts_yukle\", \"kwargs\": {\"aciklama\": \"[instagram] Açıklama 705\", \"baslik\": \"Manşet 705\"}}",
@@ -2054,6 +2060,7 @@
  "haber_slayt_json_bozuk": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 806\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 806\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"806\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 806</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #806 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 806</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -2535,6 +2542,7 @@
  "haber_url_olmus_yerel_yok_detaydan_cizilir": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 801\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 801\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"801\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 801</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #801 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 801</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -2634,6 +2642,7 @@
  "haber_url_olmus_yerel_yok_otorite_cizici": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 802\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 802\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"802\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 802</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #802 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 802</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -2733,6 +2742,7 @@
  "haber_url_olmus_yerel_yukleme_hatasi": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 803\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 803\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGT1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"803\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"https://uguu.se/eski.jpg\", \"[instagram] Açıklama 803\"], \"islev\": \"instagram.tekil_gorsel_yayinla\", \"kwargs\": {}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 803</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -2833,6 +2843,7 @@
  "haber_urlsiz_yerel_yok_detaydan_cizilir": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 804\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 804\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"THZ\"], \"islev\": \"threads.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"804\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 804</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -2940,6 +2951,7 @@
  "haber_urlsiz_yerel_yok_otorite_cizici": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 805\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 805\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"805\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 805</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #805 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 805</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -3107,6 +3119,7 @@
  "ilan_hepsi_yeniden_ciz": {
   "cagrilar": [
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:story_ilan-8.jpg\"], \"islev\": \"upload_image.gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Satılık Daire ilan-8\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
@@ -3237,6 +3250,7 @@
  "ilan_ig_fb_story_threads": {
   "cagrilar": [
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:story_ilan-7.jpg\"], \"islev\": \"upload_image.gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [\"Satılık Daire ilan-7\\n\\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\\n0 212 727 2955 · https://edmyapigayrimenkul.com/ilan/1\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": null, \"manset\": \"Satılık Daire ilan-7\", \"platform\": \"facebook\"}}",
    "{\"args\": [\"THZ\"], \"islev\": \"threads.post_baglantisi\", \"kwargs\": {}}",
@@ -3551,6 +3565,7 @@
  "ilan_zaten_yayinda_filtre_haber_degil": {
   "cagrilar": [
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"Satılık Daire ilan-13\\n\\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\\n0 212 727 2955 · https://edmyapigayrimenkul.com/ilan/1\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": null, \"manset\": \"Satılık Daire ilan-13\", \"platform\": \"facebook\"}}",
    "{\"args\": [\"[facebook] Satılık Daire ilan-13\\n\\nEDM Yapı & Gayrimenkul · Yatırım Ortağınız\\n0 212 727 2955 · https://edmyapigayrimenkul.com/ilan/1\", [\"https://cdn.example.com/ilan_kapak_slayti_ciz_ilan-13.jpg\", \"https://cdn.example.com/ilan_detay_slayti_ciz_ilan-13.jpg\", \"https://cdn.example.com/ilan_kapanis_slayti_ciz_ilan-13.jpg\"]], \"islev\": \"facebook.paylas\", \"kwargs\": {}}",
    "{\"args\": [\"ilan\", \"ilan-13\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
@@ -3925,12 +3940,12 @@
  "linkedin_detaysiz_haberden_veri": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 834\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 834\", \"platform\": \"instagram\"}}",
-   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h834_1.jpg\", \"<TMP>/slaytlar/h834_2.jpg\", \"<TMP>/slaytlar/h834_3.jpg\"]}}",
+   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h834_1.jpg\", \"<TMP>/slaytlar/h834_2.jpg\", \"<TMP>/slaytlar/h834_3.jpg\"], \"gorsel_urlleri\": [\"https://cdn.example.com/h834_1.jpg\", \"https://cdn.example.com/h834_2.jpg\", \"https://cdn.example.com/h834_3.jpg\"]}}",
    "{\"args\": [\"haber\", \"834\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 834</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #834 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 834</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [834, {\"detay_metni\": null, \"durum\": \"onay_bekliyor\", \"eklenme_tarihi\": \"2026-10-01T10:00:00+00:00\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 834, \"ig_caption\": \"Açıklama 834\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 834\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 834\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/834\", \"planlanan_yayin\": null, \"slayt_urlleri\": \"[\\\"https://cdn.example.com/h834_1.jpg\\\", \\\"https://cdn.example.com/h834_2.jpg\\\", \\\"https://cdn.example.com/h834_3.jpg\\\"]\", \"slayt_yollari\": \"[\\\"<TMP>/slaytlar/h834_1.jpg\\\", \\\"<TMP>/slaytlar/h834_2.jpg\\\", \\\"<TMP>/slaytlar/h834_3.jpg\\\"]\", \"sutun\": null, \"threads_metin\": \"Threads metni 834\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}, {\"caption_instagram\": \"Açıklama 834\", \"caption_threads\": \"Threads metni 834\", \"manset\": \"Manşet 834\", \"spot\": \"\"}], \"islev\": \"telegram_bot.yayin_kapisi\", \"kwargs\": {\"anlam_denetimi\": false, \"durum_yaz\": true}}",
-   "{\"args\": [null, \"🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\\n\\n📌 <b>İçerik:</b> Manşet 834\\n⏱️ <b>Dağıtım Süresi:</b> <SURE> sn\\n\\n📱 <b>Platform Sonuçları:</b>\\n• 💼 <b>LinkedIn:</b> Paylaşıldı ✓\\n\\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\\n<pre><code>[instagram] Açıklama 834</code></pre>\"], \"islev\": \"telegram_bot.sonucu_yaz\", \"kwargs\": {\"bildir\": true, \"reply_markup\": {\"inline_keyboard\": [[{\"text\": \"💼 LinkedIn'de Gör\", \"url\": \"https://www.linkedin.com/feed/update/LI1/\"}], [{\"callback_data\": \"yayin_kontrol:834\", \"text\": \"🔍 Yayın durumunu kontrol et\"}], [{\"callback_data\": \"kaldir:haber:834\", \"text\": \"🗑️ Bu Yayını Kaldır\"}]]}}}",
+   "{\"args\": [null, \"🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\\n\\n📌 <b>İçerik:</b> Manşet 834\\n⏱️ <b>Dağıtım Süresi:</b> <SURE> sn\\n\\n📱 <b>Platform Sonuçları:</b>\\n• 💼 <b>LinkedIn:</b> Paylaşıldı ✓\\n\\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\\n<pre><code>[instagram] Açıklama 834</code></pre>\"], \"islev\": \"telegram_bot.sonucu_yaz\", \"kwargs\": {\"bildir\": true, \"reply_markup\": {\"inline_keyboard\": [[{\"text\": \"💼 LinkedIn'de Gör\", \"url\": \"https://www.linkedin.com/company/67226326/admin/page-posts/published/\"}], [{\"callback_data\": \"yayin_kontrol:834\", \"text\": \"🔍 Yayın durumunu kontrol et\"}], [{\"callback_data\": \"kaldir:haber:834\", \"text\": \"🗑️ Bu Yayını Kaldır\"}]]}}}",
    "{\"args\": [{\"detay_metni\": null, \"durum\": \"onay_bekliyor\", \"eklenme_tarihi\": \"2026-10-01T10:00:00+00:00\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 834, \"ig_caption\": \"Açıklama 834\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 834\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 834\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/834\", \"planlanan_yayin\": null, \"slayt_urlleri\": \"[\\\"https://cdn.example.com/h834_1.jpg\\\", \\\"https://cdn.example.com/h834_2.jpg\\\", \\\"https://cdn.example.com/h834_3.jpg\\\"]\", \"slayt_yollari\": \"[\\\"<TMP>/slaytlar/h834_1.jpg\\\", \\\"<TMP>/slaytlar/h834_2.jpg\\\", \\\"<TMP>/slaytlar/h834_3.jpg\\\"]\", \"sutun\": null, \"threads_metin\": \"Threads metni 834\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"linkedin.linkedin_metni_hazirla\", \"kwargs\": {\"manset\": \"Manşet 834\"}}"
   ],
   "db": {
@@ -3975,7 +3990,7 @@
        [
         {
          "text": "💼 LinkedIn'de Gör",
-         "url": "https://www.linkedin.com/feed/update/LI1/"
+         "url": "https://www.linkedin.com/company/67226326/admin/page-posts/published/"
         }
        ],
        [
@@ -4024,7 +4039,8 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 720\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 720\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"FB1\"], \"islev\": \"facebook.post_baglantisi\", \"kwargs\": {}}",
-   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h720_1.jpg\", \"<TMP>/slaytlar/h720_2.jpg\", \"<TMP>/slaytlar/h720_3.jpg\"]}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
+   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h720_1.jpg\", \"<TMP>/slaytlar/h720_2.jpg\", \"<TMP>/slaytlar/h720_3.jpg\"], \"gorsel_urlleri\": [\"https://cdn.example.com/h720_1.jpg\", \"https://cdn.example.com/h720_2.jpg\", \"https://cdn.example.com/h720_3.jpg\"]}}",
    "{\"args\": [\"P:story_720.jpg\"], \"islev\": \"upload_image.gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Manşet 720\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
@@ -4180,12 +4196,12 @@
  "linkedin_ve_twitter_cok_slayt": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 717\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 717\", \"platform\": \"instagram\"}}",
-   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h717_1.jpg\", \"<TMP>/slaytlar/h717_2.jpg\", \"<TMP>/slaytlar/h717_3.jpg\"]}}",
+   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h717_1.jpg\", \"<TMP>/slaytlar/h717_2.jpg\", \"<TMP>/slaytlar/h717_3.jpg\"], \"gorsel_urlleri\": [\"https://cdn.example.com/h717_1.jpg\", \"https://cdn.example.com/h717_2.jpg\", \"https://cdn.example.com/h717_3.jpg\"]}}",
    "{\"args\": [\"haber\", \"717\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 717</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #717 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 717</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [717, {\"detay_metni\": \"{\\\"format_turu\\\": \\\"dailybrief\\\", \\\"manset\\\": \\\"Detay manşeti\\\", \\\"spot\\\": \\\"Spot\\\"}\", \"durum\": \"onay_bekliyor\", \"eklenme_tarihi\": \"2026-10-01T10:00:00+00:00\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 717, \"ig_caption\": \"Açıklama 717\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 717\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 717\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/717\", \"planlanan_yayin\": null, \"slayt_urlleri\": \"[\\\"https://cdn.example.com/h717_1.jpg\\\", \\\"https://cdn.example.com/h717_2.jpg\\\", \\\"https://cdn.example.com/h717_3.jpg\\\"]\", \"slayt_yollari\": \"[\\\"<TMP>/slaytlar/h717_1.jpg\\\", \\\"<TMP>/slaytlar/h717_2.jpg\\\", \\\"<TMP>/slaytlar/h717_3.jpg\\\"]\", \"sutun\": null, \"threads_metin\": \"Threads metni 717\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}, {\"caption_instagram\": \"Açıklama 717\", \"caption_threads\": \"Threads metni 717\", \"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\"}], \"islev\": \"telegram_bot.yayin_kapisi\", \"kwargs\": {\"anlam_denetimi\": false, \"durum_yaz\": true}}",
-   "{\"args\": [null, \"🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\\n\\n📌 <b>İçerik:</b> Manşet 717\\n⏱️ <b>Dağıtım Süresi:</b> <SURE> sn\\n\\n📱 <b>Platform Sonuçları:</b>\\n• 💼 <b>LinkedIn:</b> Paylaşıldı ✓\\n\\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\\n<pre><code>[instagram] Açıklama 717</code></pre>\"], \"islev\": \"telegram_bot.sonucu_yaz\", \"kwargs\": {\"bildir\": true, \"reply_markup\": {\"inline_keyboard\": [[{\"text\": \"💼 LinkedIn'de Gör\", \"url\": \"https://www.linkedin.com/feed/update/LI1/\"}], [{\"callback_data\": \"retry_kanal:twitter:717\", \"text\": \"🔄 🐦 X'i Tekrar Dene\"}], [{\"callback_data\": \"yayin_kontrol:717\", \"text\": \"🔍 Yayın durumunu kontrol et\"}], [{\"callback_data\": \"kaldir:haber:717\", \"text\": \"🗑️ Bu Yayını Kaldır\"}]]}}}",
+   "{\"args\": [null, \"🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\\n\\n📌 <b>İçerik:</b> Manşet 717\\n⏱️ <b>Dağıtım Süresi:</b> <SURE> sn\\n\\n📱 <b>Platform Sonuçları:</b>\\n• 💼 <b>LinkedIn:</b> Paylaşıldı ✓\\n\\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\\n<pre><code>[instagram] Açıklama 717</code></pre>\"], \"islev\": \"telegram_bot.sonucu_yaz\", \"kwargs\": {\"bildir\": true, \"reply_markup\": {\"inline_keyboard\": [[{\"text\": \"💼 LinkedIn'de Gör\", \"url\": \"https://www.linkedin.com/company/67226326/admin/page-posts/published/\"}], [{\"callback_data\": \"retry_kanal:twitter:717\", \"text\": \"🔄 🐦 X'i Tekrar Dene\"}], [{\"callback_data\": \"yayin_kontrol:717\", \"text\": \"🔍 Yayın durumunu kontrol et\"}], [{\"callback_data\": \"kaldir:haber:717\", \"text\": \"🗑️ Bu Yayını Kaldır\"}]]}}}",
    "{\"args\": [{\"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\"}], \"islev\": \"linkedin.linkedin_metni_hazirla\", \"kwargs\": {\"manset\": \"Manşet 717\"}}"
   ],
   "db": {
@@ -4230,7 +4246,7 @@
        [
         {
          "text": "💼 LinkedIn'de Gör",
-         "url": "https://www.linkedin.com/feed/update/LI1/"
+         "url": "https://www.linkedin.com/company/67226326/admin/page-posts/published/"
         }
        ],
        [
@@ -4284,12 +4300,12 @@
  "linkedin_ve_twitter_tek_slayt": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 718\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 718\", \"platform\": \"instagram\"}}",
-   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h718_1.jpg\"]}}",
+   "{\"args\": [\"LI METNİ\"], \"islev\": \"linkedin.paylas\", \"kwargs\": {\"dosya_yollari\": [\"<TMP>/slaytlar/h718_1.jpg\"], \"gorsel_urlleri\": [\"https://cdn.example.com/h718_1.jpg\"]}}",
    "{\"args\": [\"haber\", \"718\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 718</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #718 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 718</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [718, {\"detay_metni\": \"{\\\"format_turu\\\": \\\"dailybrief\\\", \\\"manset\\\": \\\"Detay manşeti\\\", \\\"spot\\\": \\\"Spot\\\"}\", \"durum\": \"onay_bekliyor\", \"eklenme_tarihi\": \"2026-10-01T10:00:00+00:00\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 718, \"ig_caption\": \"Açıklama 718\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 718\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 718\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/718\", \"planlanan_yayin\": null, \"slayt_urlleri\": \"[\\\"https://cdn.example.com/h718_1.jpg\\\"]\", \"slayt_yollari\": \"[\\\"<TMP>/slaytlar/h718_1.jpg\\\"]\", \"sutun\": null, \"threads_metin\": \"Threads metni 718\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}, {\"caption_instagram\": \"Açıklama 718\", \"caption_threads\": \"Threads metni 718\", \"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\"}], \"islev\": \"telegram_bot.yayin_kapisi\", \"kwargs\": {\"anlam_denetimi\": false, \"durum_yaz\": true}}",
-   "{\"args\": [null, \"🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\\n\\n📌 <b>İçerik:</b> Manşet 718\\n⏱️ <b>Dağıtım Süresi:</b> <SURE> sn\\n\\n📱 <b>Platform Sonuçları:</b>\\n• 💼 <b>LinkedIn:</b> Paylaşıldı ✓\\n\\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\\n<pre><code>[instagram] Açıklama 718</code></pre>\"], \"islev\": \"telegram_bot.sonucu_yaz\", \"kwargs\": {\"bildir\": true, \"reply_markup\": {\"inline_keyboard\": [[{\"text\": \"💼 LinkedIn'de Gör\", \"url\": \"https://www.linkedin.com/feed/update/LI1/\"}], [{\"callback_data\": \"retry_kanal:twitter:718\", \"text\": \"🔄 🐦 X'i Tekrar Dene\"}], [{\"callback_data\": \"yayin_kontrol:718\", \"text\": \"🔍 Yayın durumunu kontrol et\"}], [{\"callback_data\": \"kaldir:haber:718\", \"text\": \"🗑️ Bu Yayını Kaldır\"}]]}}}",
+   "{\"args\": [null, \"🎉 <b>YAYIN BAŞARIYLA TAMAMLANDI</b>\\n\\n📌 <b>İçerik:</b> Manşet 718\\n⏱️ <b>Dağıtım Süresi:</b> <SURE> sn\\n\\n📱 <b>Platform Sonuçları:</b>\\n• 💼 <b>LinkedIn:</b> Paylaşıldı ✓\\n\\n📝 <b>Açıklama Metni (Kopyalamak İçin Dokunun):</b>\\n<pre><code>[instagram] Açıklama 718</code></pre>\"], \"islev\": \"telegram_bot.sonucu_yaz\", \"kwargs\": {\"bildir\": true, \"reply_markup\": {\"inline_keyboard\": [[{\"text\": \"💼 LinkedIn'de Gör\", \"url\": \"https://www.linkedin.com/company/67226326/admin/page-posts/published/\"}], [{\"callback_data\": \"retry_kanal:twitter:718\", \"text\": \"🔄 🐦 X'i Tekrar Dene\"}], [{\"callback_data\": \"yayin_kontrol:718\", \"text\": \"🔍 Yayın durumunu kontrol et\"}], [{\"callback_data\": \"kaldir:haber:718\", \"text\": \"🗑️ Bu Yayını Kaldır\"}]]}}}",
    "{\"args\": [{\"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\"}], \"islev\": \"linkedin.linkedin_metni_hazirla\", \"kwargs\": {\"manset\": \"Manşet 718\"}}"
   ],
   "db": {
@@ -4334,7 +4350,7 @@
        [
         {
          "text": "💼 LinkedIn'de Gör",
-         "url": "https://www.linkedin.com/feed/update/LI1/"
+         "url": "https://www.linkedin.com/company/67226326/admin/page-posts/published/"
         }
        ],
        [
@@ -4714,6 +4730,7 @@
  "mesajdan_icerik_bulunur": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 722\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 722\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"722\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": 77}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 722</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #722 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 722</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -4818,6 +4835,7 @@
  },
  "mesajdan_ilan_bulunur": {
   "cagrilar": [
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"ilan\", \"ilan-12\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": 78}}",
    "{\"args\": [\"ilan-12\"], \"islev\": \"make_image.ilan_detay_slayti_ciz\", \"kwargs\": {}}",
    "{\"args\": [\"ilan-12\"], \"islev\": \"make_image.ilan_kapak_slayti_ciz\", \"kwargs\": {}}",
@@ -6476,6 +6494,7 @@
  "site_taslagi_aktarilir": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 723\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 723\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"723\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 723</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #723 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 723</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -6574,6 +6593,7 @@
  "site_taslagi_hatasi": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 835\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 835\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"835\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 835</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #835 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 835</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
@@ -6949,6 +6969,7 @@
  "telegram_bildirim_hatalari_yayini_bozmaz": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 814\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 814\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Manşet 814\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"youtube.shorts_yukle\", \"kwargs\": {\"aciklama\": \"[instagram] Açıklama 814\", \"baslik\": \"Manşet 814\"}}",
@@ -7045,6 +7066,7 @@
  "telegram_video_ve_caption_hatalari": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 815\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 815\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"ses.sesli_video_hazirla\", \"kwargs\": {\"muzik\": true, \"ses_seviyesi\": 0.2}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"telegram_bot.video_gonder\", \"kwargs\": {\"aciklama\": \"🎬 <b>EDM Reels Videosu (1080x1920 MP4)</b>\\n\\n📌 <b>Konu:</b> Manşet 815\\n\\n💡 <i>Videoyu cihazınıza kaydedip Instagram / TikTok uygulamasından doğrudan paylaşabilirsiniz.</i>\"}}",
    "{\"args\": [\"P:uretilen.mp4\"], \"islev\": \"youtube.shorts_yukle\", \"kwargs\": {\"aciklama\": \"[instagram] Açıklama 815\", \"baslik\": \"Manşet 815\"}}",
@@ -8100,6 +8122,7 @@
  "url_olmus_yerelden_onarilir": {
   "cagrilar": [
    "{\"args\": [\"Açıklama 729\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 729\", \"platform\": \"instagram\"}}",
+   "{\"args\": [\"IGC1\"], \"islev\": \"instagram.post_baglantisi\", \"kwargs\": {}}",
    "{\"args\": [\"haber\", \"729\"], \"islev\": \"telegram_bot.icerik_onceki_mesajlarini_temizle\", \"kwargs\": {\"haric_mesaj_id\": null}}",
    "{\"args\": [\"📋 <b>Kopyalanabilir Açıklama (Reels / Post):</b>\\n\\n<code>[instagram] Açıklama 729</code>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",
    "{\"args\": [\"📝 <b>İçerik #729 Kopyalanabilir Açıklama Metni (Caption):</b>\\n\\n<pre><code>[instagram] Açıklama 729</code></pre>\"], \"islev\": \"telegram_bot.mesaj_gonder\", \"kwargs\": {}}",

@@ -2069,8 +2069,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -2337,8 +2341,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -2807,8 +2815,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -3040,8 +3052,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -3644,8 +3660,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -3966,8 +3986,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -4203,8 +4227,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -4456,8 +4484,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -4731,8 +4763,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -4970,8 +5006,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -5156,8 +5196,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -5623,8 +5667,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:3",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -5846,8 +5894,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:3",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -6055,8 +6107,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:3",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -6264,8 +6320,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:3",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -8970,8 +9030,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -9136,8 +9200,12 @@
     ],
     [
      {
+      "callback_data": "metin_onizle:5",
+      "text": "📝 Metinleri Gör"
+     },
+     {
       "callback_data": "manuel_paket",
-      "text": "📲 Manuel Paylaşım Paketi"
+      "text": "📲 Manuel Paket"
      }
     ],
     [
@@ -9241,8 +9309,12 @@
     ],
     [
      {
+      "callback_data": "metin_onizle:2",
+      "text": "📝 Metinleri Gör"
+     },
+     {
       "callback_data": "manuel_paket",
-      "text": "📲 Manuel Paylaşım Paketi"
+      "text": "📲 Manuel Paket"
      }
     ],
     [
@@ -10007,8 +10079,12 @@
     ],
     [
      {
+      "callback_data": "metin_onizle:2",
+      "text": "📝 Metinleri Gör"
+     },
+     {
       "callback_data": "manuel_paket",
-      "text": "📲 Manuel Paylaşım Paketi"
+      "text": "📲 Manuel Paket"
      }
     ],
     [
@@ -10113,8 +10189,12 @@
      ],
      [
       {
+       "callback_data": "metin_onizle:2",
+       "text": "📝 Metinleri Gör"
+      },
+      {
        "callback_data": "manuel_paket",
-       "text": "📲 Manuel Paylaşım Paketi"
+       "text": "📲 Manuel Paket"
       }
      ],
      [
@@ -10205,8 +10285,12 @@
      ],
      [
       {
+       "callback_data": "metin_onizle:2",
+       "text": "📝 Metinleri Gör"
+      },
+      {
        "callback_data": "manuel_paket",
-       "text": "📲 Manuel Paylaşım Paketi"
+       "text": "📲 Manuel Paket"
       }
      ],
      [
@@ -12093,8 +12177,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -12316,8 +12404,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -12607,8 +12699,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -12833,8 +12929,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -12935,8 +13035,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -13159,8 +13263,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -13398,8 +13506,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:3",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -13621,8 +13733,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -13844,8 +13960,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -14046,8 +14166,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -14247,8 +14371,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -14483,8 +14611,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -14706,8 +14838,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -14929,8 +15065,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -15101,8 +15241,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -15273,8 +15417,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -15496,8 +15644,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -15668,8 +15820,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -16040,8 +16196,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -16756,8 +16916,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -17030,8 +17194,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -17417,8 +17585,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -17684,8 +17856,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:4",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -17874,8 +18050,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -18162,8 +18342,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -18763,8 +18947,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -18951,8 +19139,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -19154,8 +19346,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -19357,8 +19553,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -19555,8 +19755,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -19755,8 +19959,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -19959,8 +20167,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [
@@ -20227,8 +20439,12 @@
        ],
        [
         {
+         "callback_data": "metin_onizle:1",
+         "text": "📝 Metinleri Gör"
+        },
+        {
          "callback_data": "manuel_paket",
-         "text": "📲 Manuel Paylaşım Paketi"
+         "text": "📲 Manuel Paket"
         }
        ],
        [

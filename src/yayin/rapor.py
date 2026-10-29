@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
-from .. import facebook, hata_bildir, telegram_bot, threads, twitter
+from .. import facebook, hata_bildir, instagram, telegram_bot, threads, twitter
 from .baglam import YayinBaglami
 from .hedef import linkedin_istendi, twitter_istendi
 from .sonuc import HATA, DagitimSonucu
@@ -47,20 +47,20 @@ def _sonuc_metni(b: YayinBaglami, sonuc: DagitimSonucu, gecen_sure: float, temiz
 def _canli_baglantilar(sonuc: DagitimSonucu) -> List[List[Dict[str, Any]]]:
     linkler: List[Dict[str, Any]] = []
     if sonuc.ig_id:
-        linkler.append({"text": "📸 Instagram'da Gör", "url": f"https://www.instagram.com/p/{sonuc.ig_id}/"})
+        ig_url = instagram.post_baglantisi(sonuc.ig_id) or "https://www.instagram.com/edmyapigayrimenkul/"
+        linkler.append({"text": "📸 Instagram'da Gör", "url": ig_url})
     if sonuc.threads_id:
-        th_url = threads.post_baglantisi(sonuc.threads_id)
-        if th_url:
-            linkler.append({"text": "🧵 Threads'te Gör", "url": th_url})
+        th_url = threads.post_baglantisi(sonuc.threads_id) or "https://www.threads.net/@edmyapigayrimenkul"
+        linkler.append({"text": "🧵 Threads'te Gör", "url": th_url})
     if sonuc.fb_id:
-        fb_url = facebook.post_baglantisi(sonuc.fb_id)
-        if fb_url:
-            linkler.append({"text": "📘 Facebook'ta Gör", "url": fb_url})
+        fb_url = facebook.post_baglantisi(sonuc.fb_id) or "https://www.facebook.com/edmyapigayrimenkul"
+        linkler.append({"text": "📘 Facebook'ta Gör", "url": fb_url})
     yt = sonuc.yt_res
     if yt.get("durum") and yt.get("url"):
         linkler.append({"text": "▶️ Shorts'ta İzle", "url": yt.get("url")})
     if sonuc.linkedin_id:
-        linkler.append({"text": "💼 LinkedIn'de Gör", "url": f"https://www.linkedin.com/feed/update/{sonuc.linkedin_id}/"})
+        li_url = f"https://www.linkedin.com/feed/update/{sonuc.linkedin_id}/" if str(sonuc.linkedin_id).startswith("urn:li:") else "https://www.linkedin.com/company/67226326/admin/page-posts/published/"
+        linkler.append({"text": "💼 LinkedIn'de Gör", "url": li_url})
     if sonuc.twitter_id:
         tw_url = twitter.post_baglantisi(sonuc.twitter_id)
         if tw_url:

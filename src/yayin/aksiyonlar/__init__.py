@@ -27,6 +27,8 @@ def isle(istek: Istek, mevcut: Optional[Dict[str, Any]]) -> bool:
         yonetim.kaldir(istek)
     elif hedef == "manuel_paket":
         yonetim.manuel_paket(istek)
+    elif hedef == "metin_onizle":
+        yonetim.metin_onizle(istek)
     elif hedef in ("tamamla", "manuel_tamam"):
         yonetim.tamamla(istek)
     elif hedef == "yenile":

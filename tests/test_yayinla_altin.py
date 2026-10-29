@@ -129,6 +129,7 @@ class Ortam:
         "instagram.carousel_yayinla": "IGC1",
         "instagram.tekil_gorsel_yayinla": "IGT1",
         "instagram.story_yayinla": "IGS1",
+        "instagram.post_baglantisi": lambda ortam, i: f"https://www.instagram.com/p/{i}/",
         "instagram.gorselleri_4_5_yap": lambda ortam, yollar, *a, **k: [f"https://cdn.example.com/k45_{i}.jpg" for i, _ in enumerate(yollar)],
         "facebook.paylas": "FB1",
         "facebook.video_yayinla": "FBV1",

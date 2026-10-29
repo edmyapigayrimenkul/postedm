@@ -816,6 +816,17 @@ export default {
           return new Response("OK");
         }
 
+        // F2. METİNLERİ GÖR / KANCA ÖNİZLEMESİ
+        if (data === "metin_onizle" || data.startsWith("metin_onizle:")) {
+          const mId = (data.includes(":") ? data.split(":")[1] : "") || icerikIdBul();
+          const msgMetin = cb.message?.text || cb.message?.caption || "";
+          const isIlan = /PORTFÖY|İLAN/i.test(msgMetin);
+          const tur = isIlan ? "ilan" : "haber";
+          await cevapVer("Platform metinleri hazırlanıyor...");
+          await tetikle(env, chatId, "yayinla", { tur: tur, id: mId, hedef: "metin_onizle", mesaj_id: messageId });
+          return new Response("OK");
+        }
+
         // --- "İşleniyor" butonuna basılırsa kullanıcıyı bilgilendir ---
         if (data === "isleniyor") {
           await cevapVer("⏳ İşlem devam ediyor, lütfen bekleyin…");
@@ -1449,29 +1460,34 @@ export default {
         if (text === "/start" || text === "/yardim") {
           const yardim = (
             "🏢 <b>EDM Yapı & Gayrimenkul Sosyal Medya Botu</b>\n\n" +
-            "<b>✍️ İÇERİK ÜRET & ARAŞTIR:</b>\n" +
+            "<b>✍️ İÇERİK FORMATLARI & ÜRETİM:</b>\n" +
             "• <b>/gonderi</b> — Günün konusundan onaylı post üretir (Rotasyon).\n" +
-            "• <b>/reels</b> — 9:16 Dikey Reels videosu ve metni üretir.\n" +
+            "• <b>/reels</b> — 9:16 Dikey video & metin üretir (Sesli yayın destekli).\n" +
+            "• <b>/sozluk</b> — Emlak sözlüğü formatında içerik üretir (Mevzuat/TBK/TMK/İmar).\n" +
+            "• <b>/dogrusu</b> — Nedir Doğrusu ikili karşılaştırma kartı üretir.\n" +
+            "• <b>/vaka</b> — 2 slaytlık vaka/örnek olay analizi carousel üretir.\n" +
+            "• <b>/soru</b> — Soru & Net Cevap rehberi kartı üretir.\n" +
+            "• <b>/haber</b> — Taze sektörel haber tara ve post üret.\n" +
+            "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n" +
             "• <b>/arastir &lt;konu&gt;</b> — Derin mevzuat araştırması ve post üretir.\n" +
             "• <b>/dosya &lt;konu&gt;</b> — Kronolojik dosya ve süreç analizi üretir.\n" +
             "• <b>/link &lt;url&gt;</b> — Web linkinden otorite postu üretir.\n" +
-            "• <b>/ozel &lt;metin&gt;</b> — Serbest duyuru/konudan post üretir.\n" +
-            "• <b>/haber</b> — Taze sektörel haber tara ve post üret.\n" +
-            "• <b>/sozluk</b> — Emlak sözlüğü formatında içerik üretir.\n" +
-            "• <b>/dogrusu</b> — Nedir Doğrusu formatında içerik üretir.\n" +
-            "• <b>/vaka</b> — 2 slaytlık vaka analizi carousel üretir.\n" +
-            "• <b>/soru</b> — Net cevap rehberi üretir.\n" +
-            "• <b>/ilanlar</b> — Portföyden ilan seçip yayınlama menüsünü açar.\n\n" +
+            "• <b>/ozel &lt;metin&gt;</b> — Serbest duyuru/konudan post üretir.\n\n" +
+            "<b>📢 DAĞITIM KANALLARI & MEDYA:</b>\n" +
+            "• <b>Kanallar:</b> Instagram (Post/Carousel/Story/Reels), Threads, Facebook, LinkedIn (B2B analiz & görsel), YouTube Shorts, TikTok.\n" +
+            "• <b>🎙️ Sesli Yayın:</b> ElevenLabs & Fish Audio (Türkçe doğal TTS) ile Reels/Shorts/TikTok seslendirmesi.\n" +
+            "• <b>📝 Metinleri Gör:</b> Onay kartından tüm platformların kanca ve açıklamalarını önizleme.\n\n" +
             "<b>📊 AKIŞ, İNCELEME & RAPOR:</b>\n" +
             "• <b>/sonpostlar</b> — Son paylaşılan 5 postu listeler.\n" +
             "• <b>/incele &lt;id&gt;</b> — Post detaylarını ve slayt metinlerini inceler.\n" +
+            "• <b>/yayin_kontrol &lt;id&gt;</b> — Paylaşım ID'sinin kanal yayın durumunu denetler.\n" +
             "• <b>/kurtar &lt;id&gt;</b> — Aksayan yayını tüm kanallara kurtarır.\n" +
             "• <b>/durum</b> — Bot ve yayın durumunu raporlar.\n" +
             "• <b>/rapor</b> — GitHub Actions, yapay zeka ve sistem kota tablosu.\n" +
             "• <b>/havuz</b> — Konu bankası havuz durumunu gösterir.\n\n" +
             "<b>🎛 YÖNETİM & AYARLAR:</b>\n" +
             "• <b>/panel</b> — İnteraktif kontrol merkezini açar.\n" +
-            "• <b>/ayar</b> — Çalışma ayarlarını canlı düzenler.\n" +
+            "• <b>/ayar</b> — Çalışma ayarlarını (kanallar, yayın saatleri) canlı düzenler.\n" +
             "• <b>/hatirlat</b> — Onay bekleyen paylaşımları anında tarar.\n" +
             "• <b>/temizle</b> — Askıda bekleyen onayları temizler.\n" +
             "• <b>/saglik</b> — API ve sistem bağlantı sağlık testi.\n" +
@@ -1519,6 +1535,7 @@ function ayarMenusu(ayarlar = {}) {
       [{ text: `${v('kanal_fb', true) ? '✅ AÇIK' : '⬜ KAPALI'} 📘 Facebook Paylaşımı`, callback_data: `ayarsec:kanal_fb:${!v('kanal_fb', true)}` }],
       [{ text: `${v('kanal_tiktok', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🎵 TikTok Paylaşımı`, callback_data: `ayarsec:kanal_tiktok:${!v('kanal_tiktok', true)}` }],
       [{ text: `${v('kanal_youtube', true) ? '✅ AÇIK' : '⬜ KAPALI'} ▶️ YouTube Shorts`, callback_data: `ayarsec:kanal_youtube:${!v('kanal_youtube', true)}` }],
+      [{ text: `${v('kanal_linkedin', true) ? '✅ AÇIK' : '⬜ KAPALI'} 💼 LinkedIn Paylaşımı`, callback_data: `ayarsec:kanal_linkedin:${!v('kanal_linkedin', true)}` }],
       [{ text: "← Kontrol Paneli", callback_data: "panel" }],
     ],
   };
@@ -1651,7 +1668,8 @@ function anaMenu(adet = 2, seciliKanallar = ["ig", "story", "threads", "facebook
         { text: "🎙️ Sesli Yayınla", callback_data: `ses_menu:${adet}` },
       ],
       [
-        { text: "📲 Manuel Paylaşım Paketi", callback_data: "manuel_paket" },
+        { text: "📝 Metinleri Gör", callback_data: `metin_onizle:${adet}` },
+        { text: "📲 Manuel Paket", callback_data: "manuel_paket" },
       ],
       [
         { text: "🔄 Başka Fotoğraf Bul", callback_data: `foto_menu:${adet}` },

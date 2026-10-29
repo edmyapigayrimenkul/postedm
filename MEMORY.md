@@ -526,6 +526,12 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
       * Dağıtım İzolasyonu: Bir kanal aksasa dahi diğer kanalların başarıyla yayına girdiği, DB'ye yazıldığı ve mükerrer paylaşımın önlendiği teyit edildi.
     * **Sabotaj ve Stres Güvencesi:** `tests/test_platform_metinleri_ve_sabotaj.py` (12/12 yeşil) — Null/bozuk veri enjeksiyonu, 10.000 karakterlik dev payload stresi, XSS/SQLi sabotajı, ağır emoji/ZWJ unicode dayanıklılığı, 15 parçalık Threads zinciri ve kanal hata toleransı tam koruma altına alındı.
 
+37. **Telegram Denetimi ve Etkileşim İyileştirmeleri — 2026-10-29 (Gemini).**
+    * **Canlı Gönderi Linkleri (`src/yayin/rapor.py`):** Yayın sonuç raporuna Instagram permalink'i (`instagram.post_baglantisi`), Threads, Facebook, LinkedIn (`https://www.linkedin.com/feed/update/{urn}/`) ve YouTube doğrudan tıklanabilir butonları eklendi.
+    * **Metin Önizleme (`📝 Metinleri Gör`):** Onay kartına `metin_onizle` aksiyonu eklendi (`src/telegram/menuler.py`, `src/yayin/aksiyonlar/yonetim.py`, `worker/index.js`). Onay öncesinde LinkedIn B2B analiz metni, Threads kancası ve Instagram açıklaması Telegram'da `<pre><code>` bloklarıyla tek tıkla önizlenebiliyor.
+    * **Worker & Ayarlar:** `worker/index.js` `ayarMenusu`'ne `kanal_linkedin` butonu eklendi; `anaMenu` Python ile eşitlendi; `/yardim` menüsü güncellendi.
+    * **Test Güvencesi:** `tests/test_buton_sozlesmesi.py`, `tests/test_telegram_altin.py`, `tests/test_yayinla_altin.py` ve tüm testler (1229 test) eksiksiz doğrulandı.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.

@@ -26,7 +26,7 @@ TASLAK_ISLEMLERI = frozenset({
 })
 # Her durumda anlamlı olan yönetim işlemleri. "tamamla" elle paylaşılan içeriği
 # kaydetmenin yolu; kaldırma ise kendi içinde yayında olup olmadığına bakar.
-YONETIM_ISLEMLERI = frozenset({"ertele", "kaldir", "sil", "manuel_paket", "tamamla", "manuel_tamam"})
+YONETIM_ISLEMLERI = frozenset({"ertele", "kaldir", "sil", "manuel_paket", "metin_onizle", "tamamla", "manuel_tamam"})
 
 
 def kontrol(istek: Istek) -> Tuple[bool, Optional[Dict[str, Any]]]:

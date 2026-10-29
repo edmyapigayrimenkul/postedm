@@ -51,7 +51,8 @@ def ana_menu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> Dict[
                 {"text": "🎙️ Sesli Yayınla", "callback_data": f"ses_menu:{adet}"},
             ],
             [
-                {"text": "📲 Manuel Paylaşım Paketi", "callback_data": "manuel_paket"},
+                {"text": "📝 Metinleri Gör", "callback_data": f"metin_onizle:{adet}"},
+                {"text": "📲 Manuel Paket", "callback_data": "manuel_paket"},
             ],
             [
                 {"text": "🔄 Başka Fotoğraf Bul", "callback_data": f"foto_menu:{adet}"},
