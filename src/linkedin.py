@@ -245,6 +245,8 @@ def paylas(
             urn = _gorseli_yukle_ve_kaydet(aday, token, author)
             if urn:
                 image_urns.append(urn)
+        if image_urns:
+            time.sleep(2)
 
     # Posts API URL ve Header
     post_url = f"{LINKEDIN_REST_BASE}/posts"

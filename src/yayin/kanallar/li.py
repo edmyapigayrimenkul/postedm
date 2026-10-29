@@ -27,7 +27,7 @@ def yayinla(b: YayinBaglami, ilerleme: Ilerleme) -> KanalSonucu:
         li_veri = b.detay if (b.detay and isinstance(b.detay, dict)) else (b.haber if isinstance(b.haber, dict) else {})
         li_metin = linkedin.linkedin_metni_hazirla(li_veri, manset=b.baslik)
         gorseller_li = [str(p) for p in b.slayt_yollari if Path(p).exists()]
-        lid = linkedin.paylas(li_metin, dosya_yollari=gorseller_li)
+        lid = linkedin.paylas(li_metin, gorsel_urlleri=b.public_urller, dosya_yollari=gorseller_li or None)
         s.kimlik = lid
         if lid:
             s.ekle("💼 <b>LinkedIn:</b> Paylaşıldı ✓", YAYINDA)
