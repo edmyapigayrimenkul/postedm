@@ -179,8 +179,12 @@ def video_yayinla(video_yolu: Path | str, description: str = "") -> Optional[str
         log.warning("Facebook erişim tokeni bulunamadı.")
         return None
 
-    from . import ses
-    yol = ses.sesli_video_hazirla(video_yolu, ses_seviyesi=0.20)
+    p = Path(video_yolu)
+    if "_sesli" in p.stem or p.name.endswith("_sesli.mp4"):
+        yol = p
+    else:
+        from . import ses
+        yol = ses.sesli_video_hazirla(video_yolu, ses_seviyesi=0.20)
     if not yol.exists():
         log.warning("Facebook'a yüklenecek video dosyası bulunamadı: %s", yol)
         return None

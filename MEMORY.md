@@ -532,6 +532,12 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Worker & Ayarlar:** `worker/index.js` `ayarMenusu`'ne `kanal_linkedin` butonu eklendi; `anaMenu` Python ile eşitlendi; `/yardim` menüsü güncellendi.
     * **Test Güvencesi:** `tests/test_buton_sozlesmesi.py`, `tests/test_telegram_altin.py`, `tests/test_yayinla_altin.py` ve tüm testler (1229 test) eksiksiz doğrulandı.
 
+38. **YouTube Shorts Daimi Seslendirme ve Facebook Reels Çift-Miks Düzeltmesi — 2026-10-29 (Gemini).**
+    * **Kök Neden Çözümü:** `src/ses.py` içindeki `anlatimli_video_uret` çıktısı `video_{pid}_sesli.mp4` olarak adlandırıldı. `src/yayin/videolar.py` ve `src/facebook.py` içinde seslendirilmiş videonun Ffmpeg ile ikinci kez mikslenip Alex/TTS sesinin ezilmesi (`-map 0:v -map 1:a`) engellendi.
+    * **YouTube Shorts Daimi Sesli Video:** YouTube hedefte olduğu her durumda (`b.hedef_mi("yt")`) video doğrudan seslendirmeli (`anlatimli_video_uret`) üretilir; Shorts daima seslendirmeli çıkar.
+    * **Facebook:** Instagram ile birebir eşitlendi: Instagram'a gönderi gittiğinde Facebook'a da standart gönderi (görsel albümü), Instagram Reels paylaşıldığında Facebook Reels (seslendirmeli video) gider.
+    * **Testler:** `test_yayinla_altin.py`, `test_telegram_altin.py`, `test_buton_sozlesmesi.py` yeşil.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.

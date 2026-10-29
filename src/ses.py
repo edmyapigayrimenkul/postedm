@@ -493,7 +493,7 @@ def anlatimli_video_uret(
         sonuc["anlatim"] = bool(anlatim)
         sonuc["tts_motoru"] = son_kullanilan_motor() if anlatim else None
 
-    son_hedef = cikti_yolu or config.yol_al(f"data/output/video_{os.getpid()}.mp4")
+    son_hedef = cikti_yolu or config.yol_al(f"data/output/video_{os.getpid()}_sesli.mp4")
     karisik = sesli_video_hazirla(sessiz, konusma_sesi=anlatim, ses_seviyesi=0.14 if anlatim else 0.20, muzik=muzik, hedef_yol=son_hedef)
     if karisik and Path(karisik) != Path(sessiz) and Path(karisik).exists():
         # Ara dosyalar: geçici sessiz video ve anlatım izi artık gerekmiyor
@@ -524,7 +524,7 @@ def sesli_video_hazirla(
     yol = Path(video_yolu)
     if not yol.exists() or yol.stat().st_size == 0:
         return yol
-    if yol.stem.endswith("_sesli"):
+    if yol.stem.endswith("_sesli") or "_sesli" in yol.name:
         # Onayda seslendirilmiş video: Facebook/YouTube yüklemesi yeniden
         # karıştırırsa anlatım silinip yerine yalnız müzik konuyordu.
         return yol

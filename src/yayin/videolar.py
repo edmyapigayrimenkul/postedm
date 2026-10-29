@@ -20,15 +20,15 @@ log = logging.getLogger(__name__)
 
 
 def _uret(b: YayinBaglami, slaytlar, veri=None):
-    """Düz yayında sessiz video (fon müziği sonradan eklenir); sesli yayında kapak seslendirmesi + kapanış çağrısı."""
-    if b.ses_modu:
-        return ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=(b.ses_modu == "muzikli"), sonuc=b.ses_sonucu)
+    """Düz yayında sessiz video; sesli yayında veya YouTube Shorts'ta seslendirme + kapanış çağrısı."""
+    if b.ses_modu or b.hedef_mi("yt", "youtube", "shorts"):
+        return ses.anlatimli_video_uret(slaytlar, veri=veri, muzik=(b.ses_modu != "muziksiz"), sonuc=b.ses_sonucu)
     return video.slaytlardan_reels_uret(slaytlar, haber=veri)
 
 
 def _kayitli_video(b: YayinBaglami) -> Optional[Path]:
     """Onay anında derlenmiş video taze ise o (seslendirmesiz); slaytlardan eskiyse yeniden üretilir."""
-    if not (b.haber and b.haber.get("video_yolu") and not b.ses_modu):  # onaydaki video seslendirmesiz
+    if not (b.haber and b.haber.get("video_yolu") and not b.ses_modu and not b.hedef_mi("yt", "youtube", "shorts")):  # onaydaki video seslendirmesiz
         return None
     vy = Path(b.haber["video_yolu"])
     if not (vy.exists() and vy.stat().st_size > 0):
@@ -137,12 +137,15 @@ def hazirla(b: YayinBaglami) -> List[Satir]:
         b.v_yolu = _video_derle(b)
 
     if b.v_yolu and b.v_yolu.exists():
-        try:
-            # Sesli videoda ("_sesli") dokunulmaz; "fon müziksiz"de müzik eklenmez
-            b.sesli_video_yolu = ses.sesli_video_hazirla(b.v_yolu, ses_seviyesi=0.20, muzik=(b.ses_modu != "muziksiz"))
-        except Exception as se:  # noqa: BLE001
-            log.warning("Fon müziği mikslenemedi: %s", se)
+        if "_sesli" in b.v_yolu.stem or b.ses_sonucu.get("anlatim"):
+            # Anlatımlı video zaten seslendirilmiş ve müzik mikslenmiştir; ffmpeg ile tekrar ezilmez
             b.sesli_video_yolu = b.v_yolu
+        else:
+            try:
+                b.sesli_video_yolu = ses.sesli_video_hazirla(b.v_yolu, ses_seviyesi=0.20, muzik=(b.ses_modu != "muziksiz"))
+            except Exception as se:  # noqa: BLE001
+                log.warning("Fon müziği mikslenemedi: %s", se)
+                b.sesli_video_yolu = b.v_yolu
 
     # Seslendirme durumu raporu
     notlar: List[Satir] = []
