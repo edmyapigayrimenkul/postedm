@@ -538,6 +538,12 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Facebook:** Instagram ile birebir eşitlendi: Instagram'a gönderi gittiğinde Facebook'a da standart gönderi (görsel albümü), Instagram Reels paylaşıldığında Facebook Reels (seslendirmeli video) gider.
     * **Testler:** `test_yayinla_altin.py`, `test_telegram_altin.py`, `test_buton_sozlesmesi.py` yeşil.
 
+39. **Telegram Komut Menüsü Otomasyonu, Bekleyen Planlar Yönetimi ve Metin Düzenleme Rehberi — 2026-10-29 (Gemini).**
+    * **Komut Menüsü Otomasyonu (`setMyCommands`):** `scripts/telegram_komutlari_kaydet.py` eklendi. Bot token üzerinden 17 adet güncel komutu Telegram API'ye iletir; `--kuru` modu ağa çıkmadan listeler. Worker'a `/komutlar`, `/komut_guncelle` komutları ve `komut_guncelle` callback'i eklendi (tek tıkla menüyü senkronize eder). Kontrol merkezine `[📋 Komut Menüsü]` butonu bağlandı.
+    * **Bekleyen Planlı Yayınlar (`/planlar`):** Cloudflare KV'de (`PLANLAR`) zamanlanmış olarak bekleyen gönderilerin anlık durumunu listeler. Her plan için `[▶️ Hemen Yayınla]` (`plan_hemen:<id>`) ve `[⏹ İptal Et]` (`plan_iptal:<id>`) butonları sunar; kullanıcı GitHub Actions uyanmasını beklemeden yayını anında tetikleyebilir veya iptal edebilir.
+    * **Metin Düzenleme Şablon Rehberi (`metin_sablon`):** Onay kartındaki metin menüsüne `[✍️ Düzenleme Şablonu]` butonu eklendi. Tıklandığında kullanıcıya yanıt vererek (Reply) manşet, başlık ve slayt metinlerini nasıl düzenleyebileceğini gösteren doğrudan kopyalanabilir markdown kod blokları gönderir.
+    * **Testler & Doğrulamalar:** `tests/worker_planli_yayin.test.mjs` (4 yeni test ile 77/77 test yeşil), `tests/test_buton_sozlesmesi.py` (9/9 yeşil), `tests/test_telegram_paketi.py` (16/16 yeşil), `tests/altin/telegram.json` (güncellendi, 4/4 senaryo yeşil), 1229 Python testinin tamamı OK.
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.

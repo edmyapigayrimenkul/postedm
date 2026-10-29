@@ -203,3 +203,66 @@ test("cron: bozuk kayıt temizlenir; başka cron ifadesi hiçbir şey yapmaz (g�
   await cron("0 7 * * 1-5");
   assert.equal(dispatchler.length, 0, "eski günlük tur cron'u hiçbir şey göndermemeli");
 });
+
+test("/planlar komutu ve planlar butonu bekleyen planları listeler", async () => {
+  // Plan yokken
+  const respBos = await worker.fetch(
+    new Request("https://worker.test/", {
+      method: "POST",
+      headers: { "X-Telegram-Bot-Api-Secret-Token": GIZLI, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: { message_id: 10, text: "/planlar", chat: { id: Number(GRUP) } } }),
+    }), ENV);
+  assert.equal(respBos.status, 200);
+  const mBos = telegramlar.find((t) => t.yontem === "sendMessage");
+  assert.match(mBos.govde.text, /herhangi bir planlı yayın bulunmuyor/);
+
+  // Plan varken
+  ENV.PLANLAR.m.set("plan:88", JSON.stringify({
+    an: new Date(Date.now() + 25 * DK).toISOString(), sohbet: Number(GRUP), adet: 4,
+    secili: ["youtube"], metin: "İçerik #555", payload: { tur: "haber", hedef: "ig,youtube", id: "555", mesaj_id: 88 }
+  }));
+  await tikla("planlar");
+  const mDolu = sonMetin();
+  assert.match(mDolu.text, /BEKLEYEN PLANLI YAYINLAR/);
+  assert.match(mDolu.text, /İçerik #555/);
+  const butonlar = mDolu.reply_markup.inline_keyboard.flat();
+  assert.ok(butonlar.some((b) => b.callback_data === "plan_hemen:88"));
+  assert.ok(butonlar.some((b) => b.callback_data === "plan_iptal:88"));
+});
+
+test("plan_hemen: butonu planı bekletmeden yayına alır ve KV'den siler", async () => {
+  ENV.PLANLAR.m.set("plan:88", JSON.stringify({
+    an: new Date(Date.now() + 40 * DK).toISOString(), sohbet: Number(GRUP), adet: 4,
+    secili: ["youtube"], metin: "İçerik #555", payload: { tur: "haber", hedef: "ig,youtube", id: "555", mesaj_id: 88 }
+  }));
+  assert.equal(ENV.PLANLAR.m.size, 1);
+  await tikla("plan_hemen:88");
+  assert.equal(ENV.PLANLAR.m.size, 0);
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].event_type, "yayinla");
+  assert.equal(dispatchler[0].client_payload.id, "555");
+  assert.equal(dispatchler[0].client_payload.planli, "1");
+});
+
+test("/komutlar komutu setMyCommands çağırır ve gruba bildirir", async () => {
+  const resp = await worker.fetch(
+    new Request("https://worker.test/", {
+      method: "POST",
+      headers: { "X-Telegram-Bot-Api-Secret-Token": GIZLI, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: { message_id: 11, text: "/komutlar", chat: { id: Number(GRUP) } } }),
+    }), ENV);
+  assert.equal(resp.status, 200);
+  const setCmd = telegramlar.find((t) => t.yontem === "setMyCommands");
+  assert.ok(setCmd, "setMyCommands çağrılmalı");
+  assert.ok(Array.isArray(setCmd.govde.commands));
+  assert.ok(setCmd.govde.commands.length >= 10);
+  const m = telegramlar.find((t) => t.yontem === "sendMessage" && t.govde.text.includes("Komut Menüsü"));
+  assert.ok(m, "başarı mesajı dönmeli");
+});
+
+test("metin_sablon butonu kopyalanabilir rehber mesajı yollar", async () => {
+  await tikla("metin_sablon");
+  const m = telegramlar.find((t) => t.yontem === "sendMessage" && t.govde.text.includes("ELLE METİN & BAŞLIK DÜZENLEME REHBERİ"));
+  assert.ok(m, "şablon rehberi yollanmalı");
+  assert.match(m.govde.text, /başlık: Yeni Çarpıcı Manşet/);
+});

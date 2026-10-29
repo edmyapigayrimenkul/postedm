@@ -443,6 +443,31 @@ export default {
           return new Response("OK");
         }
 
+        if (data === "planlar" || data === "planlar_tazele") {
+          await cevapVer("Planlar taranıyor...");
+          const res = await planlariListele(env);
+          await mesajiGuncelle(res.metin, { inline_keyboard: res.klavye });
+          return new Response("OK");
+        }
+
+        if (data === "komut_guncelle" || data === "komutlar_menu") {
+          await cevapVer("Komutlar kaydediliyor...");
+          const ok = await telegramKomutlariniKaydet(env);
+          if (ok) {
+            await mesajiGuncelle(
+              "✅ <b>Telegram Komut Menüsü Başarıyla Güncellendi!</b>\n\n" +
+              "Telegram'da mesaj yazma çubuğundaki <b>[/]</b> butonuna bastığınızda tüm güncel EDM komutları açıklamalarıyla listelenecektir.",
+              { inline_keyboard: [[{ text: "← Kontrol Paneli", callback_data: "panel" }]] }
+            );
+          } else {
+            await mesajiGuncelle(
+              "⚠️ <b>Telegram komut menüsü güncellenemedi.</b> Lütfen bot token'ını ve bağlantıyı kontrol edin.",
+              { inline_keyboard: [[{ text: "← Kontrol Paneli", callback_data: "panel" }]] }
+            );
+          }
+          return new Response("OK");
+        }
+
         if (data === "ayar" || data === "ayar_menu") {
           await cevapVer();
           await mesajiGuncelle(
@@ -783,24 +808,48 @@ export default {
         }
 
         // E2. PLANI İPTAL ET — plan KV'den silinir, onay menüsü seçilen kanallarla geri gelir
-        if (data === "plan_iptal") {
-          const ham = env.PLANLAR ? await env.PLANLAR.get(`plan:${messageId}`) : null;
+        if (data === "plan_iptal" || data.startsWith("plan_iptal:")) {
+          const hedefMsgId = data.startsWith("plan_iptal:") ? data.split(":")[1] : messageId;
+          const ham = env.PLANLAR ? await env.PLANLAR.get(`plan:${hedefMsgId}`) : null;
           if (!ham) {
             await cevapVer("Bekleyen plan yok — yayınlanmış ya da iptal edilmiş olabilir");
-            await butonlariGuncelle([]);
+            if (data === "plan_iptal") await butonlariGuncelle([]);
             return new Response("OK");
           }
-          await env.PLANLAR.delete(`plan:${messageId}`);
+          await env.PLANLAR.delete(`plan:${hedefMsgId}`);
           let plan = {};
           try { plan = JSON.parse(ham); } catch (_) {}
           await cevapVer("Plan iptal edildi");
           if (plan.payload?.id) {
             await tetikle(env, chatId, "yayinla", { tur: plan.payload.tur, id: plan.payload.id, hedef: "plan_iptal" });
           }
-          await mesajiGuncelle(
-            `⏹ <b>Yayın planı iptal edildi</b> — içerik onay bekliyor.\n\n${htmlKacis(plan.metin || "")}`.trim(),
-            anaMenu(plan.adet || 2, Array.isArray(plan.secili) ? plan.secili : undefined),
-          );
+          if (data.startsWith("plan_iptal:")) {
+            await mesajiGuncelle(`⏹ <b>#${plan.payload?.id || hedefMsgId} Nolu İçeriğin Planı İptal Edildi</b>\n\nİçerik onay bekliyor durumuna alındı.`);
+          } else {
+            await mesajiGuncelle(
+              `⏹ <b>Yayın planı iptal edildi</b> — içerik onay bekliyor.\n\n${htmlKacis(plan.metin || "")}`.trim(),
+              anaMenu(plan.adet || 2, Array.isArray(plan.secili) ? plan.secili : undefined),
+            );
+          }
+          return new Response("OK");
+        }
+
+        // E3. PLANLANAN İÇERİĞİ BEKLETMEDEN HEMEN YAYINLA
+        if (data.startsWith("plan_hemen:")) {
+          const hedefMsgId = data.split(":")[1];
+          const ham = env.PLANLAR ? await env.PLANLAR.get(`plan:${hedefMsgId}`) : null;
+          if (!ham) {
+            await cevapVer("Bekleyen plan bulunamadı");
+            return new Response("OK");
+          }
+          let plan = {};
+          try { plan = JSON.parse(ham); } catch (_) {}
+          await env.PLANLAR.delete(`plan:${hedefMsgId}`);
+          await cevapVer("Plan hemen yayına alındı");
+          await mesajiGuncelle(`🚀 <b>İçerik #${plan.payload?.id || hedefMsgId} Plan Bekletilmeden Yayına Alınıyor...</b>\n\nİçerik dağıtım motoru çalıştırıldı.`);
+          if (plan.payload) {
+            await tetikle(env, chatId, "yayinla", { ...plan.payload, planli: "1" });
+          }
           return new Response("OK");
         }
 
@@ -864,6 +913,32 @@ export default {
             }
           );
           await tetikle(env, chatId, "yayinla", { tur: tur, hedef: eylem, id: mId, mesaj_id: messageId });
+          return new Response("OK");
+        }
+
+        if (data === "metin_sablon") {
+          await cevapVer();
+          const sablonMetni = (
+            "✍️ <b>ELLE METİN & BAŞLIK DÜZENLEME REHBERİ</b>\n\n" +
+            "İçerik metnini veya slayt başlıklarını elle değiştirmek için, <b>onay kartı mesajını yanıtlayarak (Reply)</b> aşağıdaki kalıplardan birini gönderebilirsiniz:\n\n" +
+            "<b>1. Yalnızca Manşeti Değiştirmek:</b>\n" +
+            "<code>başlık: Yeni Çarpıcı Manşet Metniniz</code>\n\n" +
+            "<b>2. Belirli Bir Slaytın Başlığını Değiştirmek:</b>\n" +
+            "<code>1: Yeni Slayt Başlığı</code>\n" +
+            "<code>2: İkinci Slayt İçin Yeni Başlık</code>\n\n" +
+            "<b>3. Başlık ve Açıklamayı Birlikte Değiştirmek:</b>\n" +
+            "<code>1: Yeni Başlık | Yeni detay veya açıklama metni</code>\n\n" +
+            "<i>💡 İpucu: Yukarıdaki kod bloklarına dokunarak kopyalayabilir ve onay kartını yanıtlayarak yapıştırabilirsiniz. Slaytlar otomatik yeniden çizilir.</i>"
+          );
+          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: sablonMetni,
+              parse_mode: "HTML",
+            }),
+          });
           return new Response("OK");
         }
 
@@ -1231,6 +1306,22 @@ export default {
           return new Response("OK");
         }
 
+        if (text === "/planlar" || text === "/plan" || text === "planlar" || text === "plan") {
+          const res = await planlariListele(env);
+          await mesajGonder(res.metin, { inline_keyboard: res.klavye });
+          return new Response("OK");
+        }
+
+        if (text === "/komutlar" || text === "/komut_guncelle" || text === "/menuguncelle") {
+          const ok = await telegramKomutlariniKaydet(env);
+          if (ok) {
+            await mesajGonder("✅ <b>Telegram Komut Menüsü Başarıyla Güncellendi!</b>\n\nTelegram'da mesaj yazma kutusundaki <b>[/]</b> butonuna bastığınızda tüm güncel EDM komutları açıklamalarıyla listelenecektir.");
+          } else {
+            await mesajGonder("⚠️ <b>Telegram komut menüsü güncellenemedi.</b> Lütfen bot token'ını ve bağlantıyı kontrol edin.");
+          }
+          return new Response("OK");
+        }
+
         // /link <URL> — Web linkinden otorite postu üretir
         if (komut === "/link") {
           const url = argumanMetni.trim();
@@ -1576,6 +1667,10 @@ function kontrolMerkeziMenusu() {
         { text: "🔄 Konu Havuzu", callback_data: "havuz_durum" },
         { text: "⏰ Onayları Hatırlat", callback_data: "hatirlat_tetikle" },
       ],
+      [
+        { text: "⏰ Bekleyen Planlar", callback_data: "planlar" },
+        { text: "📋 Komut Menüsü", callback_data: "komut_guncelle" },
+      ],
     ],
   };
 }
@@ -1782,6 +1877,7 @@ function metinMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "face
       ],
       [
         { text: "🔄 Standart Yeniden Yaz", callback_data: "metin_yenile" },
+        { text: "✍️ Düzenleme Şablonu", callback_data: "metin_sablon" },
       ],
       [
         { text: "← Ana Menü", callback_data: `metin_geri:${adet}` },
@@ -2038,6 +2134,108 @@ async function planlariIsle(env, simdi = Date.now()) {
     }
   }
   return gonderilen;
+}
+
+async function planlariListele(env) {
+  if (!env.PLANLAR) {
+    return {
+      metin: "⚠️ <b>Planlama Altyapısı:</b> Cloudflare PLANLAR KV'si tanımlı değil.",
+      klavye: [[{ text: "← Kontrol Paneli", callback_data: "panel" }]],
+    };
+  }
+  let liste;
+  try {
+    liste = await env.PLANLAR.list({ prefix: "plan:" });
+  } catch (e) {
+    return {
+      metin: `⚠️ <b>Planlar alınamadı:</b> <code>${htmlKacis(String(e))}</code>`,
+      klavye: [[{ text: "← Kontrol Paneli", callback_data: "panel" }]],
+    };
+  }
+
+  const anahtarlar = liste?.keys || [];
+  if (anahtarlar.length === 0) {
+    return {
+      metin: (
+        "⏰ <b>BEKLEYEN PLANLI YAYINLAR</b>\n\n" +
+        "Şu anda sırada bekleyen herhangi bir planlı yayın bulunmuyor.\n\n" +
+        "<i>İçerik onay kartında '30 dk', '1 saat' gibi süre butonlarına basarak yayını ileri bir saate planlayabilirsiniz.</i>"
+      ),
+      klavye: [
+        [{ text: "📰 Günün Gönderisi", callback_data: "hizli_uret:rotasyon" }],
+        [{ text: "← Kontrol Paneli", callback_data: "panel" }],
+      ],
+    };
+  }
+
+  const simdi = Date.now();
+  let metin = `⏰ <b>BEKLEYEN PLANLI YAYINLAR (${anahtarlar.length} adet)</b>\n\n`;
+  const tuslar = [];
+
+  for (const anahtar of anahtarlar) {
+    let plan = null;
+    try {
+      plan = JSON.parse((await env.PLANLAR.get(anahtar.name)) || "null");
+    } catch (_) {}
+    if (!plan || !plan.payload || !Date.parse(plan.an)) continue;
+
+    const an = new Date(plan.an);
+    const mId = anahtar.name.replace("plan:", "");
+    const icerikId = plan.payload.id || mId;
+    const tur = (plan.payload.tur || "haber").toUpperCase();
+    const kalanDk = Math.max(0, Math.round((an.getTime() - simdi) / 60000));
+    const sesliMi = String(plan.payload.hedef || "").includes("ses_");
+
+    metin += `📌 <b>İçerik #${icerikId}</b> (${tur}${sesliMi ? " · 🎙️ Sesli" : ""})\n`;
+    metin += `• <b>Planlanan Saat:</b> TR ${trSaati(an)} (kalan: ~${kalanDk} dk)\n`;
+    metin += `• <b>Kanallar:</b> ${htmlKacis(hedefKanalEtiketleri(plan.payload.hedef))}\n\n`;
+
+    tuslar.push([
+      { text: `▶️ #${icerikId} Hemen Yayınla`, callback_data: `plan_hemen:${mId}` },
+      { text: `⏹ #${icerikId} İptal Et`, callback_data: `plan_iptal:${mId}` },
+    ]);
+  }
+
+  tuslar.push([
+    { text: "🔄 Listeyi Yenile", callback_data: "planlar_tazele" },
+    { text: "← Kontrol Paneli", callback_data: "panel" },
+  ]);
+
+  return { metin, klavye: tuslar };
+}
+
+const BOT_KOMUTLARI = [
+  { command: "gonderi", description: "Günün konusundan onaylı post hazırla" },
+  { command: "reels", description: "9:16 dikey video ve metin üret" },
+  { command: "sozluk", description: "Gayrimenkul sözlüğü kartı üret" },
+  { command: "dogrusu", description: "Nedir Doğrusu karşılaştırma kartı" },
+  { command: "vaka", description: "Hukuki vaka analizi carouseli" },
+  { command: "soru", description: "Net Cevap rehberi kartı üret" },
+  { command: "haber", description: "Sektörel haber önerilerini tara" },
+  { command: "ilanlar", description: "Portföy ilan menüsünü aç" },
+  { command: "panel", description: "İnteraktif kontrol merkezini aç" },
+  { command: "planlar", description: "Bekleyen planlı yayınları yönet" },
+  { command: "durum", description: "Yayın takvimi ve bot durumu" },
+  { command: "rapor", description: "Sistem, bulut ve AI kota tablosu" },
+  { command: "havuz", description: "Konu bankası havuz durumu" },
+  { command: "ayar", description: "Çalışma ve kanal ayarları" },
+  { command: "durdur", description: "Otomatik akışı duraklat" },
+  { command: "devam", description: "Akışı tekrar devam ettir" },
+  { command: "yardim", description: "Kullanım kılavuzu ve komutlar" },
+];
+
+async function telegramKomutlariniKaydet(env) {
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setMyCommands`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commands: BOT_KOMUTLARI }),
+    });
+    const d = await r.json();
+    return Boolean(d && d.ok);
+  } catch (_) {
+    return false;
+  }
 }
 
 function hedefKanalEtiketleri(hedef) {

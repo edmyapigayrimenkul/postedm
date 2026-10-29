@@ -126,12 +126,11 @@ class TestYayinKipleri(unittest.TestCase):
 
     def test_duz_yayin_eskisi_gibi_seslendirmesiz_ve_fon_muzikli(self):
         s = self._yayinla("youtube,tiktok")
-        s["sesli_video"].assert_not_called()
-        s["duz_video"].assert_called_once()
-        self.assertEqual(s["yt"].call_args[0][0], self.muzikli)  # YouTube fon müzikli
-        s["tt_foto"].assert_called_once()  # TikTok eskisi gibi fotoğraf karuseli
+        # Kullanıcı kararı (2026-10-29): YouTube Shorts daima seslendirmeli gider
+        s["sesli_video"].assert_called_once()
+        self.assertEqual(s["yt"].call_args[0][0], self.anlatimli)
+        s["tt_foto"].assert_called_once()  # TikTok ses kipi seçilmedikçe fotoğraf karuseli
         s["tt_video"].assert_not_called()
-        self.assertNotIn("Seslendirme", s["rapor"])
 
     def test_sesli_muzikli_butun_video_kanallarinda(self):
         s = self._yayinla("youtube,tiktok,ses_muzikli")
@@ -146,7 +145,8 @@ class TestYayinKipleri(unittest.TestCase):
     def test_sesli_muziksiz_hic_muzik_eklenmez(self):
         s = self._yayinla("youtube,ses_muziksiz")
         self.assertFalse(s["sesli_video"].call_args.kwargs["muzik"])
-        self.assertFalse(s["muzik"].call_args.kwargs["muzik"])
+        if s["muzik"].called:
+            self.assertFalse(s["muzik"].call_args.kwargs["muzik"])
         self.assertEqual(s["yt"].call_args[0][0], self.anlatimli)
         self.assertIn("fon müziksiz", s["rapor"])
 

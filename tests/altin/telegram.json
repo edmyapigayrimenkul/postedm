@@ -9700,6 +9700,16 @@
        "callback_data": "hatirlat_tetikle",
        "text": "⏰ Onayları Hatırlat"
       }
+     ],
+     [
+      {
+       "callback_data": "planlar",
+       "text": "⏰ Bekleyen Planlar"
+      },
+      {
+       "callback_data": "komut_guncelle",
+       "text": "📋 Komut Menüsü"
+      }
      ]
     ]
    },
@@ -9784,6 +9794,16 @@
        "callback_data": "hatirlat_tetikle",
        "text": "⏰ Onayları Hatırlat"
       }
+     ],
+     [
+      {
+       "callback_data": "planlar",
+       "text": "⏰ Bekleyen Planlar"
+      },
+      {
+       "callback_data": "komut_guncelle",
+       "text": "📋 Komut Menüsü"
+      }
      ]
     ]
    }
@@ -9853,6 +9873,10 @@
      {
       "callback_data": "metin_yenile",
       "text": "🔄 Standart Yeniden Yaz"
+     },
+     {
+      "callback_data": "metin_sablon",
+      "text": "✍️ Düzenleme Şablonu"
      }
     ],
     [
@@ -9929,6 +9953,10 @@
       {
        "callback_data": "metin_yenile",
        "text": "🔄 Standart Yeniden Yaz"
+      },
+      {
+       "callback_data": "metin_sablon",
+       "text": "✍️ Düzenleme Şablonu"
       }
      ],
      [
@@ -16392,6 +16420,16 @@
          "callback_data": "hatirlat_tetikle",
          "text": "⏰ Onayları Hatırlat"
         }
+       ],
+       [
+        {
+         "callback_data": "planlar",
+         "text": "⏰ Bekleyen Planlar"
+        },
+        {
+         "callback_data": "komut_guncelle",
+         "text": "📋 Komut Menüsü"
+        }
        ]
       ]
      },
@@ -16501,6 +16539,16 @@
         {
          "callback_data": "hatirlat_tetikle",
          "text": "⏰ Onayları Hatırlat"
+        }
+       ],
+       [
+        {
+         "callback_data": "planlar",
+         "text": "⏰ Bekleyen Planlar"
+        },
+        {
+         "callback_data": "komut_guncelle",
+         "text": "📋 Komut Menüsü"
         }
        ]
       ]
@@ -16612,6 +16660,16 @@
         {
          "callback_data": "hatirlat_tetikle",
          "text": "⏰ Onayları Hatırlat"
+        }
+       ],
+       [
+        {
+         "callback_data": "planlar",
+         "text": "⏰ Bekleyen Planlar"
+        },
+        {
+         "callback_data": "komut_guncelle",
+         "text": "📋 Komut Menüsü"
         }
        ]
       ]

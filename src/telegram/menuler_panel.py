@@ -135,6 +135,10 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
                 {"text": "🔄 Konu Havuzu Durumu", "callback_data": "havuz_durum"},
                 {"text": "⏰ Onayları Hatırlat", "callback_data": "hatirlat_tetikle"},
             ],
+            [
+                {"text": "⏰ Bekleyen Planlar", "callback_data": "planlar"},
+                {"text": "📋 Komut Menüsü", "callback_data": "komut_guncelle"},
+            ],
         ]
     }
 

@@ -180,6 +180,7 @@ def metin_menusu(adet: int = 2, kanallar: Optional[Dict[str, bool]] = None) -> D
             ],
             [
                 {"text": "🔄 Standart Yeniden Yaz", "callback_data": "metin_yenile"},
+                {"text": "✍️ Düzenleme Şablonu", "callback_data": "metin_sablon"},
             ],
             [
                 {"text": "← Ana Menü", "callback_data": f"metin_geri:{adet}"},
