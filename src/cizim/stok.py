@@ -28,35 +28,26 @@ _basarisiz_gorsel_urlleri: set[str] = set()
 
 ARKA_PLAN_HAVUZU = {
     "ARSA": [
-        "arsa_aerial_green.jpg",
-        "arsa_green_drone.jpg",
-        "arsa_plow_field.jpg",
-        "arsa_suburban_parsel.jpg",
+        "arsa_aerial_green.jpg", "arsa_green_drone.jpg", "arsa_landscape_field.jpg",
+        "arsa_parsel_aerial.jpg", "arsa_plow_field.jpg", "arsa_suburb_plot.jpg",
+        "arsa_suburban_parsel.jpg", "arsa_villa_land.jpg", "clean_land_aerial.jpg",
     ],
     "KONUT": [
-        "villa_modern_pool.jpg",
-        "villa_luxury_dusk.jpg",
-        "villa_minimal_white.jpg",
-        "villa_estate_garden.jpg",
-        "clean_modern_villa.jpg",
-        "icmekan_minimal_living.jpg",
-        "arsa_suburban_parsel.jpg",
+        "villa_modern_pool.jpg", "villa_luxury_dusk.jpg", "villa_minimal_white.jpg",
+        "villa_estate_garden.jpg", "villa_estate_contemporary.jpg", "clean_modern_villa.jpg",
+        "arsa_villa_land.jpg", "arsa_suburban_parsel.jpg",
     ],
     "BINA": [
-        "bina_modern_glass.jpg",
-        "bina_facade_dusk.jpg",
-        "arsa_suburban_parsel.jpg",
+        "bina_modern_glass.jpg", "bina_facade_dusk.jpg", "bina_architecture_highrise.jpg",
+        "bina_residential_balcony.jpg", "clean_architecture.jpg",
     ],
     "ICMEKAN": [
-        "icmekan_luxury_penthouse.jpg",
-        "icmekan_modern_lounge.jpg",
-        "clean_interior.jpg",
-        "clean_architecture.jpg",
-        "villa_estate_contemporary.jpg",
+        "icmekan_luxury_penthouse.jpg", "icmekan_modern_lounge.jpg",
+        "icmekan_minimal_living.jpg", "clean_interior.jpg",
     ],
     "INSAAT": [
-        "bina_modern_glass.jpg",
-        "bina_facade_dusk.jpg",
+        "insaat_modern_structure.jpg", "bina_modern_glass.jpg",
+        "bina_architecture_highrise.jpg",
     ],
 }
 
@@ -142,6 +133,13 @@ def _konu_havuzu(konu_metni: Optional[str], kategori_kodu: Optional[str]) -> str
     return "KONUT"
 
 
+def _akilli_sigdir(img: Image.Image, boyut: Tuple[int, int]) -> Image.Image:
+    """Kenar enerjisi odaklı akıllı kırpma ile hedef boyuta uydurur."""
+    from .. import gorsel_kalite
+    odak_x = gorsel_kalite.akilli_odak_x(img)
+    return ImageOps.fit(img, boyut, Image.Resampling.LANCZOS, centering=(odak_x, 0.5))
+
+
 def _konu_stok_fotografi(havuz: str, tohum: Optional[Any]) -> Optional[Image.Image]:
     """Pexels anahtarı varsa konuya özel dikey fotoğraf (yoksa None)."""
     if config.test_modu() or not config.env_al("PEXELS_API_KEY"):
@@ -151,7 +149,7 @@ def _konu_stok_fotografi(havuz: str, tohum: Optional[Any]) -> Optional[Image.Ima
         yol = fetch_stock.stok_fotografi_ara(PEXELS_SORGULARI.get(havuz, PEXELS_SORGULARI["KONUT"]),
                                              tohum=str(tohum) if tohum is not None else None)
         if yol and Path(yol).exists():
-            return ImageOps.fit(Image.open(yol).convert("RGB"), (sabitler.GENISLIK, sabitler.YUKSEKLIK), Image.Resampling.LANCZOS)
+            return _akilli_sigdir(Image.open(yol).convert("RGB"), (sabitler.GENISLIK, sabitler.YUKSEKLIK))
     except Exception as e:
         log.warning("Konu stok fotoğrafı alınamadı, yerel havuza dönülüyor: %s", e)
     return None
@@ -169,7 +167,7 @@ def _temiz_arkaplan_al(
     if ozel_url_veya_yol:
         foto = _foto_indir_veya_ac(ozel_url_veya_yol)
         if foto:
-            return ImageOps.fit(foto, (w, h), Image.Resampling.LANCZOS)
+            return _akilli_sigdir(foto, (w, h))
 
     havuz_adi = _konu_havuzu(konu_metni, kategori_kodu)
     if konu_metni is not None:
@@ -208,7 +206,7 @@ def _temiz_arkaplan_al(
     if yerel_bg.exists():
         try:
             img = Image.open(yerel_bg).convert("RGB")
-            return ImageOps.fit(img, (w, h), Image.Resampling.LANCZOS)
+            return _akilli_sigdir(img, (w, h))
         except Exception as e:
             log.warning("Arka plan yüklenemedi: %s", e)
 

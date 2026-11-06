@@ -66,11 +66,24 @@ class TestElleTetikSozluk(unittest.TestCase):
 
 
 class TestDigerFormatlarDegismedi(unittest.TestCase):
-    def test_10_00_bilgilendirici_hicbir_zaman_onaysiz_yayinlanmaz(self):
-        for env in (dict(SLOT="bilgilendirici", ZAMANLANMIS="true"), dict(ZAMANLAMA="0 7 * * *", ZAMANLANMIS="true"),
-                    dict(HEDEF="slot_bilgilendirici"), dict(SLOT="bilgilendirici")):
+    def test_zamanli_otorite_turlari_oto_yayin_alir_elle_turlar_almaz(self):
+        """Seçenek A: 10:00 bilgilendirici ve 19:00 reels zamanlanmış koşularda `--oto-yayin` alır (yarı otomatik mod kontrolü Python'dadır);
+        elle tetiklenenler ise hiçbir zaman `--oto-yayin` almaz."""
+        for env in (dict(SLOT="bilgilendirici", ZAMANLANMIS="true"), dict(ZAMANLAMA="0 7 * * *", ZAMANLANMIS="true")):
+            with self.subTest(env=env):
+                self.assertEqual(_calistir(**env), "python scripts/hazirla.py --slot bilgilendirici --oto-yayin")
+        for env in (dict(SLOT="reels", ZAMANLANMIS="true"), dict(ZAMANLAMA="0 16 * * *", ZAMANLANMIS="true")):
+            with self.subTest(env=env):
+                self.assertEqual(_calistir(**env), "python scripts/hazirla.py --slot reels --oto-yayin")
+        for env in (dict(HEDEF="slot_bilgilendirici"), dict(SLOT="bilgilendirici"), dict(SLOT="bilgilendirici", ZAMANLANMIS="false")):
             with self.subTest(env=env):
                 self.assertEqual(_calistir(**env), "python scripts/hazirla.py --slot bilgilendirici")
+        for env in (dict(HEDEF="slot_reels"), dict(SLOT="reels"), dict(SLOT="reels", ZAMANLANMIS="false")):
+            with self.subTest(env=env):
+                self.assertEqual(_calistir(**env), "python scripts/hazirla.py --slot reels")
+
+    def test_zamanli_haber_slotu_oto_yayin_almaz(self):
+        self.assertEqual(_calistir(SLOT="haber", ZAMANLANMIS="true"), "python scripts/hazirla.py --slot haber")
 
     def test_elle_format_istekleri_onay_kartina_gider(self):
         for format_turu in ("nedir_dogrusu", "net_cevap", "vaka", "b1"):

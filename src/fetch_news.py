@@ -292,9 +292,11 @@ def rss_tara() -> List[Dict[str, Any]]:
                 makale_metni = fetch_article.makale_metni_cek(haber_url, baslik)
                 gorsel_url = fetch_article.og_gorseli_cek(haber_url) or _og_gorsel_cek(haber_url)
 
-                # Tam metinle yeniden puanla — başlık yanıltıcı olabiliyor
+                # Tam metinle yeniden puanla — başlık yanıltıcı olabiliyor.
+                # İlk 800 karakter (giriş paragrafları) değerlendirilir; tüm makale
+                # taranırsa alakasız alt başlık/dipnot kelimeleri puanı yapay şişirir.
                 if makale_metni:
-                    tam = haber_puanlama.degerlendir(baslik, makale_metni, _saat_farki_saat(tarih_str))
+                    tam = haber_puanlama.degerlendir(baslik, makale_metni[:800], _saat_farki_saat(tarih_str))
                     if tam.gecti:
                         degerlendirme = tam
                     else:

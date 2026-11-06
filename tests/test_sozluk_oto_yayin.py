@@ -54,7 +54,7 @@ class TestSozlukOtoYayin(unittest.TestCase):
             self.assertFalse(telegram_bot.sozluk_oto_yayin_acik_mi())
 
     def test_oto_yayinla_sozluk_gorsel_ve_hedef_filtresi(self):
-        """Sözlük için YouTube video kanalı elenmeli, görsel Telegram'a zengin başlıkla iletilmeli."""
+        """Sözlük için ElevenLabs sesli YouTube Shorts ve Facebook Reels aktif olmalı, görsel Telegram'a zengin başlıkla iletilmeli."""
         haber = {
             "id": 999,
             "manset": "ZİLYETLİK NEDİR?",
@@ -80,16 +80,49 @@ class TestSozlukOtoYayin(unittest.TestCase):
             self.assertIn("#999", caption)
             self.assertIn("ZİLYETLİK NEDİR?", caption)
 
-            # 2. Komut ve hedef kontrolü (YouTube olmamalı, IG/Threads/Story/TikTok/FB olmalı)
+            # 2. Komut ve hedef kontrolü (IG, Threads, Story, TikTok + ElevenLabs sesli YouTube Shorts & Facebook Reels olmalı)
             mock_run.assert_called_once()
             komut = mock_run.call_args[0][0]
             hedef_idx = komut.index("--hedef") + 1
             hedef_str = komut[hedef_idx]
 
-            self.assertNotIn("youtube", hedef_str)
+            self.assertIn("youtube", hedef_str)
+            self.assertIn("facebook", hedef_str)
+            self.assertIn("ses_muzikli", hedef_str)
             self.assertIn("ig", hedef_str)
             self.assertIn("threads", hedef_str)
             self.assertIn("story", hedef_str)
+
+    def test_sozluk_yari_otomatik_modda_onaya_duser(self):
+        """Yarı otomatik (onaylı) mod aktifken zamanlanmış sözlük kartı otomatik yayınlanmaz, onay kartıyla düşer."""
+        sahte_kart = {
+            "kod": "SZ-001",
+            "terim": "ZİLYETLİK",
+            "kategori_kodu": "hukuk",
+            "kategori": "HUKUK",
+            "tanim": "Fiili hakimiyet",
+            "puf": ["Önemli"],
+            "mevzuat": "TMK md. 973",
+            "dayanak_alintisi": "zilyetlik",
+        }
+        with patch("src.telegram.akislar.sozluk._sozluk_karti_sec", return_value=(sahte_kart, True)), \
+             patch("src.telegram.ayarlar.bot_duraklatildi_mi", return_value=(False, "")), \
+             patch("src.telegram.ayarlar.oto_yayin_modu_acik_mi", return_value=False), \
+             patch("src.db.ayar_oku", return_value="2020-01-01"), \
+             patch("src.db._baglanti_al") as mock_conn, \
+             patch("src.konu_bankasi.kullanildi_isaretle"), \
+             patch("src.telegram.istemci.mesaj_gonder") as mock_mesaj, \
+             patch("src.telegram.akislar.onay.haber_onayina_sun", return_value=True) as mock_onay:
+            cursor = MagicMock()
+            cursor.lastrowid = 124
+            conn_inst = MagicMock()
+            conn_inst.execute.return_value = cursor
+            mock_conn.return_value.__enter__.return_value = conn_inst
+
+            sonuc = telegram_bot.sozluk_karti_hazirla_ve_sun(oto_yayin=True)
+            self.assertTrue(sonuc)
+            mock_onay.assert_called_once_with(124, oto_yayin=False)
+            self.assertTrue(any("yarı otomatik" in str(c.args[0]).lower() for c in mock_mesaj.call_args_list))
 
     def test_sozluk_karti_hazirla_ve_sun_oto_yayin_iletme(self):
         """oto_yayin=True parametresi verildiğinde haber_onayina_sun'a oto_yayin=True gitmeli."""

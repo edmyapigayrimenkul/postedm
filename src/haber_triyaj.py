@@ -266,11 +266,12 @@ def triyaj_et(haber: Dict[str, Any], asgari_guven: int = 6, zorla: bool = False)
         aci = (haber.get("orijinal_ozet") or haber.get("orijinal_baslik") or "")[:200].strip()
 
     # Konu bankası kaydıyla aynı şekil — içerik üretimi tek yoldan ilerlesin
+    # Kullanıcı seçtiyse (zorla=True) biçim daima B5 (haber) ve konu çapası orijinal başlıktır
     return {
         "kod": f"HABER-{haber.get('id', '?')}",
         "sutun": sonuc.get("sutun") or "S4",
-        "bicim": sonuc.get("bicim") or "B5",
-        "baslik": sonuc.get("baslik") or haber.get("orijinal_baslik", ""),
+        "bicim": "B5" if zorla else (sonuc.get("bicim") or "B5"),
+        "baslik": (haber.get("orijinal_baslik") or sonuc.get("baslik") or "") if zorla else (sonuc.get("baslik") or haber.get("orijinal_baslik", "")),
         "aci": aci or "Sektörel gelişme ve bölgeye etkileri.",
         "kanca_kalip": sonuc.get("kanca_kalip") or "yaygin_yanlis",
         "mevzuat": sonuc.get("mevzuat_alintisi"),

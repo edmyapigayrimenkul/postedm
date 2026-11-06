@@ -305,6 +305,7 @@ JSON:
     "kaydet_metni": "Kaydetme çağrısı, tek cümle"
   },
   "onem_puani": 9,
+  "gorsel_arama_ingilizce": "En fazla 5-7 kelimelik, konunun görsel atmosferini anlatan İNGİLİZCE fotoğraf arama terimi (örn: modern agricultural land boundary demarcation, notary document contract deed signing, residential architecture silivri villa)",
   "caption_instagram": "Hook ile başla, 2-3 kısa paragraf çözüm anlat, kaydet/gönder çağrısıyla bitir (soru sorma), konuya özel 2-3 hashtag ekle.",
   "caption_facebook": "Instagram metninin biraz daha detaylı hali. Hook + gövde + kaydet/gönder çağrısı + konuya özel 2-3 hashtag.",
   "caption_threads": "≤%(threads)d karakter. Hook + kısa gövde + kaydet/gönder çağrısı + 2-3 konu etiketi."
@@ -425,9 +426,10 @@ medyaya hazırlıyorsun. Hukuk bürosu değiliz; "hukuki danışmanlık" dili ku
 Haberi taranabilir, bilgilendirici ve sıkıcı olmayan bir yayına dönüştür.
 
 EN ÖNEMLİ KURAL — YALNIZCA KAYNAK, SIFIR UYDURMA:
-1. KONU ÇAPASI: Haberin konusu KAYNAK BAŞLIĞINDAKİ konudur. Metinde başka gündem
-   maddeleri geçse bile başlığı, özeti ve detayı o konuya bağla; başka konunun
-   rakamını manşet yapma.
+1. ODAK KONU ÇAPASI (TOPIC LOCK): Haberin tek odak konusu KAYNAK BAŞLIĞINDAKİ olaydır.
+   Metnin alt kısımlarında "ilginizi çekebilir", çoklu bülten özeti veya yan gündem
+   maddeleri geçse bile başlığı, özeti, detay paragraflarını ve vurguyu YALNIZCA ana
+   başlıktaki konuya bağla; yan konunun rakamını ya da kararını manşete taşıma.
 2. Yalnızca KAYNAK HABERİN TAM METNİNDE yazan bilgiyi kullan. Metinde geçmeyen sayı,
    isim, kurum, tarih, sonuç, tepki ya da piyasa yorumu YAZMA. Emin değilsen o cümleyi
    hiç kurma. Eksik yazmak uydurmaktan iyidir; kaynak kısaysa içerik de kısa olur,
@@ -475,10 +477,13 @@ _SEMA_B5 = """BİÇİM: B5 — EDM GÜNDEM // HABER (Instabot haber şemasıyla 
 Kapak + 1-3 detay sayfası. Her alan kaynaktaki gerçek bir bilgiden gelir; kaynak yoksa alan "" olur.
 
 ALANLAR:
-- manset: Başlık. CÜMLE DÜZENİNDE (yalnızca ilk harf ve özel adlar büyük), sonunda nokta
-  yok, en fazla 75 karakter. Olayın SONUCUNU ve en çarpıcı rakamı ilk kelimelerde ver,
-  aktif fiille. Okuyan ilk yarım saniyede NE OLDUĞUNU öğrenmiş olmalı; ama gerçeği
-  manipüle etme.
+- baslik_alternatifleri: 3 farklı editoryal açıdan kurgulanmış başlık adayı dizisi
+  (1: Somut oran/tutar/süre odaklı, 2: Mülk sahibi/kiracı/yatırımcı sonucu odaklı,
+  3: Resmi karar/yürürlük adımı odaklı). Her biri cümle düzeninde, en fazla 75 karakter.
+- manset: `baslik_alternatifleri` içinden en çarpıcı, en net olanı. CÜMLE DÜZENİNDE
+  (yalnızca ilk harf ve özel adlar büyük), sonunda nokta yok, en fazla 75 karakter.
+  Olayın SONUCUNU ve en çarpıcı rakamı ilk kelimelerde ver, aktif fiille. Okuyan ilk
+  yarım saniyede NE OLDUĞUNU öğrenmiş olmalı; ama gerçeği manipüle etme.
     KÖTÜ: "[Kurum]'dan [Konu] Beklentisi"   (rakam yok, sonuç yok, Başlık Düzeni)
 - spot: TEK cümle, en fazla 18 kelime (en fazla %(spot)d karakter). Başlıkta OLMAYAN ikinci
   en somut bilgiyi ver (oran, tarih, kim söyledi, hangi şartla). Başlığı tekrarlama.
@@ -508,12 +513,15 @@ ALANLAR:
   sahibi. Kaynakta KELİMESİ KELİMESİNE geçmeli; geçmiyorsa "" bırak (uydurma alıntı
   yayına girmez).
 - neden_onemli: 1-2 cümle. Haberin somut etkisi (kimi, neyi, ne kadar). Soyut laf yok.
-- sana_etkisi: 1-2 cümle, en fazla 25 kelime. Haberin okuyucunun cebine, kirasına,
-  kredisine, tapusuna ya da başvurusuna doğrudan yansıması; okuyucunun YAPABİLECEĞİ somut
-  şey varsa onu yaz. Kaynakta dayanağı yoksa fiyat tahmini, piyasa yorumu, rakam ya da
-  yerel iddia içeremez. Haberden çıkan somut bir yansıma yoksa "" bırak.
+- sana_etkisi: 1-2 cümle, en fazla 25 kelime. Haberin mülk sahibine, kiracıya, konut/arsa
+  alıcısına, tapu işlemine, kirasına, kredisine ya da başvurusuna doğrudan yansıması;
+  okuyucunun YAPABİLECEĞİ somut resmi adım varsa onu yaz. Kaynakta dayanağı yoksa fiyat
+  tahmini, piyasa yorumu, rakam ya da yerel iddia içeremez. Haberden çıkan somut bir
+  yansıma yoksa "" bırak.
 - sirada_ne_var: TEK cümle. Haberde AÇIKÇA geçen sonraki resmi adım, duruşma, başvuru ya
   da yürürlük tarihi. Bilgi yoksa "".
+- etkilesim_sorusu: Haberin konusu okuyucunun deneyimine açıksa kutuplaştırmayan, kısa ve
+  somut TEK soru cümlesi (en fazla 14 kelime). Uygun değilse ya da hassas adli konuysa "".
 - ulke_kodu / ulke_adi: Haberin GEÇTİĞİ ülke (haberi yayınlayan kaynağın ülkesi değil).
   ISO 3166-1 alpha-2, küçük harf ("tr", "us") ve Türkçe ad ("Türkiye", "ABD"). Ülkesi
   olmayan haberde ikisi de "".
@@ -534,6 +542,7 @@ JSON:
   "bicim": "B5",
   "format_turu": "dailybrief",
   "kategori_kodu": "TAPU_VE_HUKUK | EV_SAHIBI_VE_KIRACI | YATIRIM_VE_PIYASA | ARSA_IMAR_VE_TINY_HOUSE | SEKTOREL_HABER_VE_ANALIZ",
+  "baslik_alternatifleri": [],
   "manset": "",
   "spot": "",
   "detay_yazisi": "",
@@ -545,9 +554,11 @@ JSON:
   "neden_onemli": "",
   "sana_etkisi": "",
   "sirada_ne_var": "",
+  "etkilesim_sorusu": "",
   "ulke_kodu": "",
   "ulke_adi": "",
   "onem_puani": 7,
+  "gorsel_arama_ingilizce": "En fazla 5-7 kelimelik, konunun görsel atmosferini anlatan İNGİLİZCE fotoğraf arama terimi (örn: modern residential buildings construction architecture, turkish land parcel aerial view, modern courthouse real estate law)",
   "caption_instagram": "",
   "caption_facebook": "",
   "caption_threads": ""
@@ -1088,6 +1099,12 @@ def caption_zenginlestir(
             return f"{kirpilmis.strip()}…\n\n{cagri}\n\n{tag_str}".strip()
         return f"{govde[:azami - 3].strip()}…"
 
+    if platform_key == "youtube":
+        clean_tags = [t for t in nihai_etiketler if t.lower() != "#shorts"]
+        tag_str = " ".join(["#Shorts"] + clean_tags[:4])
+        ek = f"\n\n{iletisim}" if iletisim else ""
+        return f"{govde}{ek}\n\n{tag_str}".strip()
+
     secilen_etiketler = nihai_etiketler[:5]
     tag_str = " ".join(secilen_etiketler)
     ek = f"\n\n{iletisim}" if iletisim else ""
@@ -1122,6 +1139,24 @@ def _captionlari_zenginlestir(veri: Dict[str, Any]) -> Dict[str, Any]:
     elif veri.get("caption_instagram"):
         veri["caption_threads"] = caption_zenginlestir(
             veri["caption_instagram"], kategori_kodu=kat, platform="threads", manset=man
+        )
+
+    if veri.get("caption_youtube"):
+        veri["caption_youtube"] = caption_zenginlestir(
+            veri["caption_youtube"], kategori_kodu=kat, platform="youtube", manset=man
+        )
+    elif veri.get("caption_instagram"):
+        veri["caption_youtube"] = caption_zenginlestir(
+            veri["caption_instagram"], kategori_kodu=kat, platform="youtube", manset=man
+        )
+
+    if veri.get("caption_tiktok"):
+        veri["caption_tiktok"] = caption_zenginlestir(
+            veri["caption_tiktok"], kategori_kodu=kat, platform="tiktok", manset=man
+        )
+    elif veri.get("caption_instagram"):
+        veri["caption_tiktok"] = caption_zenginlestir(
+            veri["caption_instagram"], kategori_kodu=kat, platform="tiktok", manset=man
         )
 
     if veri.get("caption_linkedin"):
@@ -1321,7 +1356,7 @@ def konudan_uret(konu: Dict[str, Any], format_turu: Optional[str] = None,
     elif format_turu in ("vaka", "emsal_karar"):
         girdi += (
             "\n\nÖNEMLİ FORMAT TALEBİ: Bu içeriği 'ÖRNEK OLAY' formatında üret. "
-            "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': '01 / ÖRNEK OLAY', "
+            "JSON nesnesinde 'format_turu': 'vaka', 'vaka_kodu': (konunun 2-3 kelimelik kısa etiketi, örn: 'HİSSELİ TAPU' veya 'KİRA TAHLİYESİ'; 'ÖRNEK OLAY' yazma), "
             "'yargitay_kaynak': (Yalnızca brief'teki mevzuat maddesi; Yargıtay esas/karar numarası UYDURMA), "
             "'manset': (Çarpıcı başlık, cümle düzeninde, en fazla %(vaka_manset)d karakter), "
             "'olay_detay': (Tipik bir olay örneği — gerçek bir dava gibi sunma; en fazla %(olay)d karakter), "

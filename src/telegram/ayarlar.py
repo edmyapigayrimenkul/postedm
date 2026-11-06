@@ -17,6 +17,25 @@ from .. import db
 # BOT YÖNETİMİ & DURAKLATMA (DATABASE DESTEKLİ)
 # =========================================================================
 
+_OTO_MOD_KAPALI_DEGERLER = ("0", "false", "hayir", "hayır", "kapali", "kapalı", "yari_otomatik", "onayli", "onaylı")
+
+
+def oto_yayin_modu_acik_mi() -> bool:
+    """Zamanlanmış içeriklerin Tam Otomatik (True) mi, Yarı Otomatik / Onaylı (False) modda mı çalıştığını döner.
+    Varsayılan: Tam Otomatik (True)."""
+    deger = str(db.ayar_oku("oto_yayin_modu") or "").strip().lower()
+    if deger in _OTO_MOD_KAPALI_DEGERLER:
+        return False
+    return True
+
+
+def oto_yayin_modu_ayarla(otomatik: bool) -> str:
+    """Çalışma modunu kaydeder: True -> 'acik' (Tam Otomatik), False -> 'kapali' (Yarı Otomatik / Onaylı)."""
+    yeni = "acik" if otomatik else "kapali"
+    db.ayar_yaz("oto_yayin_modu", yeni)
+    return yeni
+
+
 def bot_duraklat(saat: int = 0) -> str:
     """Botu belirtilen saat kadar veya süresiz duraklatır."""
     if saat > 0:

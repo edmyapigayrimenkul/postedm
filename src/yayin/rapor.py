@@ -76,8 +76,9 @@ def _telafi_dugmeleri(b: YayinBaglami, sonuc: DagitimSonucu) -> List[List[Dict[s
         d.append([{"text": "🔄 📸 Instagram'ı Tekrar Dene", "callback_data": f"retry_kanal:ig:{ref}"}])
     if b.hedef_mi("threads", "th") and not sonuc.threads_id:
         d.append([{"text": "🔄 🧵 Threads'i Tekrar Gönder", "callback_data": f"retry_kanal:threads:{ref}"}])
-    if b.hedef_mi("fb", "facebook") and not sonuc.fb_id:
-        d.append([{"text": "🔄 📘 Facebook'a Tekrar Gönder", "callback_data": f"retry_kanal:facebook:{ref}"}])
+    if b.hedef_mi("fb", "facebook", "facebook_reels", "fb_reels") and not sonuc.fb_id:
+        fb_hedef = "facebook_reels" if bool({"facebook_reels", "fb_reels"} & b.hedefler) else "facebook"
+        d.append([{"text": "🔄 📘 Facebook'a Tekrar Gönder", "callback_data": f"retry_kanal:{fb_hedef}:{ref}"}])
     if b.hedef_mi("yt", "youtube", "shorts") and not sonuc.yt_res.get("durum"):
         d.append([{"text": "🔄 ▶️ Shorts'a Tekrar Yükle", "callback_data": f"retry_kanal:youtube:{ref}"}])
     if b.hedef_mi("tt", "tiktok") and not sonuc.tt_res.get("durum"):

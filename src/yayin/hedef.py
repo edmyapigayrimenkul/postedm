@@ -37,8 +37,10 @@ def bayraklari_belirle(b: YayinBaglami) -> None:
     # (fotoğraf karuseli ses taşımaz). Düz "✅ Yayınla" eskisi gibi seslendirmesiz.
     b.ses_modu = "muzikli" if "ses_muzikli" in hedefler else ("muziksiz" if "ses_muziksiz" in hedefler else None)
 
+    fb_reels_acik = bool({"facebook_reels", "fb_reels"} & hedefler)
     b.video_lazim = (
         b.paylas_reels
+        or fb_reels_acik
         or b.hedef_mi("yt", "youtube", "shorts", "video")
         or ((b.reels_modu or b.ses_modu) and b.hedef_mi("fb", "facebook"))
         or ((b.reels_modu or b.ses_modu) and b.hedef_mi("tt", "tiktok"))
@@ -60,8 +62,9 @@ def kanal_listesi(b: YayinBaglami) -> List[str]:
         kanallar.append("story")
     if b.hedef_mi("threads", "th"):
         kanallar.append("threads")
-    if b.hedef_mi("fb", "facebook"):
-        kanallar.append("facebook_reels" if b.reels_modu else "facebook")
+    if b.hedef_mi("fb", "facebook", "facebook_reels", "fb_reels"):
+        fb_reels_mi = b.paylas_reels or (b.reels_modu and not b.paylas_ig) or bool({"facebook_reels", "fb_reels"} & b.hedefler)
+        kanallar.append("facebook_reels" if fb_reels_mi else "facebook")
     if b.hedef_mi("yt", "youtube", "shorts", "video"):
         kanallar.append("youtube")
     if linkedin_istendi(b.hedefler):

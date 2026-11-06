@@ -24,17 +24,18 @@ from __future__ import annotations
 
 import html
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from . import db, fetch_news, sutun
+from . import config, db, fetch_news, sutun
 
 log = logging.getLogger(__name__)
 
 # Kural tabanlı önem puanı (haber_puanlama). Eski içerik eşiği 9'du; öneriye
 # insan baktığı için eşik daha düşük — config'deki haberler.onem_puani_esigi.
-ONERI_ESIGI = 7
+ONERI_ESIGI = config.ayar_al("haberler.onem_puani_esigi", 6)
 TAZELIK_SAAT = 36
 TUR_BASI_AZAMI = 5      # Instabot'taki gibi: tek mesajda beş numara (1️⃣–5️⃣)
 GUNLUK_AZAMI = 10       # günde iki tur
@@ -44,6 +45,29 @@ _AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
           "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
 _GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 TR = timezone(timedelta(hours=3))
+
+_DURAK_KELIMELER: Set[str] = {
+    "ve", "ile", "veya", "bir", "bu", "şu", "o", "da", "de", "ta", "te",
+    "icin", "için", "gibi", "kadar", "sonra", "once", "önce", "gore", "göre",
+    "cok", "çok", "daha", "en", "mi", "mı", "mu", "mü", "ne", "nasil", "nasıl",
+    "neden", "kim", "her", "tum", "tüm", "olan", "olarak", "etti", "oldu", "dedi",
+    "yeni", "son", "dakika",
+}
+
+
+def _haber_kelimeleri(baslik: str) -> Set[str]:
+    """Başlıktan bağlaç ve durak kelimeleri ayıklar, anlamlı gövde kümesini döner."""
+    temiz = re.sub(r"[^\w\s]", " ", (baslik or "").lower())
+    return {k for k in temiz.split() if len(k) >= 3 and k not in _DURAK_KELIMELER}
+
+
+def _ayni_konu_mu(k1: Set[str], k2: Set[str]) -> bool:
+    """İki başlığın aynı olayı/haberi işleyip işlemediğini Jaccard ve ortak kelimeyle denetler."""
+    if not k1 or not k2:
+        return False
+    kesisim = len(k1 & k2)
+    birlesim = len(k1 | k2)
+    return (kesisim / birlesim >= 0.35) or (kesisim >= 3)
 
 
 def tarih_metni(iso: Optional[str], simdi: Optional[datetime] = None) -> str:
@@ -92,19 +116,44 @@ def _sayaci_artir(simdi: datetime, adet: int) -> None:
     db.ayar_yaz("haber_oneri_gunluk", f"{_gunluk_sayac_anahtari(simdi)}:{_bugun_onerilen(simdi) + adet}")
 
 
-def adaylari_sec(limit: int) -> List[Dict[str, Any]]:
-    """Önerilecek haberler: taze, rehber değil, eşiği geçen; en yüksek puan önce."""
-    adaylar = []
+def adaylari_sec(limit: int, offset: int = 0) -> List[Dict[str, Any]]:
+    """Önerilecek haberler: taze, rehber değil, eşiği geçen; en yüksek puan önce.
+
+    Aynı konuyu işleyen farklı ajans haberleri kümelenir; en yüksek puanlı olan
+    aday listesine girerken diğerleri 'mutabakat' (consensus) sayacını artırır.
+    Böylece 5 slot aynı konunun kopyalarıyla işgal edilmez, kaç kaynağın
+    bu konuyu yazdığı rozetle (🔥 n kaynak) gösterilir.
+    """
+    esik = config.ayar_al("haberler.onem_puani_esigi", ONERI_ESIGI)
+    ham_adaylar = []
     for h in db.bekleyen_haberleri_getir(limit=60):
         if (h.get("kategori") or "") == "rehber":
             continue  # rehber makaleleri haftalık konu madenciliğine gidiyor
         if fetch_news._saat_farki_saat(h.get("yayin_tarihi") or "") > TAZELIK_SAAT:
             continue
-        if int(h.get("onem_puani") or 0) < ONERI_ESIGI:
+        if int(h.get("onem_puani") or 0) < esik:
             continue
-        adaylar.append(h)
-    adaylar.sort(key=lambda h: (int(h.get("onem_puani") or 0), h.get("yayin_tarihi") or ""), reverse=True)
-    return adaylar[:max(0, limit)]
+        ham_adaylar.append(h)
+
+    ham_adaylar.sort(key=lambda h: (int(h.get("onem_puani") or 0), h.get("yayin_tarihi") or ""), reverse=True)
+
+    # Konu kümeleme ve mutabakat hesabı
+    kume_listesi: List[Tuple[Dict[str, Any], Set[str]]] = []
+    for h in ham_adaylar:
+        kelimeler = _haber_kelimeleri(h.get("orijinal_baslik") or "")
+        eslesen_kok = None
+        for kok_h, kok_kelimeler in kume_listesi:
+            if _ayni_konu_mu(kelimeler, kok_kelimeler):
+                eslesen_kok = kok_h
+                break
+        if eslesen_kok:
+            eslesen_kok["mutabakat"] = eslesen_kok.get("mutabakat", 1) + 1
+        else:
+            h["mutabakat"] = 1
+            kume_listesi.append((h, kelimeler))
+
+    tekil_adaylar = [kok_h for kok_h, _ in kume_listesi]
+    return tekil_adaylar[offset:offset + max(0, limit)]
 
 
 def _tek_cumle(metin: str, azami: int = 180) -> str:
@@ -116,15 +165,17 @@ def _tek_cumle(metin: str, azami: int = 180) -> str:
     return cumle
 
 
-def oneri_listesi_mesaji(haberler: List[Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
+def oneri_listesi_mesaji(haberler: List[Dict[str, Any]], offset: int = 0) -> Tuple[str, Dict[str, Any]]:
     """Instabot'un öneri taslağı: tek mesaj, numaralı başlıklar, çoklu seçim düğmeleri.
 
     callback_data yalnızca haber id'si taşır (64 bayt sınırı); başlık düğme
     metninde bile yok, numara yeter. Seçim sayacı ("Hazırla (n)") Worker'da güncellenir.
+    Telegram modern <blockquote expandable> kutusu ile spot, künye ve mutabakat rozeti taşır.
     """
     satirlar = ["📰 <b>Günün Öne Çıkan Haber Adayları</b>", ""]
     secim, incele = [], []
-    for i, h in enumerate(haberler[:len(_RAKAMLAR)]):
+    gosterilecek = haberler[:len(_RAKAMLAR)]
+    for i, h in enumerate(gosterilecek):
         rakam = _RAKAMLAR[i]
         puan = f"[{h['onem_puani']}] " if h.get("onem_puani") is not None else ""
         baslik = html.escape(h.get("orijinal_baslik") or "")
@@ -135,26 +186,39 @@ def oneri_listesi_mesaji(haberler: List[Dict[str, Any]]) -> Tuple[str, Dict[str,
             satirlar.append(f"{rakam} <b>{puan}{baslik}</b>")
         ham_baslik = (h.get("orijinal_baslik") or "").lower()
         spot = _tek_cumle(h.get("orijinal_ozet") or h.get("makale_metni") or "")
-        if spot and spot.lower().rstrip(".…") not in ham_baslik and ham_baslik not in spot.lower():
-            satirlar.append(f"     💬 <i>{html.escape(spot)}</i>")
+        spot_str = f"💬 <i>{html.escape(spot)}</i>\n" if (spot and spot.lower().rstrip(".…") not in ham_baslik and ham_baslik not in spot.lower()) else ""
         sutun_adi = sutun.SUTUN_ADLARI.get(sutun.sutun_bul(h.get("kategori")) or "", "")
         kunye = " · ".join(html.escape(x) for x in (h.get("kaynak") or "", sutun_adi) if x)
-        satirlar.append(f"     <i>{kunye}</i> · 🗓 {tarih_kisa(h.get('yayin_tarihi'))} · <code>/incele_{h['id']}</code>")
+        rozetler = []
+        mut = h.get("mutabakat") or 1
+        if mut >= 2:
+            rozetler.append(f"🔥 {mut} kaynak")
+        rozet_str = (" · " + " · ".join(rozetler)) if rozetler else ""
+        tarih_str = f" · 🗓 {tarih_kisa(h.get('yayin_tarihi'))}" if h.get("yayin_tarihi") else ""
+        satirlar.append(
+            f"<blockquote expandable>{spot_str}"
+            f"📌 <i>{kunye}</i>{rozet_str}{tarih_str} · <code>/incele_{h['id']}</code></blockquote>"
+        )
         satirlar.append("")
         secim.append({"text": rakam, "callback_data": f"sec:{h['id']}"})
         incele.append({"text": f"🔍 {i + 1}", "callback_data": f"incele:{h['id']}"})
     satirlar.append("<i>Numaralara basarak haber seçebilir, 🔍 butonlarıyla veya /incele &lt;id&gt; "
                     "ile detaylarını önizleyebilirsin.</i>")
+
+    ileri_offset = offset + len(gosterilecek)
     klavye = {"inline_keyboard": [
         secim,
         incele,
         [{"text": "▶️ Hazırla (0)", "callback_data": "hazirla_secilenler"}],
-        [{"text": "❌ Hiçbiri", "callback_data": "oneri_gec"}],
+        [
+            {"text": "🔄 Başka Öner", "callback_data": f"oneri_baska:{ileri_offset}"},
+            {"text": "❌ Hiçbiri", "callback_data": "oneri_gec"},
+        ],
     ]}
     return "\n".join(satirlar), klavye
 
 
-def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
+def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False, offset: int = 0) -> int:
     """RSS'i tarar, taze adayları gruba öneri olarak gönderir. Gönderilen adedi döner."""
     from . import telegram_bot
 
@@ -163,13 +227,17 @@ def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
         log.info("RSS taraması: %d yeni kayıt", len(yeni))
 
     simdi = datetime.now(timezone.utc)
-    kalan = GUNLUK_AZAMI - _bugun_onerilen(simdi)
-    if kalan <= 0:
-        log.info("Günlük öneri sınırı (%d) doldu.", GUNLUK_AZAMI)
-        return 0
+    if offset == 0:
+        kalan = GUNLUK_AZAMI - _bugun_onerilen(simdi)
+        if kalan <= 0:
+            log.info("Günlük öneri sınırı (%d) doldu.", GUNLUK_AZAMI)
+            return 0
+        istenen = min(TUR_BASI_AZAMI, kalan)
+    else:
+        istenen = TUR_BASI_AZAMI
 
     gonderilen = 0
-    adaylar = adaylari_sec(min(TUR_BASI_AZAMI, kalan))
+    adaylar = adaylari_sec(istenen, offset=offset)
     if adaylar:
         secilen_aday = None
         ilk_gorsel = None
@@ -196,18 +264,19 @@ def onerileri_gonder(tara: bool = True, bos_ise_bildir: bool = False) -> int:
             except Exception as e:
                 log.warning("Öneri kapak fotoğrafı gönderilemedi: %s", e)
 
-        metin, klavye = oneri_listesi_mesaji(adaylar)
+        metin, klavye = oneri_listesi_mesaji(adaylar, offset=offset)
         if telegram_bot.mesaj_gonder(metin, reply_markup=klavye):
             for h in adaylar:
                 db.haber_guncelle(h["id"], durum="onerildi")
             gonderilen = len(adaylar)
-    if gonderilen:
+    if gonderilen and offset == 0:
         _sayaci_artir(simdi, gonderilen)
-    elif bos_ise_bildir:
+    elif not gonderilen and bos_ise_bildir:
+        esik = config.ayar_al("haberler.onem_puani_esigi", ONERI_ESIGI)
         telegram_bot.mesaj_gonder(
-            f"📭 Şu an önerilecek taze haber yok (son {TAZELIK_SAAT} saat, puan ≥ {ONERI_ESIGI})."
+            f"📭 Şu an önerilecek taze haber yok (son {TAZELIK_SAAT} saat, puan ≥ {esik})."
         )
-    log.info("%d haber önerisi gönderildi.", gonderilen)
+    log.info("%d haber önerisi gönderildi (offset=%d).", gonderilen, offset)
     return gonderilen
 
 

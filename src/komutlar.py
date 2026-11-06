@@ -30,6 +30,10 @@ MESAJSIZ_KOMUTLAR: Set[str] = {
     "ayar",
     "ayarlar",
     "ayar_menu",
+    "otomatik",
+    "onayli",
+    "yariotomatik",
+    "mod",
     "temizle",
     "tur_temizle",
 
@@ -103,6 +107,8 @@ KOMUT_MENUSU: List[Dict[str, str]] = [
 
     # ── 🎛 YÖNETİM & AYARLAR ─────────────────────────────────────────
     {"command": "panel", "description": "🎛 Kontrol merkezi ve hızlı işlemler"},
+    {"command": "otomatik", "description": "🤖 Tam otomatik yayın moduna geç"},
+    {"command": "onayli", "description": "👤 Yarı otomatik (onaylı) moda geç"},
     {"command": "sil", "description": "🗑️ Son gönderilen onay kartını ve albümü sil"},
     {"command": "ayar", "description": "⚙️ Çalışma ayarlarını canlı düzenle"},
     {"command": "hatirlat", "description": "⏰ Onay bekleyen paylaşımları anında tara"},

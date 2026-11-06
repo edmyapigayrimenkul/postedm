@@ -33,7 +33,7 @@ GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 #
 # • "*/10 * * * *": "30 dk / 1-4 saat sonra yayınla" seçilince Worker planı PLANLAR KV'sine yazar; bu cron
 #   10 dakikada bir vakti gelen planı "yayinla" olarak GitHub'a yollar (GitHub yalnızca gerçek iş varken uyanır).
-# • Diğer yedi cron ZAMANLANMIŞ İŞLERDİR (index.js › ZAMANLI_ISLER). GitHub `schedule` koşuları 6-10 saat gecikiyordu
+# • Diğer sekiz cron ZAMANLANMIŞ İŞLERDİR (index.js › ZAMANLI_ISLER). GitHub `schedule` koşuları 6-10 saat gecikiyordu
 #   (07:00 UTC içeriği 16:37'de, 09:30 sözlüğü 19:13'te çalıştı); Cloudflare cron'u dakikasında çalışır. scheduled() her biri için
 #   `repository_dispatch` {slot, zamanli: true} yollar:
 #     "40 5 * * *"   08:40 TR  günlük rapor            → rapor
@@ -42,6 +42,7 @@ GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 #     "30 9 * * *"   12:30 TR  sözlük kartı (2 günde 1) → slot_hazirla
 #     "30 10 * * *"  13:30 TR  onay hatırlatıcı (öğle) → hatirlat
 #     "17 15 * * *"  18:17 TR  haber önerisi (akşam)   → haber_oneri
+#     "0 16 * * *"   19:00 TR  akşam reels (otorite)   → slot_hazirla
 #     "30 18 * * *"  21:30 TR  onay hatırlatıcı (akşam)→ hatirlat
 #
 # GÜNDE İKİ KEZ OLMASIN (tests/test_sozlesme.py › test_tek_tetikleyici_kurali, tests/test_zamanli_isler.py): ilgili workflow'lardaki
@@ -50,14 +51,14 @@ GITHUB_REPOSITORY = "edmyapigayrimenkul/postedm"
 # (aşağıya bakın) GitHub yedeği işi geç de olsa çalıştırır; Worker dağıtılmadan GitHub cron'u kaldırılırsa İŞ HİÇ ÇALIŞMAZ.
 #
 # ⚠️ Dağıtımdan sonra cron'ların gerçekten yazıldığını doğrula (Cloudflare panel › Workers › edm-telegram-dispatcher ›
-# Settings › Triggers › Cron Triggers'ta SEKİZ satır görünmeli): sınıra takılan dağıtım kodu yükleyip cron'u
+# Settings › Triggers › Cron Triggers'ta DOKUZ satır görünmeli): sınıra takılan dağıtım kodu yükleyip cron'u
 # sessizce yazmıyordu (Instabot, 5 Eyl 2026). Hesap Workers Paid planında (kullanıcı, 2026-09-26): ücretsiz plandaki
-# "hesap başına 5 cron" sınırı yok. Worker Dağıt workflow'u sekizini de Cloudflare API'sinden doğrular.
+# "hesap başına 5 cron" sınırı yok. Worker Dağıt workflow'u dokuzunu da Cloudflare API'sinden doğrular.
 [triggers]
 crons = [
   "*/10 * * * *",
   "40 5 * * *", "17 6 * * *", "0 7 * * *", "30 9 * * *",
-  "30 10 * * *", "17 15 * * *", "30 18 * * *",
+  "30 10 * * *", "17 15 * * *", "0 16 * * *", "30 18 * * *",
 ]
 
 # Planlar: anahtar plan:<telegram mesaj id>, değer JSON {an, payload, secili, ...}.

@@ -37,15 +37,25 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_bilgilendirici_format_rotasyonu(self):
-        """10:00 içeriği dört formatlı döngüde döner (vaka elle tetiklenir); B1 iki kez. Sözlük döngüde YOK:
-        12:30'da ayrıca yayınlandığı için döngüde kalsaydı beşinci günde aynı gün iki sözlük çıkardı."""
+        """Seçenek A: 10:00 gönderi slotu b1 ⇄ net_cevap döngüsünde döner; nedir_dogrusu ve vaka 19:00 Reels slotuna taşındı.
+        Sözlük döngüde YOK: 12:30'da ayrıca yayınlanır."""
         self.assertNotIn("sozluk", konu_bankasi.BILGILENDIRICI_FORMATLAR)
-        beklenen = ["b1", "nedir_dogrusu", "net_cevap", "b1", "b1", "nedir_dogrusu", "net_cevap", "b1"]
+        beklenen = ["b1", "net_cevap", "b1", "net_cevap"]
         gorulen = []
         for _ in beklenen:
             f = konu_bankasi.siradaki_bilgilendirici_format()
             gorulen.append(f)
             konu_bankasi.bilgilendirici_format_kaydet(f)
+        self.assertEqual(gorulen, beklenen)
+
+    def test_reels_format_rotasyonu(self):
+        """Seçenek A: 19:00 dikey Reels slotu nedir_dogrusu ⇄ vaka döngüsünde döner."""
+        beklenen = ["nedir_dogrusu", "vaka", "nedir_dogrusu", "vaka"]
+        gorulen = []
+        for _ in beklenen:
+            f = konu_bankasi.siradaki_reels_format()
+            gorulen.append(f)
+            konu_bankasi.reels_format_kaydet(f)
         self.assertEqual(gorulen, beklenen)
 
     def test_eski_sozluk_sirasi_donguyu_bozmaz_basa_doner(self):
@@ -70,8 +80,21 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
 
         res = telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici")
         self.assertTrue(res)
-        mock_hizli.assert_called_once_with(format_turu="nedir_dogrusu")
-        self.assertEqual(db.ayar_oku("son_bilgilendirici_format"), "nedir_dogrusu")
+        mock_hizli.assert_called_once_with(format_turu="net_cevap")
+        self.assertEqual(db.ayar_oku("son_bilgilendirici_format"), "net_cevap")
+
+    @patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 1})
+    @patch("src.telegram.akislar.uretim.hizli_icerik_uret", return_value=True)
+    @patch("src.telegram.akislar.uretim._format_hazirla", return_value=True)
+    def test_yari_otomatik_modda_zamanli_bilgilendirici_onaya_duser(self, mock_fmt, mock_hizli, mock_mesaj):
+        """Yarı otomatik (onaylı) mod açıkken --oto-yayin ile gelen 10:00 turu otomatik yayınlanmaz, onaylı üretilir."""
+        konu_bankasi.bilgilendirici_format_kaydet("b1")  # sıradaki: net_cevap
+        telegram_bot.oto_yayin_modu_ayarla(False)
+        self.assertFalse(telegram_bot.oto_yayin_modu_acik_mi())
+        res = telegram_bot.slot_icerigi_hazirla_ve_sun(slot="bilgilendirici", oto_yayin=True)
+        self.assertTrue(res)
+        mock_fmt.assert_not_called()
+        mock_hizli.assert_called_once_with(format_turu="net_cevap")
 
     @patch("src.telegram.istemci.mesaj_gonder", return_value={"message_id": 1})
     @patch("src.telegram.akislar.sozluk.sozluk_karti_hazirla_ve_sun", return_value=None)
@@ -124,7 +147,7 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         # Instabot'un öneri taslağı (2026-09-26): numaralı seçim, 🔍 inceleme, Hazırla, Hiçbiri
         klavye = mock_mesaj.call_args_list[0].kwargs["reply_markup"]["inline_keyboard"]
         self.assertEqual([[b["callback_data"].split(":")[0] for b in satir] for satir in klavye],
-                         [["sec"], ["incele"], ["hazirla_secilenler"], ["oneri_gec"]])
+                         [["sec"], ["incele"], ["hazirla_secilenler"], ["oneri_baska", "oneri_gec"]])
         with db._baglanti_al() as conn:
             durum = conn.execute("SELECT durum FROM haberler WHERE orijinal_url = 'https://ornek.com/a'").fetchone()[0]
         self.assertEqual(durum, "onerildi")
@@ -168,9 +191,10 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.assertIn("hizli_uret:net_cevap", p_cb)
         self.assertIn("hizli_uret:haber", p_cb)
         self.assertIn("hizli_uret:b1", p_cb)
+        self.assertIn("mod_degistir", p_cb)
 
     def test_komutlar_sozlugu(self):
-        """Komutlar sözlüğünde /gonderi, /reels, /haber ve tüm temel komutlar tanımlı olmalı."""
+        """Komutlar sözlüğünde /gonderi, /reels, /haber, /otomatik, /onayli ve tüm temel komutlar tanımlı olmalı."""
         self.assertTrue(komutlar.mesajsiz_komut_mu("gonderi"))
         self.assertTrue(komutlar.mesajsiz_komut_mu("/gonderi"))
         self.assertTrue(komutlar.mesajsiz_komut_mu("reels"))
@@ -180,6 +204,10 @@ class TestSlotVeMenuParitesi(unittest.TestCase):
         self.assertTrue(komutlar.mesajsiz_komut_mu("vaka"))
         self.assertTrue(komutlar.mesajsiz_komut_mu("soru"))
         self.assertTrue(komutlar.mesajsiz_komut_mu("panel"))
+        self.assertTrue(komutlar.mesajsiz_komut_mu("otomatik"))
+        self.assertTrue(komutlar.mesajsiz_komut_mu("onayli"))
+        self.assertTrue(komutlar.mesajsiz_komut_mu("yariotomatik"))
+        self.assertTrue(komutlar.mesajsiz_komut_mu("mod"))
 
 
 if __name__ == "__main__":

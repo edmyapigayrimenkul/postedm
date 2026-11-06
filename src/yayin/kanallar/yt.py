@@ -17,9 +17,13 @@ KANAL = "youtube"
 def yayinla(b: YayinBaglami, ilerleme: Ilerleme) -> KanalSonucu:
     ilerleme.bildir(KANAL, "⏳ Yükleniyor...")
     s = KanalSonucu(KANAL, etiket="❌ Hata")
+    yt_caption = (
+        (b.detay.get("caption_youtube") if isinstance(b.detay, dict) and b.detay.get("caption_youtube") else "")
+        or b.caption
+    )
     if b.sesli_video_yolu and b.sesli_video_yolu.exists():
         try:
-            res = youtube.shorts_yukle(b.sesli_video_yolu, baslik=b.baslik, aciklama=b.caption)
+            res = youtube.shorts_yukle(b.sesli_video_yolu, baslik=b.baslik, aciklama=yt_caption)
             s.ham = res
             if res.get("durum"):
                 s.ekle(f"▶️ <b>YouTube Shorts:</b> <a href='{res.get('url')}'>İzle</a> ✓", YAYINDA)

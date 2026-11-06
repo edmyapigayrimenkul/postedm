@@ -470,30 +470,48 @@ export default {
 
         if (data === "ayar" || data === "ayar_menu") {
           await cevapVer();
+          const mevcutAyarlar = await ayarlariOku(env);
           await mesajiGuncelle(
             "⚙️ <b>EDM ÇALIŞMA VE YAYIN AYARLARI</b>\n\n" +
             "Aşağıdaki ayarları tek tıkla canlı olarak açıp kapatabilirsiniz:",
-            ayarMenusu()
+            ayarMenusu(mevcutAyarlar)
           );
+          return new Response("OK");
+        }
+
+        if (data === "mod_degistir") {
+          const mevcutAyarlar = await ayarlariOku(env);
+          const yeniOto = !mevcutAyarlar.oto_yayin;
+          await ayariYaz(env, "oto_yayin", yeniOto);
+          await cevapVer(yeniOto ? "🤖 Tam Otomatik moda geçildi" : "👤 Yarı Otomatik (Onaylı) moda geçildi");
+          const modAciklama = yeniOto
+            ? "🤖 <b>Çalışma Modu: TAM OTOMATİK</b>\nZamanlanmış içerikler (10:00 Gönderi · 12:30 Sözlük · 19:00 Reels) denetimden temiz geçerse doğrudan yayınlanır; görseller, açıklama ve MP4 video gruba da düşer."
+            : "👤 <b>Çalışma Modu: YARI OTOMATİK (ONAYLI)</b>\nZamanlanmış içerikler doğrudan yayınlanmaz; albüm ve butonlu onay kartı olarak gruba düşer, sizin onayınızla yayınlanır.";
+          await mesajiGuncelle(
+            `🏢 <b>EDM YAPI & GAYRİMENKUL // KONTROL MERKEZİ</b>\n\n${modAciklama}`,
+            kontrolMerkeziMenusu()
+          );
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "ayar_degistir", anahtar: "oto_yayin", deger: String(yeniOto) });
           return new Response("OK");
         }
 
         if (data.startsWith("ayarsec:")) {
           const [_, key, val] = data.split(":");
-          await cevapVer("Ayar güncellendi");
-          const keyboard = cb.message?.reply_markup?.inline_keyboard || [];
-          for (let row of keyboard) {
+          const klavye = cb.message?.reply_markup?.inline_keyboard || [];
+          let yeniAcik = val === "true";
+          for (let row of klavye) {
             for (let btn of row) {
               if (btn.callback_data?.startsWith(`ayarsec:${key}:`)) {
-                const suAnAcik = btn.text.includes("✅");
-                const yeniAcik = !suAnAcik;
-                btn.text = btn.text.replace(/^[✅⬜]/, yeniAcik ? "✅" : "⬜");
-                btn.callback_data = `ayarsec:${key}:${!yeniAcik}`;
+                yeniAcik = !btn.text.includes("✅");
               }
             }
           }
-          await butonlariGuncelle(keyboard);
-          await tetikle(env, chatId, "bot_yonetim", { eylem: "ayar_degistir", anahtar: key, deger: val });
+          const guncelAyarlar = await ayariYaz(env, key, yeniAcik);
+          await cevapVer(key === "oto_yayin"
+            ? (yeniAcik ? "🤖 Tam Otomatik moda geçildi" : "👤 Yarı Otomatik moda geçildi")
+            : "Ayar güncellendi");
+          await butonlariGuncelle(ayarMenusu(guncelAyarlar));
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "ayar_degistir", anahtar: key, deger: String(yeniAcik) });
           return new Response("OK");
         }
 
@@ -655,6 +673,14 @@ export default {
           await butonlariGuncelle([[{ text: "✖ Bu turda haber seçilmedi", callback_data: "noop" }]]);
           return new Response("OK");
         }
+        if (data === "oneri_baska" || data.startsWith("oneri_baska:")) {
+          const parts = data.split(":");
+          const offset = parseInt(parts[1] || "5", 10) || 5;
+          await cevapVer("Yeni haber adayları taranıyor…");
+          await butonlariGuncelle([[{ text: "🔄 Yeni adaylar yükleniyor…", callback_data: "noop" }]]);
+          await tetikle(env, chatId, "haber_oneri", { offset: offset, elle: true });
+          return new Response("OK");
+        }
 
         // D. MENÜ GEZİNMELERİ (ANINDA WORKER TARAFINDAN YÖNETİLİR)
         if (
@@ -794,6 +820,12 @@ export default {
               { inline_keyboard: [[{ text: "⏹ Planı iptal et", callback_data: "plan_iptal" }]] },
             );
             return new Response("OK");
+          }
+
+          if (env.PLANLAR) {
+            try {
+              await env.PLANLAR.delete(`plan:${messageId}`);
+            } catch (_) {}
           }
 
           await cevapVer("Yayın süreci başlatıldı");
@@ -977,7 +1009,7 @@ export default {
           return new Response("OK");
         }
 
-        if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data === "foto_ilk" || data.startsWith("foto_eylem:")) {
+        if (data === "foto_gercek" || data === "foto_stok" || data === "foto_ai" || data === "foto_editoryal" || data === "foto_ilk" || data.startsWith("foto_odak:") || data.startsWith("foto_eylem:")) {
           const eylem = data.startsWith("foto_eylem:") ? data.split(":")[1] : data;
           const fId = icerikIdBul();
           const etiket = eylemEtiketi(eylem);
@@ -1540,10 +1572,42 @@ export default {
         }
 
         if (text === "/ayar" || text === "/ayarlar" || text === "ayar") {
+          const mevcutAyarlar = await ayarlariOku(env);
           await mesajGonder(
             "⚙️ <b>EDM ÇALIŞMA VE YAYIN AYARLARI</b>\n\n" +
             "Aşağıdaki ayarları tek tıkla canlı olarak açıp kapatabilirsiniz:",
-            ayarMenusu()
+            ayarMenusu(mevcutAyarlar)
+          );
+          return new Response("OK");
+        }
+
+        if (text === "/otomatik" || text === "otomatik") {
+          await ayariYaz(env, "oto_yayin", true);
+          await mesajGonder("🤖 <b>Tam Otomatik Mod</b> etkinleştiriliyor; ayar veritabanına kaydediliyor...");
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "ayar_degistir", anahtar: "oto_yayin", deger: "true" });
+          return new Response("OK");
+        }
+
+        if (text === "/onayli" || text === "/yariotomatik" || text === "/yari_otomatik" || text === "onayli") {
+          await ayariYaz(env, "oto_yayin", false);
+          await mesajGonder("👤 <b>Yarı Otomatik (Onaylı) Mod</b> etkinleştiriliyor; zamanlanmış içerikler onay kartıyla düşecek...");
+          await tetikle(env, chatId, "bot_yonetim", { eylem: "ayar_degistir", anahtar: "oto_yayin", deger: "false" });
+          return new Response("OK");
+        }
+
+        if (text === "/mod" || text === "mod") {
+          const mevcutAyarlar = await ayarlariOku(env);
+          const oto = mevcutAyarlar.oto_yayin;
+          await mesajGonder(
+            oto
+              ? "🤖 <b>Aktif Mod: TAM OTOMATİK</b>\nZamanlanmış içerikler denetimden temiz geçerse doğrudan yayınlanır; görsel, açıklama ve video gruba da iletilir."
+              : "👤 <b>Aktif Mod: YARI OTOMATİK (ONAYLI)</b>\nZamanlanmış içerikler onay kartıyla gruba düşer; siz onayladığınızda yayınlanır.",
+            {
+              inline_keyboard: [
+                [{ text: oto ? "👤 Yarı Otomatik (Onaylı) Moda Geç" : "🤖 Tam Otomatik Moda Geç", callback_data: "mod_degistir" }],
+                [{ text: "🎛 Kontrol Paneli", callback_data: "panel" }],
+              ],
+            }
           );
           return new Response("OK");
         }
@@ -1578,7 +1642,9 @@ export default {
             "• <b>/havuz</b> — Konu bankası havuz durumunu gösterir.\n\n" +
             "<b>🎛 YÖNETİM & AYARLAR:</b>\n" +
             "• <b>/panel</b> — İnteraktif kontrol merkezini açar.\n" +
-            "• <b>/ayar</b> — Çalışma ayarlarını (kanallar, yayın saatleri) canlı düzenler.\n" +
+            "• <b>/otomatik</b> — Tam otomatik yayın moduna geçer.\n" +
+            "• <b>/onayli</b> — Yarı otomatik (onaylı) moda geçer.\n" +
+            "• <b>/ayar</b> — Çalışma ayarlarını (kanallar, yayın modu) canlı düzenler.\n" +
             "• <b>/hatirlat</b> — Onay bekleyen paylaşımları anında tarar.\n" +
             "• <b>/temizle</b> — Askıda bekleyen onayları temizler.\n" +
             "• <b>/saglik</b> — API ve sistem bağlantı sağlık testi.\n" +
@@ -1616,11 +1682,53 @@ export default {
   },
 };
 
+const VARSAYILAN_AYARLAR = {
+  oto_yayin: true,
+  reels_varsayilan: false,
+  kanal_threads: true,
+  kanal_fb: true,
+  kanal_tiktok: true,
+  kanal_youtube: true,
+  kanal_linkedin: true,
+};
+
+async function ayarlariOku(env) {
+  const sonuc = { ...VARSAYILAN_AYARLAR };
+  if (!env || !env.PLANLAR) return sonuc;
+  try {
+    const ham = await env.PLANLAR.get("ayar:durum");
+    if (ham) {
+      const kayitli = JSON.parse(ham);
+      if (kayitli && typeof kayitli === "object") {
+        for (const k of Object.keys(VARSAYILAN_AYARLAR)) {
+          if (typeof kayitli[k] === "boolean") sonuc[k] = kayitli[k];
+        }
+      }
+    }
+  } catch (_) {}
+  return sonuc;
+}
+
+async function ayariYaz(env, anahtar, acik) {
+  const guncel = await ayarlariOku(env);
+  if (anahtar in guncel) guncel[anahtar] = Boolean(acik);
+  if (env && env.PLANLAR) {
+    try {
+      await env.PLANLAR.put("ayar:durum", JSON.stringify(guncel));
+    } catch (_) {}
+  }
+  return guncel;
+}
+
 function ayarMenusu(ayarlar = {}) {
   const v = (k, d = true) => (ayarlar[k] !== undefined ? ayarlar[k] : d);
+  const otoAcik = v("oto_yayin", true);
+  const modEtiketi = otoAcik
+    ? "🤖 Otomatik Yayın Modu (Tıkla → Yarı Otomatik)"
+    : "👤 Yarı Otomatik / Onaylı Mod (Tıkla → Otomatik)";
   return {
     inline_keyboard: [
-      [{ text: `${v('oto_yayin', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🌙 Otomatik Yayın`, callback_data: `ayarsec:oto_yayin:${!v('oto_yayin', true)}` }],
+      [{ text: `${otoAcik ? "✅ AÇIK" : "⬜ KAPALI"} ${modEtiketi}`, callback_data: `ayarsec:oto_yayin:${!otoAcik}` }],
       [{ text: `${v('reels_varsayilan', false) ? '✅ AÇIK' : '⬜ KAPALI'} 🎬 Varsayılan Reels Modu`, callback_data: `ayarsec:reels_varsayilan:${!v('reels_varsayilan', false)}` }],
       [{ text: `${v('kanal_threads', true) ? '✅ AÇIK' : '⬜ KAPALI'} 🧵 Threads Paylaşımı`, callback_data: `ayarsec:kanal_threads:${!v('kanal_threads', true)}` }],
       [{ text: `${v('kanal_fb', true) ? '✅ AÇIK' : '⬜ KAPALI'} 📘 Facebook Paylaşımı`, callback_data: `ayarsec:kanal_fb:${!v('kanal_fb', true)}` }],
@@ -1658,6 +1766,9 @@ function kontrolMerkeziMenusu() {
       [
         { text: "📈 Detaylı Kota Raporu", callback_data: "kota_goster" },
         { text: "⚙️ Çalışma Ayarları", callback_data: "ayar" },
+      ],
+      [
+        { text: "🤖 Mod Değiştir (Oto/Onaylı)", callback_data: "mod_degistir" },
       ],
       [
         { text: "🩺 Sistem Sağlık Testi", callback_data: "saglik_testi" },
@@ -1861,6 +1972,12 @@ function fotoMenusu(adet = 2, seciliKanallar = ["ig", "story", "threads", "faceb
         { text: "🏛️ Saf Editoryal Zemin", callback_data: "foto_editoryal" },
       ],
       [
+        { text: "⬅️ Sol", callback_data: "foto_odak:sol" },
+        { text: "🎯 Orta", callback_data: "foto_odak:orta" },
+        { text: "➡️ Sağ", callback_data: "foto_odak:sag" },
+      ],
+      [
+        { text: "↩️ İlk Görsele Dön", callback_data: "foto_ilk" },
         { text: "← Ana Menü", callback_data: `foto_geri:${adet}` },
       ],
     ],
@@ -2038,8 +2155,9 @@ async function sohbeteGonder(env, sohbetId, metin, replyMarkup = null) {
 //   ad   : tetiklenemezse gruba yazılan iş adı
 // Üç tablo birbirine bağlıdır ve tests/test_zamanli_isler.py karşılaştırır: bu tablo ↔ wrangler.toml crons ↔ workflow cron'ları.
 const ZAMANLI_ISLER = {
-  "0 7 * * *":   { olay: "slot_hazirla", slot: "bilgilendirici",    ad: "Günlük içerik" },       // 10:00 TR
-  "30 9 * * *":  { olay: "slot_hazirla", slot: "sozluk",            ad: "Günlük içerik" },       // 12:30 TR (hazirla.py --slot sozluk --oto-yayin)
+  "0 7 * * *":   { olay: "slot_hazirla", slot: "bilgilendirici",    ad: "Günlük içerik" },       // 10:00 TR (B1 ⇄ Net Cevap)
+  "30 9 * * *":  { olay: "slot_hazirla", slot: "sozluk",            ad: "Günlük içerik" },       // 12:30 TR (2 günde 1 sözlük)
+  "0 16 * * *":  { olay: "slot_hazirla", slot: "reels",             ad: "Akşam Reels" },         // 19:00 TR (Nedir Doğrusu ⇄ Vaka)
   "40 5 * * *":  { olay: "rapor",        slot: "rapor",             ad: "Günlük rapor" },        // 08:40 TR
   "17 6 * * *":  { olay: "haber_oneri",  slot: "haber_oneri_sabah", ad: "Haber önerisi" },       // 09:17 TR
   "30 10 * * *": { olay: "hatirlat",     slot: "hatirlat_ogle",     ad: "Onay hatırlatıcı" },    // 13:30 TR
@@ -2214,6 +2332,8 @@ const BOT_KOMUTLARI = [
   { command: "haber", description: "Sektörel haber önerilerini tara" },
   { command: "ilanlar", description: "Portföy ilan menüsünü aç" },
   { command: "panel", description: "İnteraktif kontrol merkezini aç" },
+  { command: "otomatik", description: "Tam otomatik yayın moduna geç" },
+  { command: "onayli", description: "Yarı otomatik (onaylı) moda geç" },
   { command: "planlar", description: "Bekleyen planlı yayınları yönet" },
   { command: "durum", description: "Yayın takvimi ve bot durumu" },
   { command: "rapor", description: "Sistem, bulut ve AI kota tablosu" },
@@ -2246,6 +2366,8 @@ function hedefKanalEtiketleri(hedef) {
     threads: "🧵 Threads",
     facebook: "📘 Facebook",
     fb: "📘 Facebook",
+    facebook_reels: "📘 Facebook Reels",
+    fb_reels: "📘 Facebook Reels",
     youtube: "▶️ YouTube Shorts",
     shorts: "▶️ YouTube Shorts",
     tiktok: "🎵 TikTok",
@@ -2271,6 +2393,9 @@ function eylemEtiketi(eylem) {
     foto_ai: "Yapay Zeka Mimari Tasarım",
     foto_editoryal: "Mevzuat & Editoryal Zemin",
     foto_ilk: "İlk Orijinal Görsel",
+    "foto_odak:sol": "Fotoğraf Odağı Sola Kaydırıldı",
+    "foto_odak:orta": "Fotoğraf Odağı Ortalandı",
+    "foto_odak:sag": "Fotoğraf Odağı Sağa Kaydırıldı",
     slayt_basa: "1. Sıraya Taşıma (Manşet)",
     slayt_yukari: "Yukarı Taşıma",
     slayt_asagi: "Aşağı Taşıma",
@@ -2353,9 +2478,11 @@ function durumMetni() {
     "📊 <b>EDM YAYIN TAKVİMİ</b>\n\n" +
     "• <b>08:40</b> — Günlük rapor (kota, jetonlar, son çalışmalar)\n" +
     "• <b>09:17</b> ve <b>18:17</b> — Haber önerileri; hangisinin içeriğe çevrileceğine siz karar verirsiniz\n" +
-    "• <b>10:00</b> — Bilgilendirici (rotasyon: B1 · Nedir Doğrusu · Net Cevap · B1) — önce bu gruba <b>onaya</b> gelir\n" +
-    "• <b>12:30</b> — Emlak Sözlüğü kartı, <b>iki günde bir</b> — hazır arşivden, denetimden temiz geçerse <b>onaysız otomatik yayınlanır</b> (butonlu kart gelmez). Elle /sozluk derseniz kart <b>onay butonlarıyla</b> düşer\n" +
+    "• <b>10:00</b> — Otorite Gönderisi (rotasyon: B1 ⇄ Net Cevap) — Tam Otomatik modda denetimden temiz geçerse doğrudan yayınlanır; görseller, açıklama ve MP4 video gruba da düşer\n" +
+    "• <b>12:30</b> — Emlak Sözlüğü kartı, <b>iki günde bir</b> — IG 4:5 + ElevenLabs sesli YouTube Shorts & Facebook Reels olarak yayınlanır\n" +
+    "• <b>19:00</b> — Akşam Otorite Reels (rotasyon: Nedir Doğrusu ⇄ Vaka) — 9:16 seslendirmeli dikey video olarak yayınlanır\n" +
     "• <b>13:30</b> ve <b>21:30</b> — Sessiz kuyruk bakımı (hatırlatma YOK): 1 gün içinde yayınlanmayan içerik havuza döner, başka bir gün aynen yeniden önerilir\n\n" +
+    "🤖 <i>Mod geçişi: <code>/onayli</code> ile yarı otomatik (onaylı) moda, <code>/otomatik</code> ile tam otomatik moda dilediğiniz an geçebilirsiniz.</i>\n\n" +
     "<i>Bu mesaj takvimi gösterir, sistemin sağlığını değil. Gerçek durum için " +
     "“Canlı Sağlık Raporu”na bas — kanallar, jetonlar ve son çalışmalar gerçekten denetlenir.</i>"
   );

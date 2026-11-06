@@ -77,6 +77,15 @@ test("12:30 TR (09:30 UTC) sözlük turu tetiklenir", async () => {
   assert.equal(dispatchler[0].client_payload.zamanli, true);
 });
 
+test("19:00 TR (16:00 UTC) akşam reels otorite turu zamanlı yükle tetiklenir", async () => {
+  await cron("0 16 * * *");
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].event_type, "slot_hazirla");
+  assert.equal(dispatchler[0].client_payload.slot, "reels");
+  assert.equal(dispatchler[0].client_payload.zamanli, true);
+  assert.equal(dispatchler[0].client_payload.kaynak, "cloudflare_cron");
+});
+
 // Faz 5 (2026-10-13): hatırlatma, haber önerisi ve günlük rapor da Cloudflare cron'undan tetiklenir.
 // GitHub'ın kendi cron'ları yedek; aynı slot aynı günde bir kez çalışır (scripts/zamanli_koruma.py).
 const ZAMANLI = [
@@ -113,9 +122,9 @@ for (const [ifade, , slot, ad] of ZAMANLI) {
   });
 }
 
-test("yedi zamanlı işin her cron'u wrangler.toml'da ve her biri yalnız KENDİ olayını yollar", async () => {
+test("sekiz zamanlı işin her cron'u wrangler.toml'da ve her biri yalnız KENDİ olayını yollar", async () => {
   const toml = await import("node:fs").then((fs) => fs.readFileSync(join(kok, "worker/wrangler.toml"), "utf8"));
-  for (const ifade of ["40 5 * * *", "17 6 * * *", "0 7 * * *", "30 9 * * *", "30 10 * * *", "17 15 * * *", "30 18 * * *"]) {
+  for (const ifade of ["40 5 * * *", "17 6 * * *", "0 7 * * *", "30 9 * * *", "30 10 * * *", "17 15 * * *", "0 16 * * *", "30 18 * * *"]) {
     assert.ok(toml.includes(`"${ifade}"`), `${ifade} wrangler.toml'da yok`);
     dispatchler = [];
     await cron(ifade);
@@ -170,5 +179,48 @@ test("durum menüsü güncel takvimi gösterir (eski 13:30/18:30 İÇERİK slotl
   assert.ok(!/<b>13:30<\/b>\s*—\s*(Bilgilendirici|Emlak|Haber)/.test(kaynak), "13:30 içerik slotu olarak geri gelmemeli");
   assert.match(kaynak, /<b>13:30<\/b> ve <b>21:30<\/b> — Sessiz kuyruk bakımı \(hatırlatma YOK\)/);
   assert.ok(kaynak.includes("<b>12:30</b>"));
+  assert.ok(kaynak.includes("<b>19:00</b>"));
   assert.ok(kaynak.includes("<b>08:40</b>"));
+});
+
+test("Telegram mod_degistir butonu ve /onayli ↔ /otomatik komutları KV ve bot_yonetim ile senkron çalışır", async () => {
+  const gonder = (update) => worker.fetch(
+    new Request("https://edm.example/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "g" },
+      body: JSON.stringify(update),
+    }),
+    ENV,
+    {},
+  );
+
+  // Varsayılan Tam Otomatik → mod_degistir tıklanınca Yarı Otomatik (false) olur
+  await gonder({
+    callback_query: { id: "cb1", data: "mod_degistir", message: { message_id: 55, chat: { id: Number(GRUP) }, text: "Panel" } },
+  });
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].event_type, "bot_yonetim");
+  assert.equal(dispatchler[0].client_payload.eylem, "ayar_degistir");
+  assert.equal(dispatchler[0].client_payload.anahtar, "oto_yayin");
+  assert.equal(dispatchler[0].client_payload.deger, "false");
+  assert.equal(JSON.parse(await ENV.PLANLAR.get("ayar:durum")).oto_yayin, false);
+
+  // /otomatik komutu tekrar Tam Otomatik (true) yapar
+  dispatchler = [];
+  await gonder({
+    message: { message_id: 56, chat: { id: Number(GRUP) }, text: "/otomatik" },
+  });
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].client_payload.anahtar, "oto_yayin");
+  assert.equal(dispatchler[0].client_payload.deger, "true");
+  assert.equal(JSON.parse(await ENV.PLANLAR.get("ayar:durum")).oto_yayin, true);
+
+  // /onayli komutu Yarı Otomatik (false) yapar
+  dispatchler = [];
+  await gonder({
+    message: { message_id: 57, chat: { id: Number(GRUP) }, text: "/onayli" },
+  });
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].client_payload.deger, "false");
+  assert.equal(JSON.parse(await ENV.PLANLAR.get("ayar:durum")).oto_yayin, false);
 });

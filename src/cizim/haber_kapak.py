@@ -37,9 +37,9 @@ from .tipografi import (
     _temizle_tipografi,
     tr_buyuk,
 )
-from .tuval import _zemin_uret, tuval
+from .tuval import _zemin_uret, dinamik_perde_hesapla, tuval
 from .bilesenler import _filigran_uygula, _logo_yerlestir, _rozet_ciz
-from .stok import _perde_maskesi_smoothstep
+from .stok import _akilli_sigdir, _perde_maskesi_smoothstep
 from .haber_arka_plan import _haber_arkaplan_hazirla
 
 log = logging.getLogger(__name__)
@@ -89,16 +89,7 @@ def haber_dailybrief_slayti_ciz(
         bg_img = _haber_arkaplan_hazirla(haber, foto_yolu=foto_yolu, cikti_yolu=cikti_yolu)
 
         if bg_img:
-            bg_w, bg_h = bg_img.size
-            oran = max(genislik / bg_w, yukseklik / bg_h)
-            yeni_w = int(bg_w * oran)
-            yeni_h = int(bg_h * oran)
-            bg_olcekli = bg_img.resize((yeni_w, yeni_h), Image.Resampling.LANCZOS)
-
-            kirp_x = max(0, (yeni_w - genislik) // 2)
-            kirp_y = max(0, (yeni_h - yukseklik) // 2)
-            bg_kirp = bg_olcekli.crop((kirp_x, kirp_y, kirp_x + genislik, kirp_y + yukseklik))
-
+            bg_kirp = _akilli_sigdir(bg_img, (genislik, yukseklik))
             canvas = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)
             canvas.paste(bg_kirp, (0, 0))
         else:
@@ -167,7 +158,8 @@ def haber_dailybrief_slayti_ciz(
         manset_ust_y = spot_ust_y - ((28 if dikey_story else 22) if spot_h > 0 else 0) - manset_h
 
         if bg_img:
-            perde_bas = max(220 if dikey_story else 320, manset_ust_y - (160 if dikey_story else 130))
+            _, _, ofs_y = dinamik_perde_hesapla(canvas, manset_ust_y)
+            perde_bas = max(220 if dikey_story else 320, manset_ust_y - (160 if dikey_story else 130) - ofs_y)
             perde_son = min(alt_y, manset_ust_y + int(manset_h * 0.80))
             maske = _perde_maskesi_smoothstep(genislik, yukseklik, perde_bas, perde_son)
             koyu_zemin = Image.new("RGB", (genislik, yukseklik), RENK_MUREKKEP)

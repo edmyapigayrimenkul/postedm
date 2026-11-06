@@ -13,6 +13,8 @@ Hatırlatma yalnız KULLANICI isterse gider: `--zorla` (Telegram "⏰ Onayları 
 
 from __future__ import annotations
 
+import argparse
+import html
 import logging
 import sys
 from datetime import datetime, timedelta, timezone
@@ -25,9 +27,6 @@ from src import db, konu_bankasi, telegram_bot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
-
-
-import argparse
 
 
 # Kullanıcı kuralı (2026-10-13): 1 gün = 24 saat. Önceden 5 gündü. Süre dolunca içerik silinmez: hazırsa havuza, değilse arşive alınır.
@@ -110,6 +109,62 @@ def planli_yayin_bekliyor(haber: dict, simdi: datetime | None = None) -> bool:
     return (simdi or datetime.now(timezone.utc)) < an + timedelta(hours=3)
 
 
+def _geciken_planlari_denetle(tum_bekleyenler: list[dict]) -> None:
+    """Planlanan yayını geciken (en az 15 dk geçmiş ve hâlâ onay_bekliyor olan) içerikleri
+    tespit eder; altına '🚀 Hemen Şimdi Yayınla' butonu koyarak Telegram'a hatırlatır."""
+    simdi = datetime.now(timezone.utc)
+    for haber in tum_bekleyenler:
+        raw_plan = haber.get("planlanan_yayin")
+        if not raw_plan:
+            continue
+        try:
+            an = datetime.fromisoformat(str(raw_plan).strip().replace(" ", "T"))
+            if an.tzinfo is None:
+                an = an.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        gecikme_dk = (simdi - an).total_seconds() / 60
+        # En az 15 dakika gecikmişse ve 24 saati aşmamışsa
+        if 15 <= gecikme_dk < 24 * 60:
+            haber_id = haber["id"]
+            ayar_k = f"plan_gecikme_uyari_{haber_id}_{str(raw_plan)[:19]}"
+            try:
+                if db.ayar_oku(ayar_k):
+                    continue
+            except Exception:
+                pass
+
+            baslik = haber.get("manset") or haber.get("orijinal_baslik") or "İçerik"
+            is_reels = (haber.get("kategori") == "REELS" or (haber.get("kaynak") and "reels" in str(haber.get("kaynak")).lower()))
+            tur = "reels" if is_reels else "haber"
+            hedef = "video" if is_reels else "hepsi"
+
+            metin = (
+                f"⏰ <b>Planlanan Yayın Gecikti! (#{haber_id})</b>\n\n"
+                f"📌 <b>Başlık:</b> {html.escape(baslik)}\n"
+                f"⏱️ <b>Planlanan Zaman:</b> {raw_plan}\n"
+                f"⚠️ <i>Bu içerik planlanan saatte yayınlanamadı veya askıda kaldı ({int(gecikme_dk)} dk gecikme). "
+                f"Beklemeden yayına almak için aşağıdaki butona basabilirsiniz:</i>"
+            )
+            butonlar = {
+                "inline_keyboard": [
+                    [
+                        {"text": "🚀 Beklemeden Şimdi Yayınla", "callback_data": f"onayla:{tur}:{hedef}:{haber_id}"},
+                    ],
+                    [
+                        {"text": "⏹ Planı İptal Et / Çöpe At", "callback_data": f"cope_at:{haber_id}"},
+                    ],
+                ]
+            }
+            try:
+                telegram_bot.mesaj_gonder(metin, reply_markup=butonlar)
+                db.ayar_yaz(ayar_k, simdi.isoformat())
+                log.info("Geciken plan hatırlatması gönderildi: #%d (%d dk gecikme)", haber_id, int(gecikme_dk))
+            except Exception as e:
+                log.warning("Geciken plan hatırlatması gönderilemedi (#%d): %s", haber_id, e)
+
+
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="EDM onay kuyruğu bakımı (1 gün kuralı); --zorla ile elle hatırlatma")
     parser.add_argument("--zorla", "-z", action="store_true", help="ELLE hatırlat: bekleyenleri 60 dk sınırı olmadan Telegram'a kart olarak yolla (otomatik koşular hatırlatmaz)")
@@ -119,6 +174,7 @@ def main(argv: list[str] | None = None):
     # Önceden tek sorgu `LIMIT 5` idi: altıncı ve daha eski içerikler zaman aşımına hiç girmiyor,
     # kuyruk büyüyordu (2026-10-12 ölçümü: 14 içerik, en eskisi 27 Eylül'den beri bekliyordu).
     tum_bekleyenler = db.onay_bekleyen_haberleri_getir(limit=TUM_BEKLEYEN_SINIRI)
+    _geciken_planlari_denetle(tum_bekleyenler)
     bekleyenler = _zaman_asimlarini_isle(tum_bekleyenler)[:HATIRLATMA_PENCERESI]
     if not args.zorla:
         # Otomatik koşu (cron) yalnız bakım yapar: hatırlatma mesajı YOK (kullanıcı kararı, 2026-10-13).

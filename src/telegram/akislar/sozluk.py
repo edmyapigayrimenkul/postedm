@@ -113,6 +113,8 @@ def sozluk_karti_hazirla_ve_sun(oto_yayin: Optional[bool] = None) -> Optional[bo
         duraklatildi, _ = ayarlar.bot_duraklatildi_mi()
         if sozluk_oto_yayin_kapatildi_mi():
             neden = "otomatik yayın anahtarı kapatılmış (SOZLUK_OTO_YAYIN=0)"
+        elif not ayarlar.oto_yayin_modu_acik_mi():
+            neden = "yarı otomatik (onaylı) mod aktif"
         elif taze is not True:
             neden = "kanun metni alınamadığı için kart doğrulanamadı"
         elif duraklatildi:

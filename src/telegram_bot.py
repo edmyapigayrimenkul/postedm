@@ -46,6 +46,8 @@ _EV = {
     "slaytlari_ciz": "akislar.onay_slayt",
     # akislar.otomatik
     "OTO_YAYIN_HEDEFLERI": "akislar.otomatik",
+    "REELS_OTO_YAYIN_HEDEFLERI": "akislar.otomatik",
+    "SOZLUK_OTO_YAYIN_HEDEFLERI": "akislar.otomatik",
     "_oto_yayinla": "akislar.otomatik",
     # akislar.otorite
     "format_degistir_ve_sun": "akislar.otorite",
@@ -53,6 +55,7 @@ _EV = {
     # akislar.reels
     "_reels_hazirla_ve_sun": "akislar.reels",
     "reels_hazirla_ve_sun": "akislar.reels",
+    "reels_slotu_hazirla_ve_sun": "akislar.reels",
     # akislar.havuz
     "havuzdan_sun": "akislar.havuz",
     # akislar.sozluk
@@ -64,7 +67,9 @@ _EV = {
     "sozluk_zamanli_gunu_mu": "akislar.sozluk",
     "sozluk_zamanli_isaretle": "akislar.sozluk",
     # akislar.uretim
+    "_format_hazirla": "akislar.uretim",
     "_sozluk_slotu": "akislar.uretim",
+    "_yeni_haber_kaydet": "akislar.uretim",
     "haberden_icerik_hazirla": "akislar.uretim",
     "hizli_icerik_uret": "akislar.uretim",
     "konu_bankasindan_hazirla": "akislar.uretim",
@@ -85,11 +90,14 @@ _EV = {
     "slaytlari_gonder": "album",
     "son_medya_grubu_mesaj_idleri": "album",
     # ayarlar
+    "_OTO_MOD_KAPALI_DEGERLER": "ayarlar",
     "bot_devam_et": "ayarlar",
     "bot_duraklat": "ayarlar",
     "bot_duraklatildi_mi": "ayarlar",
     "kanal_ayarla": "ayarlar",
     "kanal_toggle": "ayarlar",
+    "oto_yayin_modu_acik_mi": "ayarlar",
+    "oto_yayin_modu_ayarla": "ayarlar",
     "secili_kanallari_cikar": "ayarlar",
     "varsayilan_kanallar": "ayarlar",
     # durum_metni

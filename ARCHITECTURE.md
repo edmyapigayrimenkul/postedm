@@ -21,7 +21,7 @@ Instagram, Facebook, Threads, YouTube ve TikTok'a yayın yapıyor, yanlış bir 
 
 | Ortam | Dil | Ne yapar | Kod |
 |---|---|---|---|
-| Cloudflare Worker | JS | Telegram'dan gelen butonu yakalar, zamanlayıcıdır (10 dk plan çaları + 7 günlük iş: rapor, haber önerisi ×2, içerik, sözlük, hatırlatma ×2) | `worker/` |
+| Cloudflare Worker | JS | Telegram'dan gelen butonu yakalar, zamanlayıcıdır (10 dk plan çaları + 8 günlük iş: rapor, haber önerisi ×2, içerik/gönderi, sözlük, hatırlatma ×2, akşam reels) | `worker/` |
 | GitHub Actions | Python | İçerik üretir, yayınlar, hatırlatır, raporlar | `.github/workflows/`, `scripts/`, `src/` |
 | Telegram | — | İnsanın onay/yönetim yüzü | `src/telegram/` (cephe: `src/telegram_bot.py`) |
 
@@ -76,6 +76,7 @@ Sırayı kullanıcı belirler; aşağıdaki liste devir anındaki durumdur ve ye
 
 | Alan | İş | Not / kaynak |
 |---|---|---|
+| Zamanlama | **Otomatik Otorite & Reels Takvimi** | **Tamamlandı** (2026-11-04): 10:00 Gönderi (`b1` ⇄ `net_cevap`) ve 19:00 Reels (`nedir_dogrusu` ⇄ `vaka`) slotları kuruldu; Cloudflare Worker'a 9. cron (`0 16 * * *`) eklendi; Telegram mod anahtarı (/otomatik, /onayli) bağlandı | MEMORY.md §10 madde 40 |
 | Zamanlama | **Yedek GitHub cron'larını sil** | **Tamamlandı** (2026-10-21): `hazirla.yml`, `hatirlat.yml`, `haber-oneri.yml`, `gunluk-rapor.yml`'deki gecikmeli `schedule` blokları silindi. Tek tetikleyici kuralı tam sağlandı | MEMORY.md §10 madde 32 |
 | Telegram · Worker | **`worker/index.js` bölmek** (2142 satır tek dosya). Dikkat: JS testleri (`tests/*.test.mjs`) `worker/index.js`'i TEK dosya olarak kopyalayıp import eder; `tests/test_buton_sozlesmesi.py`, `test_zamanli_isler.py`, `test_sozlesme.py` kaynağı metin olarak okur → bölünce hepsi birleştirilmiş kaynağı okumalı. `wrangler deploy` birden çok dosyayı kendisi paketler. Bölme sonrası Worker Dağıt gerekir | Bu belge §2 kural 5 |
 | Telegram · teslim | **Çift albüm güvencesi** | **Tamamlandı** (2026-10-21): Zaman aşımı 120 sn'ye çıkarıldı ve ağ kopmalarında Telegram'ın albümü fiilen teslim edip etmediği doğrulanarak mükerrer albüm önlendi | MEMORY.md §10 madde 33 |
@@ -87,6 +88,9 @@ Sırayı kullanıcı belirler; aşağıdaki liste devir anındaki durumdur ve ye
 | Paylaşım · site kuyruğu | `site-kuyrugu.yml` 401: site tarafı anahtar/OIDC kontrolü bekliyor, saatlik yoklama kapalı; Actions tarafında yalnız `EDM_SITE_API_ANAHTARI` geçirilmesi | MEMORY.md §10 madde 7 |
 | İçerik · finans | Finans bülteni ayrı tasarım değil, standart carousel (kullanıcı "şimdilik tamam"); elle de onaysız yayın. İstenirse finansa özgü görsel (oran vurgusu, rakam kutusu) ve elle tetiklemede onay kartı | MEMORY.md §10 madde 21 |
 | İçerik · sözlük | Dalga 5 tamamlandı (A05 10 kart, A06 8 kart). Arşiv 139 kart (130 yayınlanmamış; 260 gün stok), hedef 365 kart | SOZLUK-KART-URETIMI.md |
+| Görsel · Motor | **Görsel Kalite ve Bulma Motoru (Faz 1)** | **Tamamlandı** (2026-11-04): LLM İngilizce arama terimi, dHash ile 45 günlük mükerrer engeli, TV/ajans banner ve Vision logo filtresi | MEMORY.md §10 madde 41 |
+| Görsel · Motor | **Görsel Tasarım & Akıllı Kırpma (Faz 2)** | **Tamamlandı** (2026-11-04): Kenar enerjisi odaklı akıllı kırpma (`akilli_odak_x`), alt metin bölgesi dinamik perde adaptasyonu (`dinamik_perde_hesapla`), 25 HD görsel havuzu | MEMORY.md §10 madde 42 |
+| İçerik · Banka | **Hukuki Mükerrerlik Kalkanı & Konu Havuzu** | **Tamamlandı** (2026-11-04): `src/mukerrerlik.py` ile mevzuat maddesi eşleştirmesi, 2-gram Jaccard semantik filtresi; 10 yeni kanuni konu eklendi (havuz 120 → 130 konu) | MEMORY.md §10 madde 43 |
 | Mimari | Faz 3 tamamlandı (`src/cizim/` 25 modül, her biri $\le 250$ satır, testli). Faz 4 (`db.py` depo başına modül) | Bu belge §4 tablo |
 | Güvenlik / gizlilik | Depo PUBLIC (doğrulandı 2026-10-13): DB'deki taslaklar ve grup kimliği görünür. Kararı §5'e göre (özel ikinci depo ya da depoyu özel yapmak) | MEMORY.md §10 madde 24 |
 

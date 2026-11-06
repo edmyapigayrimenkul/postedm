@@ -74,7 +74,14 @@ from .fontlar import (
     _govde_sigdir,
     _sigdir_font,
 )
-from .tuval import _rozet_kirp, _sayfa_etiketi, _yerlesim, _zemin_uret, tuval
+from .tuval import (
+    _rozet_kirp,
+    _sayfa_etiketi,
+    _yerlesim,
+    _zemin_uret,
+    dinamik_perde_hesapla,
+    tuval,
+)
 from .ikonlar import _edm_pin_al, _vektor_ikon_uret
 from .bilesenler import (
     _arti_isareti_ciz,

@@ -185,7 +185,10 @@ class TestOneriListesi(unittest.TestCase):
         self.assertEqual([b["text"] for b in satirlar[0]], ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"])  # en fazla beş
         self.assertEqual([b["callback_data"] for b in satirlar[1]], [f"incele:{300 + i}" for i in range(5)])
         self.assertEqual(satirlar[2], [{"text": "▶️ Hazırla (0)", "callback_data": "hazirla_secilenler"}])
-        self.assertEqual(satirlar[3], [{"text": "❌ Hiçbiri", "callback_data": "oneri_gec"}])
+        self.assertEqual(satirlar[3], [
+            {"text": "🔄 Başka Öner", "callback_data": "oneri_baska:5"},
+            {"text": "❌ Hiçbiri", "callback_data": "oneri_gec"},
+        ])
         self.assertEqual(metin.count("🗓"), 5)  # her haberin tarihi yazar
         self.assertIn("/incele_300", metin)
         self.assertIn('href="https://emlakkulisi.com/haber-0"', metin)

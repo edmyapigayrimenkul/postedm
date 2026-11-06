@@ -196,7 +196,8 @@ class TestSiteKuyrugu(unittest.TestCase):
                 patch.object(yayinla.instagram, "tekil_gorsel_yayinla", side_effect=RuntimeError("Instagram kapalı")),
                 patch.object(yayinla.video, "slaytlardan_reels_uret", return_value=dummy_video),
                 patch.object(yayinla.ses, "sesli_video_hazirla", return_value=dummy_video),
-                patch.object(yayinla.facebook, "paylas", return_value="fb-123") as facebook_paylas,
+                patch("src.facebook.paylas", return_value="fb-123") as facebook_paylas,
+                patch.object(yayinla.facebook, "paylas", facebook_paylas),
                 patch("src.telegram.istemci.mesaj_gonder"),
                 patch("src.telegram.istemci._istek"),  # canlı durum/sonuç mesajları da istemciden geçer: ağ kapısı kapalı
                 patch.object(yayinla.db, "ilan_paylasildi_isaretle") as isaretle,

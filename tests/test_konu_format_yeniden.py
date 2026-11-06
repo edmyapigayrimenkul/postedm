@@ -67,13 +67,13 @@ class TestSecim(_Ortam):
 
     def test_bakir_bitince_baska_formatta_kullanilmis_konu_yeniden_gelir(self):
         havuz = [_konu("A")]
-        gecmis = {"A": _gun_once(30)}
+        gecmis = {"A": _gun_once(50)}
         secim = self._sec(havuz, gecmis, {("A", "b1"): gecmis["A"]}, format_turu="sozluk")
         self.assertEqual(secim["kod"], "A")
 
     def test_ayni_formatta_ikinci_kez_gelmez(self):
         havuz = [_konu("A")]
-        gecmis = {"A": _gun_once(30)}
+        gecmis = {"A": _gun_once(50)}
         self.assertIsNone(self._sec(havuz, gecmis, {("A", "sozluk"): gecmis["A"]}, format_turu="sozluk"))
 
     def test_bekleme_suresi_dolmadan_gelmez(self):
@@ -88,7 +88,7 @@ class TestSecim(_Ortam):
 
     def test_istenen_sutun_ve_en_uzun_dinlenen_oncelikli(self):
         havuz = [_konu("A", "S2"), _konu("B", "S1"), _konu("C", "S1")]
-        gecmis = {"A": _gun_once(90), "B": _gun_once(30), "C": _gun_once(60)}
+        gecmis = {"A": _gun_once(90), "B": _gun_once(50), "C": _gun_once(60)}
         fg = {(k, "b1"): v for k, v in gecmis.items()}
         self.assertEqual(self._sec(havuz, gecmis, fg, format_turu="sozluk", sutun="S1")["kod"], "C")
 
@@ -109,14 +109,14 @@ class TestSecim(_Ortam):
 
     def test_format_verilmezse_b1_sayilir(self):
         havuz = [_konu("A")]
-        gecmis = {"A": _gun_once(30)}
+        gecmis = {"A": _gun_once(50)}
         self.assertIsNone(self._sec(havuz, gecmis, {("A", "b1"): gecmis["A"]}))           # b1 zaten kullanılmış
         self.assertEqual(self._sec(havuz, gecmis, {("A", "sozluk"): gecmis["A"]})["kod"], "A")
 
-    def test_120_gun_kademesi_hala_calisir(self):
+    def test_180_gun_kademesi_hala_calisir(self):
         havuz = [_konu("A")]
-        gecmis = {"A": _gun_once(130)}
-        # Aynı formatta kullanılmış ama 120 günü doldurmuş: eski davranış korunur
+        gecmis = {"A": _gun_once(190)}
+        # Aynı formatta kullanılmış ama 180 günü doldurmuş: varsayılan dinlenme kademesi korunur
         self.assertEqual(self._sec(havuz, gecmis, {("A", "sozluk"): gecmis["A"]}, format_turu="sozluk")["kod"], "A")
 
 

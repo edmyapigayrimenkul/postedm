@@ -32,7 +32,7 @@ from .tipografi import (
     _temizle_tipografi,
     tr_ilk_buyuk,
 )
-from .tuval import _rozet_kirp, _sayfa_etiketi, _yerlesim
+from .tuval import _rozet_kirp, _sayfa_etiketi, _yerlesim, dinamik_perde_hesapla
 from .bilesenler import _difuzyon_golgeli_metin, _logo_yerlestir, _rozet_ciz
 from .stok import _temiz_arkaplan_al
 
@@ -158,9 +158,10 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
     if by < _yerlesim()["kronik_ust"] + 110:
         raise TasmaHatasi("Kapak manşeti ve spot üst rozete dayanıyor")
 
-    serit_basi = max(180, by - (160 if YUKSEKLIK >= 1700 else 140))
+    p_alfa, max_a, ofs_y = dinamik_perde_hesapla(canvas, by)
+    serit_basi = max(180, by - (160 if YUKSEKLIK >= 1700 else 140) - ofs_y)
     serit_tam = by + 220
-    PANEL_ALFA = 185
+    PANEL_ALFA = p_alfa
 
     perde = Image.new("RGBA", (GENISLIK, YUKSEKLIK), (0, 0, 0, 0))
     p_draw = ImageDraw.Draw(perde)
@@ -170,7 +171,7 @@ def otorite_slayt_1_kapak(veri: Dict[str, Any], cikti_yolu: Optional[Path] = Non
         alfa = int(75 * ((vignette_h - y) / vignette_h) ** 1.8)
         p_draw.line([(0, y), (GENISLIK, y)], fill=(8, 10, 14, alfa))
 
-    azami_alfa = 240 if YUKSEKLIK >= 1700 else 252
+    azami_alfa = min(max_a, 240 if YUKSEKLIK >= 1700 else 255)
     for y in range(serit_basi, YUKSEKLIK):
         if y < by:
             alfa = int(PANEL_ALFA * (((y - serit_basi) / max(1, by - serit_basi)) ** 1.15))

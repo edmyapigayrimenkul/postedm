@@ -13,44 +13,71 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from ... import db, generate_text, konu_bankasi
-from .. import istemci
-from . import kapi, onay
+from .. import ayarlar, istemci
+from . import havuz, kapi, onay
 
 log = logging.getLogger(__name__)
 
 
-def reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
+def reels_slotu_hazirla_ve_sun(oto_yayin: Optional[bool] = None) -> bool:
+    """Seçenek A akşam Reels slotu: nedir_dogrusu ⇄ vaka döngüsünden 9:16 dikey Reels üretir."""
+    aktif_oto = bool(oto_yayin)
+    if aktif_oto and not ayarlar.oto_yayin_modu_acik_mi():
+        istemci.mesaj_gonder("ℹ️ Yarı otomatik (onaylı) mod aktif: akşam Reels içeriği onayınıza sunuluyor.")
+        aktif_oto = False
+    havuzdan = havuz.havuzdan_sun("reels", oto_yayin=True) if aktif_oto else havuz.havuzdan_sun("reels")
+    if havuzdan is not None:
+        return havuzdan
+    secilen = konu_bankasi.siradaki_reels_format()
+    log.info("Akşam Reels slotu — döngüdeki format: %s (Otomatik yayın: %s)", secilen, aktif_oto)
+    basarili = reels_hazirla_ve_sun(format_turu=secilen, oto_yayin=aktif_oto if oto_yayin is not None else None)
+    if basarili:
+        konu_bankasi.reels_format_kaydet(secilen)
+    return basarili
+
+
+def reels_hazirla_ve_sun(
+    konu_kodu: Optional[str] = None,
+    format_turu: Optional[str] = None,
+    oto_yayin: Optional[bool] = None,
+) -> bool:
     """Konu bankasından dikey Reels videosu üretip onaya sunar (bkz. _reels_hazirla_ve_sun)."""
     from ... import yeni_formatlar
     try:
-        return _reels_hazirla_ve_sun(konu_kodu)
+        return _reels_hazirla_ve_sun(konu_kodu=konu_kodu, format_turu=format_turu, oto_yayin=oto_yayin)
     except yeni_formatlar.EksikIcerik as e:
         log.warning("Reels eksik alan yüzünden durdu: %s", e)
         kapi._eksik_icerik_bildir(None, e)
         return False
 
 
-def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
+def _reels_hazirla_ve_sun(
+    konu_kodu: Optional[str] = None,
+    format_turu: Optional[str] = None,
+    oto_yayin: Optional[bool] = None,
+) -> bool:
     """
     Konu bankasından sıradaki konudan 9:16 dikey Reels içeriği üretir,
     slaytları Telegram grubuna görsel olarak gönderir ve haberle birebir aynı
-    onay kartı ve buton yapısıyla onaya sunar.
+    onay kartı ve buton yapısıyla onaya sunar (oto_yayin aktif ve denetim temizse otomatik yayınlar).
     """
-    istemci.mesaj_gonder("⏳ <b>EDM Reels Videosu (9:16 Dikey)</b> hazırlanıyor, lütfen bekleyin...")
+    etiket = f" · {format_turu}" if format_turu else ""
+    istemci.mesaj_gonder(f"⏳ <b>EDM Reels Videosu (9:16 Dikey{etiket})</b> hazırlanıyor, lütfen bekleyin...")
 
-    konu = konu_bankasi.sonraki_konu(format_turu="reels") if not konu_kodu else next((k for k in konu_bankasi.havuzu_yukle() if k["kod"] == konu_kodu), None)
+    hedef_fmt = format_turu or "reels"
+    konu = konu_bankasi.sonraki_konu(format_turu=hedef_fmt) if not konu_kodu else next((k for k in konu_bankasi.havuzu_yukle() if k["kod"] == konu_kodu), None)
     if not konu:
         istemci.mesaj_gonder("⚠️ Konu bankasında uygun konu bulunamadı.")
         return False
 
     konu_reels = dict(konu)
-    bicim = konu_reels.get("bicim") or "dailybrief"
-
-    veri = generate_text.konudan_uret(konu_reels)
+    veri = generate_text.konudan_uret(konu_reels, format_turu=format_turu) if format_turu else generate_text.konudan_uret(konu_reels)
     if not veri:
         istemci.mesaj_gonder("❌ Gemini metin üretemedi.")
         return False
 
+    if format_turu:
+        veri["bicim"] = format_turu
     veri["format_turu"] = "reels"
     konu_kodu_val = konu["kod"] if not konu_kodu else konu_kodu
     orijinal_url = f"edm://reels/{konu_kodu_val}/{int(time.time())}"
@@ -80,5 +107,7 @@ def _reels_hazirla_ve_sun(konu_kodu: Optional[str] = None) -> bool:
         haber_id = cur.lastrowid
         conn.commit()
 
-    konu_bankasi.kullanildi_isaretle(konu_kodu_val, haber_id=haber_id, format_turu="reels")
-    return onay.haber_onayina_sun(haber_id)
+    konu_bankasi.kullanildi_isaretle(konu_kodu_val, haber_id=haber_id, format_turu=hedef_fmt)
+    if oto_yayin is None:
+        return onay.haber_onayina_sun(haber_id)
+    return onay.haber_onayina_sun(haber_id, oto_yayin=oto_yayin)

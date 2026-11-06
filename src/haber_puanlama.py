@@ -133,21 +133,45 @@ EYLEM = [   # okuyanın bir şey YAPMASI gereken haberler
 SUTUN_TERIMLERI: Dict[str, List[str]] = {
     "S1": ["tapu", "şufa", "önalım", "hisseli", "şerh", "kadastro", "miras",
            "intikal", "ipotek", "vekâlet", "vekalet", "kaparo", "temellük",
-           "harç", "devir", "tescil", "iskân", "iskan", "kat mülkiyet", "kat irtifak"],
+           "harç", "devir", "tescil", "iskân", "iskan", "kat mülkiyet", "kat irtifak",
+           "izale-i şuyu", "ortaklığın gideril", "ecrimisil", "satış vaadi",
+           "tapu iptal", "web tapu", "yetki belgesi", "elektronik ilan", "eids"],
     "S2": ["kiracı", "ev sahip", "kira", "tahliye", "depozito",
-           "taahhütname", "aidat", "kontrat", "kira artış", "tüfe"],
+           "taahhütname", "tahliye taahhüt", "aidat", "kontrat", "kira artış", "tüfe",
+           "kira tespit", "kira uyarlama", "arabulucu", "yönetim planı", "site yönetim",
+           "ortak alan"],
     "S3": ["imar", "arsa", "tarla", "parsel", "emsal", "taks", "kaks",
            "ifraz", "tevhid", "tiny house", "ruhsat", "kamulaştırma",
            "tarım arazisi", "yapı kayıt", "kentsel dönüşüm", "rezerv yapı",
-           "riskli yapı", "güçlendirme", "zemin etüdü"],
+           "riskli yapı", "güçlendirme", "zemin etüdü", "imar plan", "askı süre",
+           "milli emlak", "hazine arazi", "deprem yönetmeli", "yapı denetim",
+           "dask", "zorunlu deprem", "yarısı bizden", "metro", "hızlı tren",
+           "otoyol", "ulaşım proje", "organize sanayi", "osb", "lojistik merkez"],
     "S4": ["konut fiyat", "metrekare", "m2", "kira çarpan", "getiri",
            "konut satış", "faiz", "konut kredisi", "enflasyon", "amortisman",
            "değer artış", "emlak vergisi", "rayiç", "tcmb", "bddk", "toki",
-           "emlak konut", "gyo", "değerli konut vergisi", "tapu harcı"],
+           "emlak konut", "gyo", "değerli konut vergisi", "tapu harcı",
+           "inşaat maliyet", "ipotekli satış", "yabancıya konut", "politika faiz",
+           "kredi faiz", "kira yardım", "sosyal konut", "gayrimenkul sertifika"],
 }
 
+# Kamu kurumları ve resmi veri kaynakları: özel proje reklamı ("kampanya", "taksitle",
+# "satışa çıktı") veya PR demeci sanılarak elenmemesi gereken resmi aktörler.
+KAMU_KURUMLARI = [
+    "toki", "emlak konut", "milli emlak", "tüik", "tcmb", "merkez bankası",
+    "bddk", "tapu ve kadastro", "tkgm", "çevre, şehircilik", "çevre ve şehircilik",
+    "ticaret bakanlığı", "hazine ve maliye", "resmi gazete", "resmî gazete",
+    "büyükşehir belediye", "silivri belediye", "belediye meclis",
+]
+
+VERI_KURUMLARI = [
+    "tüik", "tcmb", "merkez bankası", "bddk", "tapu ve kadastro", "tkgm",
+    "resmi gazete", "resmî gazete",
+]
+
 YEREL_YAKIN = ["silivri", "trakya", "çatalca", "büyükçekmece", "beylikdüzü",
-               "çorlu", "çerkezköy", "tekirdağ", "edirne", "kırklareli", "marmaraereğlisi"]
+               "çorlu", "çerkezköy", "tekirdağ", "edirne", "kırklareli", "marmaraereğlisi",
+               "selimpaşa", "gümüşyaka", "değirmenköy", "çanta", "ortaköy", "kavaklı"]
 YEREL_GENIS = ["istanbul", "marmara"]
 
 KITLE_GENIS = ["kiracı", "ev sahip", "konut", "daire", "kira", "tapu"]
@@ -169,11 +193,14 @@ PR_DEMEC = ["açıkladı", "konuştu", "ziyaret etti", "mesaj yayımladı",
 
 # Emlak kelimesi geçse de haber değeri olmayan veya kesinlikle yayınlanmayacak konular (Siyaset, Asayiş, Magazin, Spor, Borsa vb.)
 DISLANAN = [
-    "cezaevi", "tutuklu", "gözaltı", "operasyon", "cinayet", "trafik kazası",
+    "cezaevi", "tutuklu", "gözaltı", "şafak operasyon", "terör operasyon",
+    "emniyet operasyon", "polis operasyon", "jandarma operasyon", "uyuşturucu operasyon",
+    "cinayet", "trafik kazası",
     "yangın", "maç", "transfer", "dizi", "konser", "festival", "altın fiyat",
     "döviz kuru", "borsa", "kripto", "vatandaşlık",
-    "parti", "seçim", "chp", "ak parti", "mhp", "iyi parti", "dem parti",
-    "milletvekili", "bakanlık açıkladı", "açlık sınırı", "asgari ücret",
+    "siyasi parti", "parti genel", "parti grup", "parti meclis",
+    "seçim", "chp", "ak parti", "mhp", "iyi parti", "dem parti",
+    "milletvekili", "açlık sınırı", "asgari ücret",
     "siber", "hacker", "istismar", "uyuşturucu",
     "magazin", "ünlü", "oyuncu", "şarkıcı", "futbol", "basketbol", "süper lig",
     "şampiyonlar ligi", "derbi", "puan durumu",
@@ -239,10 +266,14 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         d.red_sebebi = "konu dışı"
         return d
 
+    kamu_kurumu_var = bool(_kacini_tutuyor(metin, KAMU_KURUMLARI))
+    veri_kurumu_var = bool(_kacini_tutuyor(metin, VERI_KURUMLARI))
+
     reklam_isaretleri = [r for r in REKLAM if r in metin_k]
     # Başlıkta hem reklam kalıbı hem fiyat varsa bu bir ilandır, haber değil
+    # (TOKİ, Emlak Konut, Milli Emlak vb. resmi kurumların sosyal konut/arsa duyuruları hariç)
     fiyat_var = bool(re.search(r"\d[\d.,]*\s*(?:milyon|bin|tl|₺)", baslik_k))
-    if reklam_isaretleri and (fiyat_var or len(reklam_isaretleri) >= 2):
+    if reklam_isaretleri and not kamu_kurumu_var and (fiyat_var or len(reklam_isaretleri) >= 2):
         d.red_sebebi = f"proje tanıtımı ({reklam_isaretleri[0]})"
         return d
 
@@ -257,54 +288,57 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         return d
     sutun_skorlari.sort(reverse=True)
     d.sutun = sutun_skorlari[0][1]
-    d.bilesenler["sutun"] = min(3, sutun_skorlari[0][0] * 2)
+    # Kalibrasyon: Sütun eşleşmesi bir kategori şartıdır; 1 terimse 1, 2+ terimse 2 puan
+    d.bilesenler["sutun"] = min(2, sutun_skorlari[0][0])
 
-    # --- Mevzuat: en güçlü sinyal. Kanun değişikliği herkesi ilgilendirir ---
+    # --- Mevzuat: Kanun, Yargıtay veya Resmi Gazete ---
     mevzuat_tutan = _kacini_tutuyor(metin, MEVZUAT)
     if mevzuat_tutan:
-        d.bilesenler["mevzuat"] = min(5, 2 + len(mevzuat_tutan))
+        if any(m in metin_k for m in ["anayasa mahkemesi", "yargıtay", "danıştay", "resmi gazete", "resmî gazete", "emsal karar"]):
+            d.bilesenler["mevzuat"] = 3
+        else:
+            d.bilesenler["mevzuat"] = 2
         d.isaretler.append(f"mevzuat: {', '.join(mevzuat_tutan[:3])}")
 
-    # --- Eylem: okuyanın yapması gereken bir şey var mı ---
+    # --- Eylem: okuyanın yapması gereken somut eylem/süre/yaptırım ---
     eylem_tutan = _kacini_tutuyor(metin, EYLEM)
     if eylem_tutan:
-        d.bilesenler["eylem"] = min(4, len(eylem_tutan) + 1)
+        d.bilesenler["eylem"] = 2 if len(eylem_tutan) >= 2 else 1
         d.isaretler.append(f"eylem: {', '.join(eylem_tutan[:3])}")
 
     # --- Yerellik: yakın bölge bizim işimiz, İstanbul geneli kısmen ---
     if _kacini_tutuyor(metin, YEREL_YAKIN):
-        d.bilesenler["yerel"] = 5
+        d.bilesenler["yerel"] = 3
         d.isaretler.append("yakın bölge")
     elif _kacini_tutuyor(metin, YEREL_GENIS):
-        d.bilesenler["yerel"] = 2
+        d.bilesenler["yerel"] = 1
 
     # --- Kitle genişliği ---
     kitle = _kacini_tutuyor(metin, KITLE_GENIS)
     if kitle:
-        d.bilesenler["kitle"] = min(2, len(kitle))
+        d.bilesenler["kitle"] = 1
 
     # --- Somutluk: rakam, tarih, madde numarası ---
     somut = 0
     if re.search(r"\bmd\.?\s*\d+|\bmadde\s*\d+|\b\d{4}\s*sayılı", metin, re.IGNORECASE):
-        somut += 2
+        somut += 1
     if re.search(r"%\s*\d+|\byüzde\s*\d+", metin):
         somut += 1
     if re.search(r"\b\d+\s*(?:gün|ay|yıl)\b", metin):
         somut += 1
     if somut:
-        d.bilesenler["somut"] = min(3, somut)
+        d.bilesenler["somut"] = min(2, somut)
 
     # --- Tazelik ---
     if yas_saat <= 12:
-        d.bilesenler["taze"] = 2
-    elif yas_saat <= 36:
         d.bilesenler["taze"] = 1
 
     # --- Olumsuzlar ---
-    if any(p in baslik_k for p in PR_DEMEC):
-        d.bilesenler["pr"] = -3
+    pr_terimleri = [p for p in PR_DEMEC if not (veri_kurumu_var and p == "açıkladı")]
+    if any(p in baslik_k for p in pr_terimleri):
+        d.bilesenler["pr"] = -1 if (kamu_kurumu_var and mevzuat_tutan) else -2
         d.isaretler.append("demeç/PR dili")
-    if reklam_isaretleri:
+    if reklam_isaretleri and not kamu_kurumu_var:
         d.bilesenler["reklam"] = -3
         d.isaretler.append(f"reklam dili: {reklam_isaretleri[0]}")
     if _kacini_tutuyor(metin, UZAK) and not d.bilesenler.get("yerel"):
@@ -313,7 +347,7 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
     elif not d.bilesenler.get("yerel"):
         uzak_sehirler = _kacini_tutuyor(metin, UZAK_SEHIR)
         if uzak_sehirler:
-            d.bilesenler["baska_sehir"] = -3
+            d.bilesenler["baska_sehir"] = -2
             d.isaretler.append(f"bölge dışı: {uzak_sehirler[0]}")
 
     # --- Rehber/açıklayıcı içerik: haber değil, konu önerisi ---
@@ -321,18 +355,16 @@ def degerlendir(baslik: str, ozet: str = "", yas_saat: float = 0.0) -> Degerlend
         d.rehber_mi = True
         d.isaretler.append("rehber içerik — konu bankası adayı")
 
-    # --- Paylaşılabilirlik / Kaydedilebilirlik Boyutu (Instabot f2691ab standardı) ---
-    # Sosyal medyada en çok paylaşılan (%52) ve kaydedilen (%44) içerikler
-    # mülk sahibinin/kiracının/yatırımcının doğrudan hakkını koruyan somut fayda konularıdır.
+    # --- Paylaşılabilirlik / Kaydedilebilirlik Boyutu (Instabot standardı) ---
     FAYDA_TERIMLERI = [
-        "tapu harc", "kira artis", "tahliye taahhut", "miras", "hisseli tapu", "imar baris",
-        "kentsel donusum", "kira yardim", "vergi muafiyet", "faiz indirim", "konut kredisi",
-        "aidat", "itiraz hakk", "yargitay", "emsal karar", "hak sahipligi", "basvuru sure",
-        "parsel sorgu", "ecrimisil", "sufa", "onalim"
+        "tapu harc", "kira artış", "tahliye taahhüt", "miras", "hisseli tapu", "imar barış",
+        "kentsel dönüşüm", "kira yardım", "vergi muafiyet", "faiz indirim", "konut kredisi",
+        "aidat", "itiraz hakk", "yargıtay", "emsal karar", "hak sahipliği", "başvuru süre",
+        "parsel sorgu", "ecrimisil", "şufa", "önalım",
     ]
-    fayda_tutan = [t for t in FAYDA_TERIMLERI if t in metin_k]
+    fayda_tutan = _kacini_tutuyor(metin, FAYDA_TERIMLERI)
     if fayda_tutan:
-        d.bilesenler["paylasilabilirlik"] = min(3, len(fayda_tutan))
+        d.bilesenler["paylasilabilirlik"] = min(2, len(fayda_tutan))
         d.isaretler.append(f"yüksek paylaşım potansiyeli: {', '.join(fayda_tutan[:2])}")
 
     raw_puan = sum(d.bilesenler.values())

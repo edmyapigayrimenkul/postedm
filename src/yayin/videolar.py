@@ -41,28 +41,69 @@ def _kayitli_video(b: YayinBaglami) -> Optional[Path]:
     return vy
 
 
+def _onayli_9_16_haber_slaytlari(b: YayinBaglami) -> List[str]:
+    """Haber onayda zaten 1080x1920 üretilmişse sıfırdan çizmek yerine doğrudan onaylı slaytları döner."""
+    from PIL import Image
+    yerel = [str(p) for p in (b.slayt_yollari or []) if Path(p).exists()]
+    if yerel:
+        try:
+            with Image.open(yerel[0]) as im:
+                if im.size == (1080, 1920):
+                    return yerel[:4]
+        except Exception:  # noqa: BLE001
+            pass
+    urller = [str(u) for u in (b.public_urller or []) if str(u).startswith("http")]
+    if urller and not yerel:
+        try:
+            import requests
+            cikti_dir = Path(__file__).resolve().parents[2] / "data" / "output"
+            cikti_dir.mkdir(parents=True, exist_ok=True)
+            indirilen: List[str] = []
+            for idx, u in enumerate(urller[:4], start=1):
+                r = requests.get(u, timeout=15)
+                if r.status_code != 200:
+                    return []
+                hedef_p = cikti_dir / f"onayli_9_16_{b.ref_id}_{idx}.jpg"
+                hedef_p.write_bytes(r.content)
+                with Image.open(hedef_p) as im:
+                    if im.size != (1080, 1920):
+                        return []
+                indirilen.append(str(hedef_p))
+            if indirilen:
+                return indirilen
+        except Exception:  # noqa: BLE001
+            pass
+    return []
+
+
 def _dikey_slaytlar(b: YayinBaglami) -> List[str]:
     """1. Öncelik: tam ekran native 9:16 slaytlar (1080x1920). Video asla 4:5 kırpılmış ve tepesi boş bırakılmış zeminle üretilmez."""
     from .. import make_image, yeni_formatlar
     detay = b.detay
     ref_id = b.ref_id
     fmt = detay.get("format_turu") if isinstance(detay, dict) else None
+    bicim = detay.get("bicim") if isinstance(detay, dict) else None
+    etkin_fmt = (str(bicim or "").lower() if fmt == "reels" else str(fmt or "").lower())
     dikey: List[str] = []
+    if etkin_fmt in ("dailybrief", "haber", "haber_dailybrief") or bicim in ("haber", "B5"):
+        hazir_9_16 = _onayli_9_16_haber_slaytlari(b)
+        if hazir_9_16:
+            return hazir_9_16
     if detay and isinstance(detay, dict):
         try:
-            if fmt in ("dailybrief", "haber", "haber_dailybrief") or detay.get("bicim") in ("haber", "B5"):
+            if etkin_fmt in ("dailybrief", "haber", "haber_dailybrief") or bicim in ("haber", "B5"):
                 uretim = yeni_formatlar.slaytlari_uret(detay, format_turu="dailybrief", cikti_onek=f"reels_{ref_id}", olcu="story")
                 if uretim:
                     dikey = [str(p) for p in uretim[:3]]
-            elif fmt in ("sozluk", "sozluk_uret"):
+            elif etkin_fmt in ("sozluk", "sozluk_uret"):
                 uretim = yeni_formatlar.slaytlari_uret(detay, format_turu="sozluk", cikti_onek=f"reels_{ref_id}", olcu="story")
                 if uretim:
                     dikey = [str(p) for p in uretim]
-            elif fmt in ("nedir_dogrusu", "net_cevap", "vaka"):
-                uretim = yeni_formatlar.slaytlari_uret(detay, format_turu=fmt, cikti_onek=f"reels_{ref_id}", olcu="story")
+            elif etkin_fmt in ("nedir_dogrusu", "net_cevap", "vaka"):
+                uretim = yeni_formatlar.slaytlari_uret(detay, format_turu=etkin_fmt, cikti_onek=f"reels_{ref_id}", olcu="story")
                 if uretim:
                     dikey = [str(uretim[0]), str(uretim[1]), str(uretim[-1])] if len(uretim) > 3 else [str(p) for p in uretim]
-            elif detay.get("bicim") in ("B1", "B2", "B3", "B4") or not fmt or fmt == "otorite":
+            elif bicim in ("B1", "B2", "B3", "B4") or not etkin_fmt or etkin_fmt in ("otorite", "b1", "b2", "b3", "b4"):
                 detay_reels = dict(detay)
                 detay_reels["_video_modu"] = True
                 uretim = make_image.otorite_gonderi_slaytlari_uret(detay_reels, cikti_onek=f"reels_{ref_id}", olcu="story")

@@ -77,7 +77,7 @@ class TestGunlukKoruma(unittest.TestCase):
 
     def test_ilk_zamanlanmis_tur_calisir_ve_gunu_isaretler(self):
         slot = self._calistir(["--slot", "bilgilendirici"], zamanlanmis=True)
-        slot.assert_called_once_with(slot="bilgilendirici", oto_yayin=False)
+        slot.assert_called_once_with(slot="bilgilendirici", oto_yayin=False, offset=0)
         self.assertEqual(self.ayar.veri["zamanli_slot_son_gun:bilgilendirici"], BUGUN)
 
     def test_ayni_gunde_ikinci_zamanlanmis_tur_atlanir(self):
@@ -148,7 +148,7 @@ class TestWorkflowVeWorkerSozlesmesi(unittest.TestCase):
     def test_worker_slot_hazirla_zamanli_yuk_gonderiyor(self):
         kaynak = (KOK / "worker/index.js").read_text(encoding="utf-8")
         self.assertIn("slot: is.slot, zamanli: true", kaynak)
-        for cron, slot in (("0 7 * * *", "bilgilendirici"), ("30 9 * * *", "sozluk")):
+        for cron, slot in (("0 7 * * *", "bilgilendirici"), ("30 9 * * *", "sozluk"), ("0 16 * * *", "reels")):
             self.assertRegex(kaynak, rf'"{re.escape(cron)}":\s*\{{ olay: "slot_hazirla", slot: "{slot}"')
 
     def test_gunluk_slotlar_workflow_cronlariyla_ayni_saatte(self):
@@ -157,9 +157,10 @@ class TestWorkflowVeWorkerSozlesmesi(unittest.TestCase):
         cf = set(tomllib.loads((KOK / "worker/wrangler.toml").read_text(encoding="utf-8"))["triggers"]["crons"])
         w = yaml.safe_load((KOK / ".github/workflows/hazirla.yml").read_text(encoding="utf-8"))
         gh = {c["cron"] for c in w[True]["schedule"]}
-        self.assertTrue({"0 7 * * *", "30 9 * * *"} <= cf)
+        self.assertTrue({"0 7 * * *", "30 9 * * *", "0 16 * * *"} <= cf)
         self.assertNotIn("0 7 * * *", gh)
         self.assertNotIn("30 9 * * *", gh)
+        self.assertNotIn("0 16 * * *", gh)
 
 
 if __name__ == "__main__":

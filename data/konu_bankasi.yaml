@@ -1351,3 +1351,356 @@ konular:
     yerel: null
     mevzuat_kontrol: "2026-10-07"
     dayanak_alintisi: "Mutlak tarım arazileri, özel ürün arazileri, dikili tarım arazileri ile sulu tarım arazileri tarımsal üretim amacı dışında kullanılamaz."
+
+  - kod: S1-031
+    sutun: S1
+    bicim: B1
+    baslik: "Aile konutuna habersiz ipotek konulamaz"
+    aci: "Tapu eşlerden birinin üzerine kayıtlı olsa bile diğer eşin açık rızası olmadan aile konutu satılamaz, devredilemez veya banka ipoteği konulamaz. Rızasız yapılan devir ve ipotekler tapu iptal davasıyla hükümsüz kılınır. Malik olmayan eş, tek bir başvuruyla tapu kütüğüne aile konutu şerhi işletebilir."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Medeni Kanunu md. 194"
+    yerel: null
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Eşlerden biri, diğer eşin açık rızası bulunmadıkça, aile konutu ile ilgili kira sözleşmesini feshedemez, aile konutunu devredemez veya aile konutu üzerindeki hakları sınırlayamaz."
+
+  - kod: S1-032
+    sutun: S1
+    bicim: B3
+    baslik: "Noterdeki satış vaadi şerhinin 5 yıllık süresi"
+    aci: "Noterde gayrimenkul satış vaadi sözleşmesi yapıp tapuya şerh ettirmek mülkü güvenceye alır ancak süresiz değildir. Şerh tarihinden itibaren beş yıl içinde asıl satış tapuda tamamlanmazsa şerh tapu müdürlüğü tarafından kendiliğinden silinir. Süre dolmadan tescil davası açılmalıdır."
+    kanca_kalip: sure
+    mevzuat: "Tapu Kanunu md. 26"
+    yerel: null
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Şerhten itibaren beş yıl içinde satış yapılmaz veya irtifak hakkı tesis ve tapuya tescil edilmezse işbu şerh tapu sicil müdürü veya tapu sicil görevlileri tarafından re'sen terkin olunur."
+
+  - kod: S1-033
+    sutun: S1
+    bicim: B1
+    baslik: "Hisseli mülkte ortaklığın giderilmesi (izale-i şüyu)"
+    aci: "Miras veya hisseyle paydaş olunan taşınmazlarda tek bir hissedar bile malın paylaşılmasını isteyebilir. Paydaşlar anlaşamazsa mahkeme yoluyla açık artırma ile satış yapılır. Ortaklığın giderilmesi davasında arabuluculuk artık dava şartıdır."
+    kanca_kalip: belge
+    mevzuat: "Türk Medeni Kanunu md. 698 ve 699"
+    yerel: "Silivri ve Trakya köylerinde miras kalan parsellerde en yaygın uyuşmazlık"
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Hukukî bir işlem gereğince veya paylı malın sürekli bir amaca özgülenmiş olması sebebiyle paylı mülkiyeti devam ettirme yükümlülüğü bulunmadıkça, paydaşlardan her biri malın paylaşılmasını isteyebilir."
+
+  - kod: S2-031
+    sutun: S2
+    bicim: B3
+    baslik: "Kira depozitosunda üç ay sınırı ve banka hesabı zorunluluğu"
+    aci: "Ev sahibi dilediği kadar depozito talep edemez: kanunen güvence bedeli en çok üç aylık kira bedeli olabilir. Ayrıca depozito elden veya ev sahibinin hesabına değil, iki tarafın rızası olmadan çekilemeyecek vadeli bir tasarruf hesabına yatırılmak zorundadır."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 342"
+    yerel: null
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Konut ve çatılı işyeri kiralarında sözleşmeyle kiracıya güvence verme borcu getirilmişse, bu güvence üç aylık kira bedelini aşamaz."
+
+  - kod: S2-032
+    sutun: S2
+    bicim: B1
+    baslik: "Tadilat veya yıkım bahanesiyle tahliye ve 3 yıl kiralama yasağı"
+    aci: "Ev sahibi yeniden inşa veya esaslı imar gerekçesiyle kiracıyı tahliye ettirdikten sonra mülkü eski haliyle başkasına kiraya veremez. Üç yıl içinde haklı sebep olmaksızın başkasına kiralanırsa eski kiracıya en az 1 yıllık kira bedeli tutarında tazminat ödemek zorunda kalır."
+    kanca_kalip: ceza
+    mevzuat: "Türk Borçlar Kanunu md. 355"
+    yerel: null
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Yeniden inşa ve imar amacıyla boşaltılması sağlanan taşınmazlar, eski hâli ile, haklı sebep olmaksızın üç yıl geçmedikçe başkasına kiralanamaz."
+
+  - kod: S2-033
+    sutun: S2
+    bicim: B3
+    baslik: "Apartman ortak alanına müdahalede 4/5 çoğunluk şartı"
+    aci: "Sitede veya apartmanda sığınak, çatı, otopark veya bina dış cephesinde değişiklik yapmak isteyen daire sahibi kendi başına hareket edemez. Bütün kat maliklerinin beşte dördünün yazılı rızası şarttır; aksi takdirde eski hale getirme davası açılır."
+    kanca_kalip: yetki
+    mevzuat: "Kat Mülkiyeti Kanunu md. 19"
+    yerel: null
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Kat maliklerinden biri, bütün kat maliklerinin beşte dördünün yazılı rızası olmadıkça anagayrimenkulün ortak yerlerinde inşaat, onarım ve tesisler, değişik renkte dış badana veya boya yaptıramaz."
+
+  - kod: S3-027
+    sutun: S3
+    bicim: B1
+    baslik: "Tarımsal arazilerde bölünemez büyüklük ve ifraz yasağı"
+    aci: "Tarlayı küçük parçalara bölüp noterden hisse satışı vaadiyle satmak alıcıya müstakil tapu kazandırmaz. 5403 sayılı Kanuna göre tarım arazileri belirlenen asgari büyüklüklerin altında ifraz edilemez ve paydaş sayısı artırılamaz. Hobi bahçesi tuzaklarına karşı asgari büyüklük kontrolü şarttır."
+    kanca_kalip: tehlike
+    mevzuat: "5403 sayılı Kanun md. 8"
+    yerel: "Silivri, Çatalca ve Trakya tarım arazilerinde hobi bahçesi hisse satışlarında en kritik risk"
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Tarım arazileri Bakanlıkça belirlenen büyüklüklerin altında ifraz edilemez, hisselendirilemez, Hazine taşınmazlarının satış işlemleri hariç olmak üzere pay ve paydaş adedi artırılamaz."
+
+  - kod: S3-028
+    sutun: S3
+    bicim: B1
+    baslik: "İmar uygulamasında DOP kesintisi yüzde 45'i geçemez"
+    aci: "Belediyeler imar uygulaması (18. madde) yaparken yol, park, okul gibi kamu hizmet alanları için arsalardan Düzenleme Ortaklık Payı (DOP) kesintisi yapabilir. Ancak bu kesinti yasal olarak arsa yüzölçümünün yüzde kırk beşini asla aşamaz ve kural olarak bir parselden bir defadan fazla alınamaz."
+    kanca_kalip: oran
+    mevzuat: "İmar Kanunu md. 18"
+    yerel: "Silivri ve çevre ilçelerde yeni imara açılan gelişim alanlarında en çok sorulan konu"
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Ancak, bu maddeye göre alınacak düzenleme ortaklık payları, düzenlemeye tabi tutulan arazi ve arsaların düzenlemeden önceki yüzölçümlerinin yüzde kırk beşini geçemez."
+
+  - kod: S3-029
+    sutun: S3
+    bicim: B3
+    baslik: "Tapusuz arazide zilyetlikle mülk edinme ve 20 yıl kuralı"
+    aci: "Tapuda kaydı bulunmayan taşınmazlarda en az yirmi yıl boyunca aralıksız ve nizasız malik gibi zilyetlik sürdüren kişi adına kadastro tespiti yapılabilir. Ancak sulu toprakta 40, kuru toprakta 100 dönüm sınırı vardır; kamu malı ve orman arazilerinde zilyetlikle mülkiyet kazanılamaz."
+    kanca_kalip: sure
+    mevzuat: "Kadastro Kanunu md. 14"
+    yerel: "Trakya kırsalında kadastro yenileme ve orman sınır ihtilaflarında sıkça görülür"
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "Tapuda kayıtlı olmayan ve aynı çalışma alanı içinde bulunan ve toplam yüzölçümü sulu toprakta 40, kuru toprakta 100 dönüme kadar olan (40 ve 100 dönüm dahil) bir veya birden fazla taşınmaz mal, çekişmesiz ve aralıksız en az yirmi yıldan beri malik sıfatıyla zilyetliğini belgelerle veya bilirkişi veyahut tanık beyanlarıyla ispat eden zilyedi adına tespit edilir."
+
+  - kod: S4-019
+    sutun: S4
+    bicim: B3
+    baslik: "Kentsel dönüşümde arsa payı sahiplerinin salt çoğunluğu yeterli"
+    aci: "Riskli yapıların bulunduğu parsellerde yeniden bina yapımı ve müteahhit sözleşmesi için sahip olunan hisseler oranında paydaşların salt çoğunluğu ile karar verilir. Karara katılmayanların arsa payları açık artırma usulü ile satılır."
+    kanca_kalip: yetki
+    mevzuat: "6306 sayılı Kanun md. 6"
+    yerel: "Marmara deprem riski altındaki Silivri ve İstanbul genelindeki tüm eski binaları kapsar"
+    mevzuat_kontrol: "2026-11-04"
+    dayanak_alintisi: "yapının paydaşı olup olmadıkları gözetilmeksizin sahip oldukları hisseleri oranında paydaşların salt çoğunluğu ile karar verilir."
+
+  - kod: S1-034
+    sutun: S1
+    bicim: B3
+    baslik: "Taşınmaz mülkiyetinin kazanılmasında tescil kuralı"
+    aci: "Gayrimenkul alımında parayı ödemek veya anahtar teslim almak kişiyi malik yapmaz. Türk Medeni Kanununa göre taşınmaz mülkiyetinin kazanılması ancak tapuya tescille olur. Miras veya cebri icra gibi tescilsiz kazanımlarda dahi malikin tasarruf yapabilmesi tapuya tescile bağlıdır."
+    kanca_kalip: belge
+    mevzuat: "Türk Medeni Kanunu md. 705"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Taşınmaz mülkiyetinin kazanılması, tescille olur."
+
+  - kod: S1-035
+    sutun: S1
+    bicim: B1
+    baslik: "İpotekte borç ödenmezse mülkiyet alacaklıya geçer şartı geçersizdir"
+    aci: "Borç teminatı olarak gayrimenkul üzerine ipotek tesis edilirken borcun ödenmemesi halinde taşınmaz mülkiyetinin alacaklıya geçeceğine ilişkin sözleşme hükümleri kanunen kesin olarak geçersizdir. Alacaklı mülkü doğrudan devralamaz, yalnızca rehnin satışını isteyebilir."
+    kanca_kalip: tehlike
+    mevzuat: "Türk Medeni Kanunu md. 873"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Borcun ödenmemesi hâlinde rehinli taşınmazın mülkiyetinin alacaklıya geçeceğine ilişkin sözleşme hükmü geçersizdir."
+
+  - kod: S1-036
+    sutun: S1
+    bicim: B3
+    baslik: "Yola çıkışı olmayan kapalı parsel için geçit hakkı"
+    aci: "Genel yola çıkışı bulunmayan veya yolu yetersiz olan taşınmaz sahipleri çaresiz değildir. Türk Medeni Kanununa göre genel yola çıkmak için yeterli geçidi bulunmayan malik, tam bir bedel karşılığında bir geçit hakkı tanınmasını komşularından isteyebilir."
+    kanca_kalip: hak
+    mevzuat: "Türk Medeni Kanunu md. 747"
+    yerel: "Silivri ve Trakya genelinde yola cephesi olmayan tarla ve parsellerde sıkça karşılaşılan geçit hakkı davası"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Taşınmazından genel yola çıkmak için yeterli geçidi bulunmayan malik, tam bir bedel karşılığında bir geçit hakkı tanınmasını komşularından isteyebilir."
+
+  - kod: S1-037
+    sutun: S1
+    bicim: B1
+    baslik: "Komşu parsele taşan yapıda onbeş gün itiraz süresi"
+    aci: "Komşu araziye taşan binada zarar gören malik durumu öğrendiği tarihten başlayarak onbeş gün içinde itiraz etmezse ve koşullar haklı gösterirse, yapıyı iyiniyetle yapan kişi uygun bir bedel karşılığında irtifak kurulmasını veya arazinin mülkiyetini isteyebilir."
+    kanca_kalip: sure
+    mevzuat: "Türk Medeni Kanunu md. 725"
+    yerel: "Silivri yazlık sitelerinde ve köy yerleşik alanlarında komşu bahçe sınırı tecavüzlerinde karşılaşılan kural"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Böyle bir irtifak hakkı yoksa, zarar gören malik taşmayı öğrendiği tarihten başlayarak onbeş gün içinde itiraz etmediği, aynı zamanda durum ve koşullar da haklı gösterdiği takdirde, taşkın yapıyı iyiniyetle yapan kimse, uygun bir bedel karşılığında taşan kısım için bir irtifak hakkı kurulmasını veya bu kısmın bulunduğu arazi parçasının mülkiyetinin kendisine devredilmesini isteyebilir."
+
+  - kod: S1-038
+    sutun: S1
+    bicim: B1
+    baslik: "Miras intikali yapılmayan tapuda iki yıl kuralı"
+    aci: "Vefatın ardından miras intikalinin yapılmaması süresiz değildir. Tapu Kanununa göre ölüm tarihinden itibaren en geç iki yıl içinde tapu sicilinde miras intikali gerçekleşmezse tapu müdürlüğü mirasçılık belgesi için yargıya başvurabilir ve tescili resen günceller."
+    kanca_kalip: sure
+    mevzuat: "Tapu Kanunu ek md. 1"
+    yerel: "Trakya köylerinde nesiller boyu miras intikali yapılmamış hisseli tarla ve evlerde karşılaşılan durum"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Ölüm tarihinden itibaren en geç iki yıl içinde tapu sicilinde miras intikalinin gerçekleşmemesi halinde tapu müdürlüğü, mirasçılık belgesi düzenlenmesi için yargıya başvurabilir."
+
+  - kod: S1-039
+    sutun: S1
+    bicim: B3
+    baslik: "İcra ihalesinde reddedilen fesih talebine yüzde on para cezası"
+    aci: "İcra ihalesinde taşınmaz satışını durdurmak için asılsız fesih talebinde bulunanları ağır ceza bekler. Kanuna göre icra mahkemesi işin esasına girerek talebin reddine karar verirse, ihalenin feshini talep edeni feshi istenen ihale bedelinin yüzde onuna kadar para cezasına mahkûm eder."
+    kanca_kalip: ceza
+    mevzuat: "İcra ve İflas Kanunu md. 134"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "İşin esasına girerek, talebin reddine karar verirse ihalenin feshini talep edeni feshi istenen ihale bedelinin yüzde onuna kadar para cezasına mahkûm eder."
+
+  - kod: S2-034
+    sutun: S2
+    bicim: B2
+    baslik: "Erken tahliye eden kiracı makul süre kirasından sorumludur"
+    aci: "Sözleşme bitmeden erken çıkan kiracı tüm kalan aylardan sorumlu tutulamaz. Türk Borçlar Kanununa göre kiracının borçları kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder; aynı şartlarda yeni bir kiracı bulunursa borç sona erer."
+    kanca_kalip: yaygin_yanlis
+    mevzuat: "Türk Borçlar Kanunu md. 325"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Kiracı, sözleşme süresine veya fesih dönemine uymaksızın kiralananı geri verdiği takdirde, kira sözleşmesinden doğan borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder."
+
+  - kod: S2-035
+    sutun: S2
+    bicim: B3
+    baslik: "Kira sözleşmesinde ceza koşulu ve muacceliyet şartı geçersizdir"
+    aci: "Kira sözleşmesine bir kiranın aksaması halinde tüm yıl kirasının ödeneceği veya ceza koşulu uygulanacağı maddesi konulamaz. Kanuna göre kiranın zamanında ödenmemesi halinde ceza koşulu ödeneceğine veya sonraki kira bedellerinin muaccel olacağına ilişkin anlaşmalar geçersizdir."
+    kanca_kalip: tehlike
+    mevzuat: "Türk Borçlar Kanunu md. 346"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Özellikle, kira bedelinin zamanında ödenmemesi hâlinde ceza koşulu ödeneceğine veya sonraki kira bedellerinin muaccel olacağına ilişkin anlaşmalar geçersizdir."
+
+  - kod: S2-036
+    sutun: S2
+    bicim: B1
+    baslik: "Mesken dairede dükkan açmak için oybirliği şartı"
+    aci: "Apartmanda mesken olarak gösterilen dairede lokanta, pastane, dükkan veya galeri açmak tek başına kararlaştırılamaz. Kat Mülkiyeti Kanununa göre mesken olarak gösterilen bağımsız bölümde bu tür işletmeler ancak kat malikleri kurulunun oybirliği ile vereceği kararla açılabilir."
+    kanca_kalip: yetki
+    mevzuat: "Kat Mülkiyeti Kanunu md. 24"
+    yerel: "Silivri merkezindeki cadde ve sokaklarda apartman dairelerinin dükkan ve ofise dönüştürülmesinde sıkça açılan davalar"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Anagayrimenkulün, kütükte mesken olarak gösterilen bağımsız bir bölümünde sinema, tiyatro, kahvehane, gazino, pavyon, bar, kulüp, dans salonu ve emsali gibi eğlence ve toplantı yerleri ve fırın, lokanta, pastahane, süthane gibi gıda ve beslenme yerleri ve imalathane, boyahane, basımevi, dükkan, galeri ve çarşı gibi yerler, ancak kat malikleri kurulunun oybirliği ile vereceği kararla açılabilir."
+
+  - kod: S3-030
+    sutun: S3
+    bicim: B1
+    baslik: "Tarım arazisinde kooperatif hobi bahçesi tuzağı ve hapis cezası"
+    aci: "Tarlayı kooperatif kurup hisselere bölerek hobi bahçesi olarak satmak ağır cezalar doğurur. 5403 sayılı Kanuna göre tarım arazisinin bütünlüğünü kooperatif üyeliğiyle fiili hisselere bölüp devredenlere veya buna aracılık edenlere bir yıldan üç yıla kadar hapis cezası verilir."
+    kanca_kalip: ceza
+    mevzuat: "5403 sayılı Kanun md. 21"
+    yerel: "Silivri, Çatalca ve Tekirdağ genelinde kooperatif hissesiyle satılan hobi bahçelerinde en büyük hukuki risk"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Tarım arazilerini, tescili mümkün olmayan fiili hisseler oluşturarak arazinin hisselere tekabül ettiği kabul edilen kısımlarının zilyetliğini, bir özel hukuk tüzel kişisinin faaliyeti kapsamında bu tüzel kişiyle üyelik veya ortaklık ilişkisi kurarak devretmek veya bu işlere aracılık etmek suretiyle arazinin bütünlüğünün bozulmasına ve amacı dışında kullanılmasına sebebiyet verenlere bir yıldan üç yıla kadar hapis ve yüz günden bin güne kadar adli para cezası verilir."
+
+  - kod: S3-031
+    sutun: S3
+    bicim: B3
+    baslik: "Köy yerleşik alanında tarım kanunu ifraz sınırları uygulanmaz"
+    aci: "Tarım arazilerinde uygulanan bölünemez büyüklük ve ifraz kısıtlamaları köy yerleşik alanı sınırları içine girildiğinde geçerli değildir. İmar Kanununa göre köy yerleşik alan sınırı içerisinde 5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu hükümleri uygulanmaz ve yerleşik alan sınırı ifraz hattı kabul edilir."
+    kanca_kalip: istisna
+    mevzuat: "İmar Kanunu md. 27"
+    yerel: "Silivri köylerinde (Danamandıra, Sayalar, Çayırdere vb.) köy içi arsa vasfı kazanan parsellerde geçerlidir"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Köy yerleşik alan sınırı içerisinde, 3/7/2005 tarihli ve 5403 sayılı Toprak Koruma ve Arazi Kullanımı Kanunu hükümleri uygulanmaz."
+
+  - kod: S3-032
+    sutun: S3
+    bicim: B1
+    baslik: "Ruhsatsız yapıda mühürleme ve en çok bir ay süre"
+    aci: "İmar Kanununa göre ruhsatsız veya projeye aykırı yapılarda inşaat derhal durdurulur ve yedi gün içinde tapuya bildirilir. Yapı sahibine mühürden sonra yapıyı ruhsata uygun hale getirmesi için en çok bir ay süre verilir; aksi halde ruhsat iptal edilir ve bina yıktırılır."
+    kanca_kalip: sure
+    mevzuat: "İmar Kanunu md. 32"
+    yerel: "Silivri ve çevre yazlık bölgelerde imara aykırı kaçak inşaatlarda uygulanan yasal süreç"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Bu tarihten itibaren en çok bir ay içinde yapı sahibi, yapısını ruhsata uygun hale getirerek veya ruhsat alarak, belediyeden veya valilikten mühürün kaldırılmasını ister."
+
+  - kod: S3-033
+    sutun: S3
+    bicim: B3
+    baslik: "İmar parselasyon planlarında bir ay askı süresi"
+    aci: "Belediyelerce hazırlanan imar parselasyon planları encümen onayından sonra ilgili idarede bir ay müddetle askıya çıkarılır. Bu sürede itiraz edilmeyen planlar kesinleşir ve tapu dairesi ilgililerin muvafakatini aramaksızın yeni kayıtları resen tescil eder."
+    kanca_kalip: sure
+    mevzuat: "İmar Kanunu md. 19"
+    yerel: "Silivri'de 18. madde imar uygulaması yapılan gelişim alanlarında arsa sahiplerinin kaçırmaması gereken askı süresi"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Bu planlar bir ay müddetle ilgili idarede asılır."
+
+  - kod: S4-020
+    sutun: S4
+    bicim: B3
+    baslik: "Emlak vergisinde dinlenme amaçlı yazlık istisnası"
+    aci: "Sosyal güvenlik kurumundan emekli aylığı alanların 200 metrekareyi geçmeyen tek meskeni için vergi oranı sıfır indirilebilir. Ancak kanuna göre muayyen zamanda dinlenme amacıyla kullanılan meskenler hakkında bu hüküm uygulanmaz; sadece yazlık olarak kullanılan evler emlak vergisinden muaf tutulamaz."
+    kanca_kalip: istisna
+    mevzuat: "Emlak Vergisi Kanunu md. 8"
+    yerel: "Silivri sahil şeridinde emeklilere ait yazlık konutlarda en çok yanlış bilinen vergi muafiyeti"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Muayyen zamanda dinlenme amacıyla kullanılan meskenler hakkında bu hüküm uygulanmaz."
+
+  - kod: S4-021
+    sutun: S4
+    bicim: B1
+    baslik: "Kentsel dönüşümde riskli yapıyı yıktırma için doksan gün sınırı"
+    aci: "Kentsel dönüşümde riskli yapı kesinleştiğinde maliklerin binayı yıktırması için doksan günden fazla olmamak üzere süre verilir. Bu sürede yıktırılmazsa mülki amerler ve kolluk kuvveti marifetiyle resen yıktırılır ve masrafı maliklerden tahsil edilir."
+    kanca_kalip: sure
+    mevzuat: "6306 sayılı Kanun md. 5"
+    yerel: "Marmara fay hattı üzerindeki Silivri ve çevre ilçelerde riskli binaların dönüşüm sürecinde geçerlidir"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Riskli yapıların yıktırılması için, bu yapıların maliklerine doksan günden fazla olmamak üzere süre verilir."
+
+  - kod: S1-040
+    sutun: S1
+    bicim: B3
+    baslik: "Miras kalan gayrimenkulde veraset beyannamesi için dört ay kuralı"
+    aci: "Vefat eden yakından kalan ev veya arsa için veraset ve intikal vergisi beyannamesi süresi sınırsız değildir. Kanuna göre ölüm Türkiye'de gerçekleşmişse mükelleflerin Türkiye'de bulunmaları halinde ölüm tarihini takip eden dört ay içinde beyanname verilmesi zorunludur."
+    kanca_kalip: sure
+    mevzuat: "7338 sayılı Kanun md. 9"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Ölüm Türkiye'de vukubulmuş ise mükelleflerin Türkiye'de bulunmaları halinde ölüm tarihini takibeden dört ay içinde, mükelleflerin yabancı bir memlekette bulunmaları halinde ölüm tarihini takibeden altı ay içinde;"
+
+  - kod: S1-041
+    sutun: S1
+    bicim: B3
+    baslik: "Tapuda tescil ve elektrik su aboneliğinde zorunlu DASK kuralı"
+    aci: "Zorunlu deprem sigortası (DASK) sadece olası bir deprem hasarında tazminat almak için değil, mülk üzerindeki temel idari işlemleri yapabilmek için de kanunen zorunludur. Kanuna göre tapu müdürlükleri zorunlu deprem sigortasının yaptırıldığı belgelenmedikçe tescil işlemi yapamaz; ayrıca binalarda su ve elektrik abonelik işlemlerinde DASK varlığı kontrol edilir."
+    kanca_kalip: belge
+    mevzuat: "6305 sayılı Kanun md. 11"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Tapu müdürlükleri, maliklerin veya intifa hakkı sahiplerinin taleplerine bağlı olarak tapu kütüğünde bu sigortaya tâbi bağımsız bölümler ve binalarla ilgili tescil işlemlerini veya tapuya kayıtlı taşınmazın kayda tâbi olmayan bir taşınmaza dönüşmesi hâli hariç olmak üzere terkin işlemlerini zorunlu deprem sigortasının yaptırıldığı ve işlem tarihi itibarıyla geçerli olduğu belgelenmedikçe yapamaz."
+
+  - kod: S1-042
+    sutun: S1
+    bicim: B1
+    baslik: "Hisseli taşınmazda kullanım anlaşmasının tapuya şerh edilmesi şartı"
+    aci: "Paydaşların kendi aralarında arsayı veya binayı nasıl kullanacaklarına dair yaptıkları anlaşma yeni alıcıları otomatik bağlamaz. Türk Medeni Kanununa göre taşınmazlarda yararlanma, kullanma ve yönetime ilişkin kararların sonradan paydaş olanları veya ayni hak kazananları bağlaması için tapu kütüğüne şerh edilmesi gerekir."
+    kanca_kalip: belge
+    mevzuat: "Türk Medeni Kanunu md. 695"
+    yerel: "Silivri ve Trakya genelinde fiili rıza-i taksimle kullanılan hisseli tarla ve arsalarda en büyük risk"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Taşınmazlarda yararlanma, kullanma ve yönetime ilişkin kararların sonradan paydaş olan veya pay üzerinde aynî hak kazananları bağlaması için, bunların tapu kütüğüne şerh edilmesi gerekir."
+
+  - kod: S1-043
+    sutun: S1
+    bicim: B1
+    baslik: "Hisseli mülkte paydaşlıktan çıkarma davası"
+    aci: "Hisseli gayrimenkulde bir paydaş yükümlülüklerini ağır şekilde çiğneyerek ortaklığı diğerleri için çekilmez kılarsa mülkiyetten çıkarılabilir. Türk Medeni Kanununa göre yükümlülüklerini ağır biçimde çiğneyen ve ilişkiyi çekilmez hale getiren paydaş, mahkeme kararıyla paydaşlıktan çıkarılabilir ve payı bedeli karşılığında diğer paydaşlara devredilebilir."
+    kanca_kalip: tehlike
+    mevzuat: "Türk Medeni Kanunu md. 696"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Kendi tutum ve davranışlarıyla veya malın kullanılmasını bıraktığı ya da fiillerinden sorumlu olduğu kişilerin tutum ve davranışlarıyla diğer paydaşların tamamına veya bir kısmına karşı olan yükümlülüklerini ağır biçimde çiğneyen paydaş, bu yüzden onlar için paylı mülkiyet ilişkisinin devamını çekilmez hâle getirmişse, mahkeme kararıyla paydaşlıktan çıkarılabilir."
+
+  - kod: S2-037
+    sutun: S2
+    bicim: B1
+    baslik: "Apartmanda çekilmez hale gelen komşunun dairesini devralma davası"
+    aci: "Apartmanda borçlarını ödemeyen ve hakları çekilmez derecede ihlal eden kat maliklerine karşı diğer komşular mülkiyetin devrini isteyebilir. Kat Mülkiyeti Kanununa göre diğer kat maliklerinin haklarını çekilmez hale getiren malikin bağımsız bölüm mülkiyet hakkının bedeli ödenerek kendilerine devredilmesi hakimden talep edilebilir."
+    kanca_kalip: hak
+    mevzuat: "Kat Mülkiyeti Kanunu md. 25"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Kat maliklerinden biri bu kanuna göre kendisine düşen borçları ve yükümleri yerine getirmemek suretiyle diğer kat maliklerinin haklarını, onlar için çekilmez hale gelecek derecede ihlal ederse, onlar, o kat malikinin müstakil bölümü üzerindeki mülkiyet hakkının kendilerine devredilmesini hakimden istiyebilirler."
+
+  - kod: S2-038
+    sutun: S2
+    bicim: B1
+    baslik: "Komşuları rahatsız eden kiracıya en az otuz gün tahliye ihtarı"
+    aci: "Kiracı kiralananı özenle kullanmak ve komşulara gerekli saygıyı göstermekle kanunen yükümlüdür. Türk Borçlar Kanununa göre kiracının bu yükümlülüğe aykırı davranması halinde kiraya veren konut kirasında en az otuz gün süre vererek aykırılığın giderilmesini, aksi halde sözleşmeyi feshedeceğini yazılı ihtar edebilir; çekilmezlik durumunda ise sözleşme derhal feshedilebilir."
+    kanca_kalip: sure
+    mevzuat: "Türk Borçlar Kanunu md. 316"
+    yerel: null
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Kiracının bu yükümlülüğüne aykırı davranması durumunda kiraya veren, konut ve çatılı işyeri kirasında, en az otuz gün süre vererek, aykırılığın giderilmesi, aksi takdirde sözleşmeyi feshedeceği konusunda yazılı bir ihtarda bulunur."
+
+  - kod: S3-034
+    sutun: S3
+    bicim: B3
+    baslik: "Kadastro tespit tutanaklarına karşı on yıllık hak düşürücü süre"
+    aci: "Kadastro çalışmaları sırasında sınır veya mülkiyet tespiti yanlış yapılmış olsa dahi sonsuza kadar itiraz edilemez. Kadastro Kanununa göre kadastro tutanaklarında belirtilen haklara ve tespitlere tutanakların kesinleştiği tarihten itibaren on yıl geçtikten sonra kadastrodan önceki hukuki sebeplere dayanarak itiraz olunamaz ve dava açılamaz."
+    kanca_kalip: sure
+    mevzuat: "Kadastro Kanunu md. 12"
+    yerel: "Silivri ve Trakya köylerinde kadastro yenileme ve sınır uyuşmazlıklarında en sık karşılaşılan hak düşürücü süre"
+    mevzuat_kontrol: "2026-11-05"
+    dayanak_alintisi: "Bu tutanaklarda belirtilen haklara, sınırlandırma ve tespitlere ait tutanakların kesinleştiği tarihten itibaren on yıl geçtikten sonra, kadastrodan önceki hukuki sebeplere dayanarak itiraz olunamaz ve dava açılamaz."
+

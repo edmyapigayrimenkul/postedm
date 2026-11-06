@@ -73,10 +73,10 @@ AYARLAR: Dict[str, Any] = {
     "gorsel": {
         "genislik": GENISLIK, "yukseklik": YUKSEKLIK,
         "kenar_bosluk": 80, "dikey_guvenli_pay": 330,
-        "kanal_ikon_boyu": 34, "kanca_ciz": True,
+        "kanal_ikon_boyu": 32, "kanca_ciz": True,
         "perde_rengi": list(ZEMIN),
     },
-    "sosyal": {"kanallar": ["instagram", "threads", "facebook", "youtube", "tiktok"]},
+    "sosyal": {"kanallar": ["instagram", "threads", "facebook", "linkedin", "youtube", "tiktok"]},
 }
 
 
@@ -86,7 +86,8 @@ def serit_rengi(kategori: str, g: dict) -> tuple:
 
 
 def arkaplan_uret_yedek(kategori: str, genislik: int, yukseklik: int, g: dict | None = None) -> Image.Image:
-    """Fotoğraf yoksa düz mürekkep gradyanı (Instabot: kategori renginden gradyan)."""
+    """Fotoğraf yoksa düz mürekkep gradyanı (Instabot: kategori renginden gradyan).
+    GaussianBlur(1) ile 8-bit renk bantlaşması (banding) önlenir."""
     ust, alt = ZEMIN, tuple(min(255, k + 14) for k in ZEMIN)
     gorsel = Image.new("RGB", (genislik, yukseklik), ust)
     ciz = ImageDraw.Draw(gorsel)
@@ -94,7 +95,7 @@ def arkaplan_uret_yedek(kategori: str, genislik: int, yukseklik: int, g: dict | 
         o = y / yukseklik
         ciz.line([(0, y), (genislik, y)],
                  fill=tuple(int(ust[i] + (alt[i] - ust[i]) * o) for i in range(3)))
-    return gorsel
+    return gorsel.filter(ImageFilter.GaussianBlur(1))
 
 
 def _logoyu_bas(gorsel: Image.Image, x: int, y: int, boy: int = 144) -> Image.Image:
@@ -576,7 +577,7 @@ def _yansima_ekle(canvas: Image.Image, foto: Image.Image,
 
 
 def fotograftan_arkaplan(
-    foto: Image.Image, genislik: int, yukseklik: int
+    foto: Image.Image, genislik: int, yukseklik: int, odak_x_yuzde: int = 50
 ) -> Image.Image:
     """
     Ham haber veya basın fotoğrafını 1080x1920 dikey Story tuvaline akıllıca yerleştirir.
@@ -590,6 +591,7 @@ def fotograftan_arkaplan(
     foto = ImageOps.exif_transpose(foto).convert("RGB")
     f_genislik, f_yukseklik = foto.size
     foto_oran = f_genislik / f_yukseklik
+    odak_oran = max(0, min(100, int(odak_x_yuzde))) / 100.0
 
     canvas = Image.new("RGB", (genislik, yukseklik), ZEMIN)
 
@@ -598,7 +600,7 @@ def fotograftan_arkaplan(
         hedef_oran = genislik / yukseklik
         if foto_oran > hedef_oran:
             yeni_genislik = int(f_yukseklik * hedef_oran)
-            sol = (f_genislik - yeni_genislik) // 2
+            sol = int((f_genislik - yeni_genislik) * odak_oran)
             foto_c = foto.crop((sol, 0, sol + yeni_genislik, f_yukseklik))
         else:
             yeni_yukseklik = int(f_genislik / hedef_oran)
@@ -630,7 +632,7 @@ def fotograftan_arkaplan(
         hedef_oran = genislik / hedef_alt
         if foto_oran > hedef_oran:
             yeni_w = int(f_yukseklik * hedef_oran)
-            sol_k = (f_genislik - yeni_w) // 2
+            sol_k = int((f_genislik - yeni_w) * odak_oran)
             foto_k = foto.crop((sol_k, 0, sol_k + yeni_w, f_yukseklik))
         else:
             yeni_h = int(f_genislik / hedef_oran)
@@ -705,7 +707,7 @@ def _bayragi_bas(
     yukseklik = ust_pay + b_yuk + (ara + yazi_yuk if metin else 0) + alt_pay
 
     uc_payi = 38                      # sol uçtaki V çentik için ayrılan yer
-    ic_sol, ic_sag = 22, 40   # EDM YAMASI: 28 idi, yazı sağ kenara 28 px yakındı (kural >= 36)
+    ic_sol, ic_sag = 22, (56 if gorsel.height >= 1800 else 40)   # EDM YAMASI: 28 idi, yazı sağ kenara 28 px yakındı (kural >= 36)
     genislik = uc_payi + ic_sol + icerik_gen + ic_sag
 
     x1 = gorsel.width                 # sağ kenara yapışık
@@ -754,24 +756,38 @@ def _bayragi_bas(
 
 
 def _kaynak_satiri_ciz(
-    ciz: ImageDraw.Draw, kenar: int, alt_bilgi_y: int, kaynak: str, arsiv_ibaresi: bool = False
-) -> None:
-    """Slaytın sol altına şık bir altın nokta ve kaynak adını yazar."""
+    ciz: ImageDraw.Draw,
+    kenar: int,
+    alt_bilgi_y: int,
+    kaynak: str,
+    arsiv_ibaresi: bool = False,
+    azami_sag_x: int | None = None,
+) -> int:
+    """Slaytın sol altına şık bir kırmızı nokta ve kaynak adını yazar. Çizilen metnin sağ X koordinatını döner."""
     kucuk = _font(26, EKSEN_KUCUK)
-    # Zarif altın nokta
+    # Zarif kırmızı nokta (EDM Vurgu)
     ciz.ellipse([kenar, alt_bilgi_y + 8, kenar + 8, alt_bilgi_y + 16], fill=VURGU)
     metin = _buyuk_harf(kaynak)
     if arsiv_ibaresi:
         metin += "   ·   ARŞİV GÖRSELİ"
-    # EDM YAMASI: uzun kaynak adı kanal ikonlarının üstüne taşıyordu; ikonlar ve sayfa
-    # numarası için ~330 px ayrılır, sığmayan kaynak adı "…" ile kısalır.
-    azami = GENISLIK - 2 * kenar - 18 - 330
-    while len(metin) > 4 and ciz.textlength(metin, font=kucuk) > azami:
-        metin = metin[:-2].rstrip(" ·") 
-        if ciz.textlength(metin + "…", font=kucuk) <= azami:
-            metin += "…"
-            break
-    ciz.text((kenar + 18, alt_bilgi_y), metin, font=kucuk, fill=SOLUK)
+
+    kaynak_x = kenar + 18
+    # Taşma ve çakışma koruması: Belirtilen azami sınıra göre güvenli kısaltma
+    if azami_sag_x is not None:
+        azami_gen = max(60, azami_sag_x - kaynak_x)
+    else:
+        # Varsayılan: ikonlar ve sayfa numarası için ~330 px ayrılır
+        azami_gen = GENISLIK - 2 * kenar - 18 - 330
+
+    if ciz.textlength(metin, font=kucuk) > azami_gen:
+        if arsiv_ibaresi:
+            metin = _buyuk_harf(kaynak) + " · ARŞİV"
+        while len(metin) > 4 and ciz.textlength(metin + "…", font=kucuk) > azami_gen:
+            metin = metin[:-1].rstrip(" ·,;")
+        metin += "…"
+
+    ciz.text((kaynak_x, alt_bilgi_y), metin, font=kucuk, fill=SOLUK)
+    return kaynak_x + int(ciz.textlength(metin, font=kucuk))
 
 
 def _son_dakika_rozeti(ciz, x: int, y: int) -> tuple[int, int]:
@@ -830,7 +846,8 @@ def yaziyi_bas(
 
     gorsel = arkaplan.resize((genislik, yukseklik), Image.LANCZOS)
     ciz = ImageDraw.Draw(gorsel)
-    alan_genislik = genislik - 2 * kenar
+    kenar_sag = 150 if yukseklik >= 1800 else kenar
+    alan_genislik = genislik - kenar - kenar_sag
 
     # --- 1) Ölçüm: bloklar nereye oturacak? (alttan yukarı doğru) ---
     alt_bilgi_y = yukseklik - dikey_kenar - 34
@@ -921,14 +938,54 @@ def yaziyi_bas(
         except Exception as e:
             log.warning("hook çiziminde hata: %s", e)
 
-    # Son slayt Call-To-Action (CTA) etkileşim rozeti
+    # Son slayt Call-To-Action (CTA) etkileşim rozeti veya kapak kaydırma köprüsü
+    # 4) Alt Bilgi ve Slayt Köprüsü Yerleşimi (Düşeyde Logolarla Ortalanmış & Tam Çakışma Korumalı)
+    y_merkez = alt_bilgi_y + 13
+    boy = g.get("kanal_ikon_boyu", 32)
+    kanallar = (ayarlar.get("sosyal", {}) or {}).get("kanallar") or []
+    toplam_genislik = len(kanallar) * boy + (len(kanallar) - 1) * 14 if kanallar else 0
+    kenar_sag = 150 if yukseklik >= 1800 else kenar
+    sag_x = genislik - kenar_sag
+    ikonlar_sol = sag_x - toplam_genislik if kanallar else sag_x
+
+    EMNIYET_BOSLUK = 22
+
     if son_slayt:
         cta_font = _font(24, EKSEN_KUCUK)
         cta_metin = "★ Günün özetini kaçırmamak için kaydet & takip et"
         ciz.text((kenar, alt_bilgi_y - 36), cta_metin, font=cta_font, fill=VURGU)
+        _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi)
+    elif yukseklik >= 1800:
+        # Kapak Slaytı (1080x1920): Carousel akışında detay slaytlarına geçiş oku
+        # Metin olmadan yalnızca şık bir "→" oku kullanılır; hem Carousel'de kaydırma yönünü
+        # gösterir hem de Reels/TikTok/Shorts video formatında gereksiz metin karmaşası yaratmaz.
+        # Düşeyde sağdaki sosyal medya logolarıyla (y_merkez) tam ortalanır.
+        sw_metin = "→"
+        sw_punto = 30
+        sw_font = _font(sw_punto, EKSEN_KUCUK)
+        sw_gen = ciz.textlength(sw_metin, font=sw_font)
 
-    # Kaynak adı — şeffaflık ve gazetecilik atfı
-    _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi)
+        # İdeal tam yatay orta
+        sw_x_orta = genislik // 2
+        sw_sol = sw_x_orta - (sw_gen / 2)
+        sw_sag = sw_x_orta + (sw_gen / 2)
+
+        # Sağ güvenlik bariyeri: Sosyal medya ikonlarına taşmayı engelle
+        if sw_sag + EMNIYET_BOSLUK > ikonlar_sol:
+            sw_punto = 24
+            sw_font = _font(sw_punto, EKSEN_KUCUK)
+            sw_gen = ciz.textlength(sw_metin, font=sw_font)
+            sw_sol = sw_x_orta - (sw_gen / 2)
+            sw_sag = sw_x_orta + (sw_gen / 2)
+
+        # Sol güvenlik bariyeri: Kaynak metninin orta oka taşmasını kesin olarak engelle
+        azami_kaynak_sag = int(sw_sol - EMNIYET_BOSLUK)
+        _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi, azami_sag_x=azami_kaynak_sag)
+
+        # Düşeyde o satırdaki logolarla (y_merkez) tam ortalanmış çizim (anchor="mm")
+        ciz.text((sw_x_orta, y_merkez - 2), sw_metin, font=sw_font, fill=VURGU, anchor="mm")
+    else:
+        _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi)
 
     # Sosyal kanal ikonları sağ altta: "bu içerik şu kanallarda da var".
     gorsel = kanal_ikonlari_bas(gorsel, ayarlar, alt_bilgi_y + 13)
@@ -1032,10 +1089,21 @@ def _ikon_tiktok(ciz, x, y, boy, renk):
             start=270, end=90, fill=renk, width=k)
 
 
+def _ikon_linkedin(ciz, x, y, boy, renk):
+    """LinkedIn: Yuvarlak köşeli kare içinde 'in'."""
+    r = max(3, boy // 5)
+    ciz.rounded_rectangle([x, y, x + boy, y + boy], radius=r,
+                          outline=renk, width=max(2, boy // 12))
+    f = _font(int(boy * 0.56), [14.0, 750.0])
+    g = ciz.textlength("in", font=f)
+    ciz.text((x + (boy - g) / 2, y + boy * 0.18), "in", font=f, fill=renk)
+
+
 IKONLAR = {
     "instagram": _ikon_instagram,
     "threads": _ikon_threads,
     "facebook": _ikon_facebook,
+    "linkedin": _ikon_linkedin,
     "x": _ikon_x,
     "youtube": _ikon_youtube,
     "tiktok": _ikon_tiktok,
@@ -1095,21 +1163,26 @@ def kanal_ikonlari_bas(gorsel, ayarlar, y_merkez: int, renk=SOLUK):
     ciz = ImageDraw.Draw(gorsel)
     g = ayarlar["gorsel"]
     boy = g.get("kanal_ikon_boyu", 26)
-    ara = boy + 14
-    sag_x = g["genislik"] - g["kenar_bosluk"]
-    toplam_genislik = len(kanallar) * boy + (len(kanallar) - 1) * 14
+    bosluk = 12
+    ara = boy + bosluk
+    kenar_sag = g.get("kenar_bosluk_sag", (150 if (g.get("yukseklik", 0) >= 1800 or gorsel.height >= 1800) else g.get("kenar_bosluk", 80)))
+    sag_x = g["genislik"] - kenar_sag
+    toplam_genislik = len(kanallar) * boy + (len(kanallar) - 1) * bosluk
     sol_x = sag_x - toplam_genislik
 
-    # 1. Sosyal Medya İkonlarının hemen üstüne tam ikon genişliğinde alan adı
+    # 1. Sosyal Medya İkonlarının hemen üstüne alan adı (harfler üst üste binmeden dengeli hizalı)
     web_txt = ALAN_ADI
-    f_web = _font(16, [14.0, 700.0])
+    f_web = _font(15, [14.0, 650.0])
     raw_w = ciz.textlength(web_txt, font=f_web)
-    extra_space = max(0.0, (toplam_genislik - raw_w) / max(1, (len(web_txt) - 1)))
-    cur_x = sol_x
     web_y = y_merkez - boy - 10
-    for ch in web_txt:
-        ciz.text((cur_x, web_y), ch, font=f_web, fill=SOLUK)
-        cur_x += ciz.textlength(ch, font=f_web) + extra_space
+    if raw_w >= toplam_genislik:
+        ciz.text((sag_x - raw_w, web_y), web_txt, font=f_web, fill=SOLUK)
+    else:
+        extra_space = (toplam_genislik - raw_w) / max(1, (len(web_txt) - 1))
+        cur_x = sol_x
+        for ch in web_txt:
+            ciz.text((cur_x, web_y), ch, font=f_web, fill=SOLUK)
+            cur_x += ciz.textlength(ch, font=f_web) + extra_space
 
     # 2. İkonları bas
     x = sag_x - boy
@@ -1395,6 +1468,8 @@ def detay_sayfalara_bol(
     sirada_ne_var: str | None = None,
     trend_karti: Image.Image | None = None,
     sana_etkisi: str | None = None,
+    etkilesim_sorusu: str | None = None,
+    esnek_punto: int | None = None,
 ) -> list[list[dict]]:
     """
     Detay metnini paragraflara ayırıp sayfalara dağıtır.
@@ -1405,16 +1480,19 @@ def detay_sayfalara_bol(
     yukseklik = g.get("yukseklik", STORY_YUKSEKLIK)
     kenar = g.get("kenar_bosluk", 80)
     dikey_kenar = max(kenar, g.get("dikey_guvenli_pay", STORY_GUVENLI_PAY))
+    govde_punto = esnek_punto or DETAY_PUNTO
+    spot_taban_punto = max(govde_punto + 4, DETAY_SPOT_PUNTO - (DETAY_PUNTO - govde_punto))
 
     olcu = ImageDraw.Draw(Image.new("RGB", (genislik, yukseklik)))
-    alan = genislik - 2 * kenar - 32  # Sol çentik ve girinti payı (kenar + 24)
+    kenar_sag = 150 if yukseklik >= 1800 else kenar
+    alan = genislik - kenar - kenar_sag - 32  # Sol çentik ve girinti payı (kenar + 24)
 
     ust_blok = dikey_kenar + 120
     alt_bilgi_y = yukseklik - dikey_kenar - 34
     kullanilabilir = alt_bilgi_y - 40 - ust_blok
 
     paragraflar = _metni_paragraflara_ayir(detay or "")
-    if not paragraflar and not vurgu and not alinti and not neden_onemli and not trend_karti and not sana_etkisi:
+    if not paragraflar and not vurgu and not alinti and not neden_onemli and not trend_karti and not sana_etkisi and not etkilesim_sorusu:
         return [[]]
 
     bloklar = []
@@ -1442,11 +1520,11 @@ def detay_sayfalara_bol(
     for i, metin in enumerate(paragraflar):
         spot = (i == 0)
         # Giriş (spot) paragrafı çok uzunsa (>140 karakter) veya dikey alan sıkışıkken
-        # nefes alanını korumak için puntoyu 46'dan 40'a esnet
+        # nefes alanını korumak için puntoyu esnet
         if spot:
-            punto = 40 if len(metin) > 140 else DETAY_SPOT_PUNTO
+            punto = min(40, spot_taban_punto) if len(metin) > 140 else spot_taban_punto
         else:
-            punto = DETAY_PUNTO
+            punto = govde_punto
         font = _font(punto, EKSEN_OZET)
         satirlar = _satirlara_bol(metin, font, alan, olcu)
         yukseklik_px = int(punto * 1.5) * len(satirlar)
@@ -1459,13 +1537,13 @@ def detay_sayfalara_bol(
                 metin_1 = " ".join(c_parcalar[:yari_c])
                 metin_2 = " ".join(c_parcalar[yari_c:])
                 sat_1 = _satirlara_bol(metin_1, font, alan, olcu)
-                sat_2 = _satirlara_bol(metin_2, _font(DETAY_PUNTO, EKSEN_OZET), alan, olcu)
+                sat_2 = _satirlara_bol(metin_2, _font(govde_punto, EKSEN_OZET), alan, olcu)
                 bloklar.append({"tip": "metin", "satirlar": sat_1, "spot": spot,
                                 "punto": punto,
                                 "yukseklik": int(punto * 1.5) * len(sat_1)})
                 bloklar.append({"tip": "metin", "satirlar": sat_2, "spot": False,
-                                "punto": DETAY_PUNTO,
-                                "yukseklik": int(DETAY_PUNTO * 1.5) * len(sat_2)})
+                                "punto": govde_punto,
+                                "yukseklik": int(govde_punto * 1.5) * len(sat_2)})
             else:
                 bloklar.append({"tip": "metin", "satirlar": satirlar, "spot": spot,
                                 "punto": punto,
@@ -1475,41 +1553,44 @@ def detay_sayfalara_bol(
                             "punto": punto,
                             "yukseklik": yukseklik_px})
 
-    # Sana / Piyasaya Etkisi (Zümrüt Yeşil Vurgulu Doğal Editoryal Blok)
+    # Sana / Piyasaya Etkisi (Kağıt Vurgulu Doğal Editoryal Blok)
     if sana_etkisi and sana_etkisi.strip():
-        se_punto = DETAY_PUNTO - 3
+        se_punto = govde_punto - 3
         se_font = _font(se_punto, EKSEN_OZET)
         se_satirlar = _satirlara_bol(sana_etkisi.strip(), se_font, alan, olcu)
         bloklar.append({
             "tip": "sana_etkisi",
             "metin": sana_etkisi.strip(),
             "satirlar": se_satirlar,
+            "punto": se_punto,
             "spot": False,
             "yukseklik": int(se_punto * 1.5) * len(se_satirlar),
         })
 
     # Smart Brevity: Neden Önemli (Doğal editoryal blok)
     if neden_onemli and neden_onemli.strip():
-        n_punto = DETAY_PUNTO - 3
+        n_punto = govde_punto - 3
         n_font = _font(n_punto, EKSEN_OZET)
         n_satirlar = _satirlara_bol(neden_onemli.strip(), n_font, alan, olcu)
         bloklar.append({
             "tip": "neden_onemli",
             "metin": neden_onemli.strip(),
             "satirlar": n_satirlar,
+            "punto": n_punto,
             "spot": False,
             "yukseklik": int(n_punto * 1.5) * len(n_satirlar),
         })
 
     # Smart Brevity: Sırada Ne Var (Doğal editoryal blok)
     if sirada_ne_var and sirada_ne_var.strip():
-        s_punto = DETAY_PUNTO - 3
+        s_punto = govde_punto - 3
         s_font = _font(s_punto, EKSEN_OZET)
         s_satirlar = _satirlara_bol(sirada_ne_var.strip(), s_font, alan, olcu)
         bloklar.append({
             "tip": "sirada_ne_var",
             "metin": sirada_ne_var.strip(),
             "satirlar": s_satirlar,
+            "punto": s_punto,
             "spot": False,
             "yukseklik": int(s_punto * 1.5) * len(s_satirlar),
         })
@@ -1524,7 +1605,7 @@ def detay_sayfalara_bol(
             "yukseklik": trend_karti.height + 24,
         })
 
-    # Alıntı en sonda: kapanış
+    # Alıntı: kapanış öncesi
     if alinti and alinti[0]:
         a_font = _font(ALINTI_PUNTO, EKSEN_OZET)
         a_satirlar = _satirlara_bol(f"“{alinti[0]}”", a_font, alan - 8, olcu)
@@ -1532,6 +1613,20 @@ def detay_sayfalara_bol(
             "tip": "alinti", "satirlar": a_satirlar,
             "sahibi": alinti[1] or "", "spot": False,
             "yukseklik": int(ALINTI_PUNTO * 1.45) * len(a_satirlar) + 54,
+        })
+
+    # Etkileşim sorusu: en sonda tek satır/kısa editoryal soru
+    if etkilesim_sorusu and etkilesim_sorusu.strip():
+        eq_punto = govde_punto - 4
+        eq_font = _font(eq_punto, EKSEN_KUCUK)
+        eq_satirlar = _satirlara_bol(etkilesim_sorusu.strip(), eq_font, alan, olcu)
+        bloklar.append({
+            "tip": "etkilesim_sorusu",
+            "metin": etkilesim_sorusu.strip(),
+            "satirlar": eq_satirlar,
+            "punto": eq_punto,
+            "spot": False,
+            "yukseklik": int(eq_punto * 1.5) * len(eq_satirlar),
         })
 
     # VURGU + İLK PARAGRAF BİRLİKTE SIĞMALI.
@@ -1603,7 +1698,8 @@ def detay_slayti(
     else:
         gorsel = arkaplan_uret_yedek(kategori, genislik, yukseklik, g)
     ciz = ImageDraw.Draw(gorsel)
-    alan_genislik = genislik - 2 * kenar
+    kenar_sag = 150 if yukseklik >= 1800 else kenar
+    alan_genislik = genislik - kenar - kenar_sag
 
     # Bayrak sağ üstte duruyor; başlık oraya kadar uzarsa altında kalıyor.
     baslik_genislik = alan_genislik - (170 if ulke_kodu else 0)
@@ -1680,22 +1776,22 @@ def detay_slayti(
                 ciz.text((kenar + 26, y + 8), sahip, font=sahip_f, fill=SOLUK)
             y += 54
 
-        elif tip in ("neden_onemli", "sirada_ne_var", "sana_etkisi"):
+        elif tip in ("neden_onemli", "sirada_ne_var", "sana_etkisi", "etkilesim_sorusu"):
             if tip == "sana_etkisi":
-                kenar_renk = PARLAK  # Parlak Zümrüt Yeşili (Emerald)
+                kenar_renk = PARLAK  # EDM Kağıt (#F4F4F3)
                 varsayilan_renk = ACIK
-            elif tip == "neden_onemli":
-                kenar_renk = VURGU  # Sıcak Kehribar (Amber)
-                varsayilan_renk = ACIK
+            elif tip in ("neden_onemli", "etkilesim_sorusu"):
+                kenar_renk = VURGU   # EDM Canlı Kırmızı (#FF3B30)
+                varsayilan_renk = PARLAK if tip == "etkilesim_sorusu" else ACIK
             else:
-                kenar_renk = IKINCIL   # Siber Turkuaz (Cyan)
+                kenar_renk = IKINCIL   # EDM Kurşun (#8A8B8F)
                 varsayilan_renk = GOVDE
 
-            punto_kart = DETAY_PUNTO - 3
+            punto_kart = b.get("punto") or (DETAY_PUNTO - 3)
             satir_h = int(punto_kart * 1.5)
             blok_yuk = satir_h * len(b["satirlar"])
             # Zarif sol vurgu çizgisi (kutu yok, doğal ferah editoryal akış)
-            ciz.rectangle([kenar, y, kenar + 4, y + blok_yuk], fill=kenar_renk)
+            ciz.rounded_rectangle([kenar, y + 3, kenar + 4, y + blok_yuk - 3], radius=2, fill=kenar_renk)
             y_yazi = y
             for s in b["satirlar"]:
                 _formatli_satir_ciz(ciz, kenar + 22, y_yazi, s, punto_kart, spot=False, varsayilan_renk=varsayilan_renk)
@@ -1713,9 +1809,9 @@ def detay_slayti(
             satir_y = int(punto * 1.5)
             blok_yuk = satir_y * len(b["satirlar"])
 
-            # Paragraf Başı Çentiği (Sleek Rounded Vertical Accent Notch):
-            # 1. Paragraf (Spot): Canlı Amber (#E2AA58)
-            # 2+ Paragraflar: Siber Turkuaz (#06B6D4)
+            # Paragraf Başı Çentiği (EDM Kurumsal Kimlik):
+            # 1. Paragraf (Spot): Canlı Kırmızı (#FF3B30)
+            # 2+ Paragraflar: Kurşun (#8A8B8F)
             centik_renk = VURGU if b["spot"] else IKINCIL
             ciz.rounded_rectangle(
                 [kenar, y + 4, kenar + 4, y + blok_yuk - 4],
@@ -1734,20 +1830,30 @@ def detay_slayti(
 
     # --- Alt bilgi ---
     kucuk = _font(26, EKSEN_KUCUK)
-    _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi)
 
     # Sayfa göstergesi: "2/3". Birden fazla detay sayfası varken
     # takipçinin nerede olduğunu bilmesi gerekiyor.
+    kenar_sag = 150 if yukseklik >= 1800 else kenar
     if toplam_sayfa > 1:
         gosterge = f"{sayfa}/{toplam_sayfa}"
         gen = ciz.textlength(gosterge, font=kucuk)
-        ciz.text((genislik - kenar - gen, alt_bilgi_y), gosterge,
+        ciz.text((genislik - kenar_sag - gen, alt_bilgi_y), gosterge,
                  font=kucuk, fill=SOLUK)
         # İkonlar sayfa göstergesinin soluna kayıyor, üstüne binmesin.
         gecici = {**ayarlar, "gorsel": {**g,
-                  "kenar_bosluk": kenar + int(gen) + 24}}
+                  "kenar_bosluk_sag": kenar_sag + int(gen) + 24}}
+        kanallar = (ayarlar.get("sosyal", {}) or {}).get("kanallar") or []
+        boy = g.get("kanal_ikon_boyu", 32)
+        toplam_g = len(kanallar) * boy + (len(kanallar) - 1) * 14 if kanallar else 0
+        ikon_sol = genislik - (kenar_sag + int(gen) + 24) - toplam_g
+        _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi, azami_sag_x=ikon_sol - 20)
         gorsel = kanal_ikonlari_bas(gorsel, gecici, alt_bilgi_y + 13)
     else:
+        kanallar = (ayarlar.get("sosyal", {}) or {}).get("kanallar") or []
+        boy = g.get("kanal_ikon_boyu", 32)
+        toplam_g = len(kanallar) * boy + (len(kanallar) - 1) * 14 if kanallar else 0
+        ikon_sol = genislik - kenar_sag - toplam_g
+        _kaynak_satiri_ciz(ciz, kenar, alt_bilgi_y, kaynak, arsiv_ibaresi=arsiv_ibaresi, azami_sag_x=ikon_sol - 20)
         gorsel = kanal_ikonlari_bas(gorsel, ayarlar, alt_bilgi_y + 13)
 
     if ulke_kodu:
@@ -1820,25 +1926,175 @@ def _foto_uygun_mu(foto: Image.Image, haber: Dict[str, Any], katman: str, bagla:
     if sonuc.get("konuyu_gosteriyor_mu") is False or sonuc.get("baglam_uyuyor_mu") is False:
         log.warning("Vision %s fotoğrafını reddetti: %s", katman, str(sonuc.get("sebep") or "")[:140])
         return False
+    if sonuc.get("filigran_veya_logo_var_mi") is True:
+        log.warning("Vision %s fotoğrafında logo/filigran tespit etti: %s", katman, str(sonuc.get("sebep") or "")[:140])
+        return False
     return True
 
 
+def _ai_haber_fotografi_uret(haber: Dict[str, Any]) -> Optional[Image.Image]:
+    """Telegram'dan '🎨 Yapay Zeka ile Üret' istendiğinde Gemini Image ile soyut/mimari arka plan üretir."""
+    if config.test_modu():
+        return None
+    anahtar = (config.env_al("GEMINI_IMAGE_API_KEY") or config.env_al("GEMINI_API_KEY") or "").strip()
+    if not anahtar:
+        return None
+    baslik = _bos_degil(haber.get("manset"), haber.get("orijinal_baslik"))
+    istem = (
+        "Editorial architectural photography background for a Turkish real estate & property law news card, "
+        f"vertical 9:16 format. Topic context: {baslik[:120]}. "
+        "Calm, refined dusk lighting, modern residential or land perspective, deep charcoal shadow in lower half "
+        "so white typography stays crisp. Strictly NO text, NO letters, NO numbers, NO watermarks, NO logos, NO people."
+    )
+    import base64
+    import io
+    import requests
+    for model in ("gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"):
+        try:
+            r = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                headers={"x-goog-api-key": anahtar},
+                json={
+                    "contents": [{"parts": [{"text": istem}]}],
+                    "generationConfig": {"responseModalities": ["IMAGE"], "imageConfig": {"aspectRatio": "9:16"}},
+                },
+                timeout=35,
+            )
+            if r.status_code == 200:
+                for parca in r.json().get("candidates", [{}])[0].get("content", {}).get("parts", []):
+                    veri = parca.get("inlineData") or parca.get("inline_data")
+                    if veri and veri.get("data"):
+                        return Image.open(io.BytesIO(base64.b64decode(veri["data"]))).convert("RGB")
+        except Exception as e:
+            log.debug("AI görsel üretimi başarısız (%s): %s", model, e)
+    return None
+
+
+def _stok_fotografi_sec(haber: Dict[str, Any], sira: int = 0) -> Optional[Image.Image]:
+    """Pexels veya yerel yüksek çözünürlüklü mimari arka plan havuzundan konuya uygun görsel seçer."""
+    try:
+        from . import fetch_stock, gorsel_kalite
+        # 1. Öncelik: LLM tarafından üretilmiş özel İngilizce görsel arama terimi
+        detay = haber.get("detay_metni")
+        sorgu = None
+        if isinstance(detay, str):
+            try:
+                sorgu = json.loads(detay).get("gorsel_arama_ingilizce")
+            except Exception:
+                pass
+        elif isinstance(detay, dict):
+            sorgu = detay.get("gorsel_arama_ingilizce")
+        if not sorgu:
+            sorgu = haber.get("gorsel_arama_ingilizce")
+
+        if not sorgu:
+            baslik = (haber.get("orijinal_baslik") or haber.get("manset") or "").lower()
+            if any(w in baslik for w in ("arsa", "arazi", "tarla", "parsel", "hazine", "milli emlak", "çatalca", "silivri")):
+                sorgu = "real estate land field plot aerial"
+            elif any(w in baslik for w in ("kira", "kiracı", "tahliye", "ev sahibi", "daire", "konut")):
+                sorgu = "modern apartment house keys interior real estate"
+            elif any(w in baslik for w in ("toki", "sosyal konut", "inşaat", "şantiye", "proje", "kentsel dönüşüm")):
+                sorgu = "modern residential buildings construction architecture"
+            else:
+                sorgu = "modern luxury architecture real estate villa"
+        stok_denendi = False
+        for deneme in range(2):
+            stok = fetch_stock.stok_fotografi_ara(
+                sorgu,
+                kategori_kodu=haber.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ",
+                tohum=f"{haber.get('id') or 'h'}_{sira}_{deneme}",
+            )
+            if not (stok and Path(stok).exists()):
+                break
+            stok_denendi = True
+            aday = ImageOps.exif_transpose(Image.open(stok)).convert("RGB")
+            bant_var, _ = gorsel_kalite.haber_banti_var_mi(aday)
+            if not bant_var and _foto_uygun_mu(aday, haber, "stok", bagla=False):
+                return aday
+        if stok_denendi:
+            # Pexels fotoğrafları bulundu ama Vision/uygunluk filtresi tarafından reddedildi;
+            # alakasız yerel stok havuzuna düşmek yerine kapak fotoğrafsız (saf editoryal) çizilir
+            return None
+    except Exception as e:
+        log.warning("Stok fotoğraf aranamadı: %s", e)
+
+    # Pexels anahtarı yoksa veya eşleşme çıkmazsa yerel HD mimari havuzdan sıra tabanlı seç
+    try:
+        from .cizim import stok as cizim_stok
+        baslik_tam = _bos_degil(haber.get("orijinal_baslik"), haber.get("manset"))
+        return cizim_stok._temiz_arkaplan_al(
+            kategori_kodu=haber.get("kategori_kodu") or haber.get("kategori"),
+            tohum=f"{haber.get('id') or 'h'}_{sira}",
+            konu_metni=baslik_tam,
+        )
+    except Exception as e:
+        log.debug("Yerel stok havuzu okunamadı: %s", e)
+    return None
+
+
 def fotografi_sec(haber: Dict[str, Any], foto_yolu: Any, cikti_dizini: Path) -> Optional[Image.Image]:
-    """Kapak fotoğrafı zinciri: onaylanan fotoğraf → haberin kendi sayfası → kardeş haber → stok.
-
-    Kardeş haber ve stok katmanlarında Vision, fotoğrafın içine bakar (`_foto_uygun_mu`); açıkça konu
-    dışıysa sıradaki katmana geçilir, hiçbiri uymazsa kapak fotoğrafsız (düz zemin) çizilir.
-
-    Seçilen fotoğraf diske sabitlenir ve kayda yazılır: akış kareleri, 9:16 video ve
-    yeniden çizimler hep AYNI fotoğrafı kullanır (Instabot standardı: onaylanan görsel
-    yayınlanan görseldir; stok aramasını yeniden çalıştırmak başka bir fotoğraf getirir).
+    """Kapak fotoğrafı zinciri: Telegram görsel tercihleri (`saf_editoryal`, `foto_kaynak`, `foto_degistir`)
+    + onaylanan fotoğraf → haberin kendi sayfası → kardeş haber → stok.
     """
     from . import make_image
-    foto = _foto_ac(foto_yolu or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url"))
+    cikti_dizini.mkdir(parents=True, exist_ok=True)
+    sabit = cikti_dizini / f"haber_foto_{haber.get('id') or 'x'}.jpg"
 
-    if foto is None:
+    # 1. Saf Editoryal Zemin istendiyse fotoğraf kullanılmaz (düz kurumsal mürekkep gradyan)
+    if haber.get("saf_editoryal"):
+        haber.pop("foto_atif", None)
+        return None
+
+    foto_kaynak = str(haber.get("foto_kaynak") or "").lower().strip()
+    foto_degistir = bool(haber.get("foto_degistir"))
+    sira = int(haber.get("foto_sira") or 0)
+    foto: Optional[Image.Image] = None
+
+    # 2. Kullanıcı açıkça AI görsel istediyse
+    if foto_kaynak == "ai":
+        foto = _ai_haber_fotografi_uret(haber)
+        if foto is not None:
+            haber.pop("foto_atif", None)
+
+    # 3. Kullanıcı açıkça Stok fotoğraf istediyse
+    elif foto_kaynak == "stok":
+        haber.pop("foto_atif", None)
+        foto = _stok_fotografi_sec(haber, sira=sira)
+
+    # 4. Kullanıcı açıkça Gerçek Basın / Kardeş Haber fotoğrafı istediyse
+    elif foto_kaynak == "gercek":
+        try:
+            alt, atif = make_image._haber_gorseli_alternatifi(haber, sira=sira)
+            if alt is not None and _foto_uygun_mu(alt, haber, "kardeş haber", bagla=True):
+                foto = alt
+                if atif:
+                    haber["foto_atif"] = atif
+        except Exception as e:
+            log.debug("Gerçek/kardeş haber görseli bulunamadı: %s", e)
+        if foto is None and not foto_degistir:
+            foto = _foto_ac(haber.get("gorsel_url"))
+
+    # 5. Genel "Başka Fotoğraf Bul" (foto_degistir=True, kaynak belirtilmemiş)
+    elif foto_degistir:
+        haber.pop("foto_atif", None)
+        try:
+            alt, atif = make_image._haber_gorseli_alternatifi(haber, sira=sira)
+            if alt is not None and _foto_uygun_mu(alt, haber, "kardeş haber", bagla=True):
+                foto = alt
+                if atif:
+                    haber["foto_atif"] = atif
+        except Exception as e:
+            log.debug("Alternatif kardeş haber görseli bulunamadı: %s", e)
+        if foto is None:
+            foto = _stok_fotografi_sec(haber, sira=sira)
+
+    # 6. Standart ilk üretim veya yukarıdaki özel modlar sonuçsuz kaldıysa normal zincir
+    if foto is None and not foto_degistir and not foto_kaynak:
+        foto = _foto_ac(foto_yolu or (str(sabit) if sabit.exists() else None) or haber.get("foto_yolu") or haber.get("gorsel_yolu") or haber.get("gorsel_url"))
+
+    if foto is None and foto_kaynak != "stok":
         link = haber.get("orijinal_url") or haber.get("link") or haber.get("url")
-        if link and str(link).startswith("http"):
+        if link and str(link).startswith("http") and not foto_degistir:
             try:
                 from . import fetch_article
                 og = fetch_article.og_gorseli_cek(link)
@@ -1851,9 +2107,9 @@ def fotografi_sec(haber: Dict[str, Any], foto_yolu: Any, cikti_dizini: Path) -> 
             except Exception as e:
                 log.debug("Haber sayfasından görsel çekilemedi: %s", e)
 
-    if foto is None:
+    if foto is None and foto_kaynak != "stok":
         try:
-            alt, atif = make_image._haber_gorseli_alternatifi(haber, sira=int(haber.get("foto_sira") or 0))
+            alt, atif = make_image._haber_gorseli_alternatifi(haber, sira=sira)
             if alt is not None and _foto_uygun_mu(alt, haber, "kardeş haber", bagla=True):
                 foto = alt
                 if atif:
@@ -1862,34 +2118,11 @@ def fotografi_sec(haber: Dict[str, Any], foto_yolu: Any, cikti_dizini: Path) -> 
             log.debug("Kardeş haber görseli bulunamadı: %s", e)
 
     if foto is None:
-        try:
-            from . import fetch_stock
-            baslik = (haber.get("orijinal_baslik") or haber.get("manset") or "").lower()
-            if any(w in baslik for w in ("arsa", "arazi", "tarla", "parsel", "hazine", "milli emlak", "çatalca", "silivri")):
-                sorgu = "real estate land field plot aerial"
-            elif any(w in baslik for w in ("kira", "kiracı", "tahliye", "ev sahibi", "daire", "konut")):
-                sorgu = "modern apartment house keys interior real estate"
-            elif any(w in baslik for w in ("toki", "sosyal konut", "inşaat", "şantiye", "proje", "kentsel dönüşüm")):
-                sorgu = "modern residential buildings construction architecture"
-            else:
-                sorgu = "modern luxury architecture real estate villa"
-            # Reddedilen kare Pexels'in "son kullanılanlar" listesine girer; ikinci arama sıradaki kareyi getirir
-            for _ in range(2):
-                stok = fetch_stock.stok_fotografi_ara(sorgu, kategori_kodu=haber.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ")
-                if not (stok and Path(stok).exists()):
-                    break
-                aday = ImageOps.exif_transpose(Image.open(stok)).convert("RGB")
-                if _foto_uygun_mu(aday, haber, "stok", bagla=False):
-                    foto = aday
-                    break
-        except Exception as e:
-            log.warning("Stok fotoğraf aranamadı: %s", e)
+        foto = _stok_fotografi_sec(haber, sira=sira)
 
     if foto is not None:
         try:
-            cikti_dizini.mkdir(parents=True, exist_ok=True)
-            sabit = cikti_dizini / f"haber_foto_{haber.get('id') or 'x'}.jpg"
-            if not sabit.exists():
+            if foto_degistir or bool(foto_kaynak) or not sabit.exists():
                 foto.convert("RGB").save(sabit, "JPEG", quality=95)
             haber["foto_yolu"] = haber["gorsel_yolu"] = str(sabit)
         except Exception as e:
@@ -1933,6 +2166,7 @@ def girdiyi_hazirla(haber: Dict[str, Any]) -> Dict[str, Any]:
         "alinti": (alinti, alinti_sahibi) if alinti else None,
         "neden_onemli": _bos_degil(haber.get("neden_onemli")) or None,
         "sirada_ne_var": _bos_degil(haber.get("sirada_ne_var")) or None,
+        "etkilesim_sorusu": _bos_degil(haber.get("etkilesim_sorusu")) or None,
         # Eski B5'te "EDM uzman notu" vardı; Instabot'un karşılığı "sana etkisi"
         "sana_etkisi": haber_alanlari.sana_etkisi(haber) or None,
         "ulke_kodu": _bos_degil(haber.get("ulke_kodu")),
@@ -1948,8 +2182,12 @@ def ana_kareleri_ciz(haber: Dict[str, Any], foto: Any = None, kanca: bool = True
     g = girdiyi_hazirla(haber)
     ayarlar = AYARLAR
     arka = _foto_ac(foto)
+    try:
+        odak_x = int(haber.get("odak_x_yuzde", 50) or 50)
+    except (TypeError, ValueError):
+        odak_x = 50
     if arka is not None:
-        arkaplan = fotograftan_arkaplan(arka, GENISLIK, YUKSEKLIK)
+        arkaplan = fotograftan_arkaplan(arka, GENISLIK, YUKSEKLIK, odak_x_yuzde=odak_x)
     else:
         arkaplan = arkaplan_uret_yedek(g["kategori"], GENISLIK, YUKSEKLIK)
 
@@ -1962,11 +2200,29 @@ def ana_kareleri_ciz(haber: Dict[str, Any], foto: Any = None, kanca: bool = True
     )
     yield kapak
 
-    sayfalar = detay_sayfalara_bol(
-        g["detay"], ayarlar, vurgu=g["vurgu"], alinti=g["alinti"],
-        neden_onemli=g["neden_onemli"], sirada_ne_var=g["sirada_ne_var"],
-        sana_etkisi=g["sana_etkisi"],
-    )
+    from .make_image import TasmaHatasi
+    try:
+        sayfalar = detay_sayfalara_bol(
+            g["detay"], ayarlar, vurgu=g["vurgu"], alinti=g["alinti"],
+            neden_onemli=g["neden_onemli"], sirada_ne_var=g["sirada_ne_var"],
+            sana_etkisi=g["sana_etkisi"], etkilesim_sorusu=g["etkilesim_sorusu"],
+        )
+    except TasmaHatasi:
+        # Hafif taşmalarda ikincil isteğe bağlı blokları sadeleştirip esnek punto (34 -> 32) dene
+        sayfalar = None
+        for esnek in (34, 32):
+            try:
+                sayfalar = detay_sayfalara_bol(
+                    g["detay"], ayarlar, vurgu=g["vurgu"], alinti=g["alinti"],
+                    neden_onemli=None, sirada_ne_var=None,
+                    sana_etkisi=g["sana_etkisi"], etkilesim_sorusu=None,
+                    esnek_punto=esnek,
+                )
+                break
+            except TasmaHatasi:
+                continue
+        if sayfalar is None:
+            raise
     sayfalar = [s for s in sayfalar if s]
     for i, bloklar in enumerate(sayfalar, start=1):
         yield detay_slayti(

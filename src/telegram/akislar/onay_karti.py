@@ -102,14 +102,14 @@ def kart_metni(haber_id: int, haber: Dict[str, Any], uyarilar: List[str], gorsel
 
 def onay_butonlari(slayt_yollari: List[str], is_reels: bool, is_haber: bool) -> Dict[str, Any]:
     """Format türüne göre varsayılan kanal seçimli ana menü."""
-    if is_reels or is_haber:
-        # Haber ve Reels içeriklerinde varsayılan: Reels AÇIK, IG Besleme KAPALI
+    if is_reels:
+        # Reels içeriklerinde varsayılan: Reels AÇIK, IG Besleme KAPALI
         reels_kanallari = {"ig": False, "reels": True, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
         butonlar = menuler.ana_menu(adet=len(slayt_yollari) if slayt_yollari else 3, kanallar=reels_kanallari)
     else:
-        # Otorite, sözlük, rehber carousel içeriklerinde varsayılan: IG Besleme AÇIK, Reels KAPALI
+        # Haber ve Otorite carousel içeriklerinde varsayılan: IG Besleme AÇIK, Reels KAPALI
         ig_kanallari = {"ig": True, "reels": False, "story": True, "threads": True, "facebook": True, "youtube": True, "tiktok": True, "linkedin": True}
-        butonlar = menuler.ana_menu(adet=len(slayt_yollari) if slayt_yollari else 2, kanallar=ig_kanallari)
+        butonlar = menuler.ana_menu(adet=len(slayt_yollari) if slayt_yollari else (3 if is_haber else 2), kanallar=ig_kanallari)
     return butonlar
 
 

@@ -53,10 +53,13 @@ def stok_fotografi_ara(
 
     # Sorguyu zenginleştir
     arama_metni = sorgu.strip()
-    if kategori_kodu and kategori_kodu in VARSAYILAN_TERIMLER:
-        arama_metni = f"{arama_metni} {VARSAYILAN_TERIMLER[kategori_kodu]}"
     if not arama_metni:
-        arama_metni = "real estate architecture land property"
+        if kategori_kodu and kategori_kodu in VARSAYILAN_TERIMLER:
+            arama_metni = VARSAYILAN_TERIMLER[kategori_kodu]
+        else:
+            arama_metni = "real estate architecture land property"
+    elif len(arama_metni.split()) < 3 and kategori_kodu in VARSAYILAN_TERIMLER:
+        arama_metni = f"{arama_metni} {VARSAYILAN_TERIMLER[kategori_kodu]}"
 
     headers = {"Authorization": api_key}
     params = {
@@ -87,7 +90,7 @@ def stok_fotografi_ara(
             return None
 
         # Son kullanılanları atla, kalanlardan tohumla kararlı seç
-        from . import db
+        from . import db, gorsel_kalite
         import hashlib
         import json as _json
         try:
@@ -95,33 +98,53 @@ def stok_fotografi_ara(
         except (TypeError, ValueError):
             son = []
         adaylar = [p for p in photos if p.get("id") not in son] or photos
-        idx = int(hashlib.md5(str(tohum or arama_metni).encode("utf-8")).hexdigest(), 16) % len(adaylar) if tohum else 0
-        secilen = adaylar[idx]
-        try:
-            db.ayar_yaz("son_pexels", _json.dumps(([i for i in son if i != secilen.get("id")] + [secilen.get("id")])[-40:]))
-        except Exception:
-            pass
-        src_dict = secilen.get("src", {})
-        foto_url = src_dict.get("large2x") or src_dict.get("portrait") or src_dict.get("large")
-        if not foto_url:
-            return None
+        baslangic_idx = int(hashlib.md5(str(tohum or arama_metni).encode("utf-8")).hexdigest(), 16) % len(adaylar) if tohum else 0
+        sirali_adaylar = adaylar[baslangic_idx:] + adaylar[:baslangic_idx]
 
-        # Fotoğrafı indir
-        f_resp = requests.get(foto_url, timeout=TIMEOUT)
-        if f_resp.status_code == 200 and len(f_resp.content) > 5000:
+        for secilen in sirali_adaylar:
+            src_dict = secilen.get("src", {})
+            foto_url = src_dict.get("large2x") or src_dict.get("portrait") or src_dict.get("large")
+            if not foto_url:
+                continue
+
+            f_resp = requests.get(foto_url, timeout=TIMEOUT)
+            if f_resp.status_code != 200 or len(f_resp.content) <= 5000:
+                continue
+
             img = Image.open(io.BytesIO(f_resp.content))
             img = ImageOps.exif_transpose(img).convert("RGB")
 
+            # dHash ile mükerrer kontrolü
+            h = gorsel_kalite.dhash_hesapla(img)
+            if h and db.gorsel_hash_benzer_mi(h, esik=6, gun_siniri=45):
+                log.info("Pexels fotoğrafı #%s son 45 günde kullanılmış benzer görselle eşleşti (dHash: %s), sıradaki deneniyor.", secilen.get("id"), h)
+                continue
+
+            # Haber bandı / ticker denetimi
+            bant_var, _ = gorsel_kalite.haber_banti_var_mi(img)
+            if bant_var:
+                log.info("Pexels fotoğrafında #%s şerit/bant tespit edildi, sıradaki deneniyor.", secilen.get("id"))
+                continue
+
             if cikti_yolu is None:
                 foto_id = secilen.get("id", "stock")
-                cikti_yolu = config.yol_al(f"data/output/pexels_{foto_id}.jpg")
+                hedef_p = config.yol_al(f"data/output/pexels_{foto_id}.jpg")
             else:
-                cikti_yolu = Path(cikti_yolu)
+                hedef_p = Path(cikti_yolu)
 
-            cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
-            img.save(cikti_yolu, "JPEG", quality=92)
-            log.info("Pexels stok fotoğrafı indirildi: %s (%dx%d)", cikti_yolu.name, img.width, img.height)
-            return cikti_yolu
+            hedef_p.parent.mkdir(parents=True, exist_ok=True)
+            img.save(hedef_p, "JPEG", quality=92)
+
+            # dHash ve ID kaydı
+            if h:
+                db.gorsel_hash_ekle(h, kaynak="pexels", ref_id=str(secilen.get("id")))
+            try:
+                db.ayar_yaz("son_pexels", _json.dumps(([i for i in son if i != secilen.get("id")] + [secilen.get("id")])[-40:]))
+            except Exception:
+                pass
+
+            log.info("Pexels stok fotoğrafı indirildi: %s (%dx%d, dHash: %s)", hedef_p.name, img.width, img.height, h)
+            return hedef_p
     except Exception as e:
         log.warning("Pexels fotoğraf indirme hatası: %s", e)
 

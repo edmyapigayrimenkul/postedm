@@ -187,6 +187,11 @@ def main():
 
     # 5. BAŞLIĞI ÇARPICI YAP
     elif eylem == "slayt_carpici":
+        is_haber = bool(
+            icerik.get("bicim") in ("haber", "B5")
+            or (otorite_verisi and (otorite_verisi.get("bicim") == "B5" or otorite_verisi.get("format_turu") in ("dailybrief", "haber")))
+            or (icerik.get("kategori") not in ("OTORITE", "NEDIR_DOGRUSA", "SOZLUK", "VAKA", "NET_CEVAP") and icerik.get("kategori") != "REELS")
+        )
         mevcut_baslik = icerik.get("manset") or ""
         if sira > 1 and otorite_verisi and isinstance(otorite_verisi.get("adimlar"), list):
             adimlar = otorite_verisi["adimlar"]
@@ -197,6 +202,7 @@ def main():
         if sira == 1:
             icerik["manset"] = yeni_baslik
             if otorite_verisi:
+                otorite_verisi["manset"] = yeni_baslik
                 otorite_verisi["manset_parca_1"] = yeni_baslik
         elif otorite_verisi and isinstance(otorite_verisi.get("adimlar"), list):
             adimlar = otorite_verisi["adimlar"]
@@ -205,25 +211,49 @@ def main():
 
         # Yeniden çiz
         if otorite_verisi:
-            yeni_slaytlar = make_image.otorite_gonderi_slaytlari_uret(
-                otorite_verisi,
-                cikti_onek=f"gonderi_{haber_id}",
-                olcu="story" if icerik.get("kategori") == "REELS" else "besleme",
-            )
+            if is_haber:
+                from src import yeni_formatlar
+                yeni_slaytlar = yeni_formatlar.slaytlari_uret(
+                    otorite_verisi,
+                    cikti_onek=f"gonderi_{haber_id}",
+                    format_turu="dailybrief",
+                    olcu="story",
+                )
+            else:
+                yeni_slaytlar = make_image.otorite_gonderi_slaytlari_uret(
+                    otorite_verisi,
+                    cikti_onek=f"gonderi_{haber_id}",
+                    olcu="story" if icerik.get("kategori") == "REELS" else "besleme",
+                )
             slayt_yollari = [str(p) for p in yeni_slaytlar]
         bildirim = f"🔥 <b>{sira}. slaytın başlığı daha çarpıcı hale getirildi:</b>\n<i>{html.escape(yeni_baslik)}</i>"
 
     # 6. METNİ UZAT / KISALT
     elif eylem in ("slayt_uzat", "slayt_kisalt"):
+        is_haber = bool(
+            icerik.get("bicim") in ("haber", "B5")
+            or (otorite_verisi and (otorite_verisi.get("bicim") == "B5" or otorite_verisi.get("format_turu") in ("dailybrief", "haber")))
+            or (icerik.get("kategori") not in ("OTORITE", "NEDIR_DOGRUSA", "SOZLUK", "VAKA", "NET_CEVAP") and icerik.get("kategori") != "REELS")
+        )
         uzat = (eylem == "slayt_uzat")
         mevcut_metin = icerik.get("detay_metni") or icerik.get("orijinal_ozet") or ""
-        if sira > 1 and otorite_verisi and isinstance(otorite_verisi.get("adimlar"), list):
+        if is_haber and otorite_verisi:
+            if sira == 1:
+                mevcut_metin = otorite_verisi.get("spot") or icerik.get("orijinal_ozet") or ""
+            else:
+                mevcut_metin = otorite_verisi.get("detay_yazisi") or ""
+        elif sira > 1 and otorite_verisi and isinstance(otorite_verisi.get("adimlar"), list):
             adimlar = otorite_verisi["adimlar"]
             if (sira - 2) < len(adimlar) and (sira - 2) >= 0:
                 mevcut_metin = adimlar[sira - 2].get("aciklama") or adimlar[sira - 2].get("spot") or mevcut_metin
 
         yeni_metin = slayt_metni_boyutlandir(str(mevcut_metin), uzat=uzat)
-        if sira == 1 and otorite_verisi:
+        if is_haber and otorite_verisi:
+            if sira == 1:
+                otorite_verisi["spot"] = yeni_metin
+            else:
+                otorite_verisi["detay_yazisi"] = yeni_metin
+        elif sira == 1 and otorite_verisi:
             otorite_verisi["spot"] = yeni_metin
         elif otorite_verisi and isinstance(otorite_verisi.get("adimlar"), list):
             adimlar = otorite_verisi["adimlar"]
@@ -232,11 +262,20 @@ def main():
                 adimlar[sira - 2]["spot"] = yeni_metin
 
         if otorite_verisi:
-            yeni_slaytlar = make_image.otorite_gonderi_slaytlari_uret(
-                otorite_verisi,
-                cikti_onek=f"gonderi_{haber_id}",
-                olcu="story" if icerik.get("kategori") == "REELS" else "besleme",
-            )
+            if is_haber:
+                from src import yeni_formatlar
+                yeni_slaytlar = yeni_formatlar.slaytlari_uret(
+                    otorite_verisi,
+                    cikti_onek=f"gonderi_{haber_id}",
+                    format_turu="dailybrief",
+                    olcu="story",
+                )
+            else:
+                yeni_slaytlar = make_image.otorite_gonderi_slaytlari_uret(
+                    otorite_verisi,
+                    cikti_onek=f"gonderi_{haber_id}",
+                    olcu="story" if icerik.get("kategori") == "REELS" else "besleme",
+                )
             slayt_yollari = [str(p) for p in yeni_slaytlar]
         eylem_adi = "genişletildi" if uzat else "özetlendi"
         bildirim = f"📝 <b>{sira}. slaytın metni {eylem_adi}:</b>\n<i>{html.escape(yeni_metin[:150])}...</i>"

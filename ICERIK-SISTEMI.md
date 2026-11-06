@@ -438,10 +438,15 @@ Otomatik yayın YALNIZCA şu koşulların HEPSİ varsa olur, biri eksikse kart o
   sayılar maddede mevcut (kanun değişmişse kart durur ve Telegram'a bildirilir; sıradaki kart denenir)
 - bot duraklatılmamış; bugün başka bir sözlük kartı otomatik yayınlanmamış (günde en çok bir)
 - denetim kapısı UYARISIZ (⛔ içerik hiç sunulmaz; herhangi bir ⚠️ otomatiği durdurur)
-- yayın betiği çökerse (sonuç satırı üretmezse) kart onaya düşer; kanallar görsel karta uygun olarak
-  (IG, Threads, Story, TikTok, Facebook — YouTube Shorts video gerektirdiğinden hariç tutulur)
+- yayın betiği çökerse (sonuç satırı üretmezse) kart onaya düşer; kanallar görsel karta ve videoya uygun olarak
+  (IG, Threads, Story, TikTok, Facebook, LinkedIn + ElevenLabs Alex seslendirmeli 9:16 MP4 ile YouTube Shorts ve Facebook Reels)
 - Önce kart görseli ve başlığı Telegram'a düşer (`📖 EDM EMLAK SÖZLÜĞÜ // OTOMATİK YAYIN`), dağıtım tamamlandığında
-  canlı yayınlama raporu ve bağlantı butonları Telegram'a raporlanır.
+  canlı yayınlama raporu, görsel albümü, kopyalanabilir açıklama metni, üretilen video ve bağlantı butonları Telegram'a raporlanır.
+
+**Otorite Çift Slot Takvimi (2026-11-04):**
+- `10:00 TR` (07:00 UTC): Carousel / Gönderi slotu (`b1` ⇄ `net_cevap`).
+- `19:00 TR` (16:00 UTC): Reels / Video slotu (`nedir_dogrusu` ⇄ `vaka`).
+- Her iki slot da varsayılan olarak `otomatik` modda (`oto_yayin=True`) çalışır; kapıdan temiz geçerse doğrudan yayınlanır, uyarıda onaya düşer. Telegram'da `/otomatik`, `/onayli` veya Kontrol Merkezindeki butonla mod anında değiştirilebilir.
 
 Haftalık mevzuat denetimi kartları da denetler (`scripts/mevzuat_denetim.py`): kanun değişince kart yayından
 önce kırmızıya düşer. Kart sayısı ve anahtar durumu: `python scripts/hazirla.py --durum`.

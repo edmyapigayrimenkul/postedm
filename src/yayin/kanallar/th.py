@@ -44,7 +44,11 @@ def _threads_gorselleri(b: YayinBaglami) -> list:
 
 
 def _metin(b: YayinBaglami) -> str:
-    th_metin = (b.haber.get("threads_metin") if b.haber and b.haber_mi() else "") or b.caption
+    th_metin = (
+        (b.detay.get("caption_threads") if isinstance(b.detay, dict) and b.detay.get("caption_threads") else "")
+        or (b.haber.get("threads_metin") if b.haber and b.haber_mi() else "")
+        or b.caption
+    )
     return generate_text.caption_zenginlestir(
         th_metin,
         kategori_kodu=b.haber.get("kategori") if b.haber else None,

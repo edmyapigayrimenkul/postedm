@@ -78,10 +78,17 @@ def slaytlari_ciz(haber_id: int, haber: Dict[str, Any], otorite_verisi: Optional
     aktif_veri = otorite_verisi if (otorite_verisi and isinstance(otorite_verisi, dict)) else veri_icin
 
     # Instagram ve Sosyal Medya Standartı:
-    # Feed Carousel gönderileri kırpılma/taşma yaşamaması için NATIVE 4:5 ("besleme", 1080x1350) üretilir.
-    # Yalnızca dikey video/Reels veya Hikaye içerikleri 9:16 ("story", 1080x1920) üretilir.
+    # Haberler ("dailybrief" / "B5") ve dikey video/Reels içerikleri Instabot ile birebir aynı
+    # şekilde %100 NATIVE 9:16 ("story", 1080x1920, merkezi 4:5 güvenli alanlı) ana kare üretilir;
+    # 4:5 akış kanallarında yayın anında merkezden sıfır kayıpla kırpılır.
+    # Otorite ve sözlük kartları ise doğrudan NATIVE 4:5 ("besleme", 1080x1350) üretilir.
     is_reels = (format_turu == "reels") or (haber.get("kategori") == "REELS")
-    olcu = "story" if is_reels else "besleme"
+    is_haber = (
+        format_turu in ("dailybrief", "haber", "haber_dailybrief")
+        or bool(otorite_verisi and otorite_verisi.get("bicim") in ("haber", "B5"))
+        or (not otorite_verisi and not is_reels and bool(haber.get("orijinal_baslik") or haber.get("manset")))
+    )
+    olcu = "story" if (is_reels or is_haber) else "besleme"
 
     if format_turu == "reels":
         fmt = aktif_veri.get("bicim") or "dailybrief"

@@ -87,15 +87,29 @@ def _haber_arkaplan_hazirla(
         try:
             from .. import fetch_stock, gorsel_kalite
             kat = haber.get("kategori") or haber.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ"
-            baslik_ham = (haber.get("orijinal_baslik") or haber.get("manset") or haber.get("baslik") or "").lower()
-            if any(w in baslik_ham for w in ("arsa", "arazi", "tarla", "parsel", "hazine", "milli emlak", "çatalca", "silivri")):
-                arama_sorgu = "real estate land field plot aerial"
-            elif any(w in baslik_ham for w in ("kira", "kiracı", "tahliye", "ev sahibi", "daire", "konut")):
-                arama_sorgu = "modern apartment house keys interior real estate"
-            elif any(w in baslik_ham for w in ("toki", "sosyal konut", "inşaat", "şantiye", "proje", "kentsel dönüşüm")):
-                arama_sorgu = "modern residential buildings construction architecture"
-            else:
-                arama_sorgu = "modern luxury architecture real estate villa"
+            # 1. Öncelik: LLM tarafından üretilen özel İngilizce görsel arama terimi
+            detay = haber.get("detay_metni")
+            arama_sorgu = None
+            if isinstance(detay, str):
+                try:
+                    arama_sorgu = json.loads(detay).get("gorsel_arama_ingilizce")
+                except Exception:
+                    pass
+            elif isinstance(detay, dict):
+                arama_sorgu = detay.get("gorsel_arama_ingilizce")
+            if not arama_sorgu:
+                arama_sorgu = haber.get("gorsel_arama_ingilizce")
+
+            if not arama_sorgu:
+                baslik_ham = (haber.get("orijinal_baslik") or haber.get("manset") or haber.get("baslik") or "").lower()
+                if any(w in baslik_ham for w in ("arsa", "arazi", "tarla", "parsel", "hazine", "milli emlak", "çatalca", "silivri")):
+                    arama_sorgu = "real estate land field plot aerial"
+                elif any(w in baslik_ham for w in ("kira", "kiracı", "tahliye", "ev sahibi", "daire", "konut")):
+                    arama_sorgu = "modern apartment house keys interior real estate"
+                elif any(w in baslik_ham for w in ("toki", "sosyal konut", "inşaat", "şantiye", "proje", "kentsel dönüşüm")):
+                    arama_sorgu = "modern residential buildings construction architecture"
+                else:
+                    arama_sorgu = "modern luxury architecture real estate villa"
             stok_p = fetch_stock.stok_fotografi_ara(arama_sorgu, kategori_kodu=kat)
             if stok_p and stok_p.exists():
                 stok_img = ImageOps.exif_transpose(Image.open(stok_p)).convert("RGB")

@@ -146,7 +146,11 @@ def _rozet_ciz(
         return 0
 
     if max_w is None:
-        max_w = max(100, sabitler.GENISLIK - x - 70)
+        yer_ust = _yerlesim()
+        if x < 200 and y <= yer_ust["kronik_ust"] + 20:
+            max_w = max(100, sabitler.GENISLIK - yer_ust["kenar"] - 285 - x - 28)
+        else:
+            max_w = max(100, sabitler.GENISLIK - x - 70)
 
     pad_x, pad_y = 20, 8
     cur_boyut = font_boyut

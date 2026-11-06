@@ -134,11 +134,115 @@ def gorsel_kalite_denetle(
     except Exception as e:
         log.debug("Belge denetiminde hata: %s", e)
 
+    # 6. Haber Sitesi / TV Kanalı Şerit ve Ticker Bandı Filtresi
+    bant_var, bant_aciklama = haber_banti_var_mi(img)
+    if bant_var:
+        return False, bant_aciklama
+
     return True, f"Kalite onaylandı (Ölçek: {olcek}x, Netlik: {puan:.1f}, {w}x{h} px)"
 
 
+def dhash_hesapla(img: Image.Image, hash_boyutu: int = 8) -> str:
+    """Pillow tabanlı 64-bit fark (difference) hash hesaplar."""
+    try:
+        resized = img.convert("L").resize((hash_boyutu + 1, hash_boyutu), Image.Resampling.LANCZOS)
+        pixels = list(resized.get_flattened_data()) if hasattr(resized, "get_flattened_data") else list(resized.getdata())
+        diff = []
+        for row in range(hash_boyutu):
+            for col in range(hash_boyutu):
+                p_left = pixels[row * (hash_boyutu + 1) + col]
+                p_right = pixels[row * (hash_boyutu + 1) + col + 1]
+                diff.append(p_left > p_right)
+
+        decimal_val = 0
+        hex_parts = []
+        for idx, bit in enumerate(diff):
+            if bit:
+                decimal_val += 1 << (idx % 4)
+            if (idx % 4) == 3:
+                hex_parts.append(hex(decimal_val)[2:])
+                decimal_val = 0
+        return "".join(hex_parts)
+    except Exception as e:
+        log.debug("dHash hesaplanamadı: %s", e)
+        return ""
+
+
+def dhash_mesafesi(h1: str, h2: str) -> int:
+    """İki dHash arasındaki Hamming mesafesini (farklı bit sayısını) hesaplar."""
+    if not h1 or not h2 or len(h1) != len(h2):
+        return 64
+    try:
+        return bin(int(h1, 16) ^ int(h2, 16)).count("1")
+    except (ValueError, TypeError):
+        return 64
+
+
+def haber_banti_var_mi(img: Image.Image) -> Tuple[bool, str]:
+    """Haber siteleri veya TV kanallarının alt/üst 'SON DAKİKA' / 'FLAŞ' şeridini denetler."""
+    w, h = img.size
+    if w < 200 or h < 100:
+        return False, ""
+
+    try:
+        # Orta gövde rengi (referans: tüm resim tek renkse bant değil düz zemin sayılır)
+        orta = img.crop((0, int(h * 0.25), w, int(h * 0.75)))
+        st_orta = ImageStat.Stat(orta)
+        or_mean, og_mean, ob_mean = st_orta.mean[:3]
+
+        # Alt %8'lik şerit analizi
+        alt_serit = img.crop((0, int(h * 0.92), w, h))
+        stat_rgb = ImageStat.Stat(alt_serit)
+        stat_hsv = ImageStat.Stat(alt_serit.convert("HSV"))
+        r_mean, g_mean, b_mean = stat_rgb.mean[:3]
+        sat_mean = stat_hsv.mean[1] if len(stat_hsv.mean) > 1 else 0
+
+        # Kırmızı haber bandı (AA/NTV/Habertürk/TRT): Gövdeden farklı, kırmızı baskın ve doygun
+        if r_mean > 160 and g_mean < 80 and b_mean < 80 and sat_mean > 140:
+            if abs(r_mean - or_mean) > 35 or abs(g_mean - og_mean) > 35:
+                return True, "Alt kısımda kırmızı haber/ticker bandı tespit edildi"
+
+        # Mavi haber bandı: Gövdeden farklı, mavi baskın ve doygun
+        if b_mean > 160 and r_mean < 70 and sat_mean > 140:
+            if abs(b_mean - ob_mean) > 35 or abs(r_mean - or_mean) > 35:
+                return True, "Alt kısımda mavi haber/ticker bandı tespit edildi"
+
+        # Üst %7'lik şerit analizi
+        ust_serit = img.crop((0, 0, w, int(h * 0.07)))
+        stat_u_rgb = ImageStat.Stat(ust_serit)
+        stat_u_hsv = ImageStat.Stat(ust_serit.convert("HSV"))
+        ur, ug, ub = stat_u_rgb.mean[:3]
+        u_sat = stat_u_hsv.mean[1] if len(stat_u_hsv.mean) > 1 else 0
+        if ur > 160 and ug < 80 and ub < 80 and u_sat > 140:
+            if abs(ur - or_mean) > 35 or abs(ug - og_mean) > 35:
+                return True, "Üst kısımda kırmızı haber bandı tespit edildi"
+    except Exception as e:
+        log.debug("Haber bandı denetiminde hata: %s", e)
+
+    return False, ""
+
+
 def kristal_netlestir(img: Image.Image) -> Image.Image:
-    """
-    Fotoğrafa ince, profesyonel editoryal keskinlik kazandırır (Hale/halo oluşturmaz).
-    """
+    """Fotoğrafa ince, profesyonel editoryal keskinlik kazandırır."""
     return img.filter(ImageFilter.UnsharpMask(radius=1.2, percent=110, threshold=2))
+
+
+def akilli_odak_x(img: Image.Image) -> float:
+    """Yatay fotoğraflarda kenar enerjisine göre yatay ağırlık merkezini hesaplar."""
+    try:
+        w, h = img.size
+        if w <= h:
+            return 0.5
+        thumb = img.convert("L").resize((128, max(1, int(128 * h / w))))
+        edges = thumb.filter(ImageFilter.FIND_EDGES)
+        tw, th = thumb.size
+        pix = edges.load()
+        energies = [sum(pix[x, y] for y in range(th)) for x in range(tw)]
+        toplam = sum(energies)
+        if toplam <= 0:
+            return 0.5
+        mx = sum(x * e for x, e in enumerate(energies)) / (toplam * (tw - 1))
+        return max(0.25, min(0.75, round(mx, 3)))
+    except Exception:
+        return 0.5
+

@@ -163,12 +163,22 @@ def tablolari_olustur() -> None:
             ham_hata TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS kullanilan_gorsel_hashleri (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dhash TEXT NOT NULL,
+            kaynak TEXT,
+            ref_id TEXT,
+            kayit_tarihi TEXT NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_haber_durum ON haberler(durum);
         CREATE INDEX IF NOT EXISTS idx_haber_url ON haberler(orijinal_url);
         CREATE INDEX IF NOT EXISTS idx_ilan_durum ON ilanlar(durum);
         CREATE INDEX IF NOT EXISTS idx_metrik_haber ON icerik_metrikleri(haber_id);
         CREATE INDEX IF NOT EXISTS idx_metrik_medya ON icerik_metrikleri(medya_id);
         CREATE INDEX IF NOT EXISTS idx_onay_istekleri_ref ON onay_istekleri(referans_id, durum);
+        CREATE INDEX IF NOT EXISTS idx_gorsel_hash ON kullanilan_gorsel_hashleri(dhash);
+        CREATE INDEX IF NOT EXISTS idx_gorsel_tarih ON kullanilan_gorsel_hashleri(kayit_tarihi);
         """)
 
         # Dinamik şema göçü: Git geçmişindeki eski SQLite dosyaları da yeni
@@ -810,6 +820,42 @@ def yayinlanmis_ve_metrik_bekleyenler(min_yas_saat: float = 24.0, max_yas_saat: 
             except Exception:
                 continue
     return sonuclar
+
+
+def gorsel_hash_ekle(dhash: str, kaynak: str = "", ref_id: str = "") -> None:
+    """Kullanılan görselin dHash parmak izini DB'ye kaydeder."""
+    if not dhash:
+        return
+    simdi = datetime.now(timezone.utc).isoformat()
+    with _baglanti_al() as conn:
+        conn.execute(
+            "INSERT INTO kullanilan_gorsel_hashleri (dhash, kaynak, ref_id, kayit_tarihi) VALUES (?, ?, ?, ?)",
+            (dhash, kaynak, str(ref_id or ""), simdi),
+        )
+
+
+def gorsel_hash_benzer_mi(dhash: str, esik: int = 6, gun_siniri: int = 45) -> bool:
+    """Verilen dHash'in son `gun_siniri` günde kullanılmış bir görselle benzer (Hamming mesafesi <= esik) olup olmadığını denetler."""
+    if not dhash:
+        return False
+    from datetime import timedelta
+    simdi = datetime.now(timezone.utc)
+    eski_sinir = (simdi - timedelta(days=gun_siniri)).isoformat()
+    with _baglanti_al() as conn:
+        rows = conn.execute(
+            "SELECT dhash FROM kullanilan_gorsel_hashleri WHERE kayit_tarihi >= ?",
+            (eski_sinir,),
+        ).fetchall()
+
+    for r in rows:
+        kayitli_hash = r["dhash"]
+        try:
+            mesafe = bin(int(dhash, 16) ^ int(kayitli_hash, 16)).count("1")
+            if mesafe <= esik:
+                return True
+        except (ValueError, TypeError):
+            continue
+    return False
 
 
 # Başlangıçta tabloları hazırla

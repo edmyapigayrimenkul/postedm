@@ -34,6 +34,7 @@ KANAL_KIMLIK = {
     "facebook_reels": "facebook_post_id",
     "youtube": "youtube_video_id",
     "tiktok": "tiktok_publish_id",
+    "linkedin": "linkedin_post_id",
 }
 
 

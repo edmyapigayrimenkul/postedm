@@ -66,7 +66,7 @@ def _github_cronlari(ad: str) -> set[str]:
 class TestUcYerinUyumu(unittest.TestCase):
     def test_worker_tablosu_okunabiliyor(self):
         tablo = _worker_tablosu()
-        self.assertEqual(len(tablo), 7, f"ZAMANLI_ISLER 7 iş içermeli (2 içerik turu, rapor, 2 haber önerisi, 2 hatırlatma): {tablo}")
+        self.assertEqual(len(tablo), 8, f"ZAMANLI_ISLER 8 iş içermeli (3 içerik turu, rapor, 2 haber önerisi, 2 hatırlatma): {tablo}")
 
     def test_wrangler_crons_worker_tablosu_ve_plan_cronu_ile_ayni(self):
         beklenen = set(_worker_tablosu()) | {"*/10 * * * *"}
@@ -195,7 +195,7 @@ class TestKorumaBetigi(unittest.TestCase):
     def test_slotlar_birbirinden_bagimsiz(self):
         """Öğle hatırlatması yapıldı diye akşam hatırlatması ya da haber önerisi atlanmaz."""
         self.koruma.isaretle(self.env("hatirlat_ogle"))
-        for diger in ("hatirlat_aksam", "haber_oneri_sabah", "haber_oneri_aksam", "rapor", "bilgilendirici", "sozluk"):
+        for diger in ("hatirlat_aksam", "haber_oneri_sabah", "haber_oneri_aksam", "rapor", "bilgilendirici", "sozluk", "reels"):
             self.assertFalse(self.koruma.kontrol(self.env(diger)), diger)
 
     def test_elle_istek_korumaya_takilmaz_ve_onu_tuketmez(self):

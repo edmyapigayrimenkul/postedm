@@ -48,16 +48,13 @@ GUN_FORMATLARI: Dict[int, str] = {
     6: "net_cevap",
 }
 
-# 10:00'daki günün içeriği. Format döngüde döner (vaka analizi otomatik döngüden
-# çıkarıldı; yalnızca kullanıcı /vaka veya menüden elle tetiklediğinde üretilir).
-# SÖZLÜK BU DÖNGÜDE YOK (2026-10-09): sözlük her gün 12:30'da ayrı ve otomatik yayınlanıyor (hazirla.yml);
-# döngüde de kalsaydı beşinci günde aynı gün iki sözlük çıkardı. Eski kayıtta (`bilgilendirici_sira=4` ya da
-# son format "sozluk") döngü kendiliğinden başa döner (bkz. `_son_sira`).
+# 10:00'daki sabah otorite gönderisi (Seçenek A: okuma/kaydetme odaklı statik/carousel formatlar).
+# Tartışma/hikaye odaklı nedir_dogrusu ve vaka akşam 19:00 Reels slotunda (REELS_FORMATLAR),
+# sözlük ise iki günde bir 12:30 slotunda yayınlanır. Eski kayıtta (`bilgilendirici_sira>=2` ya da
+# listede olmayan son format) döngü kendiliğinden başa döner (bkz. `_son_sira`).
 BILGILENDIRICI_FORMATLAR: List[str] = [
     "b1",
-    "nedir_dogrusu",
     "net_cevap",
-    "b1",
 ]
 
 
@@ -96,6 +93,49 @@ def bilgilendirici_format_kaydet(format_turu: str) -> None:
         sira = BILGILENDIRICI_FORMATLAR.index(format_turu)
     db.ayar_yaz("bilgilendirici_sira", str(sira))
     db.ayar_yaz("son_bilgilendirici_format", format_turu)
+
+
+# Akşam Reels Slotu (Seçenek A, 19:00 TR): yüksek etkileşimli kanca/tartışma formatları
+# 9:16 dikey seslendirmeli video olarak dönüşümlü üretilir (nedir_dogrusu ⇄ vaka).
+REELS_FORMATLAR: List[str] = [
+    "nedir_dogrusu",
+    "vaka",
+]
+
+
+def _son_reels_sira() -> Optional[int]:
+    ham = db.ayar_oku("reels_sira")
+    try:
+        sira = int(str(ham))
+        if 0 <= sira < len(REELS_FORMATLAR):
+            return sira
+    except (TypeError, ValueError):
+        pass
+    son_format = db.ayar_oku("son_reels_format")
+    if son_format in REELS_FORMATLAR:
+        return REELS_FORMATLAR.index(son_format)
+    return None
+
+
+def _siradaki_reels_sira() -> int:
+    son = _son_reels_sira()
+    return 0 if son is None else (son + 1) % len(REELS_FORMATLAR)
+
+
+def siradaki_reels_format() -> str:
+    """Akşam Reels slotundaki sıradaki otorite formatı: nedir_dogrusu → vaka → nedir_dogrusu …"""
+    return REELS_FORMATLAR[_siradaki_reels_sira()]
+
+
+def reels_format_kaydet(format_turu: str) -> None:
+    """Akşam Reels slotunda kullanılan formatı döngü sırasıyla kaydeder."""
+    if format_turu not in REELS_FORMATLAR:
+        return
+    sira = _siradaki_reels_sira()
+    if REELS_FORMATLAR[sira] != format_turu:
+        sira = REELS_FORMATLAR.index(format_turu)
+    db.ayar_yaz("reels_sira", str(sira))
+    db.ayar_yaz("son_reels_format", format_turu)
 
 
 def gun_icin_format(gun: Optional[int] = None) -> str:
@@ -218,8 +258,8 @@ def _kullanim_gecmisi() -> Dict[str, str]:
 # 1 ve 0 konu kalmıştı. Konu bir kez kullanılınca 120 gün kilitleniyordu; oysa aynı doğrulanmış
 # konu başka bir formatta (carousel, net cevap, sözlük, nedir doğrusu) farklı bir içeriktir.
 # Bakir konu kalmayınca konu, BU FORMATTA daha önce kullanılmamışsa ve son kullanımdan beri
-# YENIDEN_KULLANIM_BEKLEME_GUN geçmişse yeniden kullanılabilir (120 günlük kademeden önce denenir).
-YENIDEN_KULLANIM_BEKLEME_GUN = 21
+# YENIDEN_KULLANIM_BEKLEME_GUN geçmişse yeniden kullanılabilir (180 günlük kademeden önce denenir).
+YENIDEN_KULLANIM_BEKLEME_GUN = 45
 
 _FORMAT_ESLE = {
     "b1": "b1", "b2": "b1", "b3": "b1", "b4": "b1", "b5": "b1", "otorite": "b1", "": "b1",
@@ -330,7 +370,7 @@ def sonraki_konu(
     gun: Optional[int] = None,
     sutun: Optional[str] = None,
     bicim: Optional[str] = None,
-    bekleme_gun: int = 120,
+    bekleme_gun: int = 180,
     format_turu: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Akıllı dinamik rotasyonla yakın zamanda kullanılmamış bir konu seçer.
@@ -384,14 +424,24 @@ def sonraki_konu(
         if sutun is None:
             sutun = random.choice(tercih_sutunlar if tercih_sutunlar else tum_sutunlar)
 
+    from . import mukerrerlik
+    aktif_maddeler = mukerrerlik.son_kullanilan_mevzuatlar(45)
+    son_konular = mukerrerlik.son_kullanilan_konulari_getir(45)
+
+    def _temiz_secim(aday_kume: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not aday_kume:
+            return None
+        temiz = [k for k in aday_kume if not mukerrerlik.konu_mukerrer_mi(k, son_konular, aktif_maddeler)[0]]
+        return random.choice(temiz if temiz else aday_kume)
+
     for aday_kume in (
         [k for k in bakir if k["sutun"] == sutun and (bicim is None or k["bicim"] == bicim)],
         [k for k in bakir if k["sutun"] == sutun],
         [k for k in bakir if not son_sutunlar or k["sutun"] != son_sutunlar[0]],
         bakir,
     ):
-        if aday_kume:
-            secim = random.choice(aday_kume)
+        secim = _temiz_secim(aday_kume)
+        if secim:
             log.info("Konu seçildi: %s [%s/%s] — %s", secim["kod"], secim["sutun"], secim["bicim"], secim["baslik"])
             return secim
 
@@ -407,7 +457,8 @@ def sonraki_konu(
     if yeniden:
         # İstenen sütun öncelikli, sonra en uzun süredir dinlenen
         yeniden.sort(key=lambda t: (0 if t[0]["sutun"] == sutun else 1, -t[1]))
-        secim = yeniden[0][0]
+        temiz_yeniden = [t for t in yeniden if not mukerrerlik.konu_mukerrer_mi(t[0], son_konular, aktif_maddeler)[0]]
+        secim = (temiz_yeniden[0] if temiz_yeniden else yeniden[0])[0]
         log.info("Konu yeni formatta yeniden kullanılıyor (%s): %s — %s", fmt, secim["kod"], secim["baslik"])
         return secim
 
@@ -421,7 +472,8 @@ def sonraki_konu(
         )
         return None
 
-    secim = max(uygun, key=lambda t: t[1])[0]
+    temiz_uygun = [t for t in uygun if not mukerrerlik.konu_mukerrer_mi(t[0], son_konular, aktif_maddeler)[0]]
+    secim = max(temiz_uygun if temiz_uygun else uygun, key=lambda t: t[1])[0]
     log.info("Konu tekrar dolaşımda: %s — %s", secim["kod"], secim["baslik"])
     return secim
 

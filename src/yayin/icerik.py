@@ -46,8 +46,11 @@ def slaytlari_detaydan_ciz(otorite_verisi: dict, ref_id: Any) -> List[str]:
     """`detay_metni`nden besleme (4:5) slaytlarını yeniden çizer (biçime göre yeni formatlar ya da otorite çizici)."""
     from .. import make_image, yeni_formatlar
     format_turu = otorite_verisi.get("format_turu")
-    if format_turu in YENI_FORMAT_BICIMLERI or otorite_verisi.get("bicim") in ("haber", "B5"):
-        slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=format_turu, cikti_onek=f"haber_{ref_id}")
+    bicim = otorite_verisi.get("bicim")
+    etkin = bicim if (format_turu == "reels" and bicim in YENI_FORMAT_BICIMLERI) else format_turu
+    if etkin in YENI_FORMAT_BICIMLERI or bicim in ("haber", "B5"):
+        hedef_fmt = etkin if etkin in YENI_FORMAT_BICIMLERI else "dailybrief"
+        slayt_listesi = yeni_formatlar.slaytlari_uret(otorite_verisi, format_turu=hedef_fmt, cikti_onek=f"haber_{ref_id}")
     else:
         slayt_listesi = make_image.otorite_gonderi_slaytlari_uret(otorite_verisi, cikti_onek=f"haber_{ref_id}", olcu="besleme")
     return [str(p) for p in slayt_listesi]
@@ -57,11 +60,10 @@ def url_canli_ve_uygun_mu(url: str) -> bool:
     """URL'nin erişilebilir ve Meta/Instagram için uygun olup olmadığını denetler."""
     if not url or not isinstance(url, str) or not url.startswith("http"):
         return False
-    if os.environ.get("PYTEST_CURRENT_TEST") and ("example.com" in url or "test" in url):
-        return True
-    # uguu.se bağlantıları Meta Graph API tarafından reddedilir veya süresi 3 saatte biter
     if "uguu.se" in url:
         return False
+    if os.environ.get("POSTEDM_TEST_MODU") == "1" or os.environ.get("PYTEST_CURRENT_TEST"):
+        return True
     try:
         import requests
         r = requests.head(

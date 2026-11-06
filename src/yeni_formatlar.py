@@ -290,6 +290,7 @@ KATEGORI_HARITASI = {
     "KIRACI_VE_EV_SAHIBI": "KİRACI & EV SAHİBİ",
     "ARSA_VE_IMAR": "ARSA & İMAR",
     "FINANS_VE_BANKACILIK": "FİNANS & BANKACILIK",
+    "FINANS_VE_KREDI": "FİNANS & KREDİ",
     "PIYASA_VE_YATIRIM": "PİYASA & YATIRIM",
     "HUKUK": "TAPU & HUKUK",
     "KİRA": "KİRA & ENFLASYON",
@@ -320,13 +321,30 @@ def rozet_okunur_mu(metin: Any) -> bool:
     return bool(m) and not re.search(r"[A-ZÇĞİÖŞÜ]{2,}[a-zçğıöşü]", m)
 
 
+_FORMAT_ONEK_RE = re.compile(
+    r"^\s*(?:NED[İI]R\s+DO[ĞG]RUSU\??|NET\s+CEVAP(?:\s+REHBER[İI])?|"
+    r"EMLAK\s+S[ÖO]ZL[ÜU][ĞG][ÜU]|[ÖO]RNEK\s+OLAY|EDM\s+ANAL[İI]Z|HUKUK\s+REHBER[İI])\s*//\s*",
+    re.IGNORECASE,
+)
+
+
 def kategori_temizle(kat: Optional[str]) -> str:
     if not kat:
         return "GAYRİMENKUL & HUKUK"
     k = str(kat).strip()
+    while True:
+        yeni_k = _FORMAT_ONEK_RE.sub("", k).strip()
+        if yeni_k == k:
+            break
+        k = yeni_k
+    if not k:
+        return "GAYRİMENKUL & HUKUK"
     k_up = k.upper()
+    k_tr = make_image.tr_buyuk(k)
     if k_up in KATEGORI_HARITASI:
         return KATEGORI_HARITASI[k_up]
+    if k_tr in KATEGORI_HARITASI:
+        return KATEGORI_HARITASI[k_tr]
     for code in ("S1", "S2", "S3", "S4", "S5"):
         if k_up == code or k_up.startswith(f"{code}-") or k_up.startswith(f"{code}_") or k_up.startswith(f"{code} "):
             return KATEGORI_HARITASI[code]
@@ -337,6 +355,24 @@ def kategori_temizle(kat: Optional[str]) -> str:
         return "GAYRİMENKUL REHBERİ"
     temiz = k.replace("_", " ").strip()
     return temiz if temiz else "GAYRİMENKUL & HUKUK"
+
+
+def _vaka_etiketi_temizle(vaka_kodu: Optional[str], yedek: Optional[str] = None) -> str:
+    """'01 / ÖRNEK OLAY' veya 'ÖRNEK OLAY // 01' gibi girdilerde mükerrer 'ÖRNEK OLAY' tekrarını önler."""
+    ham = _FORMAT_ONEK_RE.sub("", str(vaka_kodu or "")).strip()
+    # "01 / ÖRNEK OLAY" -> "DOSYA 01" ya da varsa anlamlı yedek kategori
+    temiz = re.sub(r"\s*[/\-|]+\s*[ÖO]RNEK\s+OLAY\s*$", "", ham, flags=re.IGNORECASE).strip()
+    temiz = re.sub(r"^\s*[ÖO]RNEK\s+OLAY\s*[/\-|]+\s*", "", temiz, flags=re.IGNORECASE).strip()
+    if re.fullmatch(r"[ÖO]RNEK\s+OLAY", temiz, flags=re.IGNORECASE):
+        temiz = ""
+    if re.fullmatch(r"\d{1,3}", temiz):
+        yedek_temiz = kategori_temizle(yedek) if yedek else ""
+        if yedek_temiz and yedek_temiz not in ("GAYRİMENKUL & HUKUK", "GAYRİMENKUL REHBERİ"):
+            return f"{temiz} / {make_image.tr_buyuk(yedek_temiz)}"
+        return f"DOSYA {temiz}"
+    if not temiz:
+        return make_image.tr_buyuk(kategori_temizle(yedek))
+    return make_image.tr_buyuk(kategori_temizle(temiz) if ("_" in temiz or re.fullmatch(r"[A-Za-z0-9_-]+", temiz)) else temiz)
 
 
 # =============================================================================
@@ -495,7 +531,7 @@ def uret_sozluk(
     kat_temiz = kategori_temizle(kategori)
     draw_init = ImageDraw.Draw(canvas)
     logo_x = GENISLIK - kenar - 285
-    make_image._rozet_ciz(draw_init, kenar, ku, make_image._rozet_kirp(f"EMLAK SÖZLÜĞÜ // {kat_temiz.upper()}", 44),
+    make_image._rozet_ciz(draw_init, kenar, ku, make_image._rozet_kirp(f"EMLAK SÖZLÜĞÜ // {make_image.tr_buyuk(kat_temiz)}", 44),
                           bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20, max_w=logo_x - kenar - 30)
     make_image._logo_yerlestir(canvas, beyaz=False, y=ku - 5, lw=285, golge=False, kirmizi_zemin=False)
 
@@ -892,7 +928,7 @@ def uret_sozluk_detay(
     kat_temiz = kategori_temizle(kategori)
     draw_init = ImageDraw.Draw(canvas)
     logo_x = GENISLIK - kenar - 285
-    make_image._rozet_ciz(draw_init, kenar, ku, make_image._rozet_kirp(f"EMLAK SÖZLÜĞÜ // {kat_temiz.upper()}", 44),
+    make_image._rozet_ciz(draw_init, kenar, ku, make_image._rozet_kirp(f"EMLAK SÖZLÜĞÜ // {make_image.tr_buyuk(kat_temiz)}", 44),
                           bg_color=RENK_MUREKKEP, fg_color=RENK_BEYAZ, font_boyut=20, max_w=logo_x - kenar - 30)
     make_image._logo_yerlestir(canvas, beyaz=False, y=ku - 5, lw=285, golge=False, kirmizi_zemin=False)
 
@@ -913,7 +949,7 @@ def uret_sozluk_detay(
     curr_y = ust_sinir
 
     # Kicker: Terim referansı
-    kicker_txt = f"TERİM DETAYI // {make_image._temizle_tipografi(terim.upper())}"
+    kicker_txt = f"TERİM DETAYI // {make_image._temizle_tipografi(make_image.tr_buyuk(terim))}"
     draw.text((kenar, curr_y), kicker_txt, font=make_image._font_yukle(FONT_MONO_BOLD, 20), fill=RENK_KURSUN)
     curr_y += 34
 
@@ -951,7 +987,7 @@ def uret_sozluk_detay(
     # 2. Sayfada resim/çizim/belge KESİNLİKLE yer almaz (kullanıcı direktifi: "2. sayfalarda resim olmasın")
     callout_maddeleri: List[Dict[str, str]] = []
     d_tip = (diyagram_tipi or "").lower()
-    t_up = make_image._temizle_tipografi(terim.upper())
+    t_up = make_image._temizle_tipografi(make_image.tr_buyuk(terim))
 
     if not d_tip:
         if any(k in t_up for k in ("İMAR ÇAPI", "İMAR DURUM", "ÇAP", "GABARİ", "HMAX")):
@@ -1220,7 +1256,12 @@ def uret_nedir_dogrusu(
     draw = ImageDraw.Draw(canvas)
 
     konu_baslik = kategori_temizle(konu)
-    make_image._rozet_ciz(draw, kenar, ku, f"NEDİR DOĞRUSU? // {konu_baslik.upper()}", bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20)
+    logo_x = GENISLIK - kenar - 285
+    make_image._rozet_ciz(
+        draw, kenar, ku,
+        make_image._rozet_kirp(f"NEDİR DOĞRUSU? // {make_image.tr_buyuk(konu_baslik)}", 44),
+        bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20, max_w=logo_x - kenar - 30,
+    )
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=285, golge=True, kirmizi_zemin=False)
 
     # Yanlış Metni: SAĞA DOĞRU TAM GENİŞLİK (kullanilabilir_w) + TİPOGRAFİK TIRNAKLAR
@@ -1277,9 +1318,10 @@ def uret_nedir_dogrusu(
     # Footer
     draw.line([(kenar, alt_bar_y), (GENISLIK - kenar, alt_bar_y)], fill=RENK_CIZGI_ACIK, width=1)
     draw.text((kenar, alt_bar_y + 26), "EDM YAPI & GAYRİMENKUL // NEDİR DOĞRUSU", font=make_image._font_yukle(FONT_MONO, 19), fill=RENK_KURSUN)
-    sf = make_image._font_yukle(FONT_MONO_BOLD, 19)
-    sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
-    draw.text((GENISLIK - kenar - sw, alt_bar_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
+    if sayfa_no and str(sayfa_no).strip():
+        sf = make_image._font_yukle(FONT_MONO_BOLD, 19)
+        sw = draw.textbbox((0, 0), sayfa_no, font=sf)[2]
+        draw.text((GENISLIK - kenar - sw, alt_bar_y + 26), sayfa_no, font=sf, fill=RENK_MUREKKEP)
 
     cikti_yolu.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(cikti_yolu, "JPEG", quality=95)
@@ -1303,7 +1345,8 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     logo_x = GENISLIK - kenar - logo_w
     azami_rozet_w = logo_x - kenar - 30
     # "Gerçek hukuki vaka" yanıltıcıydı: anlatılan tipik bir örnek olay, dava değil
-    rozet_metni = f"ÖRNEK OLAY // {vaka_kodu.upper()}"
+    vaka_etiket = _vaka_etiketi_temizle(vaka_kodu)
+    rozet_metni = make_image._rozet_kirp(f"ÖRNEK OLAY // {vaka_etiket}", 44)
     make_image._rozet_ciz(draw, kenar, ku, rozet_metni, bg_color=(32, 35, 42), fg_color=RENK_BEYAZ, font_boyut=20, max_w=azami_rozet_w)
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=logo_w, golge=True, kirmizi_zemin=False)
 
@@ -1312,8 +1355,9 @@ def uret_vaka_slayt1(cikti_yolu: Path, vaka_kodu: str, yargitay_kaynak: str, man
     f_kaynak_alt = make_image._font_yukle(FONT_MONO, 17)
     # Dayanak yalnızca başlığın üstündeki rozette; alt bilgide tekrar edilmez
     draw.text((kenar, alt_y + 26), "EDM YAPI & GAYRİMENKUL // ÖRNEK OLAY", font=f_kaynak_alt, fill=RENK_KURSUN)
-    sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
+    if sayfa_no and str(sayfa_no).strip():
+        sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
+        draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
 
     # Kırmızı "KAYDIRIN" şeridi kaldırıldı: kaydırma işareti diğer formatlardaki gibi
     # sayfa numarasındaki "›" (aynı bilgi iki yerde tekrarlanıyordu); alan olaya kalır.
@@ -1414,7 +1458,8 @@ def uret_vaka_slayt2(
     logo_w = 285
     logo_x = GENISLIK - kenar - logo_w
     azami_rozet_w = logo_x - kenar - 30
-    rozet_metni = rozet_baslik or f"ÖRNEK OLAY // {vaka_kodu.upper()} — SONUÇ"
+    vaka_etiket = _vaka_etiketi_temizle(vaka_kodu)
+    rozet_metni = rozet_baslik or make_image._rozet_kirp(f"ÖRNEK OLAY // {vaka_etiket} — SONUÇ", 46)
     make_image._rozet_ciz(draw, kenar, ku, rozet_metni, bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20, max_w=azami_rozet_w)
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=logo_w, golge=True, kirmizi_zemin=False)
 
@@ -1423,8 +1468,9 @@ def uret_vaka_slayt2(
     # "Hukuk arşivi" avukatlık algısı yaratıyordu; biz emlak ofisiyiz
     alt_txt = alt_arsiv_metni or "EDM YAPI & GAYRİMENKUL // ÖRNEK OLAY"
     draw.text((kenar, alt_y + 26), alt_txt, font=make_image._font_yukle(FONT_MONO, 18), fill=RENK_KURSUN)
-    sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
-    draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
+    if sayfa_no and str(sayfa_no).strip():
+        sf = make_image._font_yukle(FONT_MONO_BOLD, 20)
+        draw.text((GENISLIK - kenar - draw.textbbox((0, 0), sayfa_no, font=sf)[2], alt_y + 26), sayfa_no, font=sf, fill=RENK_BEYAZ)
 
     punto_ders = 29
     leading_ders = 41
@@ -1597,7 +1643,12 @@ def uret_net_cevap_tek_kare(cikti_yolu: Path, kategori: str, soru: str, net_ceva
 
     # Header: Sol üstte Net Cevap rozeti, sağ üstte EDM Logosu
     kat_temiz = kategori_temizle(kategori)
-    make_image._rozet_ciz(draw, kenar, ku, f"NET CEVAP // {kat_temiz.upper()}", bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20)
+    logo_x = GENISLIK - kenar - 285
+    make_image._rozet_ciz(
+        draw, kenar, ku,
+        make_image._rozet_kirp(f"NET CEVAP // {make_image.tr_buyuk(kat_temiz)}", 44),
+        bg_color=RENK_LOGO_KIRMIZI, fg_color=RENK_BEYAZ, font_boyut=20, max_w=logo_x - kenar - 30,
+    )
     make_image._logo_yerlestir(canvas, beyaz=True, y=ku - 5, lw=285, golge=True, kirmizi_zemin=False)
 
     # Soru Metni: Üst Koyu Alanda (Fraunces Beyaz, dinamik punto)
@@ -1691,7 +1742,7 @@ def uret_net_cevap_kapak(
 
     with make_image.tuval(olcu):
         canvas, draw, p = make_image._slayt_cercevesi(
-            "kagit", f"NET CEVAP // {kategori_temizle(kategori)}",
+            "kagit", f"NET CEVAP // {make_image.tr_buyuk(kategori_temizle(kategori))}",
             "EDM YAPI & GAYRİMENKUL // NET CEVAP", sayfa_no,
         )
         yer = make_image._yerlesim()
@@ -1788,6 +1839,8 @@ def _adimlar(veri: Dict[str, Any]) -> List[Dict[str, str]]:
 
 
 def _sayfa(sira: int, toplam: int) -> str:
+    if make_image.YUKSEKLIK >= 1700:
+        return ""
     etiket = f"{sira:02d} / {toplam:02d}"
     return etiket if sira >= toplam else f"{etiket}  ›"
 
@@ -1964,7 +2017,7 @@ def slaytlari_uret(
                 x for x in (veri.get("manset_parca_1"), veri.get("manset_vurgu"), veri.get("manset_parca_2")) if x))
             # Dayanak yalnızca içerikte ya da brief'te varsa; "Yargıtay Emsal İçtihadı" yedeği uydurmaydı
             kaynak = _ilk_dolu(veri.get("yargitay_kaynak"), veri.get("yasal_dayanak"), brief.get("mevzuat"))
-            vaka_kodu = kategori_temizle(veri.get("vaka_kodu") or veri.get("konu_kodu") or kat_ham)
+            vaka_kodu = _vaka_etiketi_temizle(veri.get("vaka_kodu"), yedek=kat_ham)
             toplam = 2 + len(adimlar) + 1
             p1 = cikti_dizini / f"{cikti_onek}_01_vaka.jpg"
             p2 = cikti_dizini / f"{cikti_onek}_02_vaka.jpg"

@@ -109,3 +109,24 @@ def _sayfa_etiketi(veri: Dict[str, Any], sira: int) -> str:
     etiket = f"{str(sira).zfill(2)} / {str(toplam).zfill(2)}"
     return etiket if sira >= toplam else f"{etiket}  ›  KAYDIRIN"
 
+
+def dinamik_perde_hesapla(canvas: Image.Image, baslangic_y: int) -> Tuple[int, int, int]:
+    """Alt metin bölgesinin parlaklığına göre dinamik perde parametrelerini döndürür.
+    Dönüş: (panel_alfa, azami_alfa, yukari_kaydirma_px)
+    """
+    try:
+        from PIL import ImageStat
+        w, h = canvas.size
+        bolge_y = max(0, min(h - 50, baslangic_y))
+        bolge = canvas.crop((0, bolge_y, w, h)).convert("L")
+        stat = ImageStat.Stat(bolge)
+        lum = stat.mean[0] if stat.mean else 100.0
+        if lum > 125:
+            return (215, 255, 30)
+        elif lum < 55:
+            return (165, 238, 0)
+        return (185, 252, 10)
+    except Exception:
+        return (185, 252, 0)
+
+

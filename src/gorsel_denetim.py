@@ -43,12 +43,14 @@ CEVAP_SEMASI = {
         "fotografta_ne_var": {"type": "string"},
         "konuyu_gosteriyor_mu": {"type": "boolean"},
         "baglam_uyuyor_mu": {"type": "boolean"},
+        "filigran_veya_logo_var_mi": {"type": "boolean"},
         "sebep": {"type": "string"},
     },
     "required": [
         "fotografta_ne_var",
         "konuyu_gosteriyor_mu",
         "baglam_uyuyor_mu",
+        "filigran_veya_logo_var_mi",
         "sebep",
     ],
 }
@@ -70,7 +72,9 @@ Sırayla cevapla:
 3) baglam_uyuyor_mu: "Gerekli güncel bağlam" boşsa her zaman true ver.
    Doluysa fotoğraf o bağlama uyuyor mu? Bağlamla ÇELİŞEN bir şey görmüyorsan true ver — emin olamamak çelişki değildir.
 
-4) sebep: Kararını tek kısa cümleyle açıkla."""
+4) filigran_veya_logo_var_mi: Fotoğrafın üzerinde göze batan başka bir haber sitesi/ajansı logosu (örn. AA, DHA, İHA, NTV vb.), TV kanalı amblemi, kırmızı/mavi 'SON DAKİKA' şeridi veya büyük bir filigran (watermark) var mı? Varsa true, temiz profesyonel fotoğrafsa false ver.
+
+5) sebep: Kararını tek kısa cümleyle açıkla."""
 
 
 def _anahtarlar() -> List[str]:

@@ -16,17 +16,17 @@ from . import onay
 log = logging.getLogger(__name__)
 
 
-def havuzdan_sun(format_turu: str) -> Optional[bool]:
-    """Havuzdaki hazır içeriği (1 günde onaylanmayıp havuza alınmış) yeniden onaya sunar; MODEL ÇAĞRILMAZ. Havuz boşsa None.
+def havuzdan_sun(format_turu: str, oto_yayin: bool = False) -> Optional[bool]:
+    """Havuzdaki hazır içeriği (1 günde onaylanmayıp havuza alınmış) yeniden sunar; MODEL ÇAĞRILMAZ. Havuz boşsa None.
 
-    Aynı içerik numarasıyla (#id) yeni albüm + düğmeli kart düşer; slaytlar saklı veriden yeniden çizilir (Actions diski geçicidir).
+    Aynı içerik numarasıyla (#id) yeni albüm + düğmeli kart düşer (oto_yayin=True ise doğrudan yayınlanır); slaytlar saklı veriden yeniden çizilir (Actions diski geçicidir).
     Yeniden sunum kapıdan geçemezse içerik arşive alınır, konusu iade edilir ve None döner: çağıran taze içerik üretir (gün boş geçmez)."""
     haber = konu_bankasi.havuzdaki_hazir_icerik(format_turu)
     if not haber:
         return None
-    log.info("Havuzdaki hazır içerik #%s yeniden sunuluyor (%s); model çağrılmıyor.", haber["id"], format_turu)
+    log.info("Havuzdaki hazır içerik #%s yeniden sunuluyor (%s, oto_yayin=%s); model çağrılmıyor.", haber["id"], format_turu, oto_yayin)
     db.haber_guncelle(haber["id"], durum="yeni")
-    sonuc = onay.haber_onayina_sun(haber["id"])
+    sonuc = onay.haber_onayina_sun(haber["id"], oto_yayin=True) if oto_yayin else onay.haber_onayina_sun(haber["id"])
     if sonuc:
         return True
     log.warning("Havuzdaki içerik #%s yeniden sunulamadı; arşive alınıyor, taze içerik üretilecek.", haber["id"])

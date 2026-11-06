@@ -3479,9 +3479,9 @@
   "cagrilar": [
    "{\"args\": [\"IG açıklama\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #140 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<TMP>/cizim/gonderi_140_besleme_1.jpg\", \"<TMP>/cizim/gonderi_140_besleme_2.jpg\", \"<TMP>/cizim/gonderi_140_besleme_3.jpg\", \"<TMP>/cizim/gonderi_140_besleme_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
+   "{\"args\": [[\"<TMP>/cizim/gonderi_140_story_1.jpg\", \"<TMP>/cizim/gonderi_140_story_2.jpg\", \"<TMP>/cizim/gonderi_140_story_3.jpg\", \"<TMP>/cizim/gonderi_140_story_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"_dayanak\": \"Özet\", \"_guven\": 7, \"_makale\": \"Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde Gövde\", \"aci\": \"A\", \"baslik\": \"Emlak vergisinde yeni dönem\", \"bicim\": \"B5\", \"kaynak\": \"Emlakkulisi\", \"sutun\": \"S1\"}], \"islev\": \"generate_text.konudan_uret\", \"kwargs\": {\"format_turu\": \"dailybrief\"}}",
-   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": \"https://haber.example/g.jpg\", \"gorsel_url\": \"https://haber.example/g.jpg\", \"gorsel_yolu\": \"https://haber.example/g.jpg\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"Emlakkulisi\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Emlak vergisinde yeni dönem\", \"orijinal_url\": \"https://haber.example/h\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_140\", \"format_turu\": \"dailybrief\", \"olcu\": \"besleme\"}}",
+   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": \"https://haber.example/g.jpg\", \"gorsel_url\": \"https://haber.example/g.jpg\", \"gorsel_yolu\": \"https://haber.example/g.jpg\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"Emlakkulisi\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Emlak vergisinde yeni dönem\", \"orijinal_url\": \"https://haber.example/h\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_140\", \"format_turu\": \"dailybrief\", \"olcu\": \"story\"}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": \"https://haber.example/g.jpg\", \"gorsel_url\": \"https://haber.example/g.jpg\", \"gorsel_yolu\": \"https://haber.example/g.jpg\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"Emlakkulisi\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_url\": \"https://haber.example/h\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"dailybrief\\\", \\\"gorsel_url\\\": \\\"https://haber.example/g.jpg\\\", \\\"gorsel_yolu\\\": \\\"https://haber.example/g.jpg\\\", \\\"foto_yolu\\\": \\\"https://haber.example/g.jpg\\\", \\\"orijinal_url\\\": \\\"https://haber.example/h\\\", \\\"kaynak\\\": \\\"Emlakkulisi\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 140, \"ig_caption\": \"IG açıklama\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"Emlakkulisi\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Emlak vergisinde yeni dönem\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/140\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads metni\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": \"https://haber.example/g.jpg\", \"gorsel_url\": \"https://haber.example/g.jpg\", \"gorsel_yolu\": \"https://haber.example/g.jpg\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"Emlakkulisi\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_url\": \"https://haber.example/h\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"generate_text.manset_birlestir\", \"kwargs\": {}}"
   ],
@@ -3498,8 +3498,8 @@
      "manset": "Üretilen Manşet",
      "onem_puani": 8,
      "planlanan_yayin": null,
-     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_140_besleme_1.jpg\", \"https://cdn.example.com/gonderi_140_besleme_2.jpg\", \"https://cdn.example.com/gonderi_140_besleme_3.jpg\", \"https://cdn.example.com/gonderi_140_besleme_4.jpg\"]",
-     "slayt_yollari": "[\"<TMP>/cizim/gonderi_140_besleme_1.jpg\", \"<TMP>/cizim/gonderi_140_besleme_2.jpg\", \"<TMP>/cizim/gonderi_140_besleme_3.jpg\", \"<TMP>/cizim/gonderi_140_besleme_4.jpg\"]",
+     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_140_story_1.jpg\", \"https://cdn.example.com/gonderi_140_story_2.jpg\", \"https://cdn.example.com/gonderi_140_story_3.jpg\", \"https://cdn.example.com/gonderi_140_story_4.jpg\"]",
+     "slayt_yollari": "[\"<TMP>/cizim/gonderi_140_story_1.jpg\", \"<TMP>/cizim/gonderi_140_story_2.jpg\", \"<TMP>/cizim/gonderi_140_story_3.jpg\", \"<TMP>/cizim/gonderi_140_story_4.jpg\"]",
      "threads_metin": "Threads metni",
      "video_yolu": null
     }
@@ -3583,20 +3583,20 @@
     },
     "dosyalar": {
      "photo_0": [
-      "gonderi_140_besleme_1.jpg",
-      23748
+      "gonderi_140_story_1.jpg",
+      33268
      ],
      "photo_1": [
-      "gonderi_140_besleme_2.jpg",
-      23748
+      "gonderi_140_story_2.jpg",
+      33268
      ],
      "photo_2": [
-      "gonderi_140_besleme_3.jpg",
-      23748
+      "gonderi_140_story_3.jpg",
+      33268
      ],
      "photo_3": [
-      "gonderi_140_besleme_4.jpg",
-      23748
+      "gonderi_140_story_4.jpg",
+      33268
      ]
     },
     "metot": "sendMediaGroup",
@@ -3615,11 +3615,11 @@
        [
         {
          "callback_data": "kanal:ig",
-         "text": "⬜ IG"
+         "text": "✅ IG"
         },
         {
          "callback_data": "kanal:reels",
-         "text": "✅ Reels"
+         "text": "⬜ Reels"
         },
         {
          "callback_data": "kanal:story",
@@ -7604,6 +7604,14 @@
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
       },
       {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
+      },
+      {
        "command": "sil",
        "description": "🗑️ Son gönderilen onay kartını ve albümü sil"
       },
@@ -7726,6 +7734,14 @@
       {
        "command": "panel",
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
+      },
+      {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
       },
       {
        "command": "sil",
@@ -7855,6 +7871,14 @@
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
       },
       {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
+      },
+      {
        "command": "sil",
        "description": "🗑️ Son gönderilen onay kartını ve albümü sil"
       },
@@ -7980,6 +8004,14 @@
       {
        "command": "panel",
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
+      },
+      {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
       },
       {
        "command": "sil",
@@ -8108,6 +8140,14 @@
       {
        "command": "panel",
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
+      },
+      {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
       },
       {
        "command": "sil",
@@ -8253,6 +8293,14 @@
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
       },
       {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
+      },
+      {
        "command": "sil",
        "description": "🗑️ Son gönderilen onay kartını ve albümü sil"
       },
@@ -8375,6 +8423,14 @@
       {
        "command": "panel",
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
+      },
+      {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
       },
       {
        "command": "sil",
@@ -8504,6 +8560,14 @@
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
       },
       {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
+      },
+      {
        "command": "sil",
        "description": "🗑️ Son gönderilen onay kartını ve albümü sil"
       },
@@ -8629,6 +8693,14 @@
       {
        "command": "panel",
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
+      },
+      {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
       },
       {
        "command": "sil",
@@ -8757,6 +8829,14 @@
       {
        "command": "panel",
        "description": "🎛 Kontrol merkezi ve hızlı işlemler"
+      },
+      {
+       "command": "otomatik",
+       "description": "🤖 Tam otomatik yayın moduna geç"
+      },
+      {
+       "command": "onayli",
+       "description": "👤 Yarı otomatik (onaylı) moda geç"
       },
       {
        "command": "sil",
@@ -9373,43 +9453,49 @@
     [
      {
       "callback_data": "ayarsec:oto_yayin:false",
-      "text": "🌙 Otomatik Yayın: ✅ AÇIK"
+      "text": "✅ AÇIK 🤖 Otomatik Yayın Modu (Tıkla → Yarı Otomatik)"
      }
     ],
     [
      {
       "callback_data": "ayarsec:reels_varsayilan:true",
-      "text": "🎬 Varsayılan Reels Modu: ⬜ KAPALI"
+      "text": "⬜ KAPALI 🎬 Varsayılan Reels Modu"
      }
     ],
     [
      {
       "callback_data": "ayarsec:kanal_threads:false",
-      "text": "🧵 Threads Paylaşımı: ✅ AÇIK"
+      "text": "✅ AÇIK 🧵 Threads Paylaşımı"
      }
     ],
     [
      {
       "callback_data": "ayarsec:kanal_fb:false",
-      "text": "📘 Facebook Paylaşımı: ✅ AÇIK"
+      "text": "✅ AÇIK 📘 Facebook Paylaşımı"
      }
     ],
     [
      {
       "callback_data": "ayarsec:kanal_tiktok:false",
-      "text": "🎵 TikTok Paylaşımı: ✅ AÇIK"
+      "text": "✅ AÇIK 🎵 TikTok Paylaşımı"
      }
     ],
     [
      {
       "callback_data": "ayarsec:kanal_youtube:false",
-      "text": "▶️ YouTube Shorts: ✅ AÇIK"
+      "text": "✅ AÇIK ▶️ YouTube Shorts"
+     }
+    ],
+    [
+     {
+      "callback_data": "ayarsec:kanal_linkedin:false",
+      "text": "✅ AÇIK 💼 LinkedIn Paylaşımı"
      }
     ],
     [
      {
       "callback_data": "panel",
-      "text": "← Kontrol Paneline Dön"
+      "text": "← Kontrol Paneli"
      }
     ]
    ]
@@ -9595,6 +9681,20 @@
     ],
     [
      {
+      "callback_data": "foto_odak:sol",
+      "text": "⬅️ Sol"
+     },
+     {
+      "callback_data": "foto_odak:orta",
+      "text": "🎯 Orta"
+     },
+     {
+      "callback_data": "foto_odak:sag",
+      "text": "➡️ Sağ"
+     }
+    ],
+    [
+     {
       "callback_data": "foto_ilk",
       "text": "↩️ İlk Görsele Dön"
      },
@@ -9679,6 +9779,12 @@
       {
        "callback_data": "ayar",
        "text": "⚙️ Çalışma Ayarları"
+      }
+     ],
+     [
+      {
+       "callback_data": "mod_degistir",
+       "text": "🤖 Mod Değiştir (Oto/Onaylı)"
       }
      ],
      [
@@ -9773,6 +9879,12 @@
       {
        "callback_data": "ayar",
        "text": "⚙️ Çalışma Ayarları"
+      }
+     ],
+     [
+      {
+       "callback_data": "mod_degistir",
+       "text": "🤖 Mod Değiştir (Oto/Onaylı)"
       }
      ],
      [
@@ -10029,6 +10141,20 @@
       {
        "callback_data": "foto_editoryal",
        "text": "🏛️ Saf Editoryal Zemin"
+      }
+     ],
+     [
+      {
+       "callback_data": "foto_odak:sol",
+       "text": "⬅️ Sol"
+      },
+      {
+       "callback_data": "foto_odak:orta",
+       "text": "🎯 Orta"
+      },
+      {
+       "callback_data": "foto_odak:sag",
+       "text": "➡️ Sağ"
       }
      ],
      [
@@ -11854,9 +11980,9 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 112\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 112\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #112 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<TMP>/cizim/gonderi_112_besleme_1.jpg\", \"<TMP>/cizim/gonderi_112_besleme_2.jpg\", \"<TMP>/cizim/gonderi_112_besleme_3.jpg\", \"<TMP>/cizim/gonderi_112_besleme_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
+   "{\"args\": [[\"<TMP>/cizim/gonderi_112_story_1.jpg\", \"<TMP>/cizim/gonderi_112_story_2.jpg\", \"<TMP>/cizim/gonderi_112_story_3.jpg\", \"<TMP>/cizim/gonderi_112_story_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 112\", \"caption_threads\": \"Threads 112\", \"format_turu\": \"dailybrief\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"dailybrief\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 112, \"ig_caption\": \"Açıklama 112\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 112\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 112\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/112\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 112\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
-   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 112\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_112\", \"format_turu\": \"dailybrief\", \"olcu\": \"besleme\"}}"
+   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 112\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_112\", \"format_turu\": \"dailybrief\", \"olcu\": \"story\"}}"
   ],
   "db": {
    "ayarlar": [],
@@ -11871,8 +11997,8 @@
      "manset": "Manşet 112",
      "onem_puani": 8,
      "planlanan_yayin": null,
-     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_112_besleme_1.jpg\", \"https://cdn.example.com/gonderi_112_besleme_2.jpg\", \"https://cdn.example.com/gonderi_112_besleme_3.jpg\", \"https://cdn.example.com/gonderi_112_besleme_4.jpg\"]",
-     "slayt_yollari": "[\"<TMP>/cizim/gonderi_112_besleme_1.jpg\", \"<TMP>/cizim/gonderi_112_besleme_2.jpg\", \"<TMP>/cizim/gonderi_112_besleme_3.jpg\", \"<TMP>/cizim/gonderi_112_besleme_4.jpg\"]",
+     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_112_story_1.jpg\", \"https://cdn.example.com/gonderi_112_story_2.jpg\", \"https://cdn.example.com/gonderi_112_story_3.jpg\", \"https://cdn.example.com/gonderi_112_story_4.jpg\"]",
+     "slayt_yollari": "[\"<TMP>/cizim/gonderi_112_story_1.jpg\", \"<TMP>/cizim/gonderi_112_story_2.jpg\", \"<TMP>/cizim/gonderi_112_story_3.jpg\", \"<TMP>/cizim/gonderi_112_story_4.jpg\"]",
      "threads_metin": "Threads 112",
      "video_yolu": null
     }
@@ -11924,20 +12050,20 @@
     },
     "dosyalar": {
      "photo_0": [
-      "gonderi_112_besleme_1.jpg",
-      23748
+      "gonderi_112_story_1.jpg",
+      33268
      ],
      "photo_1": [
-      "gonderi_112_besleme_2.jpg",
-      23748
+      "gonderi_112_story_2.jpg",
+      33268
      ],
      "photo_2": [
-      "gonderi_112_besleme_3.jpg",
-      23748
+      "gonderi_112_story_3.jpg",
+      33268
      ],
      "photo_3": [
-      "gonderi_112_besleme_4.jpg",
-      23748
+      "gonderi_112_story_4.jpg",
+      33268
      ]
     },
     "metot": "sendMediaGroup",
@@ -11952,20 +12078,20 @@
      "media": [
       {
        "caption": "📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 Manşet 112",
-       "media": "https://cdn.example.com/gonderi_112_besleme_1.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_1.jpg",
        "parse_mode": "HTML",
        "type": "photo"
       },
       {
-       "media": "https://cdn.example.com/gonderi_112_besleme_2.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_2.jpg",
        "type": "photo"
       },
       {
-       "media": "https://cdn.example.com/gonderi_112_besleme_3.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_3.jpg",
        "type": "photo"
       },
       {
-       "media": "https://cdn.example.com/gonderi_112_besleme_4.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_4.jpg",
        "type": "photo"
       }
      ]
@@ -11982,20 +12108,20 @@
      "media": [
       {
        "caption": "📰 <b>EDM GÜNDEM // HABER BÜLTENİ (4:5)</b>\n📌 Manşet 112",
-       "media": "https://cdn.example.com/gonderi_112_besleme_1.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_1.jpg",
        "parse_mode": "HTML",
        "type": "photo"
       },
       {
-       "media": "https://cdn.example.com/gonderi_112_besleme_2.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_2.jpg",
        "type": "photo"
       },
       {
-       "media": "https://cdn.example.com/gonderi_112_besleme_3.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_3.jpg",
        "type": "photo"
       },
       {
-       "media": "https://cdn.example.com/gonderi_112_besleme_4.jpg",
+       "media": "https://cdn.example.com/gonderi_112_story_4.jpg",
        "type": "photo"
       }
      ]
@@ -12015,7 +12141,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12033,7 +12159,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12051,7 +12177,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12069,7 +12195,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12087,7 +12213,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12105,7 +12231,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12123,7 +12249,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12141,7 +12267,7 @@
     "dosyalar": {
      "photo": [
       "image.jpg",
-      23748
+      33268
      ]
     },
     "metot": "sendPhoto",
@@ -12160,11 +12286,11 @@
        [
         {
          "callback_data": "kanal:ig",
-         "text": "⬜ IG"
+         "text": "✅ IG"
         },
         {
          "callback_data": "kanal:reels",
-         "text": "✅ Reels"
+         "text": "⬜ Reels"
         },
         {
          "callback_data": "kanal:story",
@@ -12251,7 +12377,7 @@
        ]
       ]
      },
-     "text": "⚠️ <b>Slayt görselleri Telegram'a iletilemedi.</b>\nGörselleri buradan açabilirsiniz: <a href=\"https://cdn.example.com/gonderi_112_besleme_1.jpg\">1. slayt</a> · <a href=\"https://cdn.example.com/gonderi_112_besleme_2.jpg\">2. slayt</a> · <a href=\"https://cdn.example.com/gonderi_112_besleme_3.jpg\">3. slayt</a> · <a href=\"https://cdn.example.com/gonderi_112_besleme_4.jpg\">4. slayt</a>\n<i>Yayınlamadan önce görselleri kontrol edin; sorun varsa “🔄 Sıfırdan Yeniden Üret”.</i>\n\n✅ <b>Denetim temiz</b>\n\n📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#112)</b>\n\n<b>Kategori:</b> GÜNCEL HABER &amp; GÜNDEM\n<b>Dayanak:</b> TMK md. 732\n<b>Manşet:</b> Manşet 112\n<b>Önem Puanı:</b> 8/10\n<b>İçerik No:</b> #112\n\n<pre><code>[instagram] Açıklama 112</code></pre>\n\n<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
+     "text": "⚠️ <b>Slayt görselleri Telegram'a iletilemedi.</b>\nGörselleri buradan açabilirsiniz: <a href=\"https://cdn.example.com/gonderi_112_story_1.jpg\">1. slayt</a> · <a href=\"https://cdn.example.com/gonderi_112_story_2.jpg\">2. slayt</a> · <a href=\"https://cdn.example.com/gonderi_112_story_3.jpg\">3. slayt</a> · <a href=\"https://cdn.example.com/gonderi_112_story_4.jpg\">4. slayt</a>\n<i>Yayınlamadan önce görselleri kontrol edin; sorun varsa “🔄 Sıfırdan Yeniden Üret”.</i>\n\n✅ <b>Denetim temiz</b>\n\n📰 <b>GÜNCEL HABER BÜLTENİ ONAY BEKLİYOR (#112)</b>\n\n<b>Kategori:</b> GÜNCEL HABER &amp; GÜNDEM\n<b>Dayanak:</b> TMK md. 732\n<b>Manşet:</b> Manşet 112\n<b>Önem Puanı:</b> 8/10\n<b>İçerik No:</b> #112\n\n<pre><code>[instagram] Açıklama 112</code></pre>\n\n<i>Bu içeriği onaylıyor musunuz? Kanalları seçip tek tıkla yayınlayabilirsiniz:</i>"
     },
     "metot": "sendMessage",
     "zaman_asimi": 25
@@ -12263,9 +12389,9 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 105\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 105\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #105 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<TMP>/cizim/gonderi_105_besleme_1.jpg\", \"<TMP>/cizim/gonderi_105_besleme_2.jpg\", \"<TMP>/cizim/gonderi_105_besleme_3.jpg\", \"<TMP>/cizim/gonderi_105_besleme_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
+   "{\"args\": [[\"<TMP>/cizim/gonderi_105_story_1.jpg\", \"<TMP>/cizim/gonderi_105_story_2.jpg\", \"<TMP>/cizim/gonderi_105_story_3.jpg\", \"<TMP>/cizim/gonderi_105_story_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 105\", \"caption_threads\": \"Threads 105\", \"format_turu\": \"dailybrief\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"dailybrief\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 105, \"ig_caption\": \"Açıklama 105\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 105\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 105\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/105\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 105\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
-   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 105\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_105\", \"format_turu\": \"dailybrief\", \"olcu\": \"besleme\"}}"
+   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 105\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_105\", \"format_turu\": \"dailybrief\", \"olcu\": \"story\"}}"
   ],
   "db": {
    "ayarlar": [],
@@ -12280,8 +12406,8 @@
      "manset": "Manşet 105",
      "onem_puani": 8,
      "planlanan_yayin": null,
-     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_105_besleme_1.jpg\", \"https://cdn.example.com/gonderi_105_besleme_2.jpg\", \"https://cdn.example.com/gonderi_105_besleme_3.jpg\", \"https://cdn.example.com/gonderi_105_besleme_4.jpg\"]",
-     "slayt_yollari": "[\"<TMP>/cizim/gonderi_105_besleme_1.jpg\", \"<TMP>/cizim/gonderi_105_besleme_2.jpg\", \"<TMP>/cizim/gonderi_105_besleme_3.jpg\", \"<TMP>/cizim/gonderi_105_besleme_4.jpg\"]",
+     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_105_story_1.jpg\", \"https://cdn.example.com/gonderi_105_story_2.jpg\", \"https://cdn.example.com/gonderi_105_story_3.jpg\", \"https://cdn.example.com/gonderi_105_story_4.jpg\"]",
+     "slayt_yollari": "[\"<TMP>/cizim/gonderi_105_story_1.jpg\", \"<TMP>/cizim/gonderi_105_story_2.jpg\", \"<TMP>/cizim/gonderi_105_story_3.jpg\", \"<TMP>/cizim/gonderi_105_story_4.jpg\"]",
      "threads_metin": "Threads 105",
      "video_yolu": null
     }
@@ -12355,20 +12481,20 @@
     },
     "dosyalar": {
      "photo_0": [
-      "gonderi_105_besleme_1.jpg",
-      23748
+      "gonderi_105_story_1.jpg",
+      33268
      ],
      "photo_1": [
-      "gonderi_105_besleme_2.jpg",
-      23748
+      "gonderi_105_story_2.jpg",
+      33268
      ],
      "photo_2": [
-      "gonderi_105_besleme_3.jpg",
-      23748
+      "gonderi_105_story_3.jpg",
+      33268
      ],
      "photo_3": [
-      "gonderi_105_besleme_4.jpg",
-      23748
+      "gonderi_105_story_4.jpg",
+      33268
      ]
     },
     "metot": "sendMediaGroup",
@@ -12387,11 +12513,11 @@
        [
         {
          "callback_data": "kanal:ig",
-         "text": "⬜ IG"
+         "text": "✅ IG"
         },
         {
          "callback_data": "kanal:reels",
-         "text": "✅ Reels"
+         "text": "⬜ Reels"
         },
         {
          "callback_data": "kanal:story",
@@ -12489,7 +12615,7 @@
  "onay_eksik_icerik_bildirilir": {
   "cagrilar": [
    "{\"args\": [{\"caption_instagram\": \"Açıklama 117\", \"caption_threads\": \"Threads 117\", \"format_turu\": \"dailybrief\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"dailybrief\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 117, \"ig_caption\": \"Açıklama 117\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 117\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 117\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/117\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 117\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
-   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 117\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_117\", \"format_turu\": \"dailybrief\", \"olcu\": \"besleme\"}}"
+   "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"dailybrief\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 117\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_117\", \"format_turu\": \"dailybrief\", \"olcu\": \"story\"}}"
   ],
   "db": {
    "ayarlar": [],
@@ -12558,9 +12684,9 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 108\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 108\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #108 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<TMP>/cizim/gonderi_108_besleme_1.jpg\", \"<TMP>/cizim/gonderi_108_besleme_2.jpg\", \"<TMP>/cizim/gonderi_108_besleme_3.jpg\", \"<TMP>/cizim/gonderi_108_besleme_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
+   "{\"args\": [[\"<TMP>/cizim/gonderi_108_story_1.jpg\", \"<TMP>/cizim/gonderi_108_story_2.jpg\", \"<TMP>/cizim/gonderi_108_story_3.jpg\", \"<TMP>/cizim/gonderi_108_story_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 108\", \"caption_threads\": \"Threads 108\", \"manset\": \"Manşet 108\", \"spot\": \"Ham özet\"}, {\"detay_metni\": null, \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 108, \"ig_caption\": \"Açıklama 108\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 108\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 108\", \"orijinal_ozet\": \"Ham özet\", \"orijinal_url\": \"edm://altin/108\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 108\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
-   "{\"args\": [{\"detay_maddeleri\": null, \"format_turu\": \"dailybrief\", \"gorsel_yolu\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Manşet 108\", \"spot\": \"Ham özet\", \"uzman_notu\": null}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_108\", \"format_turu\": \"dailybrief\", \"olcu\": \"besleme\"}}"
+   "{\"args\": [{\"detay_maddeleri\": null, \"format_turu\": \"dailybrief\", \"gorsel_yolu\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Manşet 108\", \"spot\": \"Ham özet\", \"uzman_notu\": null}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_108\", \"format_turu\": \"dailybrief\", \"olcu\": \"story\"}}"
   ],
   "db": {
    "ayarlar": [],
@@ -12575,8 +12701,8 @@
      "manset": "Manşet 108",
      "onem_puani": 8,
      "planlanan_yayin": null,
-     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_108_besleme_1.jpg\", \"https://cdn.example.com/gonderi_108_besleme_2.jpg\", \"https://cdn.example.com/gonderi_108_besleme_3.jpg\", \"https://cdn.example.com/gonderi_108_besleme_4.jpg\"]",
-     "slayt_yollari": "[\"<TMP>/cizim/gonderi_108_besleme_1.jpg\", \"<TMP>/cizim/gonderi_108_besleme_2.jpg\", \"<TMP>/cizim/gonderi_108_besleme_3.jpg\", \"<TMP>/cizim/gonderi_108_besleme_4.jpg\"]",
+     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_108_story_1.jpg\", \"https://cdn.example.com/gonderi_108_story_2.jpg\", \"https://cdn.example.com/gonderi_108_story_3.jpg\", \"https://cdn.example.com/gonderi_108_story_4.jpg\"]",
+     "slayt_yollari": "[\"<TMP>/cizim/gonderi_108_story_1.jpg\", \"<TMP>/cizim/gonderi_108_story_2.jpg\", \"<TMP>/cizim/gonderi_108_story_3.jpg\", \"<TMP>/cizim/gonderi_108_story_4.jpg\"]",
      "threads_metin": "Threads 108",
      "video_yolu": null
     }
@@ -12650,20 +12776,20 @@
     },
     "dosyalar": {
      "photo_0": [
-      "gonderi_108_besleme_1.jpg",
-      23748
+      "gonderi_108_story_1.jpg",
+      33268
      ],
      "photo_1": [
-      "gonderi_108_besleme_2.jpg",
-      23748
+      "gonderi_108_story_2.jpg",
+      33268
      ],
      "photo_2": [
-      "gonderi_108_besleme_3.jpg",
-      23748
+      "gonderi_108_story_3.jpg",
+      33268
      ],
      "photo_3": [
-      "gonderi_108_besleme_4.jpg",
-      23748
+      "gonderi_108_story_4.jpg",
+      33268
      ]
     },
     "metot": "sendMediaGroup",
@@ -12682,11 +12808,11 @@
        [
         {
          "callback_data": "kanal:ig",
-         "text": "⬜ IG"
+         "text": "✅ IG"
         },
         {
          "callback_data": "kanal:reels",
-         "text": "✅ Reels"
+         "text": "⬜ Reels"
         },
         {
          "callback_data": "kanal:story",
@@ -13121,9 +13247,9 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 109\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": null, \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #109 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<TMP>/cizim/gonderi_109_besleme_1.jpg\", \"<TMP>/cizim/gonderi_109_besleme_2.jpg\", \"<TMP>/cizim/gonderi_109_besleme_3.jpg\", \"<TMP>/cizim/gonderi_109_besleme_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
+   "{\"args\": [[\"<TMP>/cizim/gonderi_109_story_1.jpg\", \"<TMP>/cizim/gonderi_109_story_2.jpg\", \"<TMP>/cizim/gonderi_109_story_3.jpg\", \"<TMP>/cizim/gonderi_109_story_4.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 109\", \"caption_threads\": \"Threads 109\", \"manset\": \"Başlık\", \"spot\": \"\"}, {\"detay_metni\": null, \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 109, \"ig_caption\": \"Açıklama 109\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": null, \"onem_puani\": 8, \"orijinal_baslik\": \"Başlık\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/109\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 109\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
-   "{\"args\": [{\"detay_maddeleri\": null, \"format_turu\": \"dailybrief\", \"gorsel_yolu\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Başlık\", \"spot\": \"\", \"uzman_notu\": null}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_109\", \"format_turu\": \"dailybrief\", \"olcu\": \"besleme\"}}",
+   "{\"args\": [{\"detay_maddeleri\": null, \"format_turu\": \"dailybrief\", \"gorsel_yolu\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Başlık\", \"spot\": \"\", \"uzman_notu\": null}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_109\", \"format_turu\": \"dailybrief\", \"olcu\": \"story\"}}",
    "{\"args\": [{\"detay_metni\": null, \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 109, \"ig_caption\": \"Açıklama 109\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": null, \"onem_puani\": 8, \"orijinal_baslik\": \"Başlık\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/109\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 109\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"generate_text.haber_metinleri_uret\", \"kwargs\": {}}"
   ],
   "db": {
@@ -13139,8 +13265,8 @@
      "manset": null,
      "onem_puani": 8,
      "planlanan_yayin": null,
-     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_109_besleme_1.jpg\", \"https://cdn.example.com/gonderi_109_besleme_2.jpg\", \"https://cdn.example.com/gonderi_109_besleme_3.jpg\", \"https://cdn.example.com/gonderi_109_besleme_4.jpg\"]",
-     "slayt_yollari": "[\"<TMP>/cizim/gonderi_109_besleme_1.jpg\", \"<TMP>/cizim/gonderi_109_besleme_2.jpg\", \"<TMP>/cizim/gonderi_109_besleme_3.jpg\", \"<TMP>/cizim/gonderi_109_besleme_4.jpg\"]",
+     "slayt_urlleri": "[\"https://cdn.example.com/gonderi_109_story_1.jpg\", \"https://cdn.example.com/gonderi_109_story_2.jpg\", \"https://cdn.example.com/gonderi_109_story_3.jpg\", \"https://cdn.example.com/gonderi_109_story_4.jpg\"]",
+     "slayt_yollari": "[\"<TMP>/cizim/gonderi_109_story_1.jpg\", \"<TMP>/cizim/gonderi_109_story_2.jpg\", \"<TMP>/cizim/gonderi_109_story_3.jpg\", \"<TMP>/cizim/gonderi_109_story_4.jpg\"]",
      "threads_metin": "Threads 109",
      "video_yolu": null
     }
@@ -13214,20 +13340,20 @@
     },
     "dosyalar": {
      "photo_0": [
-      "gonderi_109_besleme_1.jpg",
-      23748
+      "gonderi_109_story_1.jpg",
+      33268
      ],
      "photo_1": [
-      "gonderi_109_besleme_2.jpg",
-      23748
+      "gonderi_109_story_2.jpg",
+      33268
      ],
      "photo_2": [
-      "gonderi_109_besleme_3.jpg",
-      23748
+      "gonderi_109_story_3.jpg",
+      33268
      ],
      "photo_3": [
-      "gonderi_109_besleme_4.jpg",
-      23748
+      "gonderi_109_story_4.jpg",
+      33268
      ]
     },
     "metot": "sendMediaGroup",
@@ -13246,11 +13372,11 @@
        [
         {
          "callback_data": "kanal:ig",
-         "text": "⬜ IG"
+         "text": "✅ IG"
         },
         {
          "callback_data": "kanal:reels",
-         "text": "✅ Reels"
+         "text": "⬜ Reels"
         },
         {
          "callback_data": "kanal:story",
@@ -13489,11 +13615,11 @@
        [
         {
          "callback_data": "kanal:ig",
-         "text": "⬜ IG"
+         "text": "✅ IG"
         },
         {
          "callback_data": "kanal:reels",
-         "text": "✅ Reels"
+         "text": "⬜ Reels"
         },
         {
          "callback_data": "kanal:story",
@@ -14252,7 +14378,7 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 119\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 119\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #119 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"119\", \"--hedef\", \"ig,threads,story,tiktok,facebook\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"119\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_119_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 119\", \"caption_threads\": \"Threads 119\", \"format_turu\": \"sozluk\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"sozluk\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 119, \"ig_caption\": \"Açıklama 119\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 119\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 119\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/119\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 119\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 119\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_119\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}"
@@ -14455,7 +14581,7 @@
  },
  "onay_oto_yayin_basarili": {
   "cagrilar": [
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"118\", \"--hedef\", \"ig,threads,story,tiktok,facebook\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"118\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_118_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 118\", \"caption_threads\": \"Threads 118\", \"format_turu\": \"sozluk\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"sozluk\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 118, \"ig_caption\": \"Açıklama 118\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 118\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 118\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/118\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 118\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 118\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_118\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}"
@@ -16403,6 +16529,12 @@
        ],
        [
         {
+         "callback_data": "mod_degistir",
+         "text": "🤖 Mod Değiştir (Oto/Onaylı)"
+        }
+       ],
+       [
+        {
          "callback_data": "saglik_testi",
          "text": "🩺 Sistem Sağlık Testi"
         },
@@ -16519,6 +16651,12 @@
         {
          "callback_data": "ayar",
          "text": "⚙️ Çalışma Ayarları"
+        }
+       ],
+       [
+        {
+         "callback_data": "mod_degistir",
+         "text": "🤖 Mod Değiştir (Oto/Onaylı)"
         }
        ],
        [
@@ -16640,6 +16778,12 @@
         {
          "callback_data": "ayar",
          "text": "⚙️ Çalışma Ayarları"
+        }
+       ],
+       [
+        {
+         "callback_data": "mod_degistir",
+         "text": "🤖 Mod Değiştir (Oto/Onaylı)"
         }
        ],
        [
@@ -18181,7 +18325,7 @@
  "slot_sozluk": {
   "cagrilar": [
    "{\"args\": [\"SZ-001\"], \"islev\": \"konu_bankasi.kullanildi_isaretle\", \"kwargs\": {\"format_turu\": \"sozluk\", \"haber_id\": 1}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_1_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"sozluk_arsivi.sonraki_kart\", \"kwargs\": {\"haric\": []}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Sözlük Kartı // SZ-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"İPOTEK nedir?\", \"spot\": \"Spot metni\", \"terim\": \"İPOTEK\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_1\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}",
@@ -18780,7 +18924,7 @@
  "sozluk_karti_anahtar_db_acik": {
   "cagrilar": [
    "{\"args\": [\"SZ-001\"], \"islev\": \"konu_bankasi.kullanildi_isaretle\", \"kwargs\": {\"format_turu\": \"sozluk\", \"haber_id\": 1}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_1_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"sozluk_arsivi.sonraki_kart\", \"kwargs\": {\"haric\": []}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Sözlük Kartı // SZ-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"İPOTEK nedir?\", \"spot\": \"Spot metni\", \"terim\": \"İPOTEK\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_1\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}",
@@ -20282,7 +20426,7 @@
  "sozluk_karti_otomatik": {
   "cagrilar": [
    "{\"args\": [\"SZ-001\"], \"islev\": \"konu_bankasi.kullanildi_isaretle\", \"kwargs\": {\"format_turu\": \"sozluk\", \"haber_id\": 1}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_1_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"sozluk_arsivi.sonraki_kart\", \"kwargs\": {\"haric\": []}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Sözlük Kartı // SZ-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"İPOTEK nedir?\", \"spot\": \"Spot metni\", \"terim\": \"İPOTEK\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_1\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}",

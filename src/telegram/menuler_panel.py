@@ -128,6 +128,9 @@ def kontrol_merkezi_menusu(duraklatildi: bool = False, kalan_sure: str = "") -> 
                 {"text": "⚙️ Çalışma Ayarları", "callback_data": "ayar"},
             ],
             [
+                {"text": "🤖 Mod Değiştir (Oto/Onaylı)", "callback_data": "mod_degistir"},
+            ],
+            [
                 {"text": "🩺 Sistem Sağlık Testi", "callback_data": "saglik_testi"},
                 duraklat_butonu,
             ],

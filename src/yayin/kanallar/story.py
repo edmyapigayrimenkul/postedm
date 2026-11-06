@@ -45,8 +45,9 @@ def story_kapagi_uret(detay: dict | None, haber: dict | None, ref_id: object, tu
             veri["foto_yolu"] = haber["gorsel_url"]
         fmt = str(veri.get("format_turu") or "").lower()
         bicim = veri.get("bicim")
+        bicim_kucuk = str(bicim or "").lower()
         if fmt in ("", "reels", "otorite"):
-            fmt = ""  # asıl biçim `bicim` alanında
+            fmt = bicim_kucuk if bicim_kucuk in (_HABER_BICIMLERI + _YENI_FORMATLAR) else ""
         onek = f"story_{ref_id}"
         if fmt in _HABER_BICIMLERI or (not fmt and bicim in ("haber", "B5")):
             slaytlar = yeni_formatlar.slaytlari_uret(veri, format_turu="dailybrief", cikti_onek=onek, olcu="story")
@@ -74,8 +75,19 @@ def _story_gorseli_hazirla(b: YayinBaglami) -> str | None:
     story_dosya.parent.mkdir(parents=True, exist_ok=True)
     hazir_yol = None
 
+    # 0. Öncelik: Onaylanan ana kapak zaten 1080x1920 ise sıfırdan çizme (Instabot standardı)
+    if b.slayt_yollari and Path(b.slayt_yollari[0]).exists():
+        try:
+            with Image.open(b.slayt_yollari[0]) as o_im:
+                if o_im.size == (1080, 1920):
+                    if b.public_urller and str(b.public_urller[0]).startswith("http"):
+                        return str(b.public_urller[0])
+                    hazir_yol = Path(b.slayt_yollari[0])
+        except Exception as oe:  # noqa: BLE001
+            log.debug("Onaylı 9:16 kapak kontrolü: %s", oe)
+
     # 1. Öncelik: Video için üretilmiş native 9:16 dikey kapak varsa doğrudan kullan
-    if b.dikey_slaytlar and Path(b.dikey_slaytlar[0]).exists():
+    if (not hazir_yol or not hazir_yol.exists()) and b.dikey_slaytlar and Path(b.dikey_slaytlar[0]).exists():
         try:
             with Image.open(b.dikey_slaytlar[0]) as d_im:
                 if d_im.size == (1080, 1920):

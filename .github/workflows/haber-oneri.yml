@@ -64,11 +64,12 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # Elle = Telegram düğmesi/komutu ya da workflow_dispatch. Zamanlanmış koşu (GitHub cron'u ya da Worker'ın zamanli yükü) elle sayılmaz.
           ELLE: ${{ github.event_name != 'schedule' && github.event.client_payload.zamanli != true }}
+          OFFSET: ${{ github.event.client_payload.offset || 0 }}
         run: |
           if [ "$ELLE" = "true" ]; then
-            python scripts/hazirla.py --slot haber
+            python scripts/hazirla.py --slot haber --offset "$OFFSET"
           else
-            python scripts/hazirla.py --haber-oneri
+            python scripts/hazirla.py --haber-oneri --offset "$OFFSET"
           fi
 
       - name: Zamanlı işi işaretle

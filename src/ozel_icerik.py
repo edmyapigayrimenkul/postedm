@@ -78,20 +78,31 @@ def linkten_icerik_uret(url: str) -> Optional[int]:
 
     konu_dict = {
         "kod": konu_kodu,
-        "sutun": "S1",
-        "kategori": "TAPU_VE_HUKUK",
-        "baslik": baslik[:90],
+        "sutun": "S4",
+        "kategori": "SEKTOREL_HABER_VE_ANALIZ",
+        "baslik": baslik[:110],
         "aci": govde[:3000],
-        "bicim": "B1",
+        "bicim": "B5",
         "onem_puani": 9,
         "kaynak": kaynak,
+        "_dayanak": govde[:600],
+        "_makale": govde[:8000],
     }
 
-    telegram_bot.mesaj_gonder("🤖 <b>Gemini içerik üretiyor...</b>\n<i>Otorite slaytları ve açıklama metni hazırlanıyor...</i>")
-    veri = generate_text.konudan_uret(konu_dict)
+    telegram_bot.mesaj_gonder("🤖 <b>Gemini haber hazırlıyor...</b>\n<i>EDM haber slaytları ve açıklama metni hazırlanıyor...</i>")
+    veri = generate_text.konudan_uret(konu_dict, format_turu="dailybrief")
     if not veri:
         telegram_bot.mesaj_gonder("❌ Gemini içerik üretemedi.")
         return None
+    veri.setdefault("format_turu", "dailybrief")
+    veri.setdefault("bicim", "B5")
+    if gorsel_url:
+        veri["gorsel_url"] = gorsel_url
+        veri["gorsel_yolu"] = gorsel_url
+        veri["foto_yolu"] = gorsel_url
+    veri["orijinal_url"] = url
+    veri["kaynak"] = kaynak
+    kategori_kodu = veri.get("kategori_kodu") or "SEKTOREL_HABER_VE_ANALIZ"
 
     # Veritabanına kaydet (Varsa güncelle, yoksa ekle)
     manset = generate_text.manset_birlestir(veri) or baslik
@@ -100,7 +111,7 @@ def linkten_icerik_uret(url: str) -> Optional[int]:
         if var:
             haber_id = var["id"]
             conn.execute(
-                """UPDATE haberler SET kaynak = ?, orijinal_baslik = ?, orijinal_ozet = ?,
+                """UPDATE haberler SET kaynak = ?, orijinal_baslik = ?, orijinal_ozet = ?, makale_metni = ?,
                                       eklenme_tarihi = ?, onem_puani = ?, kategori = ?,
                                       manset = ?, detay_metni = ?, ig_caption = ?,
                                       threads_metin = ?, durum = 'onay_bekliyor', gorsel_url = ?,
@@ -110,9 +121,10 @@ def linkten_icerik_uret(url: str) -> Optional[int]:
                     kaynak,
                     baslik,
                     govde[:400],
+                    govde[:8000],
                     simdi,
                     9,
-                    "TAPU_VE_HUKUK",
+                    kategori_kodu,
                     manset,
                     json.dumps(veri, ensure_ascii=False),
                     veri.get("caption_instagram", ""),
@@ -123,18 +135,19 @@ def linkten_icerik_uret(url: str) -> Optional[int]:
             )
         else:
             cur = conn.execute(
-                """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+                """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, makale_metni,
                                          eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
                                          ig_caption, threads_metin, durum, gorsel_url)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor', ?)""",
                 (
                     kaynak,
                     baslik,
                     url,
                     govde[:400],
+                    govde[:8000],
                     simdi,
                     9,
-                    "TAPU_VE_HUKUK",
+                    kategori_kodu,
                     manset,
                     json.dumps(veri, ensure_ascii=False),
                     veri.get("caption_instagram", ""),
@@ -257,34 +270,40 @@ def arastir_icerik_uret(konu: str) -> Optional[int]:
         "kategori": "TAPU_VE_HUKUK",
         "baslik": baslik,
         "aci": f"{konu}\n\nDetaylı Analiz & Hukuki Çerçeve:\n{arastirma_ozeti}"[:3000],
-        "bicim": "B1",
+        "bicim": "B5",
         "onem_puani": 10,
-        "kaynak": "EDM Hukuk & Araştırma Masası",
+        "kaynak": "EDM Araştırma Masası",
         # Araştırma modelin hafızasından yazılıyor; atıfları güncel metne bağlanmazsa
         # eski hukuk denetimsiz geçer (önalım "2 yıl", kentsel dönüşüm "üçte iki").
         "mevzuat": mevzuat.atif_satiri(arastirma_ozeti),
+        "_dayanak": arastirma_ozeti[:600],
+        "_makale": arastirma_ozeti[:8000],
     }
 
-    veri = generate_text.konudan_uret(konu_dict)
+    veri = generate_text.konudan_uret(konu_dict, format_turu="dailybrief")
     if not veri:
         telegram_bot.mesaj_gonder("❌ Araştırma sonucundan içerik üretilemedi.")
         return None
+    veri.setdefault("format_turu", "dailybrief")
+    veri.setdefault("bicim", "B5")
+    veri["kaynak"] = "EDM Araştırma Masası"
 
     manset = generate_text.manset_birlestir(veri) or baslik
     with db._baglanti_al() as conn:
         cur = conn.execute(
-            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, makale_metni,
                                      eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
                                      ig_caption, threads_metin, durum)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor')""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor')""",
             (
                 "EDM Araştırma Masası",
                 baslik,
                 orijinal_url,
                 arastirma_ozeti[:400],
+                arastirma_ozeti[:8000],
                 simdi,
                 10,
-                "TAPU_VE_HUKUK",
+                veri.get("kategori_kodu") or "TAPU_VE_HUKUK",
                 manset,
                 json.dumps(veri, ensure_ascii=False),
                 veri.get("caption_instagram", ""),
@@ -339,36 +358,42 @@ def dosya_icerik_uret(konu: str) -> Optional[int]:
 
     konu_dict = {
         "kod": konu_kodu,
-        "sutun": "S2",
+        "sutun": "S3",
         "kategori": "IMAR_VE_MEVZUAT",
         "baslik": baslik,
         "aci": f"{konu}\n\nSüreç ve Dosya Detayları:\n{analiz}"[:3000],
-        "bicim": "B1",
+        "bicim": "B5",
         "onem_puani": 10,
         "kaynak": "EDM Dosya Masası",
         "mevzuat": mevzuat.atif_satiri(analiz),
+        "_dayanak": analiz[:600],
+        "_makale": analiz[:8000],
     }
 
-    veri = generate_text.konudan_uret(konu_dict)
+    veri = generate_text.konudan_uret(konu_dict, format_turu="dailybrief")
     if not veri:
         telegram_bot.mesaj_gonder("❌ Dosya analizi içeriği üretilemedi.")
         return None
+    veri.setdefault("format_turu", "dailybrief")
+    veri.setdefault("bicim", "B5")
+    veri["kaynak"] = "EDM Dosya Masası"
 
     manset = generate_text.manset_birlestir(veri) or baslik
     with db._baglanti_al() as conn:
         cur = conn.execute(
-            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet,
+            """INSERT INTO haberler (kaynak, orijinal_baslik, orijinal_url, orijinal_ozet, makale_metni,
                                      eklenme_tarihi, onem_puani, kategori, manset, detay_metni,
                                      ig_caption, threads_metin, durum)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor')""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'onay_bekliyor')""",
             (
                 "EDM Dosya Masası",
                 baslik,
                 orijinal_url,
                 analiz[:400],
+                analiz[:8000],
                 simdi,
                 10,
-                "IMAR_VE_MEVZUAT",
+                veri.get("kategori_kodu") or "IMAR_VE_MEVZUAT",
                 manset,
                 json.dumps(veri, ensure_ascii=False),
                 veri.get("caption_instagram", ""),

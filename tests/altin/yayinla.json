@@ -793,7 +793,7 @@
   "db": {
    "haberler": [
     {
-     "detay_metni": "{\"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\", \"foto_kaynak\": \"ai\", \"foto_degistir\": true}",
+     "detay_metni": "{\"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\", \"foto_sira\": 1, \"foto_kaynak\": \"ai\", \"foto_degistir\": true}",
      "durum": "onay_bekliyor",
      "facebook_post_id": null,
      "id": 749,
@@ -834,7 +834,7 @@
   "db": {
    "haberler": [
     {
-     "detay_metni": "{\"foto_degistir\": true}",
+     "detay_metni": "{\"foto_sira\": 1, \"foto_degistir\": true}",
      "durum": "onay_bekliyor",
      "facebook_post_id": null,
      "id": 755,
@@ -972,7 +972,7 @@
   "db": {
    "haberler": [
     {
-     "detay_metni": "{\"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\", \"foto_kaynak\": \"stok\", \"foto_degistir\": true}",
+     "detay_metni": "{\"format_turu\": \"dailybrief\", \"manset\": \"Detay manşeti\", \"spot\": \"Spot\", \"foto_sira\": 1, \"foto_kaynak\": \"stok\", \"foto_degistir\": true}",
      "durum": "onay_bekliyor",
      "facebook_post_id": null,
      "id": 748,

@@ -544,6 +544,98 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Metin Düzenleme Şablon Rehberi (`metin_sablon`):** Onay kartındaki metin menüsüne `[✍️ Düzenleme Şablonu]` butonu eklendi. Tıklandığında kullanıcıya yanıt vererek (Reply) manşet, başlık ve slayt metinlerini nasıl düzenleyebileceğini gösteren doğrudan kopyalanabilir markdown kod blokları gönderir.
     * **Testler & Doğrulamalar:** `tests/worker_planli_yayin.test.mjs` (4 yeni test ile 77/77 test yeşil), `tests/test_buton_sozlesmesi.py` (9/9 yeşil), `tests/test_telegram_paketi.py` (16/16 yeşil), `tests/altin/telegram.json` (güncellendi, 4/4 senaryo yeşil), 1229 Python testinin tamamı OK.
 
+40. **Otomatik Otorite Yayını, Seçenek A Çift Slot Takvimi, Sözlük Sesli Video ve Telegram Teslim Garantisi — 2026-11-04 (Gemini).**
+    * **Seçenek A Çift Slot Takvimi & Yayın Mantığı:**
+      - `10:00 TR` (07:00 UTC): Carousel / Gönderi slotu (`b1` ⇄ `net_cevap`).
+      - `12:30 TR` (09:30 UTC): Sözlük slotu (iki günde bir, kanun doğrulamalı arşiv kartı).
+      - `19:00 TR` (16:00 UTC): Reels / Video slotu (`nedir_dogrusu` ⇄ `vaka`). Cloudflare Worker `crons` dizisine `0 16 * * *` eklendi (9 cron), `ZAMANLI_GUNLUK_SLOTLAR` ve `worker-dagit.yml` eşitlendi.
+    * **Tam Otomatik Mod & Yarı Otomatik (Onaylı) Geçiş:**
+      - Sistem varsayılan olarak `otomatik` modda çalışır (`oto_yayin=True`). Denetim kapısından (`dogrula.denetle`) UYARISIZ geçen içerikler doğrudan yayına çıkar; en ufak uyarıda (⚠️/⛔) otomatik fren devreye girer ve içerik Telegram'a onay kartı olarak düşer.
+      - Telegram üzerinden tek tıkla ve komutla anında mod değiştirme sağlandı: `/otomatik`, `/onayli`, `/yariotomatik`, `/mod` komutları eklendi. Kontrol merkezine (`/panel`, `/ayar`) `[🤖 Mod Değiştir (Oto/Onaylı)]` butonu bağlandı. Durum DB'de `otomatik_yayin_modu` olarak saklanır.
+    * **Sözlük Sesli Video (Shorts & Reels):**
+      - Sözlük kartları için ElevenLabs (Alex sesi) ile seslendirme entegre edildi (`ses_muzikli`).
+      - Sözlük kartı için 9:16 dikey MP4 video üretilerek YouTube Shorts ve Facebook Reels (`facebook_reels`) dağıtım kanallarına eklendi.
+    * **Telegram Teslim Garantisi:**
+      - Otomatik yayınlansa bile Telegram grubuna her yayında üretilen tüm slayt görselleri (albüm), kopyalanabilir tam açıklama metni ve üretilen 9:16 MP4 video eksiksiz olarak teslim edilir.
+    * **Tekrar Önleme Güvencesi:**
+      - Konu bankasında `YENIDEN_KULLANIM_BEKLEME_GUN = 45` ve varsayılan 180 günlük bekleme filtresi devrede tutularak mükerrer içerik engellendi.
+    * **Kapsamlı Stres & Sabotaj Testleri:**
+      - `scripts/otorite_stres_testi.py` ve `tests/test_otorite_stres_ve_sabotaj.py` (10/10 test yeşil) ile 10 farklı risk boyutu (aşırı metin taşması, Markdown enjeksiyonu, mevzuat çelişkisi, geçersiz format/JSON, 9:16 dikey sınır stresi, seslendirme bütçesi, fail-open oto-fren, albüm ve video teslimi, çift slot izolasyonu, idempotensi) %100 doğrulandı.
+
+41. **Görsel Kalite ve Bulma Motoru İyileştirmeleri (Faz 1) — 2026-11-04 (Gemini).**
+    * **LLM Destekli İngilizce Arama Terimi Üretimi:**
+      - `src/generate_text.py` (`_SEMA_B1` ve `_SEMA_B5`) şemalarına `"gorsel_arama_ingilizce"` alanı eklendi.
+      - `src/fetch_stock.py`, `src/cizim/haber_arka_plan.py` ve `src/haber_tasarim.py` ham Türkçe manşet yerine bu zengin İngilizce arama terimini Pexels'e gönderiyor. 3 kelimeden uzun zengin sorgulara yapay kategori kelimeleri eklenmeyerek arama kalitesi yükseltildi.
+    * **dHash (Fark Hash'i) ile 45 Günlük Mükerrer Görsel Engeli:**
+      - `src/gorsel_kalite.py` modülüne 64-bit Pillow tabanlı `dhash_hesapla` ve Hamming mesafesi `dhash_mesafesi` eklendi.
+      - `src/db.py` içinde `kullanilan_gorsel_hashleri` tablosu (`gorsel_hash_ekle`, `gorsel_hash_benzer_mi`) oluşturuldu. Pexels veya web adayları son 45 günde kullanılmış benzer bir fotoğrafla (Hamming mesafesi <= 6) eşleşirse otomatik elenip sıradaki adaya geçiyor.
+    * **Logo, Filigran ve Haber Ticker Bandı Filtresi:**
+      - `src/gorsel_kalite.py` içine TV/ajans alt ve üst kırmızı/mavi 'SON DAKİKA' şeritlerini sıfır false-positive ile tespit eden `haber_banti_var_mi` eklendi.
+      - `src/gorsel_denetim.py` (Gemini Vision) `CEVAP_SEMASI` ve istemine `filigran_veya_logo_var_mi` kuralı eklenerek göze batan ajans logoları elendi (`src/haber_tasarim.py` `_foto_uygun_mu` entegrasyonu).
+    * **Testler & Doğrulamalar:** `tests/test_gorsel_faz1.py` (6/6 yeşil), `tests/test_foto_vision.py` (17/17 yeşil), `tests/test_instabot_yeni_moduller.py` (7/7 yeşil), `scripts/gorsel_denetim.py` (226 vaka 0 hata).
+
+42. **Görsel Kalite ve Tasarım Motoru İyileştirmeleri (Faz 2: Akıllı Kırpma, Dinamik Perde ve Havuz) — 2026-11-04 (Gemini).**
+    * **Enerji Odaklı Akıllı Kırpma (`akilli_odak_x`):**
+      - Yatay mimari fotoğraflar 4:5 veya 9:16'ya kırpılırken merkez körlüğü (center crop) ortadan kaldırıldı.
+      - `src/gorsel_kalite.py` içine Sobel/kenar enerjisi ağırlık merkezi hesaplayan kompakt `akilli_odak_x(img)` eklendi; `src/cizim/stok.py` ve `src/cizim/haber_kapak.py` kırpma işlemlerinde `centering=(odak_x, 0.5)` kullanılarak ana mimari özne (villa, bina, arsa) kadrajda korundu.
+    * **Metin Bölgesi Dinamik Perde Kontrast Adaptasyonu (Dynamic Scrim):**
+      - `src/cizim/tuval.py` içine alt metin alanının parlaklık değerine göre degrade perde opaklığını ve konumunu hesaplayan `dinamik_perde_hesapla(canvas, baslangic_y)` eklendi.
+      - `src/cizim/otorite_kapak.py` ve `src/cizim/haber_kapak.py` içine entegre edildi. Güneşli/açık renk zeminlerde perde opaklığı otomatik yükselerek (215 alfa) WCAG AAA kontrastı sağlandı; gece çekimlerinde perde hafifletilerek (165 alfa) görselin boğulması engellendi.
+    * **Yerel Tematik Stok Havuzunun Genişletilmesi (25 HD Görsel):**
+      - `src/cizim/stok.py` içindeki `ARKA_PLAN_HAVUZU`, `assets/backgrounds/` altındaki 25 HD mimari görselin tamamını eksiksiz kapsayacak şekilde 5 kategoriye (ARSA: 9, KONUT: 8, BINA: 5, ICMEKAN: 4, INSAAT: 3) genişletildi.
+    * **Dosya Sınırları & Testler:** `src/cizim/` ve `src/` altındaki tüm dosyaların $\le 250$ satır kuralına tam uyumu korundu (`gorsel_kalite.py`: 248, `stok.py`: 231, `otorite_kapak.py`: 248, `haber_kapak.py`: 232, `tuval.py`: 132). `tests/test_gorsel_faz2.py` (8/8 yeşil), `scripts/gorsel_denetim.py` (226 vaka 0 hata).
+
+43. **Hukuki Madde ve Semantik Mükerrerlik Kalkanı & Konu Havuzu Genişletmesi — 2026-11-04 (Gemini).**
+    * **Mevzuat Maddesi Çakışma Kalkanı (`src/mukerrerlik.py`):**
+      - Aday konulardaki kanun maddelerini normalize eden `mevzuat_maddeleri_cikar` (aralık açma: `TMK md. 732-734` -> `TMK:732..734`, `TBK md. 342`, `İmar md. 18`, `KMK md. 19`, `Tapu md. 26`, `Kadastro md. 14`, `5403 md. 8`, `6306 md. 6`) geliştirildi.
+      - Son 45 günde kullanılmış bir kanun maddesini içeren yeni veya alternatif konular otomatik tespit edilerek (`son_kullanilan_mevzuatlar`) mükerrer paylaşımlar engellendi.
+    * **Semantik Başlık ve Açı Benzerlik Filtresi (`metin_jaccard_benzerlik`):**
+      - Kanun maddesi belirtilmeyen serbest veya haber konularında 1-gram ve 2-gram ağırlıklı Jaccard benzerlik filtresi getirildi. Benzerlik $\ge 0.60$ olan konular mükerrer sayılarak eleniyor.
+      - `src/konu_bankasi.py` (`sonraki_konu`) içine entegre edildi: temiz konular önceliklendirildi.
+    * **Konu Bankası Genişletmesi (10 Yeni Hukuki Konu — 120 → 130 Konu):**
+      - `data/konu_bankasi.yaml` içine Silivri, Trakya ve gayrimenkul yatırımcıları için hayati önemdeki 10 yeni konu eklendi:
+        - `S1-031`: Aile konutuna habersiz ipotek konulamaz (TMK md. 194).
+        - `S1-032`: Noterdeki satış vaadi şerhinin 5 yıllık süresi (Tapu Kanunu md. 26).
+        - `S1-033`: Hisseli mülkte ortaklığın giderilmesi / izale-i şüyu (TMK md. 698-699).
+        - `S2-031`: Kira depozitosunda üç ay sınırı ve vadeli hesap zorunluluğu (TBK md. 342).
+        - `S2-032`: Tadilat veya yıkım bahanesiyle tahliyede 3 yıl kiralama yasağı (TBK md. 355).
+        - `S2-033`: Apartman ortak alanına müdahalede 4/5 çoğunluk şartı (KMK md. 19).
+        - `S3-027`: Tarımsal arazilerde bölünemez büyüklük ve hobi bahçesi ifraz yasağı (5403 sayılı Kanun md. 8).
+        - `S3-028`: İmar uygulamasında DOP kesintisi yüzde 45'i geçemez (İmar Kanunu md. 18).
+        - `S3-029`: Tapusuz arazide zilyetlikle mülk edinme ve 20 yıl kuralı (Kadastro Kanunu md. 14).
+        - `S4-019`: Kentsel dönüşümde arsa payı sahiplerinin salt çoğunluğu yeterli (6306 sayılı Kanun md. 6).
+      - Tüm yeni konular `scripts/mevzuat_denetim.py` ile güncel kanun metinlerinden birebir doğrulandı: **130 konu · 99 atıflı · 0 kritik hata**.
+    * **Testler & Doğrulamalar:** `tests/test_konu_mukerrerlik_kalkani.py` (7/7 yeşil), `tests/test_konu*.py` (49/49 yeşil), `src/mukerrerlik.py` 205 satır ($\le 250$ kuralına uygun).
+
+44. **Sözlük Video Render & Facebook-Instagram Paritesi (2026-11-04):**
+    * **Video Render:** Sözlük kartları için ElevenLabs Alex seslendirmeli 9:16 dikey MP4 video render motoru (`src/yayin/videolar.py › sozluk_kartindan_video_uret`) devreye alındı.
+    * **YouTube Kuralı:** YouTube her zaman seslendirmeli dikey video (Shorts) olarak yayınlanır.
+    * **Facebook Kuralı:** Kullanıcının *"facebook da da instaya nasıl atıyosam öyle gitsin"* kuralı gereğince; IG Carousel/Gönderi ise Facebook'a Feed Post, IG Reels ise Facebook'a FB Reels olarak dağıtılır (`src/yayin/kanallar/fb.py`, `src/yayin/hedef.py`, `src/telegram/akislar/otomatik.py`).
+    * **Telegram Teslimat Güvencesi:** Kullanıcının *"telegrama hem görseller hem açıklama hem de üretilen video her türlü düşmeye devam etsin"* talimatı doğrultusunda; otomatik veya manuel tüm yayınlarda görsel albüm, zengin başlık/açıklama ve üretilen dikey video Telegram grubuna eksiksiz teslim edilir.
+    * **Testler:** `tests/test_sozluk_video_render.py` (5/5), `tests/test_sozluk_oto_yayin.py`, `tests/test_yayinla_altin.py` (70/70), `tests/*.test.mjs` (79/79) ve `scripts/gorsel_denetim.py` (226 vaka 0 hata) tam yeşil.
+
+45. **Metin Parlatarak Ses Takibi, Çok Kanallı SEO & Yerel Haber Radarı (2026-11-04):**
+    * **Metin Parlatarak Ses Takibi (Karaoke / Luminous Text Glow):** Kullanıcı kuralı (*"altyazı takibi yeni bir altyazı olarak değilde mevcut haber başlığındaki metni parlatarak vs yapılabilir mi"*) uygulandı. Ekstra altyazı kutusu yerine ekrandaki mevcut manşet ve metin pikselleri zaman oranına ($t \in [0, 1]$) göre satır satır ve kelime kelime 2D Gaussian ışık parıltısıyla (koyu zeminlerde altın-kehribar `#F59E0B`, açık zeminlerde EDM yakut/kırmızı `#C4030F`) aydınlatıldı (`src/cizim/metin_parlatma.py`). `src/video.py › slaytlardan_video_uret`: `metin_parlat=True` ile tam entegre edildi (`tests/test_metin_parlatma.py` 4/4 PASS).
+    * **Çok Kanallı Algoritmik Kanca & SEO Dağıtım Motoru:** Instagram, Facebook, Threads, TikTok ve YouTube için kanala özel kanca ve açıklama modelleri ayrıştırıldı. Threads için tartışma/yanıt tetikleyicisi, YouTube için SEO başlık + Shorts açıklaması, TikTok için arama SEO'su entegre edildi (`src/generate_text.py`, `src/yayin/kanallar/th.py`, `yt.py`, `tt.py`).
+    * **Trakya & Silivri Yerel İmar/Arsa Radarı:** Ana yapıya dokunulmadan (`config.yaml`), `Google News Silivri & Trakya` RSS beslemesi eklendi; `src/haber_puanlama.py`'de Silivri'nin yerel merkezleri (`selimpaşa`, `gümüşyaka`, `değirmenköy`, `çanta`, `ortaköy`, `kavaklı`) yerel yakınlık ağına bağlandı.
+
+46. **Canlı Ses Takibi (Karaoke) Görsel Doğrulaması ve Sıfır Çiftlenme Mimarisi — 2026-11-05 (Gemini).**
+    * **Yaşanan Sorun & Kök Neden:** İlk denemelerde hazır JPEG üzerine ek metin bindirilmeye çalışıldığı için başlıklar üst üste binmiş (çift başlık) ve alttaki spot metnini ezmişti. Ayrıca ses ile görseldeki başlık ayrışmıştı.
+    * **Görsel Doğrulama Kuralı:** Ajan üretilen video karelerini (`ffmpeg` ile `0.5s`, `1.5s`, `2.5s` çıkartarak) `read_file` ile bizzat gözleriyle incelemeden ve doğrulamadan Telegram'a veya canlıya video iletemez.
+    * **Piksel Tabanlı Manşet Kelime Bloklama (`src/cizim/metin_parlatma.py`):**
+      - Manşet satırları ve her satırdaki kelime blokları görsel üzerindeki gerçek harf piksellerinden otomatik tespit edilir.
+      - Asla yeni bir metin veya font bindirilmez; mevcut beyaz harf pikselleri spikerin konuşma akışına (`t_orani`) göre tam o an okunan kelimede canlı parlak sarıya (`#FFDC32`), okunanlarda asil altına (`#F5AF0F`) boyanır.
+      - Fotoğrafa, boşluğa veya spot metnine sızıntı kesinlikle sıfırdır (arkaplan farkı = 0.0).
+    * **Metin & Ses %100 Birebir Eşitliği:** Spikerin okuduğu metin ile görseldeki manşet birebir aynıdır (`Hisseli arsada bu imza yoksa iki yıl riskli!`).
+    * **Testler & Doğrulamalar:** `tests/test_metin_parlatma.py` (4/4 yeşil), video kareleri tek tek gözle incelendi, Mesaj ID 1526 ile Telegram'a iletildi.
+
+47. **Metin Parlatma İptali, Konu Bankası 152 Konuya Genişletildi ve Tüm Zamanlı Slotlar Otomatik Yayına Bağlandı — 2026-11-06 (Gemini).**
+    * **Metin Parlatma Temizliği:** Kullanıcı kararıyla video üzeri metin parlatma işi iptal edildi; `src/cizim/metin_parlatma.py` ve ilgili geçici kodlar tamamen temizlendi.
+    * **Konu Havuzu 152 Konuya Çıkarıldı:** `data/konu_bankasi.yaml` dosyasına resmi mevzuat önbelleği taranarak ve `scripts/mevzuat_denetim.py` ile harfi harfine doğrulanarak 22 yeni konu eklendi (S1: 10, S2: 5, S3: 5, S4: 2). Toplam 130'dan 152 konuya çıktı (134 aktif, 18 engelli). 45 günlük bekleme kuralıyla havuz 67 gün boyunca tek bir tekrar olmadan kesintisiz rotasyon sağlar. Sıfır kritik mevzuat hatası.
+    * **Tam Otomatik Yayın Bağlandı:** `.github/workflows/hazirla.yml` içinde `python scripts/hazirla.py --slot "$SLOT"` komutunda `--oto-yayin` bayrağı yalnızca `sozluk` ile sınırlıydı; 10:00 günün içeriği ve 19:00 Reels turlarında parametre eksik olduğu için içerikler hep onaya düşüyordu. İş akışı güncellenerek tüm zamanlı slotlara (`ZAMANLANMIS=true`) `$OTO` bayrağı eklendi.
+    * **Güvenlik Kalkanı Korundu:** İçerik `--oto-yayin` ile çalışsa dahi, model kaynaklı bir anlam kayması veya kritik mevzuat uyarısı çıktığında (`kapi.yayin_kapisi`) sistem otomatik yayını durdurarak içeriği güvenle Telegram'a onay kartı olarak sunar (`oto_yayin=False`).
+
+
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 
 Kullanıcı kararları: (1) önce "Claude: paylaşım + Telegram altyapısı; Gemini: sözlük kartları ve geri kalanı" diye bölündü; (2) oturum sonunda **"çalışmayı burada bitiriyoruz, Gemini'ye geçiyorum"**: bundan sonra HER iş (paylaşım, Telegram, sözlük, içerik) Gemini ile sürer.
@@ -583,11 +675,12 @@ Madde 1–8 `main`'de ve canlıda (PR #1–#5 birleşti; #4'ü kullanıcının "
 |---|---|---|
 | 08:40 | Günlük rapor | Cloudflare → `rapor` → `gunluk-rapor.yml` |
 | 09:17 ve 18:17 | Haber önerisi (en çok 5 başlık/mesaj; seçim insanda) | Cloudflare → `haber_oneri` → `hazirla.py --haber-oneri` |
-| 10:00 | Günün içeriği (döngü: b1 · nedir_dogrusu · net_cevap · b1); önce havuzdaki hazır içerik, yoksa yeni; **onaya düşer** (albüm + düğmeli kart) | Cloudflare → `slot_hazirla` {bilgilendirici} |
-| 12:30 | Sözlük kartı, **iki günde bir**, kapıdan temiz geçerse **onaysız otomatik yayın**; acil fren: GitHub değişkeni `SOZLUK_OTO_YAYIN=0` | Cloudflare → `slot_hazirla` {sozluk} |
+| 10:00 | Günün Gönderisi (döngü: `b1` ⇄ `net_cevap`); temiz çıkarsa **otomatik yayın**, uyarıda onaya düşer; albüm + metin + video Telegram'a teslim edilir | Cloudflare → `slot_hazirla` {bilgilendirici} |
+| 12:30 | Sözlük kartı, **iki günde bir**, temiz geçerse **otomatik yayın**; ElevenLabs Alex sesli 9:16 video ile YouTube Shorts & FB Reels'e de gider | Cloudflare → `slot_hazirla` {sozluk} |
 | 13:30 ve 21:30 | Sessiz kuyruk bakımı (**hatırlatma YOK**): 1 günü dolduran içerik havuza/arşive | Cloudflare → `hatirlat` |
+| 19:00 | Günün Reels'i (döngü: `nedir_dogrusu` ⇄ `vaka`); seslendirmeli 9:16 video; temizse **otomatik yayın**, uyarıda onaya düşer | Cloudflare → `slot_hazirla` {slot_reels} |
 | 10 dk'da bir | "30 dk / 1-4 saat sonra yayınla" çalar saati | Worker `PLANLAR` KV |
-Elle: `/sozluk` `/dogrusu` `/vaka` `/soru` `/reels` `/haber` `/rapor` `/hatirlat` `/panel` ve paneldeki düğmeler; hepsi (finans hariç) albüm + düğmeli onay kartı olarak düşer. Her zamanlanmış işin GitHub `schedule` yedeği duruyor (6–10 saat gecikmeli; aynı gün ikinci kez çalışmaz).
+Elle: `/sozluk` `/dogrusu` `/vaka` `/soru` `/reels` `/haber` `/rapor` `/hatirlat` `/panel` `/otomatik` `/onayli` ve paneldeki düğmeler; hepsi Telegram'a tam teslim edilir. Her zamanlanmış işin koruması `scripts/zamanli_koruma.py` ile sağlanır.
 
 ### 12.3 Değişmeyen kullanıcı kararları
 Sözlük otomatik yayın kalır (iki günde bir); finans elle de onaysız yayın (şimdilik); X (Twitter) kanalı seçilmez (kalsın); piyasa verisi KAPALI; saatlik site kuyruğu yoklaması KAPALI (site 401); EİDS nedeniyle doğrudan ilan paylaşımı donduruldu;

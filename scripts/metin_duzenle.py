@@ -102,6 +102,16 @@ def haber_metni_guncelle(
         if yeni_aciklama:
             adim["aciklama"] = yeni_aciklama
             adim["spot"] = yeni_aciklama
+    elif sira and sira > 1 and not adimlar:
+        # Haber için detay slaytı düzenleme
+        if sira == 2:
+            otorite_verisi["detay_yazisi"] = f"{yeni_baslik}\n\n{yeni_aciklama}" if yeni_aciklama else yeni_baslik
+        elif sira == 3:
+            if "sana_etkisi" in otorite_verisi:
+                otorite_verisi["sana_etkisi"] = yeni_baslik
+            else:
+                mevcut_d = otorite_verisi.get("detay_yazisi") or ""
+                otorite_verisi["detay_yazisi"] = f"{mevcut_d}\n\n{yeni_baslik}"
     else:
         # Kapak veya genel başlık güncelleme
         if format_turu == "sozluk":

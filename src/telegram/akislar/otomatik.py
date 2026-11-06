@@ -21,9 +21,11 @@ log = logging.getLogger(__name__)
 
 KOK = Path(__file__).resolve().parents[3]
 
-# Otomatik yayında kullanılan kanallar: finans bülteniyle aynı (hazirla.yml'deki sırlarla yayınlanabilenler;
-# LinkedIn sırları yalnız yayinla.yml'de var)
-OTO_YAYIN_HEDEFLERI = "ig,threads,story,tiktok,facebook,youtube"
+# Otomatik yayında kullanılan kanallar: LinkedIn hariç tüm aktif kanallar + ElevenLabs seslendirme (ses_muzikli).
+# Kullanıcı kuralı: "facebook da da instaya nasıl atıyosam öyle gitsin; youtube da her zaman içerik seslendirmeli video gidicek shorts olarak"
+OTO_YAYIN_HEDEFLERI = "ig,threads,story,tiktok,facebook,youtube,ses_muzikli"
+SOZLUK_OTO_YAYIN_HEDEFLERI = "ig,threads,story,tiktok,facebook,youtube,ses_muzikli"
+REELS_OTO_YAYIN_HEDEFLERI = "reels,threads,story,tiktok,facebook,youtube,ses_muzikli"
 
 
 def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any],
@@ -40,7 +42,13 @@ def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any],
         detay = {}
 
     is_sozluk = fmt in ("sozluk", "sozluk_uret") or str(haber.get("kaynak", "")).startswith("EDM Sözlük Kartı")
-    baslik_etiket = "📖 <b>EDM EMLAK SÖZLÜĞÜ // OTOMATİK YAYIN</b>" if is_sozluk else "🚀 <b>OTOMATİK YAYIN</b>"
+    is_reels = fmt == "reels" or str(haber.get("kategori", "")).upper() == "REELS"
+    if is_sozluk:
+        baslik_etiket = "📖 <b>EDM EMLAK SÖZLÜĞÜ // OTOMATİK YAYIN</b>"
+    elif is_reels:
+        baslik_etiket = "🎬 <b>EDM REELS // OTOMATİK YAYIN</b>"
+    else:
+        baslik_etiket = "🚀 <b>OTOMATİK YAYIN</b>"
 
     try:
         album.medya_grubu_gonder(
@@ -51,9 +59,16 @@ def _oto_yayinla(haber_id: int, slayt_yollari: List[str], haber: Dict[str, Any],
     except Exception as e:  # noqa: BLE001 — görünürlük için; yayını durdurmaz
         log.warning("Otomatik yayın görseli Telegram'a iletilemedi: %s", e)
 
-    # Sözlük kartı statik bilgi kartıdır; YouTube Shorts video kanalı hariç tutulur:
-    hedefler = "ig,threads,story,tiktok,facebook" if is_sozluk else OTO_YAYIN_HEDEFLERI
-    komut = [sys.executable, str(KOK / "scripts/yayinla.py"), "--tur", "haber", "--id", str(haber_id), "--hedef", hedefler]
+    # Sözlük kartı IG 4:5 + Story + Threads yanında ElevenLabs sesli YouTube Shorts, Facebook Reels ve TikTok Video olarak çıkar;
+    # Reels ise 9:16 seslendirmeli dikey video modunda çıkar:
+    tur_arg = "reels" if is_reels else "haber"
+    if is_sozluk:
+        hedefler = SOZLUK_OTO_YAYIN_HEDEFLERI
+    elif is_reels:
+        hedefler = REELS_OTO_YAYIN_HEDEFLERI
+    else:
+        hedefler = OTO_YAYIN_HEDEFLERI
+    komut = [sys.executable, str(KOK / "scripts/yayinla.py"), "--tur", tur_arg, "--id", str(haber_id), "--hedef", hedefler]
     log.info("İçerik #%s otomatik yayınlanıyor: %s", haber_id, komut)
     try:
         calisma = subprocess.run(komut, cwd=KOK, capture_output=True, text=True, timeout=15 * 60)

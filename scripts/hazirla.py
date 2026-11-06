@@ -86,8 +86,8 @@ def main() -> None:
     parser.add_argument("--durum", action="store_true", help="Konu bankası doluluk durumunu yazar ve çıkar")
     parser.add_argument("--konu-madenle", action="store_true",
                         help="Rehber haberleri konu bankası adaylarına çevirir")
-    parser.add_argument("--slot", choices=["bilgilendirici", "sozluk", "haber"],
-                        help="bilgilendirici = günün tek içeriği; sozluk = elle sözlük; haber = haber önerileri")
+    parser.add_argument("--slot", choices=["bilgilendirici", "sozluk", "haber", "reels"],
+                        help="bilgilendirici = günün içeriği; sozluk = sözlük; reels = akşam dikey Reels; haber = haber önerileri")
     parser.add_argument("--format", dest="format_turu", choices=["sozluk", "nedir_dogrusu", "vaka", "net_cevap", "b1", "reels"],
                         help="Belirli bir formatta otorite içeriği üretir")
     parser.add_argument("--reels", action="store_true", help="Günün konusundan dikey Reels videosu üretir")
@@ -97,6 +97,8 @@ def main() -> None:
                         help="Mevcut bir haber/içerik kaydının formatını değiştirip yeniden sunar")
     parser.add_argument("--haber-oneri", action="store_true",
                         help="Taze haberleri tarihleriyle Telegram'a öneri olarak düşürür (içerik üretmez)")
+    parser.add_argument("--offset", type=int, default=0,
+                        help="Haber öneri havuzunda başlangıç ofseti")
     parser.add_argument("--haberden", dest="haberden_id",
                         help="Önerilen haber(ler)i triyajdan geçirip içerik olarak onaya sunar: 272 ya da 272,273")
     args = parser.parse_args()
@@ -156,7 +158,7 @@ def main() -> None:
 
     if args.haber_oneri:
         from src import haber_oneri
-        haber_oneri.onerileri_gonder(tara=True)
+        haber_oneri.onerileri_gonder(tara=True, offset=args.offset)
         return
 
     if args.konu:
@@ -170,8 +172,8 @@ def main() -> None:
         if zamanlanmis and telegram_bot.zamanli_slot_bugun_yapildi(args.slot):
             log.info("Zamanlanmış '%s' turu bugün zaten çalışmış; yedek tetik atlanıyor.", args.slot)
             return
-        log.info("Günlük slot çalıştırılıyor: '%s' (Otomatik yayın: %s)...", args.slot, args.oto_yayin)
-        basarili = telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot, oto_yayin=args.oto_yayin)
+        log.info("Günlük slot çalıştırılıyor: '%s' (Otomatik yayın: %s, Ofset: %d)...", args.slot, args.oto_yayin, args.offset)
+        basarili = telegram_bot.slot_icerigi_hazirla_ve_sun(slot=args.slot, oto_yayin=args.oto_yayin, offset=args.offset)
         if zamanlanmis and basarili:
             telegram_bot.zamanli_slot_isaretle(args.slot)
         return

@@ -24,11 +24,11 @@ def haber_onayina_sun(haber_id: int, yeniden_ciz: bool = True, oto_yayin: bool =
 
     `oto_yayin=True`: kapıdan uyarısız geçerse onay beklenmeden yayınlanır; yayın ya da koşullardan biri
     tutmazsa içerik her zamanki gibi onaya düşer (otomatik yol hiçbir zaman içeriği kaybettirmez)."""
-    from ... import yeni_formatlar
+    from ... import make_image, yeni_formatlar
     try:
         return _haber_onayina_sun(haber_id, yeniden_ciz=yeniden_ciz, oto_yayin=oto_yayin)
-    except yeni_formatlar.EksikIcerik as e:
-        log.warning("İçerik #%s eksik alan yüzünden durdu: %s", haber_id, e)
+    except (yeni_formatlar.EksikIcerik, make_image.TasmaHatasi) as e:
+        log.warning("İçerik #%s eksik alan / taşma yüzünden durdu: %s", haber_id, e)
         kapi._eksik_icerik_bildir(haber_id, e)
         return False
 

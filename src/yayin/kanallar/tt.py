@@ -20,6 +20,10 @@ def yayinla(b: YayinBaglami, ilerleme: Ilerleme) -> KanalSonucu:
     ilerleme.bildir(KANAL, "⏳ Yükleniyor...")
     s = KanalSonucu(KANAL, etiket="❌ Hata")
     res: dict = {}
+    tt_caption = (
+        (b.detay.get("caption_tiktok") if isinstance(b.detay, dict) and b.detay.get("caption_tiktok") else "")
+        or b.caption
+    )
     if b.reels_modu or b.ses_modu:
         tt_video = b.v_yolu if (b.v_yolu and b.v_yolu.exists()) else b.sesli_video_yolu
         if tt_video and tt_video.exists():
@@ -39,7 +43,7 @@ def yayinla(b: YayinBaglami, ilerleme: Ilerleme) -> KanalSonucu:
             s.ekle("🎵 <b>TikTok:</b> Video üretilemedi ✗", HATA)
     else:
         try:
-            res = tiktok.foto_yayinla(b.public_urller, baslik=b.baslik, hazir_video_yolu=b.v_yolu, aciklama=b.caption)
+            res = tiktok.foto_yayinla(b.public_urller, baslik=b.baslik, hazir_video_yolu=b.v_yolu, aciklama=tt_caption)
             if res.get("durum"):
                 if res.get("taslak_mi"):
                     s.ekle(TASLAK_FOTO, BILGI)

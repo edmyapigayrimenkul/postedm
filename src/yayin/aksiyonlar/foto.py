@@ -28,8 +28,9 @@ def _adaylari_sun(haber: Dict[str, Any], ref_id: str) -> bool:
     # 1. Aday: Gerçek / Kardeş Haber Fotoğrafı
     h1 = dict(haber)
     h1["foto_kaynak"] = "gercek"
+    h1.pop("saf_editoryal", None)
     p1 = c_dir / f"aday_{ref_id}_1.jpg"
-    make_image.haber_dailybrief_slayti_ciz(h1, cikti_yolu=p1, sayfa_no="1/3")
+    make_image.haber_dailybrief_slayti_ciz(h1, cikti_yolu=p1, sayfa_no="1/3", olcu="story")
     if p1.exists():
         aday_slaytlari.append(p1)
         etiketler.append("1️⃣ Basın / Kardeş Haber Görseli")
@@ -37,8 +38,9 @@ def _adaylari_sun(haber: Dict[str, Any], ref_id: str) -> bool:
     # 2. Aday: Mimari Stok Fotoğrafı (Pexels)
     h2 = dict(haber)
     h2["foto_kaynak"] = "stok"
+    h2.pop("saf_editoryal", None)
     p2 = c_dir / f"aday_{ref_id}_2.jpg"
-    make_image.haber_dailybrief_slayti_ciz(h2, cikti_yolu=p2, sayfa_no="2/3")
+    make_image.haber_dailybrief_slayti_ciz(h2, cikti_yolu=p2, sayfa_no="2/3", olcu="story")
     if p2.exists():
         aday_slaytlari.append(p2)
         etiketler.append("2️⃣ Mimari Stok Fotoğraf")
@@ -46,8 +48,9 @@ def _adaylari_sun(haber: Dict[str, Any], ref_id: str) -> bool:
     # 3. Aday: EDM Kurumsal Mimari Pafta Tasarımı
     h3 = dict(haber)
     h3["saf_editoryal"] = True
+    h3.pop("foto_kaynak", None)
     p3 = c_dir / f"aday_{ref_id}_3.jpg"
-    make_image.haber_dailybrief_slayti_ciz(h3, cikti_yolu=p3, sayfa_no="3/3")
+    make_image.haber_dailybrief_slayti_ciz(h3, cikti_yolu=p3, sayfa_no="3/3", olcu="story")
     if p3.exists():
         aday_slaytlari.append(p3)
         etiketler.append("3️⃣ EDM Kurumsal Pafta Tasarımı")
@@ -87,6 +90,10 @@ def foto(istek: Istek) -> None:
         return
     detay = json.loads(haber["detay_metni"]) if haber.get("detay_metni") else {}
 
+    # İlk görsel URL'sini yedekle (asla kaybolmasın)
+    if not detay.get("ilk_gorsel_url") and haber.get("gorsel_url"):
+        detay["ilk_gorsel_url"] = haber["gorsel_url"]
+
     # 3 Farklı Aday Sunma İstemi
     if hedef == "foto_adaylar" and _adaylari_sun(haber, ref_id):
         return
@@ -108,16 +115,36 @@ def foto(istek: Istek) -> None:
         detay.pop("foto_kaynak", None)
         detay.pop("saf_editoryal", None)
         detay.pop("foto_degistir", None)
+        detay.pop("odak_x_yuzde", None)
+        detay.pop("foto_sira", None)
+        if detay.get("ilk_gorsel_url"):
+            detay["gorsel_url"] = detay["ilk_gorsel_url"]
+        for p_dir in (config.yol_al("data/output/gonderiler"), config.yol_al("data/output")):
+            cp = p_dir / f"haber_foto_{ref_id}.jpg"
+            if cp.exists():
+                try:
+                    cp.unlink()
+                except OSError:
+                    pass
+    elif hedef in ("foto_odak:sol", "foto_odak:orta", "foto_odak:sag"):
+        if hedef == "foto_odak:sol":
+            detay["odak_x_yuzde"] = 20
+        elif hedef == "foto_odak:sag":
+            detay["odak_x_yuzde"] = 80
+        else:
+            detay["odak_x_yuzde"] = 50
     elif hedef == "foto_editoryal":
         detay["saf_editoryal"] = True
-    elif hedef == "foto_stok":
-        detay["foto_kaynak"] = "stok"
-        detay["foto_degistir"] = True
-    elif hedef == "foto_ai":
-        detay["foto_kaynak"] = "ai"
-        detay["foto_degistir"] = True
-    elif hedef == "foto_gercek":
-        detay["foto_kaynak"] = "gercek"
+        detay.pop("foto_kaynak", None)
+    elif hedef in ("foto_stok", "foto_ai", "foto_gercek", "foto_degistir"):
+        detay.pop("saf_editoryal", None)
+        detay["foto_sira"] = int(detay.get("foto_sira") or 0) + 1
+        if hedef == "foto_stok":
+            detay["foto_kaynak"] = "stok"
+        elif hedef == "foto_ai":
+            detay["foto_kaynak"] = "ai"
+        elif hedef == "foto_gercek":
+            detay["foto_kaynak"] = "gercek"
         detay["foto_degistir"] = True
     else:
         detay["foto_degistir"] = True

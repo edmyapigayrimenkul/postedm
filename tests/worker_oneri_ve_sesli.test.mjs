@@ -75,7 +75,7 @@ const oneriKlavyesi = (secili = []) => [
   [272, 273, 274].map((id, i) => ({ text: (secili.includes(id) ? "✅" : "") + ["1️⃣", "2️⃣", "3️⃣"][i], callback_data: `sec:${id}` })),
   [272, 273, 274].map((id, i) => ({ text: `🔍 ${i + 1}`, callback_data: `incele:${id}` })),
   [{ text: `▶️ Hazırla (${secili.length})`, callback_data: "hazirla_secilenler" }],
-  [{ text: "❌ Hiçbiri", callback_data: "oneri_gec" }],
+  [{ text: "🔄 Başka Öner", callback_data: "oneri_baska:3" }, { text: "❌ Hiçbiri", callback_data: "oneri_gec" }],
 ];
 
 const kanallar = (acik) => [
@@ -128,6 +128,15 @@ test("🔍 ve dokunulabilir /incele_272 mevcut inceleme yoluna gider; bozuk kiml
 test("Hiçbiri düğmeleri kaldırır, Actions harcamaz", async () => {
   await tikla("oneri_gec", oneriKlavyesi());
   assert.equal(dispatchler.length, 0);
+  assert.deepEqual(cbler(sonKlavye()), ["noop"]);
+});
+
+test("Başka Öner yeni adayları ofset ile dispatch eder", async () => {
+  await tikla("oneri_baska:5", oneriKlavyesi());
+  assert.equal(dispatchler.length, 1);
+  assert.equal(dispatchler[0].event_type, "haber_oneri");
+  assert.equal(dispatchler[0].client_payload.offset, 5);
+  assert.equal(dispatchler[0].client_payload.elle, true);
   assert.deepEqual(cbler(sonKlavye()), ["noop"]);
 });
 

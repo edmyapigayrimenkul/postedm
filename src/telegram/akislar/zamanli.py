@@ -26,7 +26,7 @@ def _tr_bugun() -> str:
 # Yeni slot eklerken Worker'daki ZAMANLI_ISLER tablosu ve ilgili workflow'un ZAMANLI_SLOT ifadesi aynı adı kullanmalı
 # (tests/test_zamanli_isler.py üçünü karşılaştırır).
 ZAMANLI_GUNLUK_SLOTLAR = (
-    "bilgilendirici", "sozluk",
+    "bilgilendirici", "sozluk", "reels",
     "hatirlat_ogle", "hatirlat_aksam",
     "haber_oneri_sabah", "haber_oneri_aksam",
     "rapor",

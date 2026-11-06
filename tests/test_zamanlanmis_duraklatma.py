@@ -62,7 +62,7 @@ class TestDuraklatma(unittest.TestCase):
 
     def test_duraklatilmamissa_zamanlanmis_slot_calisir(self):
         slot, _, _ = self._calistir(["--slot", "bilgilendirici"], duraklatildi=False, zamanlanmis=True)
-        slot.assert_called_once_with(slot="bilgilendirici", oto_yayin=False)
+        slot.assert_called_once_with(slot="bilgilendirici", oto_yayin=False, offset=0)
 
     def test_elle_reels_duraklatmayi_asar_zamanlanmis_asmaz(self):
         _, _, reels = self._calistir(["--reels"], zamanlanmis=False)
