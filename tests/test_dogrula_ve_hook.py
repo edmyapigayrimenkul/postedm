@@ -117,6 +117,32 @@ class TestKancaKesilmez(unittest.TestCase):
         if hook:
             self.assertNotEqual(f"{hook.get('t1', '')} {hook.get('t2', '')}".strip(), "KEMERBURGAZ 3. ETAP İMZALAR ATILDI")
 
+    def test_kurumsal_edm_cta_yerel_bag_sayilmaz(self):
+        """EDM Yapı'nın Silivri ve Trakya kurumsal kapanış imzası zorlama yerel bağ değildir.
+        Gövdedeki uydurma yerel bağlar ise yakalanmaya devam eder."""
+        brief = {"mevzuat": "Takasbank Protokolü", "yerel": None, "veri_kaynagi": None}
+        # 1. Kurumsal CTA içeren genel içerik: YEREL BAĞ uyarısı çıkmamalı
+        temiz_veri = {
+            "manset": "Tapu takas sistemi",
+            "spot": "Takasbank ile güvenli alım satım rehberi.",
+            "slayt_4_cta": {
+                "slogan_parca_1": "Yatırım", "slogan_vurgu": "ORTAĞINIZ",
+                "aciklama": "Silivri ve Trakya genelindeki tüm gayrimenkul alım satım işlemlerinizde güvenli protokollerle yanınızdayız.",
+                "kaydet_metni": "Kaydedin."
+            }
+        }
+        uyarilar = dogrula.denetle(temiz_veri, brief)
+        self.assertFalse(any("YEREL BAĞ" in u for u in uyarilar), uyarilar)
+
+        # 2. Gövdede zorlama yerel bağ olan içerik: YEREL BAĞ uyarısı yakalanmalı
+        zorlama_veri = {
+            "manset": "Silivri'de tapu takas sistemi",
+            "spot": "Takasbank ile güvenli alım satım rehberi.",
+            "slayt_4_cta": {"slogan_parca_1": "Yatırım", "slogan_vurgu": "ORTAĞINIZ"}
+        }
+        uyarilar_zorlama = dogrula.denetle(zorlama_veri, brief)
+        self.assertTrue(any("YEREL BAĞ" in u for u in uyarilar_zorlama), uyarilar_zorlama)
+
 
 if __name__ == "__main__":
     unittest.main()

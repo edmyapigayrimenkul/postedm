@@ -588,16 +588,16 @@ class TestHazirlaBayragi(unittest.TestCase):
 
     def test_slot_sozluk_oto_yayin_bayragi_iletilir(self):
         slot, kart, model = self._calistir("--slot", "sozluk", "--oto-yayin")
-        slot.assert_called_once_with(slot="sozluk", oto_yayin=True)
+        slot.assert_called_once_with(slot="sozluk", oto_yayin=True, offset=0)
 
     def test_slot_sozluk_bayraksiz_otomatik_degil(self):
         slot, _, _ = self._calistir("--slot", "sozluk")
-        slot.assert_called_once_with(slot="sozluk", oto_yayin=False)
+        slot.assert_called_once_with(slot="sozluk", oto_yayin=False, offset=0)
 
     def test_gunluk_dongu_bayraksiz_otomatik_degil(self):
         # 10:00 işi: döngüdeki sözlük günü de onaya düşer; otomatik yalnız 12:30 işinde
         slot, _, _ = self._calistir("--slot", "bilgilendirici")
-        slot.assert_called_once_with(slot="bilgilendirici", oto_yayin=False)
+        slot.assert_called_once_with(slot="bilgilendirici", oto_yayin=False, offset=0)
 
     def test_format_sozluk_karta_gider(self):
         _, kart, model = self._calistir("--format", "sozluk", "--oto-yayin")

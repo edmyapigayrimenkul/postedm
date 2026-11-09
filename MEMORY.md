@@ -635,6 +635,19 @@ Tüm maddelerin testi var (`tests/test_onay_kuyrugu_ve_iade.py`, `test_hata_gunl
     * **Tam Otomatik Yayın Bağlandı:** `.github/workflows/hazirla.yml` içinde `python scripts/hazirla.py --slot "$SLOT"` komutunda `--oto-yayin` bayrağı yalnızca `sozluk` ile sınırlıydı; 10:00 günün içeriği ve 19:00 Reels turlarında parametre eksik olduğu için içerikler hep onaya düşüyordu. İş akışı güncellenerek tüm zamanlı slotlara (`ZAMANLANMIS=true`) `$OTO` bayrağı eklendi.
     * **Güvenlik Kalkanı Korundu:** İçerik `--oto-yayin` ile çalışsa dahi, model kaynaklı bir anlam kayması veya kritik mevzuat uyarısı çıktığında (`kapi.yayin_kapisi`) sistem otomatik yayını durdurarak içeriği güvenle Telegram'a onay kartı olarak sunar (`oto_yayin=False`).
 
+48. **Otomatik Yayın Kapısı False-Positive Freninin Çözülmesi (Kurumsal CTA İmzası) — 2026-11-10 (Gemini).**
+    * **Sorun:** Kullanıcı "otomatik yayın neden hala yok, ben girip paylaşıyorum hala, sadece sözlük oto paylaşılıyor" bildiriminde bulundu. 7, 8 ve 9 Kasım `slot_hazirla` GitHub Actions logları incelendi (`42576513066`, `42456971202`, `42349392395`).
+    * **Kök Neden:**
+      1. Zamanlanmış koşular `--oto-yayin` ile tetikleniyordu; ancak Gemini bilgilendirici karuselleri üretirken son slayt olan `slayt_4_cta`'ya şirketin kurumsal imzasını ("Silivri ve Trakya genelindeki tüm gayrimenkul alım satım işlemlerinizde güvenli protokollerle yanınızdayız") yazıyordu.
+      2. `src/dogrula.py` içindeki zorlama yerel bağ denetimi metinde "silivri" kelimesini görünce ve brief'te `yerel: null` olduğu için `⚠️ YEREL BAĞ UYDURULMUŞ OLABİLİR` uyarısı üretiyordu.
+      3. `src/telegram/akislar/onay.py:63` kuralı gereği (`if oto_yayin and uyarilar:`), otomatik yayın insan onayını atladığı için en ufak uyarıda otomatik yayını iptal edip onay kartına dönüştürüyordu. Sözlük ise tek kart olduğu ve CTA üretmediği için 0 uyarıyla temiz geçip otomatik yayınlanıyordu.
+      4. Ayrıca Cloudflare Worker'a 19:00 Reels cron'unun (`0 16 * * *`) 6 Kasım'da eklenmesine rağmen kullanıcının henüz "Worker Dağıt" workflow'unu çalıştırmadığı tespit edildi.
+    * **Çözüm:**
+      1. `src/dogrula.py`: `_KURUMSAL_YEREL_DESENLER` eklendi; EDM Yapı'nın Silivri ve Trakya kurumsal kapanış imzası ("Silivri ve Trakya genelindeki tüm gayrimenkul alım satım işlemlerinizde yanınızdayız", vb.) yerel bağ uydurması sayılmayarak filtrelendi; gövdede uydurulan zorlama yerel bağlar ise aynen yakalanmaya devam etti.
+      2. `src/generate_text.py`: `ORTAK_KURALLAR`'a 14. madde (Yerel Bağ Kuralı) eklendi; modelin brief'inde yerel alan olmayan genel konularda slogana ("Silivri'de arsa" gibi) uydurma yerel ad yazması yasaklandı, genel kurumsal slogan ("Yatırım / ORTAĞINIZ") kuralı getirildi.
+      3. `scripts/hazirla.py`: `offset` varsayılan (0) iken `slot_kwargs` içinde pas geçilerek test paritesi korundu.
+    * **Testler & Doğrulama:** `tests/test_dogrula_ve_hook.py`'ye kurumsal CTA testleri eklendi; 106 Python testi ve 80 Worker JS testi %100 yeşil. #1188 ve geçmiş otorite içerikleri üzerinde sıfır uyarı sağlandığı doğrulandı.
+
 
 ## 11. İŞ BÖLÜMÜ VE DEVİR — CLAUDE İLE ÇALIŞMA 2026-10-13'TE BİTTİ, DEVAM GEMİNİ İLE
 

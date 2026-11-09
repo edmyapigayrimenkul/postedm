@@ -169,6 +169,10 @@ MUTLAK KURALLAR:
 13. KAVRAMLARI KARIŞTIRMA. Kaparo (bağlanma parası) ile cayma parası, vergi ziyaı
     cezası ile kaçakçılık suçu, tüketici kredisi ile konut finansmanı farklı
     hükümlere tabidir. Brief hangisini anlatıyorsa yalnızca onu anlat.
+14. YEREL BAĞ KURALI: Brief'te "yerel" alanı tanımlanmamışsa (genel mevzuat konusuysa)
+    manşet, spot, soru, adımlar, kartlar veya sloganda Silivri, Trakya, Çatalca gibi yerel adlar KULLANMA.
+    Slogan ve kapanışta genel kurumsal sloganı ("Yatırım / ORTAĞINIZ") kullan; genel konuyu zorla yerelleştirme.
+    Yalnızca brief'te "yerel" alanı açıkça tanımlanmış konularda yerel ad geçebilir.
 
 MANŞET YAPISI (üç parça):
   manset_parca_1  → beyaz görünecek açılış. DOĞRUDAN DURUMU kurar. CÜMLE DÜZENİNDE yazılır:

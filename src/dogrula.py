@@ -201,6 +201,14 @@ _BOS_TAVSIYELER = [
 _YEREL_ADLAR = ["silivri", "trakya", "çatalca", "çorlu", "çerkezköy",
                 "tekirdağ", "edirne", "kırklareli", "selimpaşa", "alibey"]
 
+# Kurumsal EDM kapanış imzası: EDM Yapı & Gayrimenkul'ün Silivri ve Trakya'daki uzmanlığı
+# kapanış / CTA çağrısında ("Silivri ve Trakya genelindeki tüm alım satım işlemlerinizde yanınızdayız")
+# geçtiğinde bu bir yerel iddia uydurması değil, firmanın kurumsal imza cümlesidir.
+_KURUMSAL_YEREL_DESENLER = [
+    re.compile(r"(?:silivri\s+ve\s+trakya|trakya\s+ve\s+silivri)[^.!?\n]*(?:yanınızdayız|ortaklığınız|hizmetinizdeyiz|protokollerle|alım\s+satım|gayrimenkul)", re.IGNORECASE),
+    re.compile(r"silivri\s+merkezli[^.!?\n]*(?:emlak|gayrimenkul)", re.IGNORECASE),
+]
+
 _DUYGU_ATFI = re.compile(
     r"gurur|coşku|moral kaynağı|motivasyon kaynağı|sevinç kaynağı|"
     r"tüm (Türkiye|ülke|dünya)'?d[ae]", re.IGNORECASE)
@@ -749,7 +757,12 @@ def denetle(veri: Dict[str, Any], brief: Optional[Dict[str, Any]] = None) -> Lis
     if haber_olcutu:
         # Rakam ve yerel bağ haberde kaynak metne karşı ⛔ olarak denetlenir
         uyarilar.extend(haber_kaynak_denetimi(veri, brief or {}))
-    gecen_yerel = [a for a in _YEREL_ADLAR if a in kucuk]
+    # Kurumsal EDM kapanış imzası ("Silivri ve Trakya genelindeki tüm alım satım...")
+    # yerel bağ uydurması değildir; konunun içeriğinde yerel ad uydurulup uydurulmadığı denetlenir.
+    yerel_metin = kucuk
+    for desen in _KURUMSAL_YEREL_DESENLER:
+        yerel_metin = desen.sub("", yerel_metin)
+    gecen_yerel = [a for a in _YEREL_ADLAR if a in yerel_metin]
     if gecen_yerel and brief is not None and not brief.get("yerel") and not haber_olcutu:
         uyarilar.append(
             f"⚠️ YEREL BAĞ UYDURULMUŞ OLABİLİR: metinde \"{gecen_yerel[0]}\" geçiyor "

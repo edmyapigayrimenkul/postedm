@@ -4283,7 +4283,7 @@
  },
  "hizli_haber_yonlendirir": {
   "cagrilar": [
-   "{\"args\": [], \"islev\": \"haber_oneri.onerileri_gonder\", \"kwargs\": {\"bos_ise_bildir\": true, \"tara\": true}}"
+   "{\"args\": [], \"islev\": \"haber_oneri.onerileri_gonder\", \"kwargs\": {\"bos_ise_bildir\": true, \"offset\": 0, \"tara\": true}}"
   ],
   "db": {
    "ayarlar": [],
@@ -14378,7 +14378,7 @@
   "cagrilar": [
    "{\"args\": [\"Açıklama 119\"], \"islev\": \"generate_text.caption_zenginlestir\", \"kwargs\": {\"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Manşet 119\", \"platform\": \"instagram\"}}",
    "{\"args\": [\"db: haber #119 onaya sunuldu\"], \"islev\": \"db_senkron.hemen_kaydet\", \"kwargs\": {}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"119\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"119\", \"--hedef\", \"ig,threads,story,tiktok,facebook,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_119_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 119\", \"caption_threads\": \"Threads 119\", \"format_turu\": \"sozluk\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"sozluk\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 119, \"ig_caption\": \"Açıklama 119\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 119\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 119\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/119\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 119\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 119\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_119\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}"
@@ -14581,7 +14581,7 @@
  },
  "onay_oto_yayin_basarili": {
   "cagrilar": [
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"118\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"118\", \"--hedef\", \"ig,threads,story,tiktok,facebook,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_118_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [{\"caption_instagram\": \"Açıklama 118\", \"caption_threads\": \"Threads 118\", \"format_turu\": \"sozluk\", \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}, {\"detay_metni\": \"{\\\"manset\\\": \\\"Üretilen Manşet\\\", \\\"spot\\\": \\\"Spot metni\\\", \\\"kategori_kodu\\\": \\\"TAPU_VE_HUKUK\\\", \\\"caption_instagram\\\": \\\"IG açıklama\\\", \\\"caption_threads\\\": \\\"Threads metni\\\", \\\"onem_puani\\\": 8, \\\"yasal_dayanak\\\": \\\"TMK md. 732\\\", \\\"format_turu\\\": \\\"sozluk\\\"}\", \"durum\": \"yeni\", \"eklenme_tarihi\": \"<ISO>\", \"facebook_post_id\": null, \"gorsel_url\": null, \"hatirlatma_sayisi\": 0, \"id\": 118, \"ig_caption\": \"Açıklama 118\", \"instagram_post_id\": null, \"kategori\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"linkedin_post_id\": null, \"makale_metni\": null, \"manset\": \"Manşet 118\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 118\", \"orijinal_ozet\": null, \"orijinal_url\": \"edm://altin/118\", \"planlanan_yayin\": null, \"slayt_urlleri\": null, \"slayt_yollari\": null, \"sutun\": null, \"threads_metin\": \"Threads 118\", \"threads_post_id\": null, \"tiktok_publish_id\": null, \"twitter_tweet_id\": null, \"video_yolu\": null, \"yayin_tarihi\": null, \"yayin_zamani\": null, \"youtube_video_id\": null}], \"islev\": \"dogrula.icerigi_denetle\", \"kwargs\": {\"anlam\": true}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Konu Bankası // S1-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"Orijinal başlık 118\", \"spot\": \"Spot metni\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_118\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}"
@@ -18308,7 +18308,7 @@
  },
  "slot_haber": {
   "cagrilar": [
-   "{\"args\": [], \"islev\": \"haber_oneri.onerileri_gonder\", \"kwargs\": {\"bos_ise_bildir\": true, \"tara\": true}}"
+   "{\"args\": [], \"islev\": \"haber_oneri.onerileri_gonder\", \"kwargs\": {\"bos_ise_bildir\": true, \"offset\": 0, \"tara\": true}}"
   ],
   "db": {
    "ayarlar": [],
@@ -18325,7 +18325,7 @@
  "slot_sozluk": {
   "cagrilar": [
    "{\"args\": [\"SZ-001\"], \"islev\": \"konu_bankasi.kullanildi_isaretle\", \"kwargs\": {\"format_turu\": \"sozluk\", \"haber_id\": 1}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_1_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"sozluk_arsivi.sonraki_kart\", \"kwargs\": {\"haric\": []}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Sözlük Kartı // SZ-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"İPOTEK nedir?\", \"spot\": \"Spot metni\", \"terim\": \"İPOTEK\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_1\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}",
@@ -18924,7 +18924,7 @@
  "sozluk_karti_anahtar_db_acik": {
   "cagrilar": [
    "{\"args\": [\"SZ-001\"], \"islev\": \"konu_bankasi.kullanildi_isaretle\", \"kwargs\": {\"format_turu\": \"sozluk\", \"haber_id\": 1}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_1_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"sozluk_arsivi.sonraki_kart\", \"kwargs\": {\"haric\": []}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Sözlük Kartı // SZ-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"İPOTEK nedir?\", \"spot\": \"Spot metni\", \"terim\": \"İPOTEK\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_1\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}",
@@ -20426,7 +20426,7 @@
  "sozluk_karti_otomatik": {
   "cagrilar": [
    "{\"args\": [\"SZ-001\"], \"islev\": \"konu_bankasi.kullanildi_isaretle\", \"kwargs\": {\"format_turu\": \"sozluk\", \"haber_id\": 1}}",
-   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook_reels,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
+   "{\"args\": [[\"<PY>\", \"<KOK>/scripts/yayinla.py\", \"--tur\", \"haber\", \"--id\", \"1\", \"--hedef\", \"ig,threads,story,tiktok,facebook,youtube,ses_muzikli\"]], \"islev\": \"subprocess.run\", \"kwargs\": {}}",
    "{\"args\": [[\"<TMP>/cizim/gonderi_1_besleme_1.jpg\"]], \"islev\": \"upload_image.coklu_gorsel_yukle\", \"kwargs\": {}}",
    "{\"args\": [], \"islev\": \"sozluk_arsivi.sonraki_kart\", \"kwargs\": {\"haric\": []}}",
    "{\"args\": [{\"caption_instagram\": \"IG açıklama\", \"caption_threads\": \"Threads metni\", \"format_turu\": \"sozluk\", \"foto_yolu\": null, \"gorsel_yolu\": null, \"kategori_kodu\": \"TAPU_VE_HUKUK\", \"kaynak\": \"EDM Sözlük Kartı // SZ-001\", \"manset\": \"Üretilen Manşet\", \"onem_puani\": 8, \"orijinal_baslik\": \"İPOTEK nedir?\", \"spot\": \"Spot metni\", \"terim\": \"İPOTEK\", \"yasal_dayanak\": \"TMK md. 732\"}], \"islev\": \"yeni_formatlar.slaytlari_uret\", \"kwargs\": {\"cikti_onek\": \"gonderi_1\", \"format_turu\": \"sozluk\", \"olcu\": \"besleme\"}}",

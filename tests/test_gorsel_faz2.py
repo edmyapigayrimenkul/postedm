@@ -11,6 +11,7 @@ Kapsam:
 from __future__ import annotations
 
 import os
+os.environ.setdefault("POSTEDM_TEST_MODU", "1")  # üretim .env/DB'sine dokunma — bkz. src/config.py
 from pathlib import Path
 import unittest
 from unittest.mock import patch
